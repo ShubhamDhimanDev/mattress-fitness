@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/validate-framework.mjs *)",
+      "Bash(npm run lint *)",
+      "Bash(npm run format:check *)",
+      "Bash(npm run typecheck *)",
+      "Bash(npm run test *)",
+      "Bash(npm run build *)",
+      "Bash(npm run e2e *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean *)",
+      "Bash(rm -rf *)",
+      "Bash(shopify hydrogen deploy *)",
+      "Bash(npx shopify hydrogen deploy *)",
+      "Bash(shopify hydrogen env push *)",
+      "Bash(npx shopify hydrogen env push *)",
+      "Bash(shopify app deploy *)",
+      "Bash(npx shopify app deploy *)",
+      "Bash(npm publish *)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.*.local)",
+      "Read(.env.development)",
+      "Read(.env.staging)",
+      "Read(.env.production)",
+      "Edit(.env)",
+      "Edit(.env.local)",
+      "Edit(.env.*.local)",
+      "Edit(.env.development)",
+      "Edit(.env.staging)",
+      "Edit(.env.production)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "mcp__figma__use_figma",
+      "mcp__figma__generate_figma_design",
+      "mcp__figma__create_new_file",
+      "mcp__figma__upload_assets",
+      "mcp__figma__add_code_connect_map",
+      "mcp__figma__send_code_connect_mappings",
+      "mcp__figma__generate_image",
+      "mcp__figma__generate_diagram",
+      "mcp__figma__create_shader",
+      "mcp__figma__update_shader",
+      "mcp__figma__create_generative_plugin",
+      "mcp__figma__update_generative_plugin",
+      "mcp__figma__weave_run_model",
+      "mcp__figma__weave_run_tool",
+      "mcp__figma__weave_upload_asset"
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1"
+  }
+}

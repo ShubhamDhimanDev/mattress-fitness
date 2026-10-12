@@ -1,0 +1,38 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.cache/
+.react-router/
+.shopify/
+.vite/
+coverage/
+
+# Environment and secrets: never commit. Only .env.example (names, no values) is tracked.
+.env
+.env.*
+!.env.example
+
+# Claude Code personal files
+.claude/settings.local.json
+CLAUDE.local.md
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Test output and browser tooling
+test-results/
+playwright-report/
+blob-report/
+.playwright-mcp/
+
+# Logs, editors, OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+
+# Local scratch
+tmp/
+*.local

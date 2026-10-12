@@ -1,0 +1,38 @@
+# Client deliverables and handover
+
+What the SOW promises to hand over (§8, §11), how we will prove each item, and what the client must be told about life after handover. Completion of each item is evidenced in [TEST_RESULTS](../../progress/TEST_RESULTS.md) and [DECISIONS](../../progress/DECISIONS.md). Skill: [release-and-handover](../../.claude/skills/release-and-handover/SKILL.md). Phase: [phase-09](../../plans/phases/phase-09-launch-and-handover.md).
+
+## Deliverables
+
+| # | Deliverable | Requirement | Content | Acceptance evidence |
+|---|---|---|---|---|
+| H-01 | Source code in a GitHub repository owned by the client | REQ-HAND-001 | full history without secrets, README, setup and deploy docs, CI | repo ownership screenshot, secret scan result |
+| H-02 | Product import tool and the completed product sheet | REQ-HAND-002, REQ-CAT-009 | tool, sheet template, validation report format, instructions | client-side clean run |
+| H-03 | Written admin guide | REQ-HAND-003 | products, prices and sales, promotions and gift or bundle rules, offers (haul-away, protectors, add-ons), stores, homepage sections, quiz questions, FAQs, navigation, how long edits take to appear | non-developer completes each task from the guide |
+| H-04 | Training session | REQ-HAND-004 | recorded or noted session for the client's team | attendance and notes |
+| H-05 | Go-live support on launch day | REQ-HAND-005 | named engineer and channel, triage by SOW grades | launch-day log |
+| H-06 | Access and accounts inventory | supports H-01 to H-05 | every account, who owns it, which secrets exist and where (no values), renewal dates | signed inventory |
+| H-07 | Runbooks | REQ-HOST-002/003 | deploy, rollback, failed-sync handling and reconciliation, adding a store, rotating a secret | rehearsal evidence |
+| H-08 | Release notes and known limitations | all | what is live, what is not (provider approvals pending, deferred Majors), residual risks | client acknowledgement |
+| H-09 | Asset and licence provenance | NFR-007, ASM-04 | source of every image and text; confirmation of rights | provenance list |
+
+## Admin guide outline
+
+1. Where things live in Shopify admin (products, collections, metaobjects, discounts, menus, pages).
+2. Update prices, sales and products by editing the sheet and re-running the import, or in admin.
+3. Create and end promotions (gift with purchase, bundles) and how to check cart equals checkout.
+4. Manage add-on and service offers (haul-away price and maximum, comfort-guarantee protectors, matching add-ons).
+5. Manage stores and hours; set pickup locations.
+6. Edit homepage sections, promo tiles, collection FAQs and menus.
+7. Edit quiz questions and answer mappings; what a bad mapping does.
+8. Delivery zones and fees (per the decision in Q-008).
+9. Extend: what the client sees, claims are Extend's, how to read the reconciliation report.
+10. Troubleshooting: where to look first, what is cached and for how long, who to call.
+
+## What the client must understand about after handover
+
+Maintenance, hosting upkeep and new features are not included (EXC-13). Hydrogen is released on a calendar-versioned schedule (about quarterly) and needs periodic upgrades; under Option B the client or a maintenance agreement owns OS updates, security patches, backups and scaling (SOW §3). Third-party fees continue (Shopify, apps, Extend, Affirm, payment processing, Option B server). Provider-dependent features (Extend, Affirm, post-purchase) are live only once approved by those providers (SOW §13).
+
+## Exit checklist
+
+All H-items evidenced; all Blockers closed and Majors fixed or deferred in writing; secrets rotated from staging values; repository transferred; access inventory signed; client decision-maker signs handover.

@@ -1,0 +1,17 @@
+# Blockers
+
+Open items that stop or threaten work, who can clear them, and since when. Remove a row only by marking it `CLEARED` with the date and evidence. Related: [OPEN_QUESTIONS](../docs/requirements/OPEN_QUESTIONS.md), [RISKS_AND_DEPENDENCIES](../plans/RISKS_AND_DEPENDENCIES.md). Updated 2026-10-12.
+
+| ID | Blocker | Blocks | Needs | From | Since | Status |
+|---|---|---|---|---|---|---|
+| B-01 | Node 25.8.2 outside the Hydrogen CLI range | P0-09, P1-01 | Node 22 LTS | project owner | 2026-10-11 | **CLEARED 2026-10-12**: fnm 1.39.0 and Node v22.23.3 installed with owner approval (`progress/TEST_RESULTS.md` V-C1 to V-C3) |
+| B-02 | No Shopify development store | P0-03, P0-04, P0-06 verification, Phase 3A onward | A Partner account or collaborator access; the plan is known (**Basic**, owner) | project owner and client | 2026-10-11 | OPEN (plan part cleared 2026-10-12) |
+| B-03 | Extend account status, demo credentials and headless answers | Extend **go-live** and the demo-host run (not the build) | Merchant approval, credentials, written answers (Q-005) | client and Extend | 2026-10-11 | OPEN (downgraded: building proceeds on a mock, ADR-0009) |
+| B-04 | Project-scoped MCP servers await interactive approval; Playwright connection unverified in Claude Code | P0-10, agent browser exploration | Run `/mcp` in a new Claude Code session and approve both; confirm Playwright connects (else use the `cmd /c` form in PLAYWRIGHT_WORKFLOW) | project owner | 2026-10-11 | OPEN |
+| B-05 | Original SOW PDF not on disk | diff of the transcription | Put the PDF in `docs/requirements/source/` | project owner | 2026-10-11 | OPEN (low; the owner confirmed the SOW is final, so the signature part is cleared) |
+| B-06 | Hosting option not chosen | Phase 9 design; Extend sync runtime shape | Client's choice (recommend Oxygen) | client | 2026-10-11 | OPEN |
+| B-07 | Staging server details not provided | P1-07 (REQ-HOST-001) | Host, access method, domain | project owner | 2026-10-11 | OPEN |
+| B-08 | Client question pack not yet sent; no decision-maker named | P0-02, P0-11, every client-gated item | Owner reviews [CLIENT_QUESTION_PACK](../docs/requirements/CLIENT_QUESTION_PACK.md) and sends it (Q-013) | project owner | 2026-10-11 | OPEN (pack drafted 2026-10-12) |
+| B-09 | Figma account is a View seat on Starter: 20 read calls per month | design-from-Figma work | Not needed: no Figma file expected (Q-004 answered) | project owner | 2026-10-11 | CLEARED 2026-10-12 as irrelevant unless Figma files appear |
+| B-10 | Initial commit not authorised: `shopify hydrogen upgrade` needs a clean git branch; no history yet | P1-12 (Hydrogen advisories), CI remote | Owner says when to make the first commit (Q-019) | project owner | 2026-10-12 | OPEN |
+| B-11 | Client acknowledgement of SOW changes SD-01 to SD-05, SD-07 | work that depends on those changes (SOW §11) | Client reply to the pack | client | 2026-10-12 | OPEN |

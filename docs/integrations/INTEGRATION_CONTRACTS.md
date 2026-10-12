@@ -1,0 +1,41 @@
+# Integration contracts and provider dependencies
+
+One row per external system. "Verified" means confirmed from a primary source on 2026-10-11 ([TECH_FEASIBILITY](../research/TECH_FEASIBILITY.md)); everything else is a plan, not a fact. Readiness of each is tracked in [READINESS_CHECKLIST](READINESS_CHECKLIST.md). Credentials: names only in [.env.example](../../.env.example); values live in the hosting platform's secret store and developers' ignored local files.
+
+## Contracts
+
+| System | Purpose | Interface | Auth and where the secret lives | Owner | Verified today | Not yet verified | Requirements |
+|---|---|---|---|---|---|---|---|
+| Shopify Storefront API | catalog, cart, content, search, menus, availability | GraphQL, versioned (docs path shows 2026-10) | public token in the browser is allowed; private token server-only | shopify-hydrogen-developer | `cartLinesAdd` limits and parent-line support exist (F-09) | filters on metafields, metaobject access, `storeAvailability`, automatic discounts in carts (V-02 to V-05, V-07) | most REQ-COL, PDP, CART |
+| Shopify Customer Account API | sign-in, orders | OAuth, via Hydrogen helpers | client ID in env; no passwords handled by us | shopify-hydrogen-developer | needs the Headless or Hydrogen channel (F-05, F-06) | headless setup details, customer metafield write (V-08) | REQ-ACC-001/002, REQ-QZ-005 |
+| Shopify Admin API (GraphQL) | catalog import tool, guest order lookup, webhook payload fetch for Extend sync, reconciliation | GraphQL | **Dev Dashboard app with custom distribution** (legacy custom apps cannot be created since 2026-01-01); least-privilege scopes; authorization-code grant on the client's store; server-only, never in the storefront bundle | integration-engineer | rate limit 100 points per second on Basic (F-30) | token path on the client's store, scopes, `read_all_orders` (V-20, V-15) | REQ-CAT-002, REQ-ACC-003, REQ-EXT-003 |
+| Shopify webhooks | order, fulfilment, refund events to the sync | HTTPS POST, HMAC header | webhook secret, server-only | integration-engineer | none | topic list, creation path from a Dev Dashboard app, retry behaviour (V-12, V-20) | REQ-EXT-003 |
+| Shopify hosted checkout | payment and order creation | redirect to `checkoutUrl` | none | solution-architect | stays Shopify's (SOW §7) | branding options on the plan (V-10) | REQ-CHK-001 to 006 |
+| Shopify Functions and app extensions | **not used on Basic** (ADR-0006); haul-away is enforced in layers; post-purchase only through a client-installed App Store app | none built by us | n/a | integration-engineer | Functions: public apps any plan, custom apps Plus only (F-07, F-22); post-purchase and thank-you: App Store apps only for non-Plus (F-23, F-24) | whether a chosen App Store app works with a headless checkout (V-19) | REQ-PROMO-003, REQ-POST-001/002 |
+| Shopify sales channels | Storefront and Customer Account API access | Hydrogen channel (Option A) or Headless channel (Option B) | n/a | devops-engineer | channel naming per option (F-05, F-06) | which one the client needs (Q-003) | REQ-HOST-002/003 |
+| Shopify Oxygen | Option A hosting | `shopify hydrogen deploy`, GitHub integration | Oxygen deployment token in CI | devops-engineer | commands exist (F-05) | pipeline details on the client's store | REQ-HOST-002 |
+| Extend Offers API | coverage options and prices | REST: `POST` or `GET /offers` on `https://api-demo.helloextend.com` (demo) or `https://api.helloextend.com` (production) | `X-Extend-Access-Token` from the Merchant Portal API Integration; store ID; server-only | integration-engineer | hosts, auth flow, fields and headers (F-10, F-27) | price-point table, category for mattresses (V-11); **built against a local mock** (ADR-0009) | REQ-EXT-001/005 |
+| Extend Orders API | contracts, refunds, cancellations | REST: `PUT /orders`, idempotent snapshots | same token; server-only | integration-engineer | semantics and fulfilment rule (F-11) | double sync with Extend's Shopify app, go-live steps, rate limits (V-11); **built against a local mock** | REQ-EXT-003 |
+| Affirm | monthly payment messages and payment | JS messaging plus Shopify payment method | public key (env), merchant account | integration-engineer | none | activation, messaging implementation (Q-016) | REQ-CART-005, REQ-CHK-004 |
+| Store credit card programme | monthly payment messages, apply links | links and copy | none | integration-engineer | none | whether the client has one (CLR-008) | REQ-CART-005 |
+| Reviews app (client's choice; default Judge.me) | ratings and reviews | adapter; Judge.me through a server-side proxy | provider private key, server-only | integration-engineer | integration pattern reported by a third-party guide (F-35) | package status, free-plan API access (V-23); client may choose another | REQ-PDP-005, REQ-COL-001 |
+| Live chat (client's choice; default Shopify Inbox) | chat launcher and call-outs | adapter; Shopify Inbox on Hydrogen | provider ID (public) | integration-engineer | Hydrogen support announced in Shopify's July 2026 preview notes (F-36) | setup steps, CSP, consent (V-24) | REQ-ANL-004 |
+| Klaviyo | email and SMS signup | script or API | public company ID (env); private key server-only if used | integration-engineer | none | list IDs, SMS consent text (Q-015) | REQ-ANL-003 |
+| Google Analytics 4 | analytics | script | measurement ID (public) | integration-engineer | none | access (CLR-004) | REQ-ANL-001, REQ-QZ-006 |
+| Meta | marketing tracking | pixel | pixel ID (public) | integration-engineer | none | access (CLR-004) | REQ-ANL-002 |
+| Maps provider | store maps | adapter; Leaflet with OpenStreetMap tiles on store pages, Google Maps directions link as fallback | none | integration-engineer | OSM tile policy (F-37) | none | REQ-LOC-001 |
+| GitHub | client-owned repository and CI | git, Actions | tokens in the repo's secret store | devops-engineer | none | organisation (Q-014) | REQ-HAND-001 |
+| Figma MCP (optional) | read client design files | MCP over HTTP, OAuth | user's own Figma login; no secrets in the repo | ui-ux-designer | connected and authenticated; Starter plan, View seat, 20 read calls per month; write tools denied (F-14, F-16) | whether client files exist (Q-004) | Phase 2 |
+| Playwright MCP | browser exploration | MCP over stdio | none | qa-engineer | server runs and speaks MCP, version 0.0.83, 25 tools (F-14, F-17) | Claude Code connection after approval (B-04) | testing |
+
+| Shopify Flow | detective control for haul-away over-limit and mismatched orders; free on Basic, **no HTTP request action on Basic** | admin configuration | n/a | integration-engineer | plan availability (F-41) | line-item quantity condition, internal-email action (V-17) | REQ-PROMO-003 |
+
+## Invariants that apply to every integration
+
+1. Shopify is the source of truth for commerce data; providers are projections or advisors.
+2. Never trust browser-supplied prices, quantities beyond limits, or discount amounts; revalidate on the server.
+3. Private credentials are server-only and absent from client bundles, logs, error messages, analytics and source control.
+4. Every outbound call has a timeout and a defined failure behaviour; failures of non-essential providers degrade silently and never block browsing, cart or checkout (NFR-013).
+5. Use idempotency keys, retries with backoff and reconciliation wherever the provider supports or requires them; log failures without personal data.
+6. Do not invent endpoints, product formats, webhooks or lifecycle events: use only what a provider documents or confirms in writing, and record the evidence.
+7. If a feature needs a merchant approval, plan eligibility, third-party access or an API we cannot confirm, its requirement stays **Blocked**; we do not fake a success path.
