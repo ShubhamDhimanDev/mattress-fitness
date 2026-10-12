@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+.react-router
+coverage
+test-results
+playwright-report
+*.generated.d.ts
+package-lock.json
+public
+guides
+CHANGELOG.md
+AGENTS.md
+.cursor

@@ -32,6 +32,9 @@ export default [
       '**/*.generated.d.ts',
       '**/.react-router/',
       '**/packages/hydrogen/dist/',
+      '**/coverage/',
+      '**/test-results/',
+      '**/playwright-report/',
     ],
   },
   ...fixupConfigRules(
@@ -231,6 +234,8 @@ export default [
     plugins: {
       jest,
     },
+    // Vitest is API-compatible with Jest's matchers; there is no jest package to detect a version from.
+    settings: {jest: {version: 29}},
     languageOptions: {
       globals: {
         ...globals.node,
