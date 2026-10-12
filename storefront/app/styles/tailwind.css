@@ -1,6 +1,299 @@
-/**
- * Configure Tailwind v4 in this file using CSS variables and directives:
- * https://tailwindcss.com/docs/v4-beta#css-first-configuration
+/*
+ * Design tokens and base styles (P2-02). This is the ONLY file that holds brand values: swapping to the
+ * client's palette, fonts and radii (CLR-013) is a change to the @theme blocks below and nothing else.
+ *
+ * Rules for components (see .claude/rules/ui-implementation.md):
+ *  - Use theme utilities only (bg-primary-700, text-fg, rounded-choice, p-4). No hex values, one-off
+ *    pixel sizes or off-scale font sizes in components.
+ *  - Tailwind's default palette and breakpoints are removed on purpose, so an off-token class such as
+ *    bg-red-500 generates nothing instead of silently shipping an unapproved colour.
+ *
+ * Spacing: Tailwind's default unit is kept (1 = 4 px) and the project rhythm is 8 px, so use the even
+ * steps: 2 = 8, 4 = 16, 6 = 24, 8 = 32, 12 = 48, 16 = 64. Odd steps are for hairline adjustments only.
+ * `touch` (44 px) is the minimum size of anything a shopper taps or clicks.
+ *
+ * Z-index scale (numeric utilities): 30 header, 40 menus and dropdowns, 50 overlays (drawer, dialog), 60 toasts.
  */
-
 @import 'tailwindcss';
+
+/* Template CSS that later phases replace route by route. Layered under `components` so every utility wins. */
+@import './app.css' layer(components);
+
+@theme {
+  /* ---------- Reset the framework defaults we replace ---------- */
+  --color-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+  --breakpoint-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+
+  /* ---------- Palette (placeholder brand: deep teal, warm amber, neutral ink) ----------
+   * Contrast pairs verified with the WCAG formula (ratio : minimum needed).
+   *   white on primary-700            8.47 : 4.5   body text on buttons
+   *   white on primary-500            4.87 : 4.5   (found by axe: the earlier #1f8580 gave 4.44)
+   *   white on primary-600            6.30 : 4.5
+   *   primary-700 on white            8.47 : 4.5   link and secondary-button text
+   *   primary-800 on primary-50      10.07 : 4.5   reassurance strip, gift badge
+   *   ink-900 on accent-400           9.47 : 4.5   selected size, accent button, promo bar
+   *   accent-700 on white             5.93 : 4.5   amber text on a light surface
+   *   ink-900 on white               17.36 : 4.5   body text
+   *   ink-600 on white                6.84 : 4.5   muted text
+   *   ink-500 on white                4.71 : 4.5   placeholder text (never smaller than text-sm)
+   *   ink-400 on white                3.10 : 3.0   control borders (non-text UI)
+   *   ink-100 on ink-900             15.19 : 4.5   footer text
+   *   ink-300 on ink-900             10.38 : 4.5   footer links
+   *   success-fg on success-bg        7.15 : 4.5   white on success-solid 5.37
+   *   warning-fg on warning-bg        8.05 : 4.5
+   *   error-fg on error-bg            6.76 : 4.5   error-fg on white 7.83; white on error-solid 6.57
+   *   focus on white                  6.63 : 3.0   focus ring; focus-inverse on ink-900 11.48
+   */
+  --color-white: #ffffff;
+
+  --color-primary-50: #e8f5f4;
+  --color-primary-100: #c9e8e6;
+  --color-primary-200: #9bd3cf;
+  --color-primary-300: #66b9b4;
+  --color-primary-400: #3a9c97;
+  --color-primary-500: #1c7e79;
+  --color-primary-600: #146b68;
+  --color-primary-700: #0f5654;
+  --color-primary-800: #0b4240;
+  --color-primary-900: #082f2e;
+
+  --color-accent-50: #fff7e0;
+  --color-accent-100: #ffecb3;
+  --color-accent-200: #ffdd80;
+  --color-accent-300: #ffcb47;
+  --color-accent-400: #f6b414;
+  --color-accent-500: #e09a00;
+  --color-accent-600: #b87800;
+  --color-accent-700: #8a5a00;
+
+  --color-ink-50: #f7f8f8;
+  --color-ink-100: #eef0f1;
+  --color-ink-200: #dde1e3;
+  --color-ink-300: #c3c9cd;
+  --color-ink-400: #8a949a;
+  --color-ink-500: #6b757c;
+  --color-ink-600: #525c63;
+  --color-ink-700: #3b444a;
+  --color-ink-800: #272e33;
+  --color-ink-900: #161b1e;
+
+  --color-success-bg: #e6f4ec;
+  --color-success-fg: #0e5c2f;
+  --color-success-solid: #1b7a43;
+  --color-warning-bg: #fff4d6;
+  --color-warning-fg: #6b4100;
+  --color-warning-solid: #f6b414;
+  --color-error-bg: #fdeaea;
+  --color-error-fg: #a31616;
+  --color-error-solid: #b42318;
+
+  --color-focus: #1f4fd8;
+  --color-focus-inverse: #ffcb47;
+
+  /* ---------- Type: one system sans-serif stack, nothing loaded from a third party ---------- */
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: 2.5rem;
+  --text-5xl: 3rem;
+  --text-5xl--line-height: 3.25rem;
+  --text-display: 3.75rem;
+  --text-display--line-height: 1;
+
+  /* ---------- Breakpoints: mobile first, base styles are for 360 px ---------- */
+  --breakpoint-sm: 22.5rem; /* 360 */
+  --breakpoint-md: 48rem; /* 768 */
+  --breakpoint-lg: 64rem; /* 1024 */
+  --breakpoint-xl: 80rem; /* 1280 */
+  --breakpoint-2xl: 96rem; /* 1536 */
+
+  /* ---------- Shape: pill for navigation-level CTAs, 4 px for choice buttons ---------- */
+  --radius-choice: 0.25rem;
+  --radius-card: 0.5rem;
+  --radius-panel: 0.75rem;
+  --radius-pill: 9999px;
+
+  /* ---------- Elevation ---------- */
+  --shadow-sm: 0 1px 2px 0 rgb(22 27 30 / 0.08);
+  --shadow-md: 0 4px 12px -2px rgb(22 27 30 / 0.12);
+  --shadow-lg: 0 12px 28px -6px rgb(22 27 30 / 0.2);
+  --shadow-drawer: 0 0 48px rgb(22 27 30 / 0.28);
+
+  /* ---------- Layout widths and the touch target ---------- */
+  --container-page: 81.25rem; /* 1300 */
+  --container-prose: 42rem;
+  --container-drawer: 25rem; /* 400 */
+  --container-dialog: 30rem; /* 480 */
+  --spacing-touch: 2.75rem; /* 44 px minimum target */
+
+  /* ---------- Motion (all shortened to near zero by prefers-reduced-motion below) ---------- */
+  --animate-fade-in: fade-in 150ms ease-out;
+  --animate-drawer-in-right: drawer-in-right 200ms ease-out;
+  --animate-drawer-in-left: drawer-in-left 200ms ease-out;
+  --animate-dialog-in: dialog-in 180ms ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes drawer-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes drawer-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Semantic roles. Components say "bg-surface" or "text-fg-muted", the brand file decides which ink it is. */
+@theme inline {
+  --color-surface: var(--color-white);
+  --color-surface-muted: var(--color-ink-100);
+  --color-surface-inverse: var(--color-ink-900);
+  --color-fg: var(--color-ink-900);
+  --color-fg-muted: var(--color-ink-600);
+  --color-fg-inverse: var(--color-ink-100);
+  --color-line: var(--color-ink-200);
+  --color-line-strong: var(--color-ink-400);
+}
+
+@layer base {
+  :root {
+    --focus-ring-color: var(--color-focus);
+    /* Always reserve the scrollbar gutter so locking page scroll behind a drawer does not shift the layout. */
+    scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    color: var(--color-fg);
+    background-color: var(--color-surface);
+  }
+
+  body {
+    display: flex;
+    min-height: 100dvh;
+    flex-direction: column;
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+
+  /* Bare headings keep a readable scale for the template routes that have not been rebuilt yet. */
+  h1 {
+    font-size: var(--text-3xl);
+    line-height: var(--text-3xl--line-height);
+    font-weight: 700;
+  }
+  h2 {
+    font-size: var(--text-2xl);
+    line-height: var(--text-2xl--line-height);
+    font-weight: 700;
+  }
+  h3 {
+    font-size: var(--text-xl);
+    line-height: var(--text-xl--line-height);
+    font-weight: 700;
+  }
+
+  ::placeholder {
+    color: var(--color-ink-500);
+    opacity: 1;
+  }
+
+  /* One visible focus ring for every interactive element (WCAG 2.4.7, 2.4.11). Components that hide the
+   * native control (size selector, checkbox) draw the ring on the visible sibling instead. */
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]
+  ):focus-visible {
+    outline: 3px solid var(--focus-ring-color);
+    outline-offset: 2px;
+  }
+
+  /* On dark surfaces the ring flips to a light colour. */
+  .on-dark {
+    --focus-ring-color: var(--color-focus-inverse);
+  }
+
+  /* Programmatic focus targets (skip link destination, dialog panels) must not draw a ring. */
+  [tabindex='-1']:focus {
+    outline: none;
+  }
+}
+
+@layer components {
+  /* Inline text links inside content. Opt in with class="link". */
+  .link {
+    color: var(--color-primary-700);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .link:hover {
+    color: var(--color-primary-800);
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* Reduced motion: keep state changes, drop movement (WCAG 2.3.3, NFR-003). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

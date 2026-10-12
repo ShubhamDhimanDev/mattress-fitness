@@ -36,6 +36,11 @@ type SearchResultsPredictiveProps = {
   children: (args: SearchResultsPredictiveArgs) => React.ReactNode;
 };
 
+const GROUP_HEADING_CLASSES =
+  'mb-1 text-xs font-bold tracking-wide text-fg-muted uppercase';
+const RESULT_LINK_CLASSES =
+  'flex min-h-touch items-center gap-3 rounded-choice p-1 hover:bg-surface-muted';
+
 /**
  * Component that renders predictive search results
  */
@@ -56,7 +61,7 @@ export function SearchResultsPredictive({
   }
 
   /**
-   * Utility that resets the search input and closes the search aside
+   * Utility that resets the search input and closes any open side panel
    */
   function closeSearch() {
     resetInput();
@@ -88,8 +93,8 @@ function SearchResultsPredictiveArticles({
   if (!articles.length) return null;
 
   return (
-    <div className="predictive-search-result" key="articles">
-      <h5>Articles</h5>
+    <div key="articles">
+      <p className={GROUP_HEADING_CLASSES}>Articles</p>
       <ul>
         {articles.map((article) => {
           const articleUrl = urlWithTrackingParams({
@@ -99,19 +104,22 @@ function SearchResultsPredictiveArticles({
           });
 
           return (
-            <li className="predictive-search-result-item" key={article.id}>
-              <Link onClick={closeSearch} to={articleUrl}>
+            <li key={article.id}>
+              <Link
+                onClick={closeSearch}
+                to={articleUrl}
+                className={RESULT_LINK_CLASSES}
+              >
                 {article.image?.url && (
                   <Image
                     alt={article.image.altText ?? ''}
                     src={article.image.url}
                     width={50}
                     height={50}
+                    className="size-12 shrink-0 rounded-choice object-cover"
                   />
                 )}
-                <div>
-                  <span>{article.title}</span>
-                </div>
+                <span className="text-base text-fg">{article.title}</span>
               </Link>
             </li>
           );
@@ -129,8 +137,8 @@ function SearchResultsPredictiveCollections({
   if (!collections.length) return null;
 
   return (
-    <div className="predictive-search-result" key="collections">
-      <h5>Collections</h5>
+    <div key="collections">
+      <p className={GROUP_HEADING_CLASSES}>Collections</p>
       <ul>
         {collections.map((collection) => {
           const collectionUrl = urlWithTrackingParams({
@@ -140,19 +148,22 @@ function SearchResultsPredictiveCollections({
           });
 
           return (
-            <li className="predictive-search-result-item" key={collection.id}>
-              <Link onClick={closeSearch} to={collectionUrl}>
+            <li key={collection.id}>
+              <Link
+                onClick={closeSearch}
+                to={collectionUrl}
+                className={RESULT_LINK_CLASSES}
+              >
                 {collection.image?.url && (
                   <Image
                     alt={collection.image.altText ?? ''}
                     src={collection.image.url}
                     width={50}
                     height={50}
+                    className="size-12 shrink-0 rounded-choice object-cover"
                   />
                 )}
-                <div>
-                  <span>{collection.title}</span>
-                </div>
+                <span className="text-base text-fg">{collection.title}</span>
               </Link>
             </li>
           );
@@ -170,8 +181,8 @@ function SearchResultsPredictivePages({
   if (!pages.length) return null;
 
   return (
-    <div className="predictive-search-result" key="pages">
-      <h5>Pages</h5>
+    <div key="pages">
+      <p className={GROUP_HEADING_CLASSES}>Pages</p>
       <ul>
         {pages.map((page) => {
           const pageUrl = urlWithTrackingParams({
@@ -181,11 +192,13 @@ function SearchResultsPredictivePages({
           });
 
           return (
-            <li className="predictive-search-result-item" key={page.id}>
-              <Link onClick={closeSearch} to={pageUrl}>
-                <div>
-                  <span>{page.title}</span>
-                </div>
+            <li key={page.id}>
+              <Link
+                onClick={closeSearch}
+                to={pageUrl}
+                className={RESULT_LINK_CLASSES}
+              >
+                <span className="text-base text-fg">{page.title}</span>
               </Link>
             </li>
           );
@@ -203,8 +216,8 @@ function SearchResultsPredictiveProducts({
   if (!products.length) return null;
 
   return (
-    <div className="predictive-search-result" key="products">
-      <h5>Products</h5>
+    <div key="products">
+      <p className={GROUP_HEADING_CLASSES}>Products</p>
       <ul>
         {products.map((product) => {
           const productUrl = urlWithTrackingParams({
@@ -216,20 +229,31 @@ function SearchResultsPredictiveProducts({
           const price = product?.selectedOrFirstAvailableVariant?.price;
           const image = product?.selectedOrFirstAvailableVariant?.image;
           return (
-            <li className="predictive-search-result-item" key={product.id}>
-              <Link to={productUrl} onClick={closeSearch}>
+            <li key={product.id}>
+              <Link
+                to={productUrl}
+                onClick={closeSearch}
+                className={RESULT_LINK_CLASSES}
+              >
                 {image && (
                   <Image
                     alt={image.altText ?? ''}
                     src={image.url}
                     width={50}
                     height={50}
+                    className="size-12 shrink-0 rounded-choice object-cover"
                   />
                 )}
-                <div>
-                  <p>{product.title}</p>
-                  <small>{price && <Money data={price} />}</small>
-                </div>
+                <span className="min-w-0">
+                  <span className="block truncate text-base font-bold text-fg">
+                    {product.title}
+                  </span>
+                  {price && (
+                    <small className="text-sm text-fg-muted">
+                      <Money data={price} />
+                    </small>
+                  )}
+                </span>
               </Link>
             </li>
           );
@@ -268,7 +292,7 @@ function SearchResultsPredictiveEmpty({
   }
 
   return (
-    <p>
+    <p className="text-base text-fg">
       No results found for <q>{term.current}</q>
     </p>
   );

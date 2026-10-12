@@ -1,6 +1,6 @@
 # Project status
 
-Updated 2026-10-12 (after the owner's answers, the Basic-plan research and the Hydrogen scaffold).
+Updated 2026-10-12 (after the first parallel build round: libraries, design shell and tooling, on branch `feat/foundation-libs-and-shell`).
 
 ## Summary
 

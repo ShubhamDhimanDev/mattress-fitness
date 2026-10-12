@@ -46,7 +46,9 @@ export function SearchFormPredictive({
   /** Navigate to the search page with the current input value */
   function goToSearch() {
     const term = inputRef?.current?.value;
-    void navigate(SEARCH_ENDPOINT + (term ? `?q=${term}` : ''));
+    // URLSearchParams encodes the term; a raw `?q=${term}` would let "&" or "#" in the text change the URL.
+    const query = term ? `?${new URLSearchParams({q: term}).toString()}` : '';
+    void navigate(SEARCH_ENDPOINT + query);
     aside.close();
   }
 

@@ -1,0 +1,129 @@
+{
+  "_notice": "MOCK FIXTURE. Synthetic data shaped after docs/integrations/EXTEND.md. It is NOT Extend data and NOT evidence of how Extend behaves. Plan ids, titles and prices are invented for tests.",
+  "currency": "USD",
+  "categories": {
+    "mattress": {
+      "contractCategory": "mattress",
+      "bands": [
+        {
+          "minPriceCents": 0,
+          "maxPriceCents": 49999,
+          "recommended": "adh",
+          "adh": [
+            {
+              "id": "MOCK-MATT-ADH-3Y-A",
+              "price": 2999,
+              "title": "MOCK 3 Year Mattress Accident Protection",
+              "termLength": 36
+            },
+            {
+              "id": "MOCK-MATT-ADH-5Y-A",
+              "price": 4999,
+              "title": "MOCK 5 Year Mattress Accident Protection",
+              "termLength": 60
+            }
+          ],
+          "base": []
+        },
+        {
+          "minPriceCents": 50000,
+          "maxPriceCents": 99999,
+          "recommended": "adh",
+          "adh": [
+            {
+              "id": "MOCK-MATT-ADH-3Y-B",
+              "price": 4999,
+              "title": "MOCK 3 Year Mattress Accident Protection",
+              "termLength": 36
+            },
+            {
+              "id": "MOCK-MATT-ADH-5Y-B",
+              "price": 7999,
+              "title": "MOCK 5 Year Mattress Accident Protection",
+              "termLength": 60
+            }
+          ],
+          "base": []
+        },
+        {
+          "minPriceCents": 100000,
+          "maxPriceCents": 199999,
+          "recommended": "adh",
+          "adh": [
+            {
+              "id": "MOCK-MATT-ADH-3Y-C",
+              "price": 7999,
+              "title": "MOCK 3 Year Mattress Accident Protection",
+              "termLength": 36
+            },
+            {
+              "id": "MOCK-MATT-ADH-5Y-C",
+              "price": 9999,
+              "title": "MOCK 5 Year Mattress Accident Protection",
+              "termLength": 60
+            }
+          ],
+          "base": [
+            {
+              "id": "MOCK-MATT-BASE-3Y-C",
+              "price": 5999,
+              "title": "MOCK 3 Year Mattress Base Plan",
+              "termLength": 36
+            }
+          ]
+        },
+        {
+          "minPriceCents": 200000,
+          "maxPriceCents": 100000000,
+          "recommended": "adh",
+          "adh": [
+            {
+              "id": "MOCK-MATT-ADH-3Y-D",
+              "price": 12999,
+              "title": "MOCK 3 Year Mattress Accident Protection",
+              "termLength": 36
+            },
+            {
+              "id": "MOCK-MATT-ADH-5Y-D",
+              "price": 14999,
+              "title": "MOCK 5 Year Mattress Accident Protection",
+              "termLength": 60
+            },
+            {
+              "id": "MOCK-MATT-ADH-7Y-D-UNLISTED",
+              "price": 17777,
+              "title": "MOCK 7 Year Mattress Accident Protection (no price-point variant)",
+              "termLength": 84
+            }
+          ],
+          "base": []
+        }
+      ]
+    },
+    "bedding": {
+      "contractCategory": "bedding",
+      "bands": [
+        {
+          "minPriceCents": 0,
+          "maxPriceCents": 99999,
+          "recommended": "adh",
+          "adh": [
+            {
+              "id": "MOCK-BED-ADH-2Y-A",
+              "price": 1499,
+              "title": "MOCK 2 Year Bedding Accident Protection",
+              "termLength": 24
+            },
+            {
+              "id": "MOCK-BED-ADH-3Y-A",
+              "price": 2499,
+              "title": "MOCK 3 Year Bedding Accident Protection",
+              "termLength": 36
+            }
+          ],
+          "base": []
+        }
+      ]
+    }
+  }
+}

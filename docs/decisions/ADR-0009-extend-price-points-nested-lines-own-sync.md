@@ -31,3 +31,10 @@ Extend's Listed Shopify app with theme app blocks: not usable for the storefront
 ## Verification
 
 Offers and snapshot builders unit-tested; sync lifecycle (create, fulfil, partial refund, full refund, cancel, replay) tested against the mock; V-16 on a dev store; Extend demo-host run and Extend's written approval before go-live.
+
+## Addendum 2026-10-12: webhook timing, secrets and replay (decided by the orchestrator after the library review)
+
+- **Respond fast, sync in the background.** Shopify requires a webhook response within about 5 seconds and does not guarantee delivery order; a sync with retries can take longer. The webhook route verifies the signature, records the event, answers `200`, and runs the sync inside `waitUntil` (Oxygen) or as a background promise (Node; the process is stateful). Failures are logged (no personal data) and are recovered by Shopify's own retries and by the reconciliation report (`reconcile()`, script P5A-10), which compares Shopify orders with Extend orders and re-sends what is missing. Because `PUT /orders` is an idempotent full snapshot, a repeated or re-ordered event is harmless.
+- **One secret for webhooks.** Shopify signs app-subscribed webhooks with the app's client secret, so the receiver uses `SHOPIFY_APP_CLIENT_SECRET`; a separate `SHOPIFY_WEBHOOK_SECRET` is dropped from the configuration unless a webhook created another way needs it.
+- **Replay protection does not need a database.** The signature check, a timestamp window where the payload carries one, `X-Shopify-Webhook-Id` de-duplication in a best-effort store (Cache API on Oxygen, memory on Node) and the idempotent snapshot together make a replay a no-op. A durable store is optional hardening, not a requirement, and keeps NFR-006 (no database) intact.
+- **Retry facts used:** Shopify retries failed webhook deliveries 8 times over about 4 hours (checked by the library author against Shopify's docs).

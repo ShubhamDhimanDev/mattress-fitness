@@ -1,0 +1,176 @@
+{
+  "$comment": "Metafield and metaobject definitions as code (P3A-02, SHOPIFY_DATA_MODEL). Applied by apply-definitions.mjs. Order matters: a metaobject definition may only reference types declared before it. Validation values may be written as arrays; the script JSON-encodes them as the Admin API requires. UNVERIFIED(V-05): everything here is checked against the Admin GraphQL 2026-10 reference but not yet against a development store.",
+  "specVersion": 1,
+  "metaobjectDefinitions": [
+    {
+      "type": "brand",
+      "name": "Brand",
+      "description": "Brand details shown on brand pages and product pages (REQ-CAT-006, REQ-COL-005).",
+      "displayNameKey": "name",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "name", "name": "Name", "type": "single_line_text_field", "required": true },
+        { "key": "slug", "name": "Slug", "type": "single_line_text_field", "required": true, "description": "Lowercase, hyphenated; must equal the metaobject handle so the product importer can find the brand." },
+        { "key": "logo", "name": "Logo", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
+        { "key": "about", "name": "About", "type": "rich_text_field" },
+        { "key": "warranty_terms", "name": "Warranty terms", "type": "rich_text_field" }
+      ]
+    },
+    {
+      "type": "faq",
+      "name": "FAQ",
+      "description": "Questions and answers for collection and product pages.",
+      "displayNameKey": "question",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "question", "name": "Question", "type": "single_line_text_field", "required": true },
+        { "key": "answer", "name": "Answer", "type": "rich_text_field", "required": true },
+        { "key": "scope", "name": "Scope", "type": "single_line_text_field", "description": "Where it applies, for example a collection handle or product handle. Values are agreed in P3B." }
+      ]
+    },
+    {
+      "type": "store",
+      "name": "Store",
+      "description": "Physical store for the locator, my-store selector and pickup (REQ-LOC-002).",
+      "displayNameKey": "name",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "name", "name": "Name", "type": "single_line_text_field", "required": true },
+        { "key": "slug", "name": "Slug", "type": "single_line_text_field", "required": true },
+        { "key": "address_line_1", "name": "Address line 1", "type": "single_line_text_field", "required": true },
+        { "key": "address_line_2", "name": "Address line 2", "type": "single_line_text_field" },
+        { "key": "city", "name": "City", "type": "single_line_text_field", "required": true },
+        { "key": "state", "name": "State", "type": "single_line_text_field", "required": true },
+        { "key": "postal_code", "name": "Postal code", "type": "single_line_text_field", "required": true },
+        { "key": "latitude", "name": "Latitude", "type": "number_decimal" },
+        { "key": "longitude", "name": "Longitude", "type": "number_decimal" },
+        { "key": "phone", "name": "Phone", "type": "single_line_text_field" },
+        { "key": "hours", "name": "Opening hours", "type": "json", "description": "Opening hours per weekday; the JSON shape is fixed in P3B with the locator." },
+        { "key": "photo", "name": "Photo", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
+        { "key": "pickup_enabled", "name": "Pickup enabled", "type": "boolean" },
+        { "key": "location_handle", "name": "Shopify location", "type": "single_line_text_field", "description": "Name or handle of the matching Shopify location, used for pickup availability." }
+      ]
+    },
+    {
+      "type": "quiz_option",
+      "name": "Quiz option",
+      "description": "One answer in the sleep quiz with its declarative scoring rules (REQ-QZ-003, REQ-QZ-004).",
+      "displayNameKey": "label",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "label", "name": "Label", "type": "single_line_text_field", "required": true },
+        { "key": "scoring_rules", "name": "Scoring rules", "type": "json", "description": "List of rules: attribute, value and weight, or a filter with an exclude flag. Exact shape finalised in P3A-02 after V-05." }
+      ]
+    },
+    {
+      "type": "quiz_question",
+      "name": "Quiz question",
+      "description": "One question in the sleep quiz.",
+      "displayNameKey": "text",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "order", "name": "Order", "type": "number_integer", "required": true },
+        { "key": "text", "name": "Question", "type": "single_line_text_field", "required": true },
+        { "key": "help_text", "name": "Help text", "type": "multi_line_text_field" },
+        { "key": "multi", "name": "Allow several answers", "type": "boolean" },
+        { "key": "options", "name": "Options", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "quiz_option" }] }
+      ]
+    },
+    {
+      "type": "homepage_section",
+      "name": "Homepage section",
+      "description": "An editable, orderable block on the homepage (REQ-HOME-001).",
+      "displayNameKey": "heading",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "description": "Section kind. The allowed values are fixed with the homepage design in P3B; none are invented here." },
+        { "key": "heading", "name": "Heading", "type": "single_line_text_field" },
+        { "key": "body", "name": "Body", "type": "multi_line_text_field" },
+        { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
+        { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL. Plain text on purpose: Shopify's url type rejects relative paths. The storefront validates it against an allow-list (T-08)." },
+        { "key": "order", "name": "Order", "type": "number_integer", "required": true },
+        { "key": "enabled", "name": "Enabled", "type": "boolean" }
+      ]
+    },
+    {
+      "type": "promo_tile",
+      "name": "Promo tile",
+      "description": "A tile shown inside a collection grid (REQ-COL-003).",
+      "displayNameKey": "heading",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "collection", "name": "Collection", "type": "collection_reference", "required": true },
+        { "key": "position", "name": "Position in grid", "type": "number_integer", "required": true },
+        { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
+        { "key": "heading", "name": "Heading", "type": "single_line_text_field", "required": true },
+        { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL; validated by the storefront (T-08)." },
+        { "key": "enabled", "name": "Enabled", "type": "boolean" }
+      ]
+    },
+    {
+      "type": "offer_rule",
+      "name": "Offer rule",
+      "description": "Declarative add-on offer placed before checkout (REQ-PRE-002, REQ-PRE-003). Rules are data, not code.",
+      "displayNameKey": "name",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "name", "name": "Name", "type": "single_line_text_field", "required": true, "description": "Staff-facing label. Added to the data model so the admin list is readable." },
+        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["comfort_protector", "haul_away", "matching_protector", "pillow", "bedding", "gift", "bundle"] }] },
+        { "key": "trigger_collection", "name": "Trigger collection", "type": "collection_reference" },
+        { "key": "trigger_product", "name": "Trigger product", "type": "product_reference" },
+        { "key": "products", "name": "Offered products", "type": "list.product_reference" },
+        { "key": "max_quantity", "name": "Maximum quantity", "type": "number_integer", "validations": [{ "name": "min", "value": 0 }] },
+        { "key": "price_source", "name": "Price source", "type": "single_line_text_field", "description": "Where the price comes from. Values finalised in Phase 4." },
+        { "key": "enabled", "name": "Enabled", "type": "boolean" }
+      ]
+    },
+    {
+      "type": "site_settings",
+      "name": "Site settings",
+      "description": "Single entry with global settings (REQ-NAV-001, REQ-CART-004, REQ-PRE-003).",
+      "displayNameKey": "promo_bar_text",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "promo_bar_text", "name": "Promo bar text", "type": "single_line_text_field" },
+        { "key": "promo_bar_link", "name": "Promo bar link", "type": "single_line_text_field", "description": "Relative path or https URL; validated by the storefront (T-08)." },
+        { "key": "haul_away_max", "name": "Haul-away maximum pieces", "type": "number_integer", "validations": [{ "name": "min", "value": 0 }], "description": "The same number is set by hand in the Shopify Flow condition; change both together." },
+        { "key": "financing_copy", "name": "Financing copy", "type": "multi_line_text_field" },
+        { "key": "extend_enabled", "name": "Extend enabled (mirror)", "type": "boolean", "description": "Non-secret mirror of the feature flag." }
+      ]
+    },
+    {
+      "type": "delivery_zone",
+      "name": "Delivery zone",
+      "description": "The single in-home delivery zone (ADR-0007). The postal codes mirror Shopify Local delivery; check-delivery-parity.mjs compares them.",
+      "displayNameKey": "name",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "name", "name": "Name", "type": "single_line_text_field", "required": true },
+        { "key": "postal_codes", "name": "Postal codes", "type": "multi_line_text_field", "required": true, "validations": [{ "name": "max", "value": 3000 }], "description": "Comma, space or line separated. A trailing * is a wildcard prefix, for example 100*. Kept as text, not a list, because Local delivery accepts one text field of up to 3,000 characters (F-28)." },
+        { "key": "fee_text", "name": "Fee text", "type": "single_line_text_field" },
+        { "key": "free_over", "name": "Free delivery over", "type": "money", "description": "The single source of the free-delivery threshold: the delivery quote, the cart progress message and the Local delivery price rule all use this amount." },
+        { "key": "promise_white_glove", "name": "Promise: white-glove", "type": "single_line_text_field" },
+        { "key": "promise_parcel", "name": "Promise: parcel", "type": "single_line_text_field" }
+      ]
+    }
+  ],
+  "metafieldDefinitions": [
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "comfort_level", "name": "Comfort level", "type": "single_line_text_field", "validations": [{ "name": "choices", "value": ["Ultra Plush", "Plush", "Medium", "Firm", "Extra Firm"] }], "storefrontAccess": "PUBLIC_READ", "smartCollectionCondition": true, "description": "Filter, quiz, comparison, badges." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "mattress_type", "name": "Mattress type", "type": "single_line_text_field", "validations": [{ "name": "choices", "value": ["Memory Foam", "Hybrid", "Innerspring", "Foam", "Latex"] }], "storefrontAccess": "PUBLIC_READ", "smartCollectionCondition": true, "description": "Filter, quiz, comparison." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "sleep_positions", "name": "Sleep positions", "type": "list.single_line_text_field", "storefrontAccess": "PUBLIC_READ", "smartCollectionCondition": true, "description": "Back, Side, Stomach. Allowed values are enforced by the product sheet validator: Shopify does not support the choices validation on list types." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "benefits", "name": "Benefits", "type": "list.single_line_text_field", "storefrontAccess": "PUBLIC_READ", "smartCollectionCondition": true, "description": "Cooling, Pressure Relief, Motion Separation, Back Support, Eco-Friendly. Enforced by the sheet validator (no choices validation on list types)." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "product_line", "name": "Product line", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "smartCollectionCondition": true, "description": "Filter." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "height_inches", "name": "Height (inches)", "type": "number_decimal", "storefrontAccess": "PUBLIC_READ", "description": "Comparison." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "delivery_type", "name": "Delivery type", "type": "single_line_text_field", "validations": [{ "name": "choices", "value": ["white-glove", "parcel", "both"] }], "storefrontAccess": "PUBLIC_READ", "smartCollectionCondition": true, "description": "Delivery rules and haul-away eligibility." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "specifications", "name": "Specifications", "type": "json", "storefrontAccess": "PUBLIC_READ", "description": "List of { label, value } pairs for the product page." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "features", "name": "Feature bullets", "type": "list.single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Overview bullets for the product page." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "brand", "name": "Brand", "type": "metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "brand" }], "storefrontAccess": "PUBLIC_READ", "description": "Brand sections. The vendor field is kept for filters." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "related_foundations", "name": "Related foundations", "type": "list.product_reference", "storefrontAccess": "PUBLIC_READ", "description": "Size-matched add-ons (REQ-ADD-001, REQ-CART-003)." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "related_protectors", "name": "Related protectors", "type": "list.product_reference", "storefrontAccess": "PUBLIC_READ", "description": "Size-matched add-ons." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "related_bedding", "name": "Related bedding", "type": "list.product_reference", "storefrontAccess": "PUBLIC_READ", "description": "Size-matched add-ons." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "compare_group", "name": "Compare group", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Products with the same value are offered as similar products." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "extend_category", "name": "Extend category", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Extend protection category (REQ-EXT-005). Shape confirmed by Q-005." },
+    { "ownerType": "PRODUCT", "namespace": "custom", "key": "faqs", "name": "FAQs", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "faq" }], "storefrontAccess": "PUBLIC_READ", "description": "Product page FAQs." },
+    { "ownerType": "PRODUCTVARIANT", "namespace": "custom", "key": "dimensions", "name": "Dimensions", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Size selector and comparison." }
+  ]
+}

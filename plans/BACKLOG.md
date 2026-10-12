@@ -22,14 +22,14 @@ Task definitions live in the phase plans ([plans/phases/](phases/)). This file i
 | P1-01 | Pin Node 22 LTS through fnm; add `.nvmrc` | 1 | devops-engineer | P0-09 | DONE | High | `.nvmrc` = 22; scaffold `engines` is `^22 \|\| ^24` |
 | P1-02 | Initialise git repository on `main` | 1 | devops-engineer | none | DONE | Low | No commits yet (commit only on the owner's request) |
 | P1-03 | Scaffold Hydrogen into `storefront/` (TypeScript, Tailwind, mock shop) | 1 | shopify-hydrogen-developer | P1-01 | IN_REVIEW | High | Done 2026-10-12 with the recorded flags; lint, typecheck, build pass; nested `.git` removed. Needs independent review |
-| P1-04 | Quality tooling: Vitest, Prettier check, scripts | 1 | shopify-hydrogen-developer | P1-03 | TODO | High | Next |
-| P1-05 | Playwright Test setup, axe helper and smoke spec | 1 | qa-engineer | P1-03 | TODO | High | Next |
-| P1-06 | CI workflow (verified locally first) | 1 | devops-engineer | P1-04, P1-05 | TODO | High | No remote yet (Q-014) |
+| P1-04 | Quality tooling: Vitest, Prettier check, scripts | 1 | shopify-hydrogen-developer | P1-03 | IN_REVIEW | High | Done 2026-10-12 (Vitest 5, Testing Library, jsdom, `format:check`, `check`); on main |
+| P1-05 | Playwright Test setup, axe helper and smoke spec | 1 | qa-engineer | P1-03 | IN_REVIEW | High | Done: desktop and mobile Chromium, 4 smoke tests pass; WebKit and Firefox run in CI |
+| P1-06 | CI workflow (verified locally first) | 1 | devops-engineer | P1-04, P1-05 | IN_REVIEW | High | `.github/workflows/ci.yml` written, YAML parses, commands verified locally; first real run when a remote exists (Q-014) |
 | P1-07 | Staging pipeline on our server | 1 | devops-engineer | P1-06 | BLOCKED | Med | Staging server details not provided |
-| P1-08 | Prove a plain-Node build (Option B viability) | 1 | devops-engineer | P1-03 | TODO | Med | V-13; seams are `server.ts`, `app/lib/context.ts`, `vite.config.ts` |
+| P1-08 | Prove a plain-Node build (Option B viability) | 1 | devops-engineer | P1-03 | IN_REVIEW | Med | Spike passed: [OPTION_B_NODE](../docs/deployment/OPTION_B_NODE.md), F-44 |
 | P1-09 | Reconcile architecture docs and ADRs with the scaffold | 1 | solution-architect | P1-03, P1-08 | TODO | Med | |
 | P1-10 | Daily change-note template and weekly demo cadence | 1 | project-manager | none | TODO | Low | |
-| P1-12 | Hydrogen dependency advisories and the 2026.10 migration | 1 | shopify-hydrogen-developer | P1-03, Q-019 | BLOCKED | High | Needs an initial commit (the upgrade tool requires a clean branch) or a hand migration; ADR-0008, R-23; must precede Phase 3B feature code |
+| P1-12 | Hydrogen dependency advisories and the 2026.10 migration | 1 | shopify-hydrogen-developer | P1-03, Q-019 | BLOCKED | High | Decision 2026-10-12: hold the scaffold pins; the 2026.10 template on GitHub `main` is a different, unreleased architecture (F-44). Revisit when `npm create @shopify/hydrogen` delivers it, and at the Phase 7 gate at the latest (ADR-0008) |
 | P1-13 | Review template-supplied agent files; replace `storefront/CLAUDE.md` | 1 | devops-engineer | P1-03 | IN_REVIEW | Med | Written; template `AGENTS.md` left as reference, not followed |
 | P1-11 | Phase 1 gate review | 1 | project-manager | P1-04, P1-05, P1-06, P1-07, P1-08, P1-09, P1-10, P1-12, P1-13 | BLOCKED | Med | |
 
@@ -37,10 +37,27 @@ Task definitions live in the phase plans ([plans/phases/](phases/)). This file i
 
 | ID | Task | Phase | Owner | Depends on | Status | Priority | Notes |
 |---|---|---|---|---|---|---|---|
-| P2-01 | Brand kit and neutral placeholder tokens (no Figma expected) | 2 | ui-ux-designer | P0-02 | TODO | Med | Reference-site patterns, own brand; tokens swapped when CLR-013 arrives |
-| P5A-03 | Local mock server of Extend's documented subset | 5A | integration-engineer | P1-04 | TODO | High | Lane C, starts without the client's account (owner decision) |
-| P5A-04 | Offers client, price-point matching, feature flag | 5A | integration-engineer | P5A-03 | TODO | High | After P5A-03 |
+| P2-01 | Brand kit and neutral placeholder tokens (no Figma expected) | 2 | ui-ux-designer | P0-02 | IN_REVIEW | Med | Tokens, components and shell built (`tailwind.css`, `app/components/ui|layout`); ADR-0010. Real brand arrives with CLR-013 |
+| P5A-03 | Local mock server of Extend's documented subset | 5A | integration-engineer | P1-04 | IN_REVIEW | High | `scripts/mocks/extend-mock.mjs` (MOCK-labelled) + fixtures; 589 library and integration tests pass |
+| P5A-04 | Offers client, price-point matching, feature flag | 5A | integration-engineer | P5A-03 | IN_REVIEW | High | `app/lib/extend/*` done; routes and UI not wired yet (P5A-05) |
 | P3A-10 | Delivery-zone single source of truth (ADR-0007 accepted) | 3A | solution-architect | P0-07 | TODO | Med | Needs the ZIP list (Q-008) |
+
+## Sprint 2 additions (built 2026-10-12, in review; library level, not yet wired into routes)
+
+| ID | Task | Phase | Owner | Depends on | Status | Priority | Notes |
+|---|---|---|---|---|---|---|---|
+| P4-01 | Offer engine `evaluateOffers` and tampered-cart tests | 4 | solution-architect | P3A-02 | IN_REVIEW | High | `app/lib/offers/*` (445 tests incl. a 4,000-cart property test) |
+| P5B-01 | Delivery eligibility module for the single zone | 5B | integration-engineer | P3A-10 | IN_REVIEW | High | `app/lib/delivery/*` (183 tests) |
+| P3A-03 | Product sheet template and schema | 3A | shopify-hydrogen-developer | P3A-02 | IN_REVIEW | High | `scripts/catalog/*` (CSV, validator, sanitiser, importer; 203 script tests) |
+| P3A-04 | Validator and validation report | 3A | shopify-hydrogen-developer | P3A-03 | IN_REVIEW | High | done |
+| P3A-05 | Idempotent importer (dry run default) | 3A | shopify-hydrogen-developer | P3A-04 | IN_REVIEW | High | done against a fake Admin API; **first live run still to do**; no revert tool yet |
+| P3A-02 | Metafield and metaobject definitions as code | 3A | solution-architect | P3A-01 | IN_REVIEW | High | `scripts/shopify/definitions.json` + `apply-definitions.mjs` (dry run default) |
+| P6-01 | Quiz configuration model, loader and validation | 6 | shopify-hydrogen-developer | P3A-02, CLR-012 | IN_REVIEW | Med | `app/lib/quiz/config.ts` |
+| P6-02 | Scoring engine with reasons and golden tests | 6 | shopify-hydrogen-developer | P6-01 | IN_REVIEW | Med | `app/lib/quiz/score.ts` |
+| P6-13 | Friendlier quiz scoring model in Shopify admin (rule metaobjects instead of a raw JSON field) so non-developers can edit mappings (NFR-005, REQ-QZ-004) | 6 | solution-architect | P6-01 | TODO | Med | Decision 2026-10-12: keep JSON for v1 with a validating template in the admin guide; replace with `quiz_scoring_rule` metaobjects before Phase 6 acceptance |
+| P3B-16 | Add optional `time_zone` field to the `store` metaobject (store hours need it) | 3B | solution-architect | P3A-02 | TODO | Low | Raised by the quiz and stores library |
+| P6-14 | Guest-tracking shared rate limiter (the in-memory limiter is per runtime instance) | 6 | security-engineer | P6-08 | TODO | Med | Needs a shared store or an edge rule before go-live (R-27) |
+| P5A-14 | Reconciliation script `scripts/reconcile-extend.mjs` on top of `reconcile()` | 5A | integration-engineer | P5A-09 | TODO | Med | P5A-10 in the phase plan |
 
 ## Placeholders and mocks to retire
 

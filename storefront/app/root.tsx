@@ -13,12 +13,16 @@ import {
 import type {Route} from './+types/root';
 import favicon from '~/assets/favicon.svg';
 import {FOOTER_QUERY, HEADER_QUERY} from '~/lib/fragments';
-import resetStyles from '~/styles/reset.css?url';
-import appStyles from '~/styles/app.css?url';
 import tailwindCss from './styles/tailwind.css?url';
-import {PageLayout} from './components/PageLayout';
+import {formatPageTitle} from '~/components/layout/documentTitle';
+import {PageLayout} from '~/components/layout/PageLayout';
+import {MAIN_CONTENT_ID, SkipLink} from '~/components/layout/SkipLink';
+import {Button} from '~/components/ui/Button';
 
 export type RootLoader = typeof loader;
+
+// Default title; each route's own `meta` replaces it and should call formatPageTitle('Page name').
+export const meta: Route.MetaFunction = () => [{title: formatPageTitle()}];
 
 /**
  * This is important to avoid re-fetching root queries on sub-navigations
@@ -43,8 +47,8 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
 };
 
 /**
- * The main and reset stylesheets are added in the Layout component
- * to prevent a bug in development HMR updates.
+ * The stylesheet (tokens, base styles and the legacy template CSS it imports) is added in the Layout
+ * component to prevent a bug in development HMR updates.
  *
  * This avoids the "failed to execute 'insertBefore' on 'Node'" error
  * that occurs after editing and navigating to another page.
@@ -151,12 +155,11 @@ export function Layout({children}: {children?: React.ReactNode}) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <link rel="stylesheet" href={tailwindCss}></link>
-        <link rel="stylesheet" href={resetStyles}></link>
-        <link rel="stylesheet" href={appStyles}></link>
         <Meta />
         <Links />
       </head>
       <body>
+        <SkipLink />
         {children}
         <ScrollRestoration nonce={nonce} />
         <Scripts nonce={nonce} />
@@ -178,34 +181,98 @@ export default function App() {
       shop={data.shop}
       consent={data.consent}
     >
-      <PageLayout {...data}>
+      <PageLayout cart={data.cart} isLoggedIn={data.isLoggedIn}>
         <Outlet />
       </PageLayout>
     </Analytics.Provider>
   );
 }
 
+type ErrorView = {
+  status: number;
+  title: string;
+  message: string;
+  detail: string;
+};
+
+function describeError(error: unknown): ErrorView {
+  if (isRouteErrorResponse(error)) {
+    const payload: unknown = error.data;
+    const detail =
+      typeof payload === 'string'
+        ? payload
+        : payload &&
+            typeof payload === 'object' &&
+            'message' in payload &&
+            typeof payload.message === 'string'
+          ? payload.message
+          : '';
+    return error.status === 404
+      ? {
+          status: 404,
+          title: 'Page not found',
+          message: 'We could not find the page you were looking for.',
+          detail,
+        }
+      : {
+          status: error.status,
+          title: 'Something went wrong',
+          message: 'Please try again in a moment.',
+          detail,
+        };
+  }
+  return {
+    status: 500,
+    title: 'Something went wrong',
+    message: 'Please try again in a moment.',
+    detail: error instanceof Error ? error.message : '',
+  };
+}
+
 export function ErrorBoundary() {
   const error = useRouteError();
-  let errorMessage = 'Unknown error';
-  let errorStatus = 500;
+  const data = useRouteLoaderData<RootLoader>('root');
+  const view = describeError(error);
 
-  if (isRouteErrorResponse(error)) {
-    errorMessage = error?.data?.message ?? error.data;
-    errorStatus = error.status;
-  } else if (error instanceof Error) {
-    errorMessage = error.message;
+  // Error text from the server is shown only in development; shoppers get a fixed, safe message.
+  const content = (
+    <div className="flex flex-col items-start gap-4 py-12">
+      <p className="text-sm font-bold text-fg-muted">Error {view.status}</p>
+      <h1 className="text-3xl font-bold">{view.title}</h1>
+      <p className="text-base text-fg-muted">{view.message}</p>
+      <Button to="/" variant="pill">
+        Back to the home page
+      </Button>
+      {import.meta.env.DEV && view.detail ? (
+        <pre className="max-w-full overflow-x-auto rounded-card bg-surface-muted p-4 text-sm">
+          {view.detail}
+        </pre>
+      ) : null}
+    </div>
+  );
+
+  // Keep the header and footer on error pages when the root loader succeeded (the usual 404 case).
+  if (!data) {
+    return (
+      <main
+        id={MAIN_CONTENT_ID}
+        tabIndex={-1}
+        className="mx-auto w-full max-w-page flex-1 px-4 md:px-6"
+      >
+        {content}
+      </main>
+    );
   }
 
   return (
-    <div className="route-error">
-      <h1>Oops</h1>
-      <h2>{errorStatus}</h2>
-      {errorMessage && (
-        <fieldset>
-          <pre>{errorMessage}</pre>
-        </fieldset>
-      )}
-    </div>
+    <Analytics.Provider
+      cart={data.cart}
+      shop={data.shop}
+      consent={data.consent}
+    >
+      <PageLayout cart={data.cart} isLoggedIn={data.isLoggedIn}>
+        {content}
+      </PageLayout>
+    </Analytics.Provider>
   );
 }

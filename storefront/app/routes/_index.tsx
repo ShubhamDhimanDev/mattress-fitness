@@ -8,9 +8,12 @@ import type {
 } from 'storefrontapi.generated';
 import {ProductItem} from '~/components/ProductItem';
 import {MockShopNotice} from '~/components/MockShopNotice';
+import {formatPageTitle} from '~/components/layout/documentTitle';
+import {Button} from '~/components/ui/Button';
+import {SHOP_BY_SIZE_LINKS, STORE_LOCATOR_PATH} from '~/lib/navigation';
 
 export const meta: Route.MetaFunction = () => {
-  return [{title: 'Hydrogen | Home'}];
+  return [{title: formatPageTitle()}];
 };
 
 export async function loader(args: Route.LoaderArgs) {
@@ -63,9 +66,81 @@ export default function Homepage() {
   return (
     <div className="home">
       {data.isShopLinked ? null : <MockShopNotice />}
+      {/* TODO(P3B-13): temporary home built from the shell components. The real sections come from
+          Shopify admin and are reorderable there; replace everything in this file's JSX then. */}
+      <HeroPlaceholder />
+      <ShopBySizePlaceholder />
       <FeaturedCollection collection={data.featuredCollection} />
       <RecommendedProducts products={data.recommendedProducts} />
     </div>
+  );
+}
+
+// TODO(P3B-13): placeholder copy; the banner, headline and calls to action are managed in Shopify admin.
+function HeroPlaceholder() {
+  return (
+    <section
+      aria-labelledby="home-hero-heading"
+      className="on-dark mt-4 rounded-panel bg-primary-800 px-6 py-12 text-white md:px-12 md:py-16"
+    >
+      <h1
+        id="home-hero-heading"
+        className="max-w-prose text-4xl leading-tight font-bold md:text-5xl"
+      >
+        Find the mattress that fits how you sleep
+      </h1>
+      <p className="mt-3 max-w-prose text-lg text-primary-100">
+        Placeholder hero text. Browse by size, comfort and type, or take the
+        sleep quiz.
+      </p>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Button
+          to="/collections/mattresses"
+          variant="accent"
+          shape="pill"
+          size="lg"
+        >
+          Shop mattresses
+        </Button>
+        <Button
+          to={STORE_LOCATOR_PATH}
+          variant="secondary"
+          shape="pill"
+          size="lg"
+        >
+          Find a store
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+// TODO(P3B-13): sizes come from the catalog; two columns on a phone, three from 768 px.
+function ShopBySizePlaceholder() {
+  return (
+    <section aria-labelledby="shop-by-size-heading" className="py-8 md:py-12">
+      <h2
+        id="shop-by-size-heading"
+        className="text-center text-2xl font-bold tracking-wide uppercase"
+      >
+        Shop by size
+      </h2>
+      <ul className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
+        {SHOP_BY_SIZE_LINKS.map((size) => (
+          <li key={size.to}>
+            <Button
+              to={size.to}
+              variant="secondary"
+              shape="pill"
+              size="lg"
+              fullWidth
+            >
+              {size.label}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -90,7 +165,7 @@ function FeaturedCollection({
           />
         </div>
       )}
-      <h1>{collection.title}</h1>
+      <h2>{collection.title}</h2>
     </Link>
   );
 }

@@ -36,3 +36,6 @@ Thumbs.db
 # Local scratch
 tmp/
 *.local
+
+# Importer run manifests (written by scripts/catalog/import.mjs; contain product IDs, not secrets)
+scripts/catalog/.runs/

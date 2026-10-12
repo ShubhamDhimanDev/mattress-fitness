@@ -1,0 +1,135 @@
+{
+  "description": "Each entry says which row of invalid.csv must produce which error code. Used by validate.test.mjs.",
+  "expected": [
+    {
+      "row": 3,
+      "code": "E_REQUIRED",
+      "why": "sku is blank"
+    },
+    {
+      "row": 4,
+      "code": "E_REQUIRED",
+      "why": "comfort level is blank for a Mattress"
+    },
+    {
+      "row": 5,
+      "code": "E_FORMULA",
+      "why": "description starts with ="
+    },
+    {
+      "row": 6,
+      "code": "E_FORMULA",
+      "why": "seo title starts with +"
+    },
+    {
+      "row": 7,
+      "code": "E_HTML",
+      "why": "description contains a script tag"
+    },
+    {
+      "row": 8,
+      "code": "E_TOO_LONG",
+      "why": "seo title is 90 characters"
+    },
+    {
+      "row": 9,
+      "code": "E_BAD_HANDLE",
+      "why": "handle has capitals, a space and punctuation"
+    },
+    {
+      "row": 10,
+      "code": "E_BAD_SKU",
+      "why": "sku contains a space"
+    },
+    {
+      "row": 11,
+      "code": "E_UNKNOWN_VALUE",
+      "why": "misspelt comfort level, unknown type, position and size"
+    },
+    {
+      "row": 12,
+      "code": "E_BAD_PRICE",
+      "why": "price is words"
+    },
+    {
+      "row": 13,
+      "code": "E_BAD_PRICE",
+      "why": "price has three decimals"
+    },
+    {
+      "row": 14,
+      "code": "E_SALE_NOT_LOWER",
+      "why": "sale price is higher than the price"
+    },
+    {
+      "row": 15,
+      "code": "E_BAD_NUMBER",
+      "why": "height is a word"
+    },
+    {
+      "row": 16,
+      "code": "E_BAD_BOOLEAN",
+      "why": "copy_approved is not yes or no"
+    },
+    {
+      "row": 18,
+      "code": "E_DUPLICATE_SKU",
+      "why": "second model reuses a SKU"
+    },
+    {
+      "row": 20,
+      "code": "E_DUPLICATE_SIZE",
+      "why": "Queen listed twice for one product"
+    },
+    {
+      "row": 22,
+      "code": "E_DUPLICATE_MODEL",
+      "why": "same brand and model as row 21 under another handle"
+    },
+    {
+      "row": 24,
+      "code": "E_INCONSISTENT_ATTRIBUTE",
+      "why": "King row disagrees about comfort level"
+    },
+    {
+      "row": 25,
+      "code": "E_BAD_IMAGE_NAME",
+      "why": "image path traversal and a non-image file"
+    },
+    {
+      "row": 26,
+      "code": "E_DUPLICATE_IMAGE",
+      "why": "same image listed twice"
+    },
+    {
+      "row": 27,
+      "code": "E_MISSING_IMAGE",
+      "why": "file is not in the images list (checked when an images list is given)"
+    },
+    {
+      "row": 28,
+      "code": "E_BAD_SPEC",
+      "why": "specification without ="
+    },
+    {
+      "row": 29,
+      "code": "E_TOO_MANY_ITEMS",
+      "why": "13 bullets"
+    },
+    {
+      "row": 30,
+      "code": "E_BAD_RELATED_HANDLE",
+      "why": "related handle is not a handle"
+    },
+    {
+      "row": 31,
+      "code": "E_APPROVED_WITHOUT_COPY",
+      "why": "approved but copy is blank"
+    },
+    {
+      "row": 32,
+      "code": "E_ROW_TOO_MANY_CELLS",
+      "why": "unquoted comma splits the description into two cells"
+    }
+  ]
+}

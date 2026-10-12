@@ -36,11 +36,11 @@ Names only; values stay in the hosting platform's secret store and in ignored lo
 | `PRIVATE_STOREFRONT_API_TOKEN` | server | channel's private token |
 | `PUBLIC_CHECKOUT_DOMAIN` | public | store's checkout domain |
 | `PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID`, `PUBLIC_CUSTOMER_ACCOUNT_API_URL` | public | Customer Account API settings in the channel |
-| `SHOP_ID` | public | Shopify store ID (analytics) |
-| `SHOPIFY_APP_CLIENT_ID`, `SHOPIFY_APP_CLIENT_SECRET` | server | Dev Dashboard app with custom distribution on the client's store (legacy custom apps cannot be created, V-20); least-privilege scopes; the access token is obtained at runtime or stored in the platform secret store, never in the repo |
+| `SHOP_ID` | server in the scaffold (Customer Account API); do not expose to the browser unless Hydrogen's analytics requires it | Shopify store ID |
+| `SHOPIFY_APP_CLIENT_ID`, `SHOPIFY_APP_CLIENT_SECRET` | server | Dev Dashboard app with custom distribution on the client's store (legacy custom apps cannot be created, V-20); least-privilege scopes. **The client secret also verifies webhook signatures** (ADR-0009 addendum); there is no separate webhook secret. The access token is obtained at runtime or stored in the platform secret store, never in the repo |
 | `SHOPIFY_ADMIN_API_ACCESS_TOKEN` | server | offline token from the authorization-code grant, if used; least privilege |
-| `SHOPIFY_WEBHOOK_SECRET` | server | webhook signing secret |
 | `EXTEND_API_HOST`, `EXTEND_STORE_ID`, `EXTEND_ACCESS_TOKEN` | server | Extend: `EXTEND_API_HOST` is the local mock, `https://api-demo.helloextend.com` or `https://api.helloextend.com`; token from a Merchant Portal API Integration (F-27) |
+| `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ALLOWED_STORES`, `SHOPIFY_ADMIN_API_VERSION` | **scripts only** | Used by `scripts/catalog` and `scripts/shopify`. Live runs refuse any store not in `SHOPIFY_ALLOWED_STORES`. Never set in a storefront deployment |
 | `JUDGEME_PRIVATE_API_TOKEN` | server | Judge.me private key if Judge.me is chosen (Q-011); never a `PUBLIC_` variable |
 | `PUBLIC_EXTEND_ENABLED` | public | our feature switch (non-secret); `false` hides every Extend surface |
 | `EXTEND_ORDER_SYNC` | server | `self` (default), `extend-app` or `off`; guards against double reporting (ADR-0009) |

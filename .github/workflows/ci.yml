@@ -26,6 +26,8 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: node scripts/validate-framework.mjs
+      # Zero-dependency tooling tests (catalog importer, Shopify definitions, Extend mock). The quoted glob is required on Node 22.
+      - run: node --test "scripts/**/*.test.mjs"
 
   storefront:
     name: Storefront (format, lint, types, unit, build, e2e)
