@@ -6,13 +6,16 @@ Everything in the repository root `../CLAUDE.md` applies here: scope and require
 
 Use Node 22 (`../.nvmrc`, installed through fnm; Git Bash loads it from `~/.bashrc`). From this folder:
 
-| Command                                                | What it does                                                                |
-| ------------------------------------------------------ | --------------------------------------------------------------------------- |
-| `npm ci`                                               | install exactly from the lockfile                                           |
-| `npm run dev`                                          | dev server on http://localhost:3000 against mock.shop (no store needed yet) |
-| `npm run lint` / `npm run typecheck` / `npm run build` | baseline checks, all passing on the scaffold (2026-10-12)                   |
-| `npm run codegen`                                      | regenerate Storefront and Customer Account API types                        |
-| `npm run test`, `npm run e2e`, `npm run format:check`  | **not yet defined**: Phase 1 tasks P1-04 and P1-05 add them                 |
+| Command                                                | What it does                                                                                                         |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `npm ci`                                               | install exactly from the lockfile                                                                                    |
+| `npm run dev`                                          | dev server on http://localhost:3000 against mock.shop (no store needed yet)                                          |
+| `npm run lint` / `npm run typecheck` / `npm run build` | baseline checks, all passing on the scaffold (2026-10-12)                                                            |
+| `npm run codegen`                                      | regenerate Storefront and Customer Account API types                                                                 |
+| `npm run format:check` / `npm run format`              | Prettier check or write                                                                                              |
+| `npm run test` / `test:watch` / `test:coverage`        | Vitest (unit and integration)                                                                                        |
+| `npm run e2e`                                          | Playwright Test (desktop and mobile Chromium, dev server on port 3100); `E2E_ALL_BROWSERS=1` adds WebKit and Firefox |
+| `npm run check`                                        | format check, lint, types, unit tests and build in one go                                                            |
 
 ## Template provenance (read before trusting any file here)
 
