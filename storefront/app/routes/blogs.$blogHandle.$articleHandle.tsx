@@ -1,10 +1,12 @@
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/blogs.$blogHandle.$articleHandle';
 import {Image} from '@shopify/hydrogen';
+import {SafeHtml} from '~/components/SafeHtml';
+import {formatPageTitle} from '~/components/layout/documentTitle';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.article.title ?? ''} article`}];
+  return [{title: formatPageTitle(data?.article.title)}];
 };
 
 export async function loader(args: Route.LoaderArgs) {
@@ -86,10 +88,7 @@ export default function Article() {
       </h1>
 
       {image && <Image data={image} sizes="90vw" loading="eager" />}
-      <div
-        dangerouslySetInnerHTML={{__html: contentHtml}}
-        className="article"
-      />
+      <SafeHtml html={contentHtml} />
     </div>
   );
 }

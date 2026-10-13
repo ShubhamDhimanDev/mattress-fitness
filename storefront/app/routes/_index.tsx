@@ -1,83 +1,181 @@
-import {Await, useLoaderData, Link} from 'react-router';
-import type {Route} from './+types/_index';
-import {Suspense} from 'react';
 import {Image} from '@shopify/hydrogen';
-import type {
-  FeaturedCollectionFragment,
-  RecommendedProductsQuery,
-} from 'storefrontapi.generated';
+import {Link, useLoaderData} from 'react-router';
+import type {Route} from './+types/_index';
 import {ProductItem} from '~/components/ProductItem';
-import {MockShopNotice} from '~/components/MockShopNotice';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {Button} from '~/components/ui/Button';
-import {SHOP_BY_SIZE_LINKS, STORE_LOCATOR_PATH} from '~/lib/navigation';
+import {
+  REASSURANCE_ITEMS,
+  SLEEP_QUIZ_LINK,
+  STORE_LOCATOR_PATH,
+} from '~/lib/navigation';
+import {loadHome} from '~/lib/shopify/home-data';
 
-export const meta: Route.MetaFunction = () => {
-  return [{title: formatPageTitle()}];
-};
+export const meta: Route.MetaFunction = () => [{title: formatPageTitle()}];
 
-export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
-
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
-  return {...deferredData, ...criticalData};
+export async function loader({context}: Route.LoaderArgs) {
+  return loadHome(context.storefront);
 }
 
 /**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
+ * Home (REQ-HOME-001). Every section below is built from catalog data and is simply left out when its data
+ * is missing, so a new or half-configured store still gets a working page.
  */
-async function loadCriticalData({context}: Route.LoaderArgs) {
-  const [{collections}] = await Promise.all([
-    context.storefront.query(FEATURED_COLLECTION_QUERY),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
-
-  return {
-    isShopLinked: Boolean(context.env.PUBLIC_STORE_DOMAIN),
-    featuredCollection: collections.nodes[0],
-  };
-}
-
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({context}: Route.LoaderArgs) {
-  const recommendedProducts = context.storefront
-    .query(RECOMMENDED_PRODUCTS_QUERY)
-    .catch((error: Error) => {
-      // Log query errors, but don't throw them so the page can still render
-      console.error(error);
-      return null;
-    });
-
-  return {
-    recommendedProducts,
-  };
-}
-
 export default function Homepage() {
-  const data = useLoaderData<typeof loader>();
+  const home = useLoaderData<typeof loader>();
+
   return (
-    <div className="home">
-      {data.isShopLinked ? null : <MockShopNotice />}
-      {/* TODO(P3B-13): temporary home built from the shell components. The real sections come from
-          Shopify admin and are reorderable there; replace everything in this file's JSX then. */}
-      <HeroPlaceholder />
-      <ShopBySizePlaceholder />
-      <FeaturedCollection collection={data.featuredCollection} />
-      <RecommendedProducts products={data.recommendedProducts} />
+    <div>
+      <Hero />
+      {home.sizeTiles.length > 0 ? (
+        <section
+          aria-labelledby="shop-by-size-heading"
+          className="py-8 md:py-12"
+        >
+          <h2
+            id="shop-by-size-heading"
+            className="text-center text-2xl font-bold tracking-wide uppercase"
+          >
+            Shop by size
+          </h2>
+          <ul className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
+            {home.sizeTiles.map((size) => (
+              <li key={size.label}>
+                <Button
+                  to={size.to}
+                  variant="secondary"
+                  shape="pill"
+                  size="lg"
+                  fullWidth
+                >
+                  {size.label}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {home.featured ? (
+        <section aria-labelledby="featured-heading" className="py-8">
+          <div className="flex items-end justify-between gap-4">
+            <h2 id="featured-heading" className="text-2xl font-bold">
+              {home.featured.title}
+            </h2>
+            {home.featured.handle ? (
+              <Link
+                to={`/collections/${home.featured.handle}`}
+                className="inline-flex min-h-touch items-center font-bold text-primary-700 underline underline-offset-2"
+              >
+                View all
+              </Link>
+            ) : null}
+          </div>
+          <ul className="mt-4 grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-4">
+            {home.featured.products.slice(0, 8).map((product, index) => (
+              <li key={product.id}>
+                <ProductItem
+                  product={product}
+                  loading={index < 4 ? 'eager' : 'lazy'}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {home.brandTiles.length > 0 ? (
+        <section aria-labelledby="brands-heading" className="py-8">
+          <h2 id="brands-heading" className="text-2xl font-bold">
+            Shop by brand
+          </h2>
+          <ul className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {home.brandTiles.map((brand) => (
+              <li key={brand.name}>
+                <Link
+                  to={brand.to}
+                  className="flex min-h-touch items-center justify-center gap-2 rounded-card border-2 border-line p-4 text-center font-bold hover:border-ink-900"
+                >
+                  {brand.logo ? (
+                    <Image
+                      data={brand.logo}
+                      alt=""
+                      sizes="120px"
+                      className="h-auto max-h-10 w-auto"
+                    />
+                  ) : null}
+                  {brand.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {home.collectionTiles.length > 0 ? (
+        <section aria-labelledby="collections-heading" className="py-8">
+          <h2 id="collections-heading" className="text-2xl font-bold">
+            Shop by category
+          </h2>
+          <ul className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+            {home.collectionTiles.map((tile, index) => (
+              <li key={tile.to}>
+                <Link
+                  to={tile.to}
+                  prefetch="intent"
+                  className="group relative block overflow-hidden rounded-card bg-surface-muted"
+                >
+                  <div className="aspect-[4/3]">
+                    {tile.image ? (
+                      <Image
+                        data={tile.image}
+                        alt=""
+                        aspectRatio="4/3"
+                        sizes="(min-width: 768px) 30vw, 46vw"
+                        loading={index < 2 ? 'eager' : 'lazy'}
+                        className="size-full object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <span className="block p-3 text-base font-bold group-hover:underline">
+                    {tile.title}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section
+        aria-labelledby="assurance-heading"
+        className="rounded-panel bg-primary-50 px-6 py-8"
+      >
+        <h2 id="assurance-heading" className="text-2xl font-bold">
+          Buy with confidence
+        </h2>
+        <ul className="mt-4 grid gap-3 md:grid-cols-3">
+          {REASSURANCE_ITEMS.map((item) => (
+            <li key={item.id}>
+              <Link
+                to={item.to}
+                className="inline-flex min-h-touch items-center font-bold text-primary-800 underline underline-offset-2"
+              >
+                {item.text}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* TODO(P7-02): email and text-message signup with recorded consent (Klaviyo) goes here. */}
     </div>
   );
 }
 
-// TODO(P3B-13): placeholder copy; the banner, headline and calls to action are managed in Shopify admin.
-function HeroPlaceholder() {
+// TODO(P3B-13): hero copy is placeholder text; the admin-editable `homepage_section` entries replace it once
+// their `type` values are fixed with the homepage design (SHOPIFY_DATA_MODEL, definitions.json).
+function Hero() {
   return (
     <section
       aria-labelledby="home-hero-heading"
@@ -90,17 +188,11 @@ function HeroPlaceholder() {
         Find the mattress that fits how you sleep
       </h1>
       <p className="mt-3 max-w-prose text-lg text-primary-100">
-        Placeholder hero text. Browse by size, comfort and type, or take the
-        sleep quiz.
+        Browse by size, comfort and type, or take the sleep quiz.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
-        <Button
-          to="/collections/mattresses"
-          variant="accent"
-          shape="pill"
-          size="lg"
-        >
-          Shop mattresses
+        <Button to={SLEEP_QUIZ_LINK.to} variant="accent" shape="pill" size="lg">
+          Take the sleep quiz
         </Button>
         <Button
           to={STORE_LOCATOR_PATH}
@@ -114,139 +206,3 @@ function HeroPlaceholder() {
     </section>
   );
 }
-
-// TODO(P3B-13): sizes come from the catalog; two columns on a phone, three from 768 px.
-function ShopBySizePlaceholder() {
-  return (
-    <section aria-labelledby="shop-by-size-heading" className="py-8 md:py-12">
-      <h2
-        id="shop-by-size-heading"
-        className="text-center text-2xl font-bold tracking-wide uppercase"
-      >
-        Shop by size
-      </h2>
-      <ul className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
-        {SHOP_BY_SIZE_LINKS.map((size) => (
-          <li key={size.to}>
-            <Button
-              to={size.to}
-              variant="secondary"
-              shape="pill"
-              size="lg"
-              fullWidth
-            >
-              {size.label}
-            </Button>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function FeaturedCollection({
-  collection,
-}: {
-  collection: FeaturedCollectionFragment;
-}) {
-  if (!collection) return null;
-  const image = collection?.image;
-  return (
-    <Link
-      className="featured-collection"
-      to={`/collections/${collection.handle}`}
-    >
-      {image && (
-        <div className="featured-collection-image">
-          <Image
-            data={image}
-            sizes="100vw"
-            alt={image.altText || collection.title}
-          />
-        </div>
-      )}
-      <h2>{collection.title}</h2>
-    </Link>
-  );
-}
-
-function RecommendedProducts({
-  products,
-}: {
-  products: Promise<RecommendedProductsQuery | null>;
-}) {
-  return (
-    <section
-      className="recommended-products"
-      aria-labelledby="recommended-products"
-    >
-      <h2 id="recommended-products">Recommended Products</h2>
-      <Suspense fallback={<div>Loading...</div>}>
-        <Await resolve={products}>
-          {(response) => (
-            <div className="recommended-products-grid">
-              {response
-                ? response.products.nodes.map((product) => (
-                    <ProductItem key={product.id} product={product} />
-                  ))
-                : null}
-            </div>
-          )}
-        </Await>
-      </Suspense>
-      <br />
-    </section>
-  );
-}
-
-const FEATURED_COLLECTION_QUERY = `#graphql
-  fragment FeaturedCollection on Collection {
-    id
-    title
-    image {
-      id
-      url
-      altText
-      width
-      height
-    }
-    handle
-  }
-  query FeaturedCollection($country: CountryCode, $language: LanguageCode)
-    @inContext(country: $country, language: $language) {
-    collections(first: 1, sortKey: UPDATED_AT, reverse: true) {
-      nodes {
-        ...FeaturedCollection
-      }
-    }
-  }
-` as const;
-
-const RECOMMENDED_PRODUCTS_QUERY = `#graphql
-  fragment RecommendedProduct on Product {
-    id
-    title
-    handle
-    priceRange {
-      minVariantPrice {
-        amount
-        currencyCode
-      }
-    }
-    featuredImage {
-      id
-      url
-      altText
-      width
-      height
-    }
-  }
-  query RecommendedProducts ($country: CountryCode, $language: LanguageCode)
-    @inContext(country: $country, language: $language) {
-    products(first: 4, sortKey: UPDATED_AT, reverse: true) {
-      nodes {
-        ...RecommendedProduct
-      }
-    }
-  }
-` as const;

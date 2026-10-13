@@ -1,48 +1,35 @@
 import {redirect} from 'react-router';
 import type {Route} from './+types/discount.$code';
+import {parseDiscountCode, safeRedirectPath} from '~/lib/cart/input';
 
 /**
- * Automatically applies a discount found on the url
- * If a cart exists it's updated with the discount, otherwise a cart is created with the discount already applied
- *
- * @example
- * Example path applying a discount and optional redirecting (defaults to the home page)
- * ```js
- * /discount/FREESHIPPING?redirect=/products
- *
- * ```
+ * Applies a discount code from the URL, then redirects (default: home).
+ * `/discount/FREESHIPPING?redirect=/collections/mattresses`
+ * The target must be a path on this site (`safeRedirectPath`); anything else, including `//host`,
+ * backslashes, schemes and `javascript:`, goes to `/` (T-08). The code must be a plain code (T-01).
  */
 export async function loader({request, context, params}: Route.LoaderArgs) {
   const {cart} = context;
-  const {code} = params;
+  const searchParams = new URL(request.url).searchParams;
 
-  const url = new URL(request.url);
-  const searchParams = new URLSearchParams(url.search);
-  let redirectParam =
-    searchParams.get('redirect') || searchParams.get('return_to') || '/';
-
-  if (redirectParam.includes('//')) {
-    // Avoid redirecting to external URLs to prevent phishing attacks
-    redirectParam = '/';
-  }
-
+  const target = safeRedirectPath(
+    searchParams.get('redirect') ?? searchParams.get('return_to'),
+  );
+  // Remaining parameters (utm tags and the like) travel with the redirect.
   searchParams.delete('redirect');
   searchParams.delete('return_to');
+  const query = searchParams.toString();
+  const redirectUrl = query
+    ? `${target}${target.includes('?') ? '&' : '?'}${query}`
+    : target;
 
-  const redirectUrl = `${redirectParam}?${searchParams}`;
-
-  if (!code) {
-    return redirect(redirectUrl);
-  }
+  const code = parseDiscountCode(params.code);
+  if (!code) return redirect(redirectUrl);
 
   const result = await cart.updateDiscountCodes([code]);
-  const headers = cart.setCartId(result.cart.id);
+  // Without a cart there is nothing to remember; the shopper still reaches the page.
+  const headers = result.cart ? cart.setCartId(result.cart.id) : new Headers();
 
-  // Using set-cookie on a 303 redirect will not work if the domain origin have port number (:3000)
-  // If there is no cart id and a new cart id is created in the progress, it will not be set in the cookie
-  // on localhost:3000
-  return redirect(redirectUrl, {
-    status: 303,
-    headers,
-  });
+  // A 303 with Set-Cookie does not work on a localhost origin with a port; it does on real hosts.
+  return redirect(redirectUrl, {status: 303, headers});
 }

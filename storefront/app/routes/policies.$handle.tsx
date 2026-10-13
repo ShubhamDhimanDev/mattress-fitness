@@ -1,25 +1,28 @@
 import {Link, useLoaderData} from 'react-router';
 import type {Route} from './+types/policies.$handle';
-import {type Shop} from '@shopify/hydrogen/storefront-api-types';
+import {SafeHtml} from '~/components/SafeHtml';
+import {formatPageTitle} from '~/components/layout/documentTitle';
 
-type SelectedPolicies = keyof Pick<
-  Shop,
-  'privacyPolicy' | 'shippingPolicy' | 'termsOfService' | 'refundPolicy'
->;
+// URL handle to the Shop field it reads. A closed list: the handle never becomes a variable name unchecked.
+const POLICY_FIELDS = {
+  'privacy-policy': 'privacyPolicy',
+  'shipping-policy': 'shippingPolicy',
+  'terms-of-service': 'termsOfService',
+  'refund-policy': 'refundPolicy',
+} as const;
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.policy.title ?? ''}`}];
+  return [{title: formatPageTitle(data?.policy.title)}];
 };
 
 export async function loader({params, context}: Route.LoaderArgs) {
-  if (!params.handle) {
-    throw new Response('No handle was passed in', {status: 404});
+  const policyName =
+    Object.entries(POLICY_FIELDS).find(
+      ([handle]) => handle === params.handle,
+    )?.[1] ?? null;
+  if (!policyName) {
+    throw new Response('Could not find the policy', {status: 404});
   }
-
-  const policyName = params.handle.replace(
-    /-([a-z])/g,
-    (_: unknown, m1: string) => m1.toUpperCase(),
-  ) as SelectedPolicies;
 
   const data = await context.storefront.query(POLICY_CONTENT_QUERY, {
     variables: {
@@ -45,15 +48,15 @@ export default function Policy() {
   const {policy} = useLoaderData<typeof loader>();
 
   return (
-    <div className="policy">
-      <br />
-      <br />
-      <div>
-        <Link to="/policies">← Back to Policies</Link>
-      </div>
-      <br />
-      <h1>{policy.title}</h1>
-      <div dangerouslySetInnerHTML={{__html: policy.body}} />
+    <div className="py-6">
+      <Link
+        to="/policies"
+        className="inline-flex min-h-touch items-center text-primary-700 underline underline-offset-2"
+      >
+        Back to policies
+      </Link>
+      <h1 className="mt-2 text-3xl font-bold">{policy.title}</h1>
+      <SafeHtml html={policy.body} />
     </div>
   );
 }

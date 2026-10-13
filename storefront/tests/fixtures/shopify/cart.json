@@ -1,0 +1,98 @@
+{
+  "cartCreate": {
+    "cart": {
+      "updatedAt": "2026-10-13T08:50:15Z",
+      "id": "gid://shopify/Cart/c1-f1e0fac33f5e470894192ec20d3bbae0?key=1204aefd37cf1a5829a273d974931803",
+      "appliedGiftCards": [],
+      "checkoutUrl": "https://bedding.hydrogen.mock.shop/checkout",
+      "totalQuantity": 2,
+      "buyerIdentity": {
+        "countryCode": "US",
+        "customer": null,
+        "email": null,
+        "phone": null
+      },
+      "lines": {
+        "nodes": [
+          {
+            "id": "gid://shopify/CartLine/60639",
+            "quantity": 2,
+            "attributes": [
+              {
+                "key": "Gift note",
+                "value": "Fixture"
+              }
+            ],
+            "cost": {
+              "totalAmount": {
+                "currencyCode": "USD",
+                "amount": "150.0"
+              },
+              "amountPerQuantity": {
+                "currencyCode": "USD",
+                "amount": "75.0"
+              },
+              "compareAtAmountPerQuantity": null
+            },
+            "merchandise": {
+              "id": "gid://shopify/ProductVariant/17581",
+              "availableForSale": true,
+              "compareAtPrice": null,
+              "price": {
+                "currencyCode": "USD",
+                "amount": "75.0"
+              },
+              "requiresShipping": true,
+              "title": "Twin / Sand",
+              "image": {
+                "id": "gid://shopify/ProductImage/7658",
+                "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+                "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+                "width": 768,
+                "height": 1344
+              },
+              "product": {
+                "handle": "linen-pillowcase-pair-in-warm-clay",
+                "title": "Linen Pillowcase Pair in Warm Clay",
+                "id": "gid://shopify/Product/3208",
+                "vendor": "CloudHaven Linens"
+              },
+              "selectedOptions": [
+                {
+                  "name": "Size",
+                  "value": "Twin"
+                },
+                {
+                  "name": "Color",
+                  "value": "Sand"
+                }
+              ]
+            },
+            "parentRelationship": null
+          }
+        ]
+      },
+      "cost": {
+        "subtotalAmount": {
+          "currencyCode": "USD",
+          "amount": "150.0"
+        },
+        "totalAmount": {
+          "currencyCode": "USD",
+          "amount": "150.0"
+        },
+        "totalDutyAmount": null,
+        "totalTaxAmount": null
+      },
+      "note": "",
+      "attributes": [
+        {
+          "key": "delivery_choice",
+          "value": "in-home"
+        }
+      ],
+      "discountCodes": []
+    },
+    "userErrors": []
+  }
+}

@@ -1,9 +1,13 @@
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/pages.$handle';
+import {SafeHtml} from '~/components/SafeHtml';
+import {formatPageTitle} from '~/components/layout/documentTitle';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+import {catalogCache} from '~/lib/shopify/cache';
+import {isValidHandle} from '~/lib/shopify/collection-data';
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.page.title ?? ''}`}];
+  return [{title: formatPageTitle(data?.page.title)}];
 };
 
 export async function loader(args: Route.LoaderArgs) {
@@ -21,12 +25,13 @@ export async function loader(args: Route.LoaderArgs) {
  * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
  */
 async function loadCriticalData({context, request, params}: Route.LoaderArgs) {
-  if (!params.handle) {
-    throw new Error('Missing page handle');
+  if (!isValidHandle(params.handle)) {
+    throw new Response('Not Found', {status: 404});
   }
 
   const [{page}] = await Promise.all([
     context.storefront.query(PAGE_QUERY, {
+      cache: catalogCache(context.storefront),
       variables: {
         handle: params.handle,
       },
@@ -58,11 +63,9 @@ export default function Page() {
   const {page} = useLoaderData<typeof loader>();
 
   return (
-    <div className="page">
-      <header>
-        <h1>{page.title}</h1>
-      </header>
-      <main dangerouslySetInnerHTML={{__html: page.body}} />
+    <div className="py-6">
+      <h1 className="text-3xl font-bold">{page.title}</h1>
+      <SafeHtml html={page.body} />
     </div>
   );
 }

@@ -1,0 +1,117 @@
+{
+  "product": {
+    "id": "gid://shopify/Product/3208",
+    "variants": {
+      "nodes": [
+        {
+          "id": "gid://shopify/ProductVariant/17581",
+          "availableForSale": true,
+          "price": {
+            "amount": "75.0",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17582",
+          "availableForSale": true,
+          "price": {
+            "amount": "75.0",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17583",
+          "availableForSale": true,
+          "price": {
+            "amount": "75.0",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17584",
+          "availableForSale": true,
+          "price": {
+            "amount": "78.75",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17585",
+          "availableForSale": true,
+          "price": {
+            "amount": "78.75",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17586",
+          "availableForSale": true,
+          "price": {
+            "amount": "78.75",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17587",
+          "availableForSale": true,
+          "price": {
+            "amount": "82.5",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17588",
+          "availableForSale": true,
+          "price": {
+            "amount": "82.5",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17589",
+          "availableForSale": true,
+          "price": {
+            "amount": "82.5",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17590",
+          "availableForSale": true,
+          "price": {
+            "amount": "86.25",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17591",
+          "availableForSale": true,
+          "price": {
+            "amount": "86.25",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17592",
+          "availableForSale": true,
+          "price": {
+            "amount": "86.25",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null
+        }
+      ]
+    }
+  }
+}

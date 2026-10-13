@@ -1,0 +1,802 @@
+{
+  "collection": {
+    "id": "gid://shopify/Collection/457",
+    "handle": "sun-drenched-morning-bedding",
+    "title": "Sun-Drenched Morning Bedding",
+    "description": "Essential layers featuring an earthy muted palette, serene tranquil mood, and organic linen material language for a restful sleep.",
+    "seo": {
+      "title": "Sun-Drenched Morning Bedding",
+      "description": "Essential layers featuring an earthy muted palette, serene tranquil mood, and organic linen material language for a restful sleep."
+    },
+    "faqs": null,
+    "products": {
+      "nodes": [
+        {
+          "id": "gid://shopify/Product/3213",
+          "handle": "linen-duvet-insert-with-loft-fill",
+          "title": "Linen Duvet Insert with Loft Fill",
+          "vendor": "CloudHaven Linens",
+          "productType": "Sun-Drenched Morning Bedding",
+          "availableForSale": true,
+          "featuredImage": {
+            "id": "gid://shopify/ProductImage/7672",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/58b7466fdd9aaf59b7c1abe91762a4e4.png?v=14795818",
+            "altText": "Premium linen duvet insert, 3/4 angle from foot or side of bed, showing layers of duvet and cover with natural folds and...",
+            "width": 768,
+            "height": 1344
+          },
+          "variants": {
+            "nodes": [
+              {
+                "id": "gid://shopify/ProductVariant/17641",
+                "availableForSale": true,
+                "price": {
+                  "amount": "265.0",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "344.5",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Twin"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17642",
+                "availableForSale": true,
+                "price": {
+                  "amount": "265.0",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "344.5",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Full"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17643",
+                "availableForSale": true,
+                "price": {
+                  "amount": "265.0",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "344.5",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Queen"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17644",
+                "availableForSale": true,
+                "price": {
+                  "amount": "265.0",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "344.5",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "King"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17645",
+                "availableForSale": true,
+                "price": {
+                  "amount": "278.25",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "361.73",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Twin"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17646",
+                "availableForSale": true,
+                "price": {
+                  "amount": "278.25",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "361.73",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Full"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17647",
+                "availableForSale": true,
+                "price": {
+                  "amount": "278.25",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "361.73",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Queen"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17648",
+                "availableForSale": true,
+                "price": {
+                  "amount": "278.25",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "361.73",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "King"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17649",
+                "availableForSale": true,
+                "price": {
+                  "amount": "291.5",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "378.95",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Twin"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17650",
+                "availableForSale": true,
+                "price": {
+                  "amount": "291.5",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "378.95",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Full"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17651",
+                "availableForSale": true,
+                "price": {
+                  "amount": "291.5",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "378.95",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Queen"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17652",
+                "availableForSale": true,
+                "price": {
+                  "amount": "291.5",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": {
+                  "amount": "378.95",
+                  "currencyCode": "USD"
+                },
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "King"
+                  }
+                ]
+              }
+            ]
+          },
+          "metafields": [null, null, null, null]
+        },
+        {
+          "id": "gid://shopify/Product/3212",
+          "handle": "belgian-linen-duvet-cover",
+          "title": "Belgian Linen Duvet Cover",
+          "vendor": "CloudHaven Linens",
+          "productType": "Sun-Drenched Morning Bedding",
+          "availableForSale": true,
+          "featuredImage": {
+            "id": "gid://shopify/ProductImage/7669",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/6427bc9c4a0a928dc74ef946edab5e2f.png?v=13064309",
+            "altText": "A Belgian linen duvet cover in Soft Mink, emphasizing its premium quality. No logos, no brand names, no text, no trademarks",
+            "width": 768,
+            "height": 1344
+          },
+          "variants": {
+            "nodes": [
+              {
+                "id": "gid://shopify/ProductVariant/17629",
+                "availableForSale": true,
+                "price": {
+                  "amount": "199.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "Twin"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17630",
+                "availableForSale": true,
+                "price": {
+                  "amount": "199.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "Twin"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17631",
+                "availableForSale": true,
+                "price": {
+                  "amount": "199.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "Twin"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17632",
+                "availableForSale": true,
+                "price": {
+                  "amount": "209.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "Full"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17633",
+                "availableForSale": true,
+                "price": {
+                  "amount": "209.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "Full"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17634",
+                "availableForSale": true,
+                "price": {
+                  "amount": "209.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "Full"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17635",
+                "availableForSale": true,
+                "price": {
+                  "amount": "219.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "Queen"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17636",
+                "availableForSale": true,
+                "price": {
+                  "amount": "219.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "Queen"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17637",
+                "availableForSale": true,
+                "price": {
+                  "amount": "219.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "Queen"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17638",
+                "availableForSale": true,
+                "price": {
+                  "amount": "229.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "King"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17639",
+                "availableForSale": true,
+                "price": {
+                  "amount": "229.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "King"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17640",
+                "availableForSale": true,
+                "price": {
+                  "amount": "229.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Size",
+                    "value": "King"
+                  },
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  }
+                ]
+              }
+            ]
+          },
+          "metafields": [null, null, null, null]
+        },
+        {
+          "id": "gid://shopify/Product/3211",
+          "handle": "classic-linen-sheet-set",
+          "title": "Classic Linen Sheet Set",
+          "vendor": "CloudHaven Linens",
+          "productType": "Sun-Drenched Morning Bedding",
+          "availableForSale": true,
+          "featuredImage": {
+            "id": "gid://shopify/ProductImage/7667",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/3fdd7e5a0ed7f387a767caf6ab1ab833.png?v=13712014",
+            "altText": "Classic linen sheet set in Oatmeal, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "variants": {
+            "nodes": [
+              {
+                "id": "gid://shopify/ProductVariant/17617",
+                "availableForSale": true,
+                "price": {
+                  "amount": "189.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Twin"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17618",
+                "availableForSale": true,
+                "price": {
+                  "amount": "189.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Full"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17619",
+                "availableForSale": true,
+                "price": {
+                  "amount": "189.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Queen"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17620",
+                "availableForSale": true,
+                "price": {
+                  "amount": "189.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Sand"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "King"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17621",
+                "availableForSale": true,
+                "price": {
+                  "amount": "199.49",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Twin"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17622",
+                "availableForSale": true,
+                "price": {
+                  "amount": "199.49",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Full"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17623",
+                "availableForSale": true,
+                "price": {
+                  "amount": "199.49",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Queen"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17624",
+                "availableForSale": true,
+                "price": {
+                  "amount": "199.49",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Stone"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "King"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17625",
+                "availableForSale": true,
+                "price": {
+                  "amount": "208.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Twin"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17626",
+                "availableForSale": true,
+                "price": {
+                  "amount": "208.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Full"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17627",
+                "availableForSale": true,
+                "price": {
+                  "amount": "208.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "Queen"
+                  }
+                ]
+              },
+              {
+                "id": "gid://shopify/ProductVariant/17628",
+                "availableForSale": true,
+                "price": {
+                  "amount": "208.99",
+                  "currencyCode": "USD"
+                },
+                "compareAtPrice": null,
+                "selectedOptions": [
+                  {
+                    "name": "Color",
+                    "value": "Cloud"
+                  },
+                  {
+                    "name": "Size",
+                    "value": "King"
+                  }
+                ]
+              }
+            ]
+          },
+          "metafields": [null, null, null, null]
+        }
+      ],
+      "filters": [],
+      "pageInfo": {
+        "hasNextPage": true,
+        "endCursor": "eyJjIjoicHJpY2UiLCJ2IjoiMTg5Ljk5IiwiaSI6MzIxMX0"
+      }
+    }
+  }
+}
