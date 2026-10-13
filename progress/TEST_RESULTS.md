@@ -1,6 +1,6 @@
 # Test and verification results
 
-Every entry records the command, the date, what it ran against and the **actual** result. Failures are recorded as failures. Link traces, screenshots and order IDs here; the traceability matrix ([TRACEABILITY](../docs/requirements/TRACEABILITY.md)) points to this file as evidence. Application tests do not exist yet (no storefront code); this log currently holds framework and environment verification from Stage A.
+Every entry records the command, the date, what it ran against and the **actual** result. Failures are recorded as failures. Link traces, screenshots and order IDs here; the traceability matrix ([TRACEABILITY](../docs/requirements/TRACEABILITY.md)) points to this file as evidence. This log holds framework and environment verification (Stage A, 2026-10-11 and 2026-10-12) and application check results (from 2026-10-13); none of the application results come from a real Shopify store yet.
 
 ## Framework and environment verification, 2026-10-11
 
@@ -59,3 +59,20 @@ No application tests exist: there is no storefront code yet (Phase 1 is blocked 
 | V-D5 | Negative test of the new checks | Scratch copy with one non-existent SD, CR, V, F, R, T and ADR reference each, an engines mismatch and a nested `.git`: **exit 1, 9 errors, every injected defect reported** |
 | V-D6 | Final clean run | `node scripts/validate-framework.mjs`: `framework check: OK` |
 | V-D7 | Not changed, on purpose | The reviewer suggested `**/.env` forms for the deny rules; the Claude Code permissions page we read says bare filenames already match at any depth. Ask and deny rules still cover the Bash tool only; PowerShell equivalents were not added and have not been tested, so the project owner should prefer Git Bash for agent commands. `storefront/AGENTS.md` keeps the template's toolkit-install line; `storefront/CLAUDE.md` warns against following it |
+
+## Application checks after commits 392f52f, 8c533e2 and 46e64a2, 2026-10-13
+
+Run on branch `feat/foundation-libs-and-shell` (Node 22 via fnm, Git Bash). Results are as reported to the project manager by the orchestrator and the build agents; the project manager has no shell and did not re-run them. All run against fixtures, mocks and mock.shop. **No check ran against a real Shopify development store.**
+
+| # | What | Command | Result |
+|---|---|---|---|
+| V-E1 | Type check | `npm run typecheck` in `storefront/` | Clean |
+| V-E2 | Lint | `npm run lint` in `storefront/` | Clean |
+| V-E3 | Format check | `npm run format:check` in `storefront/` | Clean |
+| V-E4 | Unit and integration tests | Vitest (`npm test` in `storefront/`) | **60 files, 2470 tests pass** |
+| V-E5 | Script tests | `node --test` over `scripts/` | **205 pass** |
+| V-E6 | Production build | `npm run build` in `storefront/` | OK |
+| V-E7 | End-to-end (Playwright Test, desktop and mobile Chromium) | `npm run e2e` in `storefront/`, reported by the agents | **246 pass, 31 skipped, 1 fail.** The failure is `quiz.spec` in the full run: a console CSP telemetry error. Being fixed; not yet re-run. The 31 skips are not itemised here |
+| V-E8 | Framework validator | `node scripts/validate-framework.mjs` after the record updates of this date | **Pass.** `framework check: OK` (10 agents, 15 skills, 6 rules, 104 requirements, 146 phase tasks), run by the orchestrator |
+
+**Not run, and so not claimed:** any check against a development store or the client store (filters V-04, metafields V-05, nested cart lines V-02, cart total equals checkout total, REQ-CHK-001 totals), Lighthouse or any performance budget (NFR-002), JSON-LD validation, a screen-reader pass, WebKit and Firefox projects, a real Extend call (the Extend library runs against the local mock only), and the CI workflow on a remote. Independent code and security reviews of 8c533e2 and 46e64a2 were still running when this was written; the security review of the earlier foundation commit is [REVIEW-2026-10-12-foundation](../docs/security/REVIEW-2026-10-12-foundation.md).
