@@ -225,9 +225,11 @@ function isCents(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0 && value <= MAX_CENTS;
 }
 
-/** A coverage line is a price-point SKU (by sku or variant title) or anything carrying a plan id attribute. */
+/**
+ * A coverage line is a price-point SKU (by sku, variant title or title). A plan-id attribute alone does NOT make a line
+ * coverage: a direct-API cart could attach that property to a mattress line and make it vanish from the report.
+ */
 export function isCoverageOrderLine(line: ShopifyOrderLineLike): boolean {
-  if (EXTEND_LINE_ATTRIBUTES.planId in line.attributes) return true;
   return [line.sku, line.variantTitle, line.title].some(
     (name) => name !== null && parsePricePointName(name).status === 'ok',
   );

@@ -273,3 +273,21 @@ test('the token never appears in captured logs, even when requests fail in every
   assert.equal(lines.join('\n').includes(TOKEN), false);
   assert.equal(JSON.stringify(results).includes(TOKEN), false);
 });
+
+test('a mutation is NOT retried after a 5xx or a network error (it may already have been applied); a 429 is still retried', async () => {
+  const MUTATION = 'mutation M { productSet { userErrors { message } } }';
+  const server = makeClient([status(502), ok({})], { allowMutations: true });
+  const result = await server.client.request(MUTATION, {}, { operationName: 'M' });
+  assert.equal(result.ok === false && result.error.kind, 'server');
+  assert.match(result.ok === false ? result.error.message : '', /may or may not have been applied/);
+  assert.equal(server.http.calls.length, 1, 'exactly one attempt');
+
+  const network = makeClient([() => { throw new TypeError('socket hang up'); }, ok({})], { allowMutations: true });
+  const failed = await network.client.request(MUTATION, {}, { operationName: 'M' });
+  assert.equal(failed.ok === false && failed.error.kind, 'network');
+  assert.equal(network.http.calls.length, 1);
+
+  const throttled = makeClient([status(429), ok({ productSet: {} })], { allowMutations: true });
+  assert.equal((await throttled.client.request(MUTATION, {}, { operationName: 'M' })).ok, true);
+  assert.equal(throttled.http.calls.length, 2, 'a 429 means it did not run, so retrying is safe');
+});

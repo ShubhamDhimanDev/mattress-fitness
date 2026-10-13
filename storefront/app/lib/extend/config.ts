@@ -57,6 +57,11 @@ export type ParseConfigOptions = {
    * contain coverage still reach Extend; pass `false` for that caller.
    */
   requireFlag?: boolean;
+  /**
+   * True when running as a production build. The loopback mock host is then refused: a production environment
+   * pointing at http://127.0.0.1 would report orders to nothing and send the token in clear.
+   */
+  production?: boolean;
 };
 
 function readString(env: ExtendEnvInput, key: string): string | null {
@@ -67,7 +72,11 @@ function readString(env: ExtendEnvInput, key: string): string | null {
 }
 
 /** Returns the normalised origin, or null when the host is not an allow-listed Extend host (or the loopback mock). */
-export function parseExtendHost(raw: string): string | null {
+export function parseExtendHost(
+  raw: string,
+  options: {allowLoopback?: boolean} = {},
+): string | null {
+  const allowLoopback = options.allowLoopback ?? true;
   let url: URL;
   try {
     url = new URL(raw);
@@ -81,7 +90,7 @@ export function parseExtendHost(raw: string): string | null {
   if (EXTEND_HOSTS.has(url.hostname)) {
     return url.protocol === 'https:' && url.port === '' ? url.origin : null;
   }
-  if (LOOPBACK_HOSTS.has(url.hostname)) {
+  if (allowLoopback && LOOPBACK_HOSTS.has(url.hostname)) {
     return url.protocol === 'http:' || url.protocol === 'https:'
       ? url.origin
       : null;
@@ -116,7 +125,9 @@ export function parseExtendConfig(
     return disabled('missing_credentials', missing);
   }
 
-  const apiHost = parseExtendHost(host);
+  const apiHost = parseExtendHost(host, {
+    allowLoopback: options.production !== true,
+  });
   if (apiHost === null) return disabled('invalid_host');
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(storeId)) {
     return disabled('invalid_store_id');

@@ -725,3 +725,24 @@ test('executePlan on an offline remote records failures instead of throwing', as
     await ws.cleanup();
   }
 });
+
+test('a live product whose copy becomes unapproved is BLOCKED, not silently unpublished (review finding)', async () => {
+  const fake = createFakeShopify({ brands: BRANDS });
+  seedProduct(fake, { handle: 'sample-foundation', sku: 'SEED-1' });
+  const ws = await workspace(SAMPLE);
+  try {
+    assert.equal((await run(live(ws), { fake })).code, 0);
+    assert.equal(byHandle(fake, 'cloudmere-plush').status, 'ACTIVE');
+
+    const unapproved = edit(SAMPLE, (rows, index) => rows.map((row) => (row[index.handle] === 'cloudmere-plush' ? row.map((cell, i) => (i === index.copy_approved ? 'no' : cell)) : row)));
+    await writeFile(ws.sheet, unapproved);
+    const plan = JSON.parse((await run(dry(ws), { fake })).out);
+    assert.equal(plan.summary.blocked, 1);
+    assert.match(JSON.stringify(plan), /would be set back to DRAFT/);
+    fake.reset();
+    await run(live(ws), { fake });
+    assert.equal(byHandle(fake, 'cloudmere-plush').status, 'ACTIVE', 'the live product stays published');
+  } finally {
+    await ws.cleanup();
+  }
+});

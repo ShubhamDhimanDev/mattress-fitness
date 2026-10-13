@@ -216,6 +216,11 @@ export function createAdminClient(options) {
     // guess and the cost Shopify last reported for this operation.
     const estimate = Math.max(meta.estimatedCost ?? 0, knownCost.get(operation) ?? 0) || DEFAULT_ESTIMATED_COST;
 
+    // A mutation that timed out or hit a network error or a 5xx may ALREADY have been applied; repeating it could create a
+    // duplicate. Only a 429 (rejected before running) is safe to retry for mutations; ambiguous failures are returned to the
+    // caller, which must re-read the resource before deciding (the importer plans from a fresh read each run).
+    const isMutation = /(^|[\s}])mutation\b/.test(query);
+
     /** @type {AdminError} */
     let lastError = { kind: 'network', message: 'No attempt was made' };
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -245,11 +250,11 @@ export function createAdminClient(options) {
           attempts: attempt,
         };
         logger.warn('shopify request failed', { operation, attempt, kind: lastError.kind, waitedMs });
+        if (isMutation) return { ok: false, error: { ...lastError, message: `${lastError.message}. The change may or may not have been applied: re-read before retrying.` } };
         if (attempt < maxAttempts) await clock.sleep(backoffMs(attempt, 500, null));
         continue;
       }
       clearTimeout(timer);
-
       const status = response.status;
       if (status === 429) {
         throttle.drain();
@@ -261,6 +266,7 @@ export function createAdminClient(options) {
       if (status >= 500) {
         lastError = { kind: 'server', message: `Shopify returned HTTP ${status}`, status, attempts: attempt };
         logger.warn('shopify server error', { operation, attempt, status });
+        if (isMutation) return { ok: false, error: { ...lastError, message: `${lastError.message}. The change may or may not have been applied: re-read before retrying.` } };
         if (attempt < maxAttempts) await clock.sleep(backoffMs(attempt, 500, retryAfterMs(response)));
         continue;
       }
@@ -276,11 +282,15 @@ export function createAdminClient(options) {
 
       /** @type {unknown} */
       let body;
+      // Bound the body read too: the abort signal also cancels a body that stalls after the headers arrived.
+      const bodyTimer = setTimeout(() => controller.abort(), timeoutMs);
       try {
         body = await response.json();
       } catch {
+        clearTimeout(bodyTimer);
         return { ok: false, error: { kind: 'invalid_response', message: 'Shopify returned a body that is not JSON', status, attempts: attempt } };
       }
+      clearTimeout(bodyTimer);
       if (!isRecord(body)) {
         return { ok: false, error: { kind: 'invalid_response', message: 'Shopify returned an unexpected JSON shape', status, attempts: attempt } };
       }

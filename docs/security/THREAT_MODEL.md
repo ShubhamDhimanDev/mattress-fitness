@@ -41,6 +41,10 @@ Browser (untrusted) → storefront server (trusted, holds private tokens) → Sh
 6. Customer data access is ownership checked, with negative tests.
 7. Every threat above has a recorded verification result or a written risk acceptance by the project owner.
 
+## Verification status
+
+Latest: [REVIEW-2026-10-12-foundation](REVIEW-2026-10-12-foundation.md) (commit 2740454). Verified in code: T-04 (tree, history, client bundle), T-03 and T-09 libraries, T-14 guards. Partial: T-01, T-02, T-06, T-13, T-15. Open: T-07 (M-3), T-08 (M-1), T-12 (H-1, ADR-0008). Not yet in scope: T-05 routes, T-10, T-11, T-16.
+
 ## Out of scope
 
 Payment card handling (Shopify checkout), Extend's internal security, Shopify platform security.

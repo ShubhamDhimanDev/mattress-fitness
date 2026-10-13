@@ -121,7 +121,7 @@ Names are in `.env.example`. Values never go in a file, log or test.
 | `EXTEND_ACCESS_TOKEN` | Server-only token (exchanged from the API Integration, section 2) |
 | `EXTEND_ORDER_SYNC` | `self` (default when unset), `extend-app` or `off`. An unrecognised value disables Extend instead of guessing, because a wrong guess double-reports or drops orders |
 
-The Shopify webhook secret is passed to `receiveShopifyWebhook` by the route. Shopify signs with the app's client secret (shopify.dev, "Deliver webhooks through HTTPS"); `.env.example` lists both `SHOPIFY_APP_CLIENT_SECRET` and `SHOPIFY_APP_CLIENT_SECRET`, so the owner of the route should decide which one is used and remove the other.
+The Shopify webhook secret is passed to `receiveShopifyWebhook` by the route. Shopify signs with the app's client secret (shopify.dev, "Deliver webhooks through HTTPS"), so the route uses `SHOPIFY_APP_CLIENT_SECRET`; there is no separate webhook secret (ADR-0009 addendum).
 
 ### 7.3 Running the mock
 

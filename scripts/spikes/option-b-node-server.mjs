@@ -10,7 +10,7 @@ import * as serverBuild from './dist/server/index.js';
 
 const PORT = Number(process.env.PORT ?? 3300);
 const env = {
-  SESSION_SECRET: process.env.SESSION_SECRET ?? 'spike-secret',
+  SESSION_SECRET: process.env.SESSION_SECRET ?? (() => { throw new Error('Set SESSION_SECRET'); })(),
   PUBLIC_STORE_DOMAIN: process.env.PUBLIC_STORE_DOMAIN ?? 'mock.shop',
 };
 const cache = new InMemoryCache(); // replaces Workers' caches.open('hydrogen')

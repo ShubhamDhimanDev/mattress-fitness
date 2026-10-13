@@ -113,6 +113,11 @@ export function diffProduct(desired, remote, { allowRemovals = false, publicatio
   if (!sameText(remote.vendor, desired.vendor)) scalar('vendor', remote.vendor, desired.vendor);
   if (!sameText(remote.productType, desired.productType)) scalar('product type', remote.productType, desired.productType);
   if (remote.status !== desired.status) scalar('status', remote.status, desired.status);
+  // A live product silently going back to DRAFT would unpublish it from the store: never do that without the explicit flag.
+  if (remote.status === 'ACTIVE' && desired.status === 'DRAFT') {
+    if (allowRemovals) diff.changes.push({ scope: 'product', field: 'WARNING', from: 'live product', to: 'will be UNPUBLISHED (copy_approved is no)' });
+    else diff.blocked.push('This live (ACTIVE) product would be set back to DRAFT because its copy is not approved in the sheet, which unpublishes it. Approve the copy, or pass --allow-removals to unpublish on purpose.');
+  }
   if (desired.seoTitle !== null && !sameText(remote.seoTitle, desired.seoTitle)) scalar('SEO title', remote.seoTitle, desired.seoTitle);
   if (desired.seoDescription !== null && !sameText(remote.seoDescription, desired.seoDescription)) scalar('SEO description', remote.seoDescription, desired.seoDescription);
   diff.mergedTags = mergeTags(remote.tags, desired.tags);

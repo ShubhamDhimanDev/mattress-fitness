@@ -194,7 +194,7 @@ describe('evaluateOffers: accident protection (REQ-PRE-004)', () => {
   it('is accepted once coverage is linked to the item', () => {
     const {result} = evaluate(
       [mattressA('Queen'), coverage('c1', 'mattress-queen')],
-      {context: eligible('mattress-queen')},
+      {context: {protectionEligibleLineIds: ['mattress-queen']}},
     );
     expect(result.steps[2]).toMatchObject({status: 'accepted', options: []});
     expect(result.corrections).toEqual([]);
@@ -203,7 +203,7 @@ describe('evaluateOffers: accident protection (REQ-PRE-004)', () => {
   it('keeps asking for the uncovered units of a partly covered line', () => {
     const {result} = evaluate(
       [mattressA('Queen', {quantity: 2}), coverage('c1', 'mattress-queen')],
-      {context: eligible('mattress-queen')},
+      {context: {protectionEligibleLineIds: ['mattress-queen']}},
     );
     expect(result.steps[2].options).toEqual([
       {lineId: 'mattress-queen', quantity: 2, uncoveredQuantity: 1},
@@ -315,7 +315,7 @@ describe('evaluateOffers: coverage stays linked to its item (REQ-PRE-004, REQ-PR
     ).toEqual([]);
   });
 
-  it('reduces coverage when the covered haul-away quantity is clamped in the same pass', () => {
+  it('removes coverage nested under a haul-away service line (only regular items can be covered)', () => {
     const {cart, rules, context, result} = evaluate([
       haulAway('h1', 9),
       coverage('c1', 'h1', 9),
@@ -328,17 +328,27 @@ describe('evaluateOffers: coverage stays linked to its item (REQ-PRE-004, REQ-PR
         previousQuantity: 9,
         reason: 'haul-away-over-max',
       },
-      {
-        type: 'set-quantity',
-        lineId: 'c1',
-        quantity: 3,
-        previousQuantity: 9,
-        reason: 'coverage-exceeds-item',
-      },
+      {type: 'remove-line', lineId: 'c1', reason: 'orphan-coverage'},
     ]);
     expect(
       evaluateAgain(cart, rules, context, result.corrections).corrections,
     ).toEqual([]);
+  });
+
+  it('removes coverage on an item that is not in the eligible list when a list is given', () => {
+    const {result} = evaluate(
+      [
+        mattressA('Queen'),
+        {...mattressA('Queen'), id: 'pillow-line', productId: 'pillow'},
+        coverage('c1', 'pillow-line'),
+      ],
+      {context: {protectionEligibleLineIds: ['mattress-queen']}},
+    );
+    expect(result.corrections).toContainEqual({
+      type: 'remove-line',
+      lineId: 'c1',
+      reason: 'orphan-coverage',
+    });
   });
 
   it('does not stack a repair on coverage whose parent has a malformed quantity', () => {

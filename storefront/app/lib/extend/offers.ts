@@ -50,6 +50,8 @@ export type OffersRequestBody = {
   }>;
 };
 
+// ASSUMPTION(V-11): the category and productId character sets and the quantity cap below are OUR input hygiene, not
+// rules Extend documents. If Extend rejects a real category or id, loosen them here.
 function isValidItem(item: OfferItem): boolean {
   return (
     /^[A-Za-z0-9][A-Za-z0-9 _&/-]{0,63}$/.test(item.category) &&
@@ -278,6 +280,7 @@ export function parseOffersResponse(
   if (!isRecord(body) || !Array.isArray(body.offers)) return malformed;
   if (body.offers.length > MAX_OFFERS_IN_RESPONSE) return malformed;
   if (body.currency !== undefined && body.currency !== 'USD') return malformed;
+  // ASSUMPTION(V-11): the response echoes our storeId exactly when it includes one; a mismatch is treated as malformed.
   if (body.storeId !== undefined && body.storeId !== expected.storeId) {
     return malformed;
   }

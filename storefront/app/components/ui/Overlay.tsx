@@ -31,7 +31,7 @@ export function getFocusable(root: HTMLElement): HTMLElement[] {
     if (element.closest('[hidden], [inert]')) return false;
     // checkVisibility is missing in jsdom; there every element counts as visible.
     return typeof element.checkVisibility === 'function'
-      ? element.checkVisibility()
+      ? element.checkVisibility({checkVisibilityCSS: true})
       : true;
   });
 }

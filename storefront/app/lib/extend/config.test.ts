@@ -191,3 +191,17 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
     });
   });
 });
+
+describe('loopback mock host in production builds', () => {
+  it('is accepted by default and refused when production is set', () => {
+    expect(parseExtendHost('http://127.0.0.1:4010')).toBe(
+      'http://127.0.0.1:4010',
+    );
+    expect(
+      parseExtendHost('http://127.0.0.1:4010', {allowLoopback: false}),
+    ).toBeNull();
+    expect(
+      parseExtendHost('https://api.helloextend.com', {allowLoopback: false}),
+    ).toBe('https://api.helloextend.com');
+  });
+});

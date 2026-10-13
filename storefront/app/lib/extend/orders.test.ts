@@ -746,7 +746,8 @@ describe('coverage line detection', () => {
       }),
       true,
     ],
-    [mattressLine({attributes: {_extend_plan_id: 'X'}}), true],
+    // A plan-id attribute alone is not coverage: it could be attached to a mattress line by a direct-API cart.
+    [mattressLine({attributes: {_extend_plan_id: 'X'}}), false],
     [mattressLine(), false],
     [
       mattressLine({

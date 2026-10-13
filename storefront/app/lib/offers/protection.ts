@@ -39,6 +39,7 @@ export function evaluateAccidentProtection(
   declined: boolean,
 ): AccidentProtectionResult {
   const corrections: Correction[] = [];
+  const eligibleSet = new Set(eligibleLineIds);
   const remainingByParent = new Map<string, number>();
   const coveredByParent = new Map<string, number>();
 
@@ -53,11 +54,17 @@ export function evaluateAccidentProtection(
 
     const parentQuantity =
       parentId === null ? 0 : (effectiveQuantities.get(parentId) ?? 0);
+    // Coverage may hang only off a regular, covered-eligible item: never off a gift, a haul-away service, a protector
+    // or another coverage line (a direct-API cart could nest a cheap price-point SKU under a $0 gift). When the
+    // adapter gave no eligibility list (Extend unavailable) we cannot judge eligibility, so we keep coverage on
+    // regular parents rather than strip it from shoppers during an outage.
+    const ineligibleParent =
+      eligibleSet.size > 0 && parentId !== null && !eligibleSet.has(parentId);
     if (
       parentId === null ||
       parentId === line.id ||
-      parentKind === undefined ||
-      parentKind === 'coverage' ||
+      parentKind !== 'regular' ||
+      ineligibleParent ||
       parentQuantity < 1
     ) {
       corrections.push({
@@ -91,7 +98,7 @@ export function evaluateAccidentProtection(
     );
   }
 
-  const eligible = new Set(eligibleLineIds);
+  const eligible = eligibleSet;
   const options: AccidentProtectionOption[] = [];
   let eligibleCount = 0;
   for (const {line, kind} of prepared.lines) {
