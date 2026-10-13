@@ -1,4 +1,5 @@
 import {Analytics} from '@shopify/hydrogen';
+import {keyedText} from '~/lib/shopify/keys';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/collections.$handle';
 import {ProductListing} from '~/components/collection/ProductListing';
@@ -8,6 +9,7 @@ import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {SORT_KEYS, parseFilterParams} from '~/lib/filters';
 import {buildBreadcrumbJsonLd, buildFaqJsonLd} from '~/lib/shopify/jsonld';
 import {loadCollectionPage} from '~/lib/shopify/collection-data';
+import {resolveSiteOrigin} from '~/lib/site-origin';
 
 export const meta: Route.MetaFunction = ({data}) => {
   if (!data) return [{title: formatPageTitle('Collection not found')}];
@@ -41,7 +43,12 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
         path: `/collections/${page.collection.handle}`,
       },
     ],
-    url.origin,
+    // Never the request's Host (P-L2); relative URLs when no site origin is configured.
+    resolveSiteOrigin({
+      env: context.env,
+      requestUrl: request.url,
+      isDev: import.meta.env.DEV,
+    }) ?? '',
   );
   return {
     ...page,
@@ -66,8 +73,8 @@ export default function Collection() {
       <h1 className="mt-2 text-3xl font-bold">{collection.title}</h1>
       {collection.description.length > 0 ? (
         <div className="mt-2 max-w-prose text-base text-fg-muted">
-          {collection.description.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
+          {keyedText(collection.description).map((paragraph) => (
+            <p key={paragraph.key}>{paragraph.text}</p>
           ))}
         </div>
       ) : null}
@@ -94,8 +101,8 @@ export default function Collection() {
               title: faq.question,
               content: (
                 <div className="flex max-w-prose flex-col gap-2">
-                  {faq.answer.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
+                  {keyedText(faq.answer).map((paragraph) => (
+                    <p key={paragraph.key}>{paragraph.text}</p>
                   ))}
                 </div>
               ),

@@ -29,7 +29,7 @@ The app reads its store from `PUBLIC_STORE_DOMAIN`. The default `.env` points at
 
 ## Known differences from a real store
 
-- Console: `[Shopify Customer Privacy] ... consentManagement` (mock.shop has no consent API) and Shopify's telemetry endpoint blocked by our CSP in development. Both are ignored by the specs (`KNOWN_MOCK_SHOP_ERRORS`, `ourErrors`).
+- Console: `[Shopify Customer Privacy] ... consentManagement` (mock.shop has no consent API; ignored by `KNOWN_MOCK_SHOP_ERRORS`) and `Price: could not display an amount: Only USD is supported, got CAD` (the demo stores price in CAD; the only message `ourErrors` ignores). Any other console error fails the specs.
 - mock.shop ignores `price` filters and returns every product.
 - `checkoutUrl` points to `bedding.hydrogen.mock.shop/checkout`, not a real checkout.
 

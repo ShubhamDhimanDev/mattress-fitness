@@ -147,6 +147,9 @@ function ResultCard({
       aria-labelledby={`match-${match.rank}-title`}
       className="flex h-full flex-col gap-3 rounded-card border-2 border-line bg-surface p-4"
     >
+      {/* Placeholder on purpose: QuizMatch carries no image (scoring keeps handles, sizes and variant ids
+          only) and the preview fixtures have none. When the live loader (P6-01) adds `image` to QuizMatch,
+          pass it here. */}
       <ProductTile image={null} />
       <p className="text-sm font-bold text-fg-muted">
         Match {match.rank} · {match.brand}

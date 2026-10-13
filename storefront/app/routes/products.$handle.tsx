@@ -12,6 +12,7 @@ import {ProductSections} from '~/components/product/ProductSections';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {buildBreadcrumbJsonLd, buildProductJsonLd} from '~/lib/shopify/jsonld';
 import {loadProductPage} from '~/lib/shopify/product-data';
+import {resolveSiteOrigin} from '~/lib/site-origin';
 import {
   parseSelectedOptions,
   selectVariant,
@@ -25,7 +26,9 @@ export const meta: Route.MetaFunction = ({data}) => {
     ...(product.seoDescription
       ? [{name: 'description', content: product.seoDescription}]
       : []),
-    {tagName: 'link', rel: 'canonical', href: data.canonical},
+    ...(data.canonical
+      ? [{tagName: 'link', rel: 'canonical', href: data.canonical}]
+      : []),
     {'script:ld+json': data.productJsonLd},
     {'script:ld+json': data.breadcrumbJsonLd},
   ];
@@ -52,10 +55,16 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     throw new Response('Product not found', {status: 404});
   }
   const {product} = result;
-  const origin = new URL(request.url).origin;
+  // Never the request's Host (P-L2); null outside development without PUBLIC_SITE_URL, so URLs stay relative.
+  const siteOrigin = resolveSiteOrigin({
+    env: context.env,
+    requestUrl: request.url,
+    isDev: import.meta.env.DEV,
+  });
+  const origin = siteOrigin ?? '';
   return {
     product,
-    canonical: `${origin}/products/${product.handle}`,
+    canonical: siteOrigin ? `${siteOrigin}/products/${product.handle}` : null,
     productJsonLd: buildProductJsonLd(product, origin),
     breadcrumbJsonLd: buildBreadcrumbJsonLd(
       [

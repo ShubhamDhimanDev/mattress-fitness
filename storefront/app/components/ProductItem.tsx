@@ -1,5 +1,6 @@
 import {Image} from '@shopify/hydrogen';
 import {Link} from 'react-router';
+import {CompareToggle} from '~/components/compare/CompareToggle';
 import {Badge} from '~/components/ui/Badge';
 import {getPriceView, Price} from '~/components/ui/Price';
 import {Rating} from '~/components/ui/Rating';
@@ -89,6 +90,12 @@ export function ProductItem({product, loading, index}: ProductItemProps) {
             className="mt-auto pt-1"
           />
         ) : null}
+        {/* Above the cover link (z-10) so it can be pressed; it is not part of the card link (REQ-CMP-001). */}
+        <CompareToggle
+          handle={product.handle}
+          title={product.title}
+          className="relative z-10"
+        />
       </div>
     </article>
   );

@@ -65,7 +65,7 @@ Status rule for this block: `IN_REVIEW` means built, locally verified (typecheck
 
 | ID | Task | Phase | Owner | Depends on | Status | Priority | Notes |
 |---|---|---|---|---|---|---|---|
-| P3B-01 | Query modules, generated types, caching helpers, error mapping | 3B | shopify-hydrogen-developer | P3A-01 | IN_REVIEW | High | Commit 46e64a2: `app/lib/shopify/*`, `app/lib/catalog/*`. Built on mock.shop and fixtures; metafield reads (V-05) unverified. Listing prices use `CacheLong` (up to about 1 hour stale): owner/client decision needed on price freshness (DEC-024) |
+| P3B-01 | Query modules, generated types, caching helpers, error mapping | 3B | shopify-hydrogen-developer | P3A-01 | IN_REVIEW | High | Commit 46e64a2: `app/lib/shopify/*`, `app/lib/catalog/*`. Built on mock.shop and fixtures; metafield reads (V-05) unverified. Price and availability queries use a 60s/300s stale-while-revalidate strategy (DEC-024, decided) |
 | P3B-03 | Collection page: grid, sort, load more, From $ pricing, sale and gift badges | 3B | shopify-hydrogen-developer | P3B-01 | IN_REVIEW | High | REQ-COL-001. Ratings and gift badge sources depend on P3B-12 and P4-06 |
 | P3B-04 | Filters and URL codec; empty and error states | 3B | shopify-hydrogen-developer | P3B-03, V-04 | IN_REVIEW | High | REQ-COL-002. **Filter counts and ids unverified (V-04)**; the task stays in review, not done, until checked on a dev store |
 | P3B-05 | Promo tiles in the grid and collection FAQs with JSON-LD | 3B | shopify-hydrogen-developer | P3B-03 | IN_PROGRESS | Med | FAQs with JSON-LD built (REQ-COL-004). **Promo tiles not built (REQ-COL-003)** |

@@ -56,6 +56,24 @@ export function readMyStore(
 
 type CookieOptions = {readonly secure: boolean};
 
+const LOCAL_HOSTNAMES: ReadonlySet<string> = new Set([
+  'localhost',
+  '127.0.0.1',
+  '[::1]',
+]);
+
+/**
+ * Secure on every host except the developer's own machine. The request protocol is not used: behind a proxy
+ * that ends TLS it reads http: even in production, which would ship the cookie without the flag (P-L5).
+ */
+export function shouldSecureCookie(requestUrl: string): boolean {
+  try {
+    return !LOCAL_HOSTNAMES.has(new URL(requestUrl).hostname);
+  } catch {
+    return true;
+  }
+}
+
 /** Set-Cookie value. HttpOnly because only the server reads it (pickup, header). */
 export function setMyStoreCookie(
   store: Pick<Store, 'state' | 'city' | 'slug'>,

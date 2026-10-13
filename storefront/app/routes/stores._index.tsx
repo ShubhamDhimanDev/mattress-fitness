@@ -4,11 +4,17 @@ import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {StoreCard} from '~/components/stores/StoreCard';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {previewRobotsMeta} from '~/lib/pages/head';
+import {
+  PRIVATE_NO_STORE_HEADERS,
+  forwardLoaderHeaders,
+} from '~/lib/pages/private-response';
 import {
   clearMyStoreCookie,
   parseMyStoreForm,
   readMyStore,
   setMyStoreCookie,
+  shouldSecureCookie,
 } from '~/lib/pages/my-store';
 import {loadStoreIndex} from '~/lib/pages/stores-data';
 import {storeCountText, storeEntry} from '~/lib/pages/stores-view';
@@ -17,7 +23,8 @@ import {STORES_ROOT_PATH, statePath, storePath} from '~/lib/stores/grouping';
 // P6-06: store locator index (REQ-LOC-001) and the "my store" action (REQ-LOC-003). Every store page posts
 // its Set and Clear buttons here.
 
-export const meta: Route.MetaFunction = () => [
+export const meta: Route.MetaFunction = ({data: loaderData}) => [
+  ...previewRobotsMeta(loaderData?.source),
   {title: formatPageTitle('Find a store')},
   {
     name: 'description',
@@ -31,24 +38,28 @@ export async function loader({request}: Route.LoaderArgs) {
   const mine = readMyStore(index, request.headers.get('Cookie'));
   // Loader data carries the time so the server and the browser render the same open/closed text.
   const nowMs = Date.now();
-  return {
-    source,
-    nowMs,
-    storeCount: index.storeCount,
-    myStore: mine ? storeEntry(mine, nowMs, mine.id) : null,
-    states: index.states.map((state) => ({
-      code: state.code,
-      name: state.name,
-      path: statePath(state.code),
-      countText: storeCountText(state.storeCount),
-    })),
-  };
+  // Depends on the my_store cookie, so it must never sit in a shared cache (P-L3).
+  return data(
+    {
+      source,
+      nowMs,
+      storeCount: index.storeCount,
+      myStore: mine ? storeEntry(mine, nowMs, mine.id) : null,
+      states: index.states.map((state) => ({
+        code: state.code,
+        name: state.name,
+        path: statePath(state.code),
+        countText: storeCountText(state.storeCount),
+      })),
+    },
+    {headers: PRIVATE_NO_STORE_HEADERS},
+  );
 }
 
 export async function action({request}: Route.ActionArgs) {
   const {index} = await loadStoreIndex();
   const intent = parseMyStoreForm(index, await request.formData());
-  const secure = new URL(request.url).protocol === 'https:';
+  const secure = shouldSecureCookie(request.url);
 
   switch (intent.type) {
     case 'set':
@@ -69,6 +80,8 @@ export async function action({request}: Route.ActionArgs) {
     }
   }
 }
+
+export const headers = forwardLoaderHeaders;
 
 export default function StoresIndexPage() {
   const {source, myStore, states, storeCount} = useLoaderData<typeof loader>();

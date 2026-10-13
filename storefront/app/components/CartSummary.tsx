@@ -6,27 +6,33 @@ import type {CartLayout} from '~/components/CartMain';
 import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {Price} from '~/components/ui/Price';
-import {getCheckoutHref} from '~/lib/cart/checkout';
+import {CHECKOUT_STEPS_PATH, getCheckoutHref} from '~/lib/cart/checkout';
+import type {BlockReason} from '~/lib/offers-runtime/messages';
 
 type CartSummaryProps = {
   cart: OptimisticCart<CartApiQueryFragment | null>;
   layout: CartLayout;
   /** Free-delivery progress message (REQ-CART-004, P4-07). Renders nothing until that task fills it. */
   freeDeliverySlot?: ReactNode;
+  /** Why checkout is withheld, from the server's revalidation (REQ-PRE-006); empty or absent when it may proceed. */
+  blocked?: readonly BlockReason[];
 };
 
 /**
  * Totals and the checkout button. The subtotal is Shopify's, shown as returned; taxes, delivery and
  * discount allocation are calculated by Shopify at checkout, so the page says so instead of estimating.
- * "Checkout" goes through `getCheckoutHref`, the one place the pre-checkout steps will be added (P4-11).
+ * "Checkout" opens the server gate (`CHECKOUT_STEPS_PATH`), which revalidates the cart and asks the
+ * pre-checkout questions before redirecting to Shopify (P4-09, P4-11). `getCheckoutHref` withholds the
+ * link when revalidation found a violation, and the reason is shown instead.
  */
 export function CartSummary({
   cart,
   layout,
   freeDeliverySlot,
+  blocked = [],
 }: CartSummaryProps) {
   const subtotal = cart?.cost?.subtotalAmount;
-  const checkoutHref = getCheckoutHref(cart);
+  const checkoutHref = getCheckoutHref(cart, {blocked});
   const Heading = layout === 'page' ? 'h2' : 'h3';
 
   return (
@@ -70,9 +76,24 @@ export function CartSummary({
         Taxes, delivery and any discounts are calculated at checkout.
       </p>
 
-      {checkoutHref ? (
+      {blocked.length > 0 ? (
+        <div
+          role="alert"
+          className="flex flex-col gap-2 rounded-choice bg-error-bg p-3 text-sm text-error-fg"
+        >
+          <p className="font-bold">Checkout is on hold</p>
+          <ul className="list-disc pl-5">
+            {blocked.map((reason) => (
+              <li key={`${reason.code}:${reason.lineIds.join(',')}`}>
+                {reason.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : checkoutHref ? (
         <Button
-          href={checkoutHref}
+          to={CHECKOUT_STEPS_PATH}
+          reloadDocument
           variant="primary"
           size="lg"
           fullWidth

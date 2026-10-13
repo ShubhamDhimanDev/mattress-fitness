@@ -44,12 +44,25 @@ export async function firstProductPath(page: Page, listing: string) {
 }
 
 /**
- * Console errors that come from our code. Shopify's own performance telemetry
- * (otlp-http-production.shopifysvc.com) is refused by our Content Security Policy in development; it is
- * not part of this work package, so it is left out of the assertion.
+ * The one console error we accept from the demo stores: mock.shop and bedding.mock.shop price in CAD, and
+ * the Price component (NFR-008, USD only) refuses to format a non-USD amount and logs this message instead.
+ * It cannot occur on the client's USD store (P3A-01); delete this entry then. Every other console error is
+ * ours and fails the spec.
  */
+const MOCK_SHOP_CAD_LOG = 'Only USD is supported, got CAD';
+
+/**
+ * Shopify's own performance telemetry (otlp-http-production.shopifysvc.com) is refused by our Content Security
+ * Policy in development, intermittently; it is not part of our code, so it is left out of the assertion.
+ */
+const SHOPIFY_TELEMETRY_HOST = 'shopifysvc.com';
+
 export function ourErrors(errors: readonly string[]): string[] {
-  return errors.filter((message) => !message.includes('shopifysvc.com'));
+  return errors.filter(
+    (message) =>
+      !message.includes(MOCK_SHOP_CAD_LOG) &&
+      !message.includes(SHOPIFY_TELEMETRY_HOST),
+  );
 }
 
 /** Marks the document so a test can prove that a later action did not reload the page. */
@@ -61,4 +74,59 @@ export async function markPage(page: Page) {
 
 export async function expectPageNotReloaded(page: Page) {
   await expect(page.locator('html')).toHaveAttribute('data-e2e-marker', '1');
+}
+
+/** Product paths linked from a listing page, in order, without repeats (first page only). */
+export async function productPathsOn(page: Page, listing: string) {
+  await gotoReady(page, listing);
+  const hrefs = await page
+    .locator('article a[href^="/products/"]')
+    .evaluateAll((links) =>
+      links.flatMap((link) => {
+        const href = link.getAttribute('href');
+        return href ? [href] : [];
+      }),
+    );
+  return [...new Set(hrefs)];
+}
+
+/**
+ * The first product in the listing whose page satisfies `wanted`. A spec that needs a particular kind of
+ * product (a buyable one, one with two sizes, one with a gallery) calls this instead of skipping when the
+ * first product is not that kind, so the same spec runs on every store. It fails, loudly, when no product on
+ * the first page qualifies: that means the store is missing data the spec exists to check.
+ */
+export async function findProduct(
+  page: Page,
+  listing: string,
+  description: string,
+  wanted: (page: Page) => Promise<boolean>,
+): Promise<string> {
+  const paths = await productPathsOn(page, listing);
+  expect(paths.length, `${listing} lists products`).toBeGreaterThan(0);
+  for (const path of paths) {
+    // The server-rendered page has everything the predicates read; no need to wait for hydration here.
+    await page.goto(path, {waitUntil: 'domcontentloaded'});
+    if (await wanted(page)) return path;
+  }
+  throw new Error(
+    `No product on ${listing} is ${description} (checked ${paths.length}). The connected store lacks data this spec needs.`,
+  );
+}
+
+export async function isPurchasable(page: Page) {
+  const button = page.getByRole('button', {name: 'Add to cart'});
+  return (await button.count()) > 0 && (await button.first().isEnabled());
+}
+
+export async function hasSizes(page: Page, atLeast: number) {
+  const sizes = page.getByRole('group', {name: /^Size/});
+  if ((await sizes.count()) === 0) return false;
+  return (
+    (await sizes.locator('input[type="radio"]:enabled').count()) >= atLeast
+  );
+}
+
+export async function hasGallery(page: Page) {
+  return (await page.getByRole('button', {name: 'Next image'}).count()) > 0;
 }

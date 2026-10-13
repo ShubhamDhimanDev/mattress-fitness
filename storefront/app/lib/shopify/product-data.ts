@@ -21,6 +21,7 @@ export async function loadProductPage(
 
   const [content, availability] = await Promise.all([
     storefront.query(PRODUCT_QUERY, {
+      // Long: the product page's price and availability come from the availability read below, which wins.
       cache: catalogCache(storefront),
       variables: {handle},
     }),

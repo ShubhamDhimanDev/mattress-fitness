@@ -33,6 +33,14 @@ import {buildHomeData, loadHome, sizeTileHref} from '~/lib/shopify/home-data';
 
 // Integration of the query modules against responses recorded on bedding.mock.shop (P3B-01).
 
+// DEC-024: anything that carries a price or availability is fresh for 60 s and stale-while-revalidate 300 s.
+const PRICED = {
+  mode: 'public',
+  maxAge: 60,
+  staleWhileRevalidate: 300,
+  custom: true,
+};
+
 describe('isValidHandle (T-07)', () => {
   it.each(['mattresses', 'a', 'queen-size_1', 'A1'])('accepts %s', (handle) => {
     expect(isValidHandle(handle)).toBe(true);
@@ -53,7 +61,7 @@ describe('isValidHandle (T-07)', () => {
 });
 
 describe('loadCollectionPage', () => {
-  it('queries with the filters from the URL as variables and caches long', async () => {
+  it('queries with the filters from the URL as variables and uses the 60 s priced cache', async () => {
     const {storefront, calls} = fakeStorefront(() => collection);
     const state = parseFilterParams(
       new URLSearchParams(
@@ -68,7 +76,7 @@ describe('loadCollectionPage', () => {
 
     expect(result.status).toBe('ok');
     expect(calls).toHaveLength(1);
-    expect(calls[0].cache).toEqual({mode: 'long'});
+    expect(calls[0].cache).toEqual(PRICED);
     expect(calls[0].variables).toMatchObject({
       handle: 'sun-drenched-morning-bedding',
       first: 12,
@@ -142,7 +150,7 @@ describe('loadProductPage (REQ-PDP-001)', () => {
   const respond = (call: {query: string}) =>
     call.query === PRODUCT_QUERY ? product : availability;
 
-  it('runs the content query long-cached and the availability query short-cached', async () => {
+  it('runs the content query long-cached and the availability query on the 60 s priced cache', async () => {
     const {storefront, calls} = fakeStorefront(respond);
     const result = await loadProductPage(
       storefront,
@@ -151,7 +159,7 @@ describe('loadProductPage (REQ-PDP-001)', () => {
     expect(result.status).toBe('ok');
     const byQuery = new Map(calls.map((c) => [c.query, c.cache]));
     expect(byQuery.get(PRODUCT_QUERY)).toEqual({mode: 'long'});
-    expect(byQuery.get(PRODUCT_AVAILABILITY_QUERY)).toEqual({mode: 'short'});
+    expect(byQuery.get(PRODUCT_AVAILABILITY_QUERY)).toEqual(PRICED);
   });
 
   it('still renders when the availability read fails', async () => {
@@ -205,14 +213,14 @@ describe('search (REQ-SRCH-002)', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('searches with the shared filters, relevance sort and short cache', async () => {
+  it('searches with the shared filters, relevance sort and the 60 s priced cache', async () => {
     const {storefront, calls} = fakeStorefront(respond);
     const state = parseFilterParams(
       new URLSearchParams('size=king&sort=title-asc'),
     );
     const page = await loadSearchPage(storefront, 'linen', state);
     const productCall = calls.find((c) => c.query === SEARCH_PRODUCTS_QUERY);
-    expect(productCall?.cache).toEqual({mode: 'short'});
+    expect(productCall?.cache).toEqual(PRICED);
     expect(productCall?.variables).toMatchObject({
       term: 'linen',
       sortKey: 'RELEVANCE', // search cannot sort by title
@@ -221,6 +229,20 @@ describe('search (REQ-SRCH-002)', () => {
     expect(page.totalCount).toBe(search.products.totalCount);
     expect(page.products.length).toBeGreaterThan(0);
     expect(page.suggestedCollections.length).toBeGreaterThan(0);
+  });
+
+  it('sends the lower-cased term to Shopify so the cache key does not hold raw input', async () => {
+    const {storefront, calls} = fakeStorefront(respond);
+    const page = await loadSearchPage(
+      storefront,
+      '  Linen SHEETS ',
+      emptyFilterState(),
+    );
+    expect(page.term).toBe('Linen SHEETS'); // displayed as typed
+    expect(calls.map((c) => c.variables.term)).toEqual([
+      'linen sheets',
+      'linen sheets',
+    ]);
   });
 
   it('skips the pages and articles query on later pages', async () => {
@@ -347,10 +369,10 @@ describe('home (REQ-HOME-001)', () => {
     expect(data.sizeTiles[0].to).toBe('/collections/mattresses?size=twin');
   });
 
-  it('loads through the storefront with the long cache', async () => {
+  it('loads through the storefront with the 60 s priced cache (cards carry price)', async () => {
     const {storefront, calls} = fakeStorefront(() => home);
     await loadHome(storefront);
-    expect(calls[0].cache).toEqual({mode: 'long'});
+    expect(calls[0].cache).toEqual(PRICED);
     expect(calls[0].variables).toMatchObject({primaryHandle: 'mattresses'});
   });
 

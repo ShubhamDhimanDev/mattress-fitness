@@ -7,8 +7,9 @@ import {
   ourErrors,
   expectNoHorizontalScroll,
   firstCollectionPath,
-  firstProductPath,
+  findProduct,
   gotoReady,
+  isPurchasable,
 } from './helpers/catalog';
 
 // REQ-CART-001 cart drawer and page, REQ-CHK-001 hand-off link, and the T-01 / T-08 negative cases.
@@ -16,9 +17,10 @@ import {
 
 async function addFirstProduct(page: Page) {
   const listing = await firstCollectionPath(page);
-  await gotoReady(page, await firstProductPath(page, listing));
+  // The first buyable product, whatever the store sells; fails if the listing has none (no silent skip).
+  const product = await findProduct(page, listing, 'buyable', isPurchasable);
+  await gotoReady(page, product);
   const add = page.getByRole('button', {name: 'Add to cart'});
-  test.skip((await add.count()) === 0, 'The first product is sold out.');
   // Shopify's answer, not just the optimistic line, so later steps (reload, remove) see a real cart.
   const answered = page.waitForResponse(
     (response) =>
@@ -42,10 +44,11 @@ test.describe('cart drawer (REQ-CART-001)', () => {
 
     await expect(drawer.getByRole('listitem').first()).toBeVisible();
     await expect(drawer.getByText('Subtotal')).toBeVisible();
-    // The hand-off is a plain https link to Shopify's hosted checkout (REQ-CHK-001, ADR-0003).
+    // Checkout opens the server gate, which revalidates the cart and then redirects to Shopify's hosted
+    // checkout (REQ-CHK-001, REQ-PRE-006, ADR-0003).
     await expect(drawer.getByRole('link', {name: 'Checkout'})).toHaveAttribute(
       'href',
-      /^https:\/\//,
+      '/checkout-steps',
     );
     expect(ourErrors(errors)).toEqual([]);
   });
@@ -152,5 +155,117 @@ test.describe('hostile cart input (T-01, T-08)', () => {
     };
     const response = await request.post('/cart', {form});
     expect(response.status()).toBe(400);
+  });
+});
+
+test.describe('server hand-off and cart hardening (REQ-PRE-006, REQ-CHK-001)', () => {
+  test('the checkout gate sends a verified cart to the https checkout of Shopify, uncached', async ({
+    page,
+  }) => {
+    await addFirstProduct(page);
+    const response = await page.request.get('/checkout-steps', {
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(302);
+    expect(response.headers().location ?? '').toMatch(/^https:\/\//);
+    expect(response.headers()['cache-control']).toBe('private, no-store');
+  });
+
+  test('the gate sends an empty cart back to the cart page', async ({
+    request,
+  }) => {
+    const response = await request.get('/checkout-steps', {maxRedirects: 0});
+    expect(response.status()).toBe(302);
+    expect(
+      new URL(response.headers().location ?? '', 'http://x').pathname,
+    ).toBe('/cart');
+  });
+
+  test('the cart cookie is HttpOnly, SameSite=Lax and expires (P-M1)', async ({
+    page,
+  }) => {
+    await addFirstProduct(page);
+    const cookies = await page.context().cookies();
+    const cart = cookies.find((cookie) => cookie.name === 'cart');
+    expect(cart, 'a cart cookie is set').toBeDefined();
+    expect(cart?.httpOnly).toBe(true);
+    expect(cart?.sameSite).toBe('Lax');
+    expect(cart?.expires ?? -1).toBeGreaterThan(Date.now() / 1000);
+  });
+
+  test('cart pages are private and not stored (P-L3)', async ({request}) => {
+    const response = await request.get('/cart');
+    expect(response.headers()['cache-control']).toBe('private, no-store');
+  });
+
+  test('a cross-site POST to the cart is refused (T-01)', async ({request}) => {
+    const response = await request.post('/cart', {
+      headers: {Origin: 'https://evil.example'},
+      form: {
+        cartFormInput: JSON.stringify({
+          action: 'LinesAdd',
+          inputs: {
+            lines: [
+              {merchandiseId: 'gid://shopify/ProductVariant/1', quantity: 1},
+            ],
+          },
+        }),
+      },
+    });
+    // React Router refuses a mismatched Origin first (400); our own check (403) is the second layer.
+    expect([400, 403]).toContain(response.status());
+  });
+
+  test('a permalink loaded as an image or prefetch creates no cart (P-L4)', async ({
+    request,
+  }) => {
+    const embedded: Array<Record<string, string>> = [
+      {'Sec-Fetch-Dest': 'image'},
+      {'Sec-Purpose': 'prefetch'},
+    ];
+    for (const headers of embedded) {
+      const response = await request.get('/cart/1:1', {
+        headers,
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(400);
+      expect(response.headers()['set-cookie']).toBeUndefined();
+    }
+  });
+
+  test('a size can be swapped on a cart line when the product has several sizes (REQ-CART-001)', async ({
+    page,
+  }) => {
+    const drawer = await addFirstProduct(page);
+    const select = drawer.getByRole('combobox', {name: /^Size of /});
+    // The sizes arrive with the offers view, a moment after the drawer opens.
+    const appeared = await select
+      .waitFor({timeout: 10_000})
+      .then(() => true)
+      .catch(() => false);
+    test.skip(!appeared, 'The first product has one size.');
+    const before = await select.inputValue();
+    const other = await select
+      .locator('option:not([disabled])')
+      .evaluateAll(
+        (options, current) =>
+          options
+            .map((option) =>
+              option instanceof HTMLOptionElement ? option.value : '',
+            )
+            .find((value) => value !== '' && value !== current) ?? '',
+        before,
+      );
+    test.skip(other === '', 'No other size is in stock.');
+    const answered = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname.startsWith('/cart') &&
+        response.request().method() === 'POST',
+    );
+    await select.selectOption(other);
+    expect((await answered).status()).toBe(200);
+    await expect(drawer.getByRole('combobox', {name: /^Size of /})).toHaveValue(
+      other,
+    );
   });
 });

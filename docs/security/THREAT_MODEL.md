@@ -43,7 +43,7 @@ Browser (untrusted) → storefront server (trusted, holds private tokens) → Sh
 
 ## Verification status
 
-Latest: [REVIEW-2026-10-12-foundation](REVIEW-2026-10-12-foundation.md) (commit 2740454). Verified in code: T-04 (tree, history, client bundle), T-03 and T-09 libraries, T-14 guards. Partial: T-01, T-02, T-06, T-13, T-15. Open: T-07 (M-3), T-08 (M-1), T-12 (H-1, ADR-0008). Not yet in scope: T-05 routes, T-10, T-11, T-16.
+Latest: [REVIEW-2026-10-13-pages](REVIEW-2026-10-13-pages.md) (commits 8c533e2 and 46e64a2), after [REVIEW-2026-10-12-foundation](REVIEW-2026-10-12-foundation.md) (commit 2740454). Verified in code: T-04 (tree, history, range diff, client bundle; but the `cart` cookie lacks HttpOnly/SameSite/Secure, P-M1), T-03 and T-09 libraries, T-14 guards, T-07 (sanitiser probed with 63 hostile inputs, JSON-LD escaping, reflection tests; earlier M-3 closed), T-08 redirects (earlier M-1 closed, live-tested) and the CSRF origin check in the dev server (host and proxy behaviour unverified, P-L5), T-05 for the new routes (logs, error text, analytics). Partial: T-01 (input validated; server offer revalidation not wired to any route, P-M2), T-02, T-06 (P-L1), T-13 (P-L4, no rate limits yet), T-15. Open: T-12 (H-1, ADR-0008). Not yet in scope: T-10, T-11, T-16. Gate G5 verdict for the pages commits: pass with conditions (P-M1 before staging, P-M2 at phase 4 gate).
 
 ## Out of scope
 

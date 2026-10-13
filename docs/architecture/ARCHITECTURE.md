@@ -85,12 +85,13 @@ Detail and sequence diagrams: [../integrations/EXTEND.md](../integrations/EXTEND
 
 ## 7. Caching
 
-Hydrogen provides cache strategies (short, long, none, custom). Proposed defaults, to be confirmed in P3B-01:
+Hydrogen provides cache strategies (short, long, none, custom). Defaults (price freshness decided in DEC-024):
 
 | Data | Strategy | Notes |
 |---|---|---|
 | Menus, pages, brands, stores, FAQs, quiz config, offer rules | long | edits appear within the TTL; an admin guide note states the delay |
-| Collections and product details | long, tag-based refresh if available | price and sale changes must still appear promptly: choose TTL with the client |
+| Product cards, collections, search and home (anything carrying price or availability) | custom: 60 s fresh, 300 s stale-while-revalidate (DEC-024) | decided 2026-10-13; a price or sell-out shows within about a minute, at most 6 minutes during a revalidation |
+| Product page content (description, images, options) | long | the price and availability read beside it uses the 60 s strategy |
 | Inventory and pickup availability | short | per variant and location |
 | Search suggestions | short | |
 | Cart, customer, orders, ZIP-dependent delivery results | none | never keyed by personal data |

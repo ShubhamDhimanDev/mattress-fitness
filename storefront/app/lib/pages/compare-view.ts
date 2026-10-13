@@ -175,3 +175,29 @@ export function loadHandlesFromDevice(
     return [];
   }
 }
+
+// --- "Add to compare" on product cards and the product page ---
+
+export type CompareAddPlan =
+  | {readonly status: 'added'; readonly handles: readonly string[]}
+  | {readonly status: 'present'; readonly handles: readonly string[]}
+  | {readonly status: 'rejected'; readonly reason: 'full'}
+  | {readonly status: 'invalid'};
+
+/**
+ * What adding one product to the device's saved selection would do. A card only knows its own handle, so
+ * the rules that need handles alone are applied here (duplicate, at most four, as `addToComparison`); the
+ * same-category rule needs the catalog and is applied by /compare, which explains it on the page.
+ */
+export function planCompareAdd(
+  stored: readonly string[],
+  handle: string,
+): CompareAddPlan {
+  const clean = handle.trim().toLowerCase();
+  if (!HANDLE_PATTERN.test(clean)) return {status: 'invalid'};
+  if (stored.includes(clean)) return {status: 'present', handles: stored};
+  if (stored.length >= COMPARE_MAX_PRODUCTS) {
+    return {status: 'rejected', reason: 'full'};
+  }
+  return {status: 'added', handles: [...stored, clean]};
+}

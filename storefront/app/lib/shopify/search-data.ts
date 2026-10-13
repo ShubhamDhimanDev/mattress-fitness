@@ -12,7 +12,11 @@ import {
 import {cleanText} from '~/lib/catalog/text';
 import {searchCache} from '~/lib/shopify/cache';
 import {mapProductCards} from '~/lib/shopify/card';
-import {LISTING_PAGE_SIZE, MAX_SEARCH_TERM_LENGTH} from '~/lib/shopify/config';
+import {
+  LISTING_PAGE_SIZE,
+  MAX_CACHED_TERM_LENGTH,
+  MAX_SEARCH_TERM_LENGTH,
+} from '~/lib/shopify/config';
 import {buildFilterGroups, type FilterGroupView} from '~/lib/shopify/listing';
 import {
   SEARCH_CONTENT_QUERY,
@@ -23,6 +27,16 @@ import type {PageInfoView, ProductCardView} from '~/lib/shopify/types';
 /** The `q` parameter as a safe search term: plain text, one line, bounded length. */
 export function normalizeSearchTerm(raw: string | null | undefined): string {
   return cleanText(raw ?? '').slice(0, MAX_SEARCH_TERM_LENGTH);
+}
+
+/**
+ * The form of the term sent to Shopify, which is also what Hydrogen's cache key embeds (the key is the
+ * query plus its variables and cannot be overridden). Lower-casing and bounding it stops one phrase from
+ * creating many cache entries and keeps oversized hostile input out of the key. Search is case-insensitive,
+ * so results are unchanged. The shopper's own spelling is still what the page displays.
+ */
+export function toCacheableTerm(term: string): string {
+  return term.trim().toLowerCase().slice(0, MAX_CACHED_TERM_LENGTH);
 }
 
 /** Search can only sort by relevance or price; any other sort falls back to relevance. */
@@ -111,12 +125,14 @@ export async function loadSearchPage(
   const state = searchStateFor(rawState);
   const {sortKey, reverse} = toSearchSort(state.sort);
 
+  const queryTerm = toCacheableTerm(term);
+
   // Pages, articles and suggestions belong to the first page of results only.
   const [{products}, content] = await Promise.all([
     storefront.query(SEARCH_PRODUCTS_QUERY, {
       cache: searchCache(storefront),
       variables: {
-        term,
+        term: queryTerm,
         first: LISTING_PAGE_SIZE,
         after: state.cursor,
         sortKey,
@@ -127,7 +143,7 @@ export async function loadSearchPage(
     state.cursor === null
       ? storefront.query(SEARCH_CONTENT_QUERY, {
           cache: searchCache(storefront),
-          variables: {term},
+          variables: {term: queryTerm},
         })
       : Promise.resolve(null),
   ]);

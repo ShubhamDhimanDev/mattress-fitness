@@ -9,6 +9,9 @@ export const LISTING_PAGE_SIZE = 12;
 /** Longest search term we forward to Shopify (the API accepts more; a hostile URL should not). */
 export const MAX_SEARCH_TERM_LENGTH = 100;
 
+/** Longest term used in a cache key (see `toCacheableTerm`). */
+export const MAX_CACHED_TERM_LENGTH = 80;
+
 /** Predictive search does not call Shopify below this many characters (REQ-SRCH-001). */
 export const MIN_PREDICTIVE_TERM_LENGTH = 2;
 

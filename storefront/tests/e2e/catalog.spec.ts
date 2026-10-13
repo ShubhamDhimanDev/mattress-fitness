@@ -7,11 +7,15 @@ import {
   ourErrors,
   expectNoHorizontalScroll,
   expectPageNotReloaded,
+  findProduct,
   firstCollectionPath,
   firstProductPath,
   gotoReady,
+  hasGallery,
+  hasSizes,
   markPage,
 } from './helpers/catalog';
+import {LISTING_PAGE_SIZE} from '../../app/lib/shopify/config';
 
 // REQ-COL-001/002/004 collection page and REQ-PDP-001/002 product page. Written against structure every
 // store has; metafield-dependent UI (comfort, type, benefits) is only asserted when it is on the page.
@@ -69,16 +73,17 @@ test.describe('collection page (REQ-COL-001, REQ-COL-002)', () => {
     await expect(page).not.toHaveURL(/price_min/);
   });
 
-  test('an impossible filter shows the empty state with a reset', async ({
+  test('an extreme price filter shows either the list or the empty state with a reset', async ({
     page,
   }) => {
     const path = await firstCollectionPath(page);
     await gotoReady(page, `${path}?price_min=99999&price_max=100000`);
-    // mock.shop ignores the price filter and returns every product; a real store returns none.
-    test.skip(
-      (await page.locator('article').count()) > 0,
-      'The connected store does not apply the price filter.',
-    );
+    // mock.shop ignores the price filter and returns every product; a real store returns none. Either way
+    // the page must be usable, so each outcome is asserted (the guaranteed empty state is in search.spec).
+    if ((await page.locator('article').count()) > 0) {
+      await expect(page.locator('article').first()).toBeVisible();
+      return;
+    }
     await expect(
       page.getByRole('heading', {name: 'No products match these filters'}),
     ).toBeVisible();
@@ -103,11 +108,13 @@ test.describe('collection page (REQ-COL-001, REQ-COL-002)', () => {
   }) => {
     await gotoReady(page, '/collections/all');
     const button = page.getByRole('link', {name: 'Load more'});
-    test.skip(
-      (await button.count()) === 0,
-      'The store has one page of products.',
-    );
     const before = await page.locator('article').count();
+    if ((await button.count()) === 0) {
+      // No button means the whole catalog fits on the first page; more cards than a page without a
+      // button would be a bug.
+      expect(before).toBeLessThanOrEqual(LISTING_PAGE_SIZE);
+      return;
+    }
     await markPage(page);
     await button.click();
     await expect
@@ -166,11 +173,12 @@ test.describe('product page (REQ-PDP-001, REQ-PDP-002)', () => {
     page,
   }) => {
     const listing = await firstCollectionPath(page);
-    await gotoReady(page, await firstProductPath(page, listing));
+    // A product with at least two sizes that can be bought; fails if the first page has none.
+    const product = await findProduct(page, listing, 'sold in two sizes', (p) =>
+      hasSizes(p, 2),
+    );
+    await gotoReady(page, product);
     const sizes = page.getByRole('group', {name: /^Size/});
-    test.skip((await sizes.count()) === 0, 'This product has no Size option.');
-    const enabled = sizes.locator('input[type="radio"]:enabled');
-    test.skip((await enabled.count()) < 2, 'Only one size can be bought.');
     await markPage(page);
     // The radio is visually hidden; its label is what a shopper clicks.
     await sizes.locator('input:enabled + label').nth(1).click();
@@ -191,9 +199,14 @@ test.describe('product page (REQ-PDP-001, REQ-PDP-002)', () => {
 
   test('the gallery is keyboard operable', async ({page}) => {
     const listing = await firstCollectionPath(page);
-    await gotoReady(page, await firstProductPath(page, listing));
+    const product = await findProduct(
+      page,
+      listing,
+      'shown with several images',
+      hasGallery,
+    );
+    await gotoReady(page, product);
     const next = page.getByRole('button', {name: 'Next image'});
-    test.skip((await next.count()) === 0, 'This product has one image.');
     await next.focus();
     await page.keyboard.press('Enter');
     await expect(page.getByText(/Image 2 of/)).toBeAttached();

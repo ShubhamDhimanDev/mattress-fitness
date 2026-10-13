@@ -251,3 +251,25 @@ test.describe('REQ-CMP-001 mobile layout (NFR-001)', () => {
     for (const height of heights) expect(height).toBeGreaterThanOrEqual(44);
   });
 });
+
+// Review fix 8: "Add to compare" on product cards and the product page.
+test.describe('add to compare control (REQ-CMP-001)', () => {
+  test('the home cards offer it, it adds to the saved selection and links to /compare', async ({
+    page,
+  }) => {
+    await gotoReady(page, '/');
+    const control = page
+      .getByRole('link', {name: /^Add .* to comparison$/})
+      .first();
+    await expect(control).toBeVisible();
+    await control.click();
+    await expect(
+      page
+        .getByRole('status')
+        .filter({hasText: 'Added to comparison (1 of 4)'}),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', {name: 'View comparison (1)'}).first(),
+    ).toHaveAttribute('href', /^\/compare\?handles=[a-z0-9-]+$/);
+  });
+});

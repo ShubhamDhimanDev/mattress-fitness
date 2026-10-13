@@ -2,6 +2,7 @@ import {useNavigate} from 'react-router';
 import {AddToCartButton} from '~/components/AddToCartButton';
 import {useAside} from '~/components/Aside';
 import {CartMessages} from '~/components/cart/CartMessages';
+import {CompareToggle} from '~/components/compare/CompareToggle';
 import {Badge} from '~/components/ui/Badge';
 import {Price} from '~/components/ui/Price';
 import {SizeSelector} from '~/components/ui/SizeSelector';
@@ -149,6 +150,7 @@ export function ProductBuyBox({
         {variant.available ? 'Add to cart' : 'Sold out'}
       </AddToCartButton>
       <CartMessages />
+      <CompareToggle handle={product.handle} title={product.title} />
 
       {/* Extension slots, each filled by its own task; they render nothing today. */}
       {/* TODO(P5B-03): delivery promise for the saved ZIP (REQ-DEL-002). */}

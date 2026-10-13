@@ -12,6 +12,7 @@ import {QuizIntro} from '~/components/quiz/QuizIntro';
 import {QuizQuestion} from '~/components/quiz/QuizQuestion';
 import {QuizResults, type ResultClick} from '~/components/quiz/QuizResults';
 import {getLocalStorage} from '~/lib/pages/browser-storage';
+import {previewRobotsMeta} from '~/lib/pages/head';
 import {
   INTRO_STATE,
   RESULTS_STEP,
@@ -52,7 +53,8 @@ import {
 // REQ-QZ-006 (events through track()), REQ-QZ-007 (guidance-only note). The state lives in the URL
 // (?step=3&a.feel=soft), see app/lib/pages/quiz-flow.ts.
 
-export const meta: Route.MetaFunction = () => [
+export const meta: Route.MetaFunction = ({data}) => [
+  ...previewRobotsMeta(data?.source),
   {title: formatPageTitle('Sleep quiz')},
   {
     name: 'description',

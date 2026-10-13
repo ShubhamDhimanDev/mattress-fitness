@@ -51,6 +51,9 @@ export const SLEEP_QUIZ_LINK: NavLinkItem = {
   emphasis: true,
 };
 
+/** The comparison page (REQ-CMP-001); the same path as `COMPARE_PATH` in lib/pages/compare-view.ts. */
+const COMPARE_PATH = '/compare';
+
 const MATTRESS_SIZES = [
   'Twin',
   'Twin XL',
@@ -206,6 +209,7 @@ export const MAIN_NAV: readonly MainNavItem[] = [
         heading: 'Help choosing',
         links: [
           {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to},
+          {label: 'Compare mattresses', to: COMPARE_PATH},
           {label: 'Sleep journal', to: '/blogs/journal'},
         ],
       },
@@ -230,6 +234,11 @@ export type ReassuranceItem = {
   icon: 'truck' | 'shield' | 'tag';
   text: string;
   to: string;
+  /**
+   * True while the page behind the link and its terms are not supplied by the client. The guarantee wording
+   * is invented placeholder text, so pages that make a promise to the shopper must not show it yet.
+   */
+  awaitingContent?: boolean;
 };
 
 /** Placeholder wording; the guarantee terms come from the client's content pages (REQ-CNT-001). */
@@ -245,14 +254,25 @@ export const REASSURANCE_ITEMS: readonly ReassuranceItem[] = [
     icon: 'shield',
     text: 'Comfort guarantee',
     to: '/pages/comfort-guarantee',
+    awaitingContent: true,
   },
   {
     id: 'price',
     icon: 'tag',
     text: 'Price guarantee',
     to: '/pages/price-guarantee',
+    awaitingContent: true,
   },
 ];
+
+/**
+ * Reassurance for the home page body: only items whose content exists. The guarantees are hidden until the
+ * client's pages and terms arrive.
+ * TODO(REQ-CNT-001): drop `awaitingContent` from the comfort and price guarantee items when their pages exist.
+ * The header strip still shows all three (layout component, owned by the design shell).
+ */
+export const HOME_ASSURANCE_ITEMS: readonly ReassuranceItem[] =
+  REASSURANCE_ITEMS.filter((item) => item.awaitingContent !== true);
 
 export type PromoMessage = {text: string; linkLabel?: string; to?: string};
 
@@ -283,6 +303,7 @@ export const FOOTER_SUPPORT_GROUPS: readonly FooterGroup[] = [
     heading: 'Sleep guide',
     links: [
       {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to},
+      {label: 'Compare mattresses', to: COMPARE_PATH},
       {label: 'Size guide', to: '/pages/size-guide'},
       {label: 'Comfort guide', to: '/pages/comfort-guide'},
       {label: 'Mattress types guide', to: '/pages/mattress-types-guide'},

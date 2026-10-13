@@ -57,15 +57,53 @@ test.describe('search results (REQ-SRCH-002)', () => {
     await expect(page).toHaveURL(/sort=price-asc/);
   });
 
-  test('hostile input renders as text and does not break the page', async ({
+  test('hostile input is shown as escaped text and no script runs', async ({
     page,
   }) => {
+    let dialogs = 0;
+    page.on('dialog', (dialog) => {
+      dialogs += 1;
+      void dialog.dismiss();
+    });
+    // Tag-shaped input is stripped by the server; this payload keeps characters that matter when escaping
+    // is wrong (a bare "<", "&", quotes, and entity-looking text) next to an event-handler tag.
+    const payload = '5 < 6 & "queen" &lt;b&gt; <img src=x onerror=alert(1)>';
     const response = await gotoReady(
       page,
-      `/search?q=${encodeURIComponent('<img src=x onerror=alert(1)>')}&size=%3Cscript%3E`,
+      `/search?q=${encodeURIComponent(payload)}&size=%3Cscript%3E`,
     );
     expect(response?.status()).toBe(200);
+    // Shown literally (React escaped it): the entity text is not decoded and the tag is gone.
+    await expect(page.getByRole('heading', {level: 1})).toContainText(
+      '5 < 6 & "queen" &lt;b&gt;',
+    );
     expect(await page.locator('img[src="x"]').count()).toBe(0);
+    expect(await page.locator('main b').count()).toBe(0);
+    expect(dialogs, 'alert() dialogs opened').toBe(0);
+  });
+
+  test('a filtered search with no matches keeps the filters and a reset (REQ-SRCH-002)', async ({
+    page,
+    isMobile,
+  }) => {
+    await gotoReady(page, '/search?q=zzzzqqqqxx&size=queen');
+    await expect(
+      page.getByRole('heading', {name: 'No products match these filters'}),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('list', {name: 'Active filters'}),
+    ).toBeVisible();
+    await expect(page.getByRole('link', {name: 'Reset filters'})).toBeVisible();
+    if (!isMobile) {
+      await expect(
+        page.getByRole('complementary', {name: 'Filters'}),
+      ).toBeVisible();
+    }
+    await page.getByRole('link', {name: 'Reset filters'}).click();
+    await expect(page).not.toHaveURL(/size=/);
+    await expect(
+      page.getByRole('heading', {name: /No products found/}),
+    ).toBeVisible();
   });
 
   test('has no serious accessibility violations and no horizontal scroll', async ({

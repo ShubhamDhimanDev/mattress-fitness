@@ -1,4 +1,5 @@
 import {createHydrogenContext} from '@shopify/hydrogen';
+import {cartSetId} from '~/lib/cart/cookie';
 import {AppSession} from '~/lib/session';
 import {CART_QUERY_FRAGMENT} from '~/lib/fragments';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
@@ -56,6 +57,8 @@ export async function createHydrogenRouterContext(
       i18n: {language: 'EN', country: 'US'},
       cart: {
         queryFragment: CART_QUERY_FRAGMENT,
+        // HttpOnly, SameSite, Secure and an expiry on the cart cookie (security review P-M1).
+        setId: cartSetId(request.url),
       },
     },
     additionalContext,

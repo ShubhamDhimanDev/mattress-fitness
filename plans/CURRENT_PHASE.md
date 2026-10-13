@@ -19,7 +19,7 @@
 2. Unbuilt page items that need no dev store: P3B-05 promo tiles (REQ-COL-003), P3B-06 brand pages (REQ-COL-005), P3B-10 header "my store" and pickup, P3B-13 homepage section types and copy, the predictive search combobox (P3B-07, needs `layout/HeaderSearch.tsx`), P4-09 and P4-11 pre-checkout steps and revalidation wiring, P5A-05 and P5A-08 Extend UI and webhook route.
 3. P1-12 Hydrogen 2026.10 migration or a recorded exception: the owner must accept ADR-0008 for development (B-12); remains a launch blocker.
 4. P0-02 owner sends the client pack; P0-03 development store when a Partner account exists (B-02). This unlocks every dev-store verification (V-02, V-04, V-05) and the move of reviewed tasks to DONE (B-13).
-5. Owner or client decision on listing price freshness (DEC-024, B-14).
+5. (Cleared) Listing price freshness decided: 60s/300s (DEC-024, B-14).
 
 ## Exit criteria for Phase 0
 

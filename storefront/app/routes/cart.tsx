@@ -1,6 +1,5 @@
 import {useLoaderData, data, type HeadersFunction} from 'react-router';
 import type {Route} from './+types/cart';
-import type {CartQueryDataReturn} from '@shopify/hydrogen';
 import {CartForm} from '@shopify/hydrogen';
 import {CartMain} from '~/components/CartMain';
 import {formatPageTitle} from '~/components/layout/documentTitle';
@@ -8,27 +7,47 @@ import {
   validateAddLines,
   validateDiscountCodes,
   validateLineIds,
+  validateSizeChange,
   validateUpdateLines,
 } from '~/lib/cart/actions';
+import {CHANGE_SIZE_ACTION} from '~/lib/cart/custom-actions';
+import {isSameOriginRequest, noStoreHeaders} from '~/lib/cart/http';
 import {safeRedirectPath} from '~/lib/cart/input';
+import {
+  revalidateCartOffers,
+  swapLineSize,
+  type CartMutationResult,
+  type OfferRuntime,
+} from '~/lib/offers-runtime/server';
 
 export const meta: Route.MetaFunction = () => [
   {title: formatPageTitle('Your cart')},
   {name: 'robots', content: 'noindex'},
 ];
 
-export const headers: HeadersFunction = ({actionHeaders}) => actionHeaders;
+// The cart cookie is read and set here: nothing about this route may sit in a shared cache (P-L3).
+export const headers: HeadersFunction = ({actionHeaders}) =>
+  noStoreHeaders(actionHeaders);
 
-function rejected(message: string) {
+function rejected(message: string, status = 400) {
   return data(
     {
       cart: null,
       errors: [{message}],
       warnings: [],
+      offers: null,
       analytics: {cartId: undefined},
     },
-    {status: 400},
+    {status, headers: noStoreHeaders()},
   );
+}
+
+function runtimeOf(context: Route.ActionArgs['context']): OfferRuntime {
+  return {
+    storefront: context.storefront,
+    cart: context.cart,
+    env: context.env,
+  };
 }
 
 /**
@@ -36,9 +55,17 @@ function rejected(message: string) {
  * variants, lines, quantities and discount codes, nothing else, and Shopify prices the result. Mutations
  * go through Hydrogen's cart handler; `errors` (userErrors) and `warnings` are returned to the page so a
  * partial failure is visible.
+ *
+ * After every mutation the offer engine runs against the real cart and repairs it (REQ-PRE-006): an
+ * orphaned gift, an over-limit service line or a protector without its mattress never survives a request,
+ * whatever the browser sent. What was repaired comes back as notices in `warnings`.
  */
 export async function action({request, context}: Route.ActionArgs) {
+  if (!isSameOriginRequest(request)) {
+    return rejected('That request could not be verified.', 403);
+  }
   const {cart} = context;
+  const runtime = runtimeOf(context);
   const formData = await request.formData();
 
   let parsed: ReturnType<typeof CartForm.getFormInput>;
@@ -49,7 +76,7 @@ export async function action({request, context}: Route.ActionArgs) {
   }
   const {action, inputs} = parsed;
 
-  let result: CartQueryDataReturn;
+  let result: CartMutationResult;
   switch (action) {
     case CartForm.ACTIONS.LinesAdd: {
       const lines = validateAddLines(inputs.lines);
@@ -78,13 +105,46 @@ export async function action({request, context}: Route.ActionArgs) {
       result = await cart.updateDiscountCodes(codes.value);
       break;
     }
+    case CHANGE_SIZE_ACTION: {
+      const change = validateSizeChange(inputs);
+      if (change.status === 'invalid') return rejected(change.reason);
+      const swapped = await swapLineSize(runtime, await cart.get(), {
+        lineId: change.value.lineId,
+        merchandiseId: change.value.merchandiseId,
+      });
+      if (swapped.status === 'rejected') return rejected(swapped.reason);
+      result = swapped.result;
+      break;
+    }
     default:
       return rejected('That cart action is not supported.');
   }
 
-  const cartId = result?.cart?.id;
-  const headers = cartId ? cart.setCartId(cartId) : new Headers();
-  const {cart: cartResult, errors, warnings} = result;
+  // Repair the cart the mutation produced. A failure here must not lose the shopper's change: the hand-off
+  // runs the same check again (checkout-steps), so an unverified cart still cannot reach checkout.
+  // The mutation's own cart is minimal (no lines); the full cart is what gets checked and returned.
+  let finalCart = result.cart;
+  let offers = null;
+  let notices: string[] = [];
+  try {
+    const checked = await revalidateCartOffers(runtime, await cart.get());
+    finalCart = checked.cart ?? finalCart;
+    offers = checked.view;
+    notices = [...(checked.view?.notices ?? [])];
+  } catch (error) {
+    console.error(
+      'Cart revalidation failed:',
+      error instanceof Error ? error.message : 'unknown error',
+    );
+  }
+
+  const cartId = finalCart?.id;
+  const headers = noStoreHeaders(cartId ? cart.setCartId(cartId) : undefined);
+  const errors = result.errors;
+  const warnings = [
+    ...(result.warnings ?? []),
+    ...notices.map((message) => ({message})),
+  ];
 
   let status = 200;
   const redirectTo = formData.get('redirectTo');
@@ -94,22 +154,37 @@ export async function action({request, context}: Route.ActionArgs) {
   }
 
   return data(
-    {cart: cartResult, errors, warnings, analytics: {cartId}},
+    {cart: finalCart, errors, warnings, offers, analytics: {cartId}},
     {status, headers},
   );
 }
 
 export async function loader({context}: Route.LoaderArgs) {
-  return await context.cart.get();
+  const current = await context.cart.get();
+  // The page shows the repaired cart and the reasons for any repair or refusal. A failed check shows the
+  // cart as Shopify has it; the hand-off still revalidates.
+  try {
+    const checked = await revalidateCartOffers(runtimeOf(context), current);
+    return data(
+      {cart: checked.cart, offers: checked.view},
+      {headers: noStoreHeaders()},
+    );
+  } catch (error) {
+    console.error(
+      'Cart revalidation failed:',
+      error instanceof Error ? error.message : 'unknown error',
+    );
+    return data({cart: current, offers: null}, {headers: noStoreHeaders()});
+  }
 }
 
 export default function Cart() {
-  const cart = useLoaderData<typeof loader>();
+  const {cart, offers} = useLoaderData<typeof loader>();
 
   return (
     <div className="py-6">
       <h1 className="text-3xl font-bold">Your cart</h1>
-      <CartMain layout="page" cart={cart} />
+      <CartMain layout="page" cart={cart} offers={offers} />
     </div>
   );
 }

@@ -1,11 +1,11 @@
 import {Analytics} from '@shopify/hydrogen';
-import {Link, useLoaderData} from 'react-router';
+import {useLoaderData} from 'react-router';
 import type {Route} from './+types/search';
-import {ProductListing} from '~/components/collection/ProductListing';
+import {SearchResults} from '~/components/collection/SearchResults';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {Button} from '~/components/ui/Button';
 import {Input} from '~/components/ui/Input';
-import {SEARCH_SORT_KEYS, parseFilterParams} from '~/lib/filters';
+import {countActiveFilters, parseFilterParams} from '~/lib/filters';
 import {
   getEmptyPredictiveSearchResult,
   type PredictiveSearchReturn,
@@ -15,6 +15,7 @@ import {
   emptySearchPage,
   loadSearchPage,
   normalizeSearchTerm,
+  toCacheableTerm,
 } from '~/lib/shopify/search-data';
 
 export const meta: Route.MetaFunction = ({data}) => [
@@ -42,18 +43,18 @@ export async function loader({request, context}: Route.LoaderArgs) {
     return predictiveSearch(context.storefront, term, url.searchParams);
   }
 
+  const state = parseFilterParams(url.searchParams);
+  const activeFilters = countActiveFilters(state);
+
   try {
-    const page = await loadSearchPage(
-      context.storefront,
-      term,
-      parseFilterParams(url.searchParams),
-    );
-    return {type: 'regular' as const, failed: false, ...page};
+    const page = await loadSearchPage(context.storefront, term, state);
+    return {type: 'regular' as const, failed: false, activeFilters, ...page};
   } catch (error) {
     logSearchFailure(error);
     return {
       type: 'regular' as const,
       failed: true,
+      activeFilters,
       ...emptySearchPage(term),
     };
   }
@@ -93,103 +94,21 @@ export default function SearchPage() {
       ) : null}
 
       {data.term && !data.failed ? (
-        data.products.length > 0 ? (
-          <>
-            <ProductListing
-              products={data.products}
-              pageInfo={data.pageInfo}
-              filterGroups={data.filterGroups}
-              showFilters
-              sortKeys={SEARCH_SORT_KEYS}
-              emptyHeading="No products match these filters"
-            />
-            <ContentMatches pages={data.pages} articles={data.articles} />
-          </>
-        ) : (
-          <NoResults
-            term={data.term}
-            collections={data.suggestedCollections}
-            pages={data.pages}
-            articles={data.articles}
-          />
-        )
+        <SearchResults
+          term={data.term}
+          products={data.products}
+          pageInfo={data.pageInfo}
+          filterGroups={data.filterGroups}
+          activeFilters={data.activeFilters}
+          pages={data.pages}
+          articles={data.articles}
+          suggestedCollections={data.suggestedCollections}
+        />
       ) : null}
 
       <Analytics.SearchView
         data={{searchTerm: data.term, searchResults: null}}
       />
-    </div>
-  );
-}
-
-type ContentLinkView = {
-  readonly id: string;
-  readonly title: string;
-  readonly to: string;
-};
-
-function ContentMatches({
-  pages,
-  articles,
-}: {
-  pages: readonly ContentLinkView[];
-  articles: readonly ContentLinkView[];
-}) {
-  const links = [...pages, ...articles];
-  if (links.length === 0) return null;
-  return (
-    <section aria-labelledby="search-content-heading" className="mt-12">
-      <h2 id="search-content-heading" className="mb-2 text-xl font-bold">
-        Pages and articles
-      </h2>
-      <ul>
-        {links.map((link) => (
-          <li key={link.id}>
-            <Link
-              to={link.to}
-              className="inline-flex min-h-touch items-center text-primary-700 underline underline-offset-2"
-            >
-              {link.title}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function NoResults({
-  term,
-  collections,
-  pages,
-  articles,
-}: {
-  term: string;
-  collections: readonly ContentLinkView[];
-  pages: readonly ContentLinkView[];
-  articles: readonly ContentLinkView[];
-}) {
-  return (
-    <div className="flex flex-col items-start gap-3 py-8">
-      <h2 className="text-xl font-bold">No products found for “{term}”</h2>
-      <p className="text-base text-fg-muted">
-        Check the spelling, try a more general word, or browse one of these.
-      </p>
-      <ul className="flex flex-wrap gap-2">
-        {collections.map((collection) => (
-          <li key={collection.id}>
-            <Button to={collection.to} variant="secondary" size="sm">
-              {collection.title}
-            </Button>
-          </li>
-        ))}
-        <li>
-          <Button to="/collections/all" variant="secondary" size="sm">
-            All products
-          </Button>
-        </li>
-      </ul>
-      <ContentMatches pages={pages} articles={articles} />
     </div>
   );
 }
@@ -318,7 +237,7 @@ async function predictiveSearch(
       PREDICTIVE_SEARCH_QUERY,
       {
         cache: storefront.CacheShort(),
-        variables: {limit, limitScope: 'EACH', term},
+        variables: {limit, limitScope: 'EACH', term: toCacheableTerm(term)},
       },
     );
     if (!items) return {type, term, result: getEmptyPredictiveSearchResult()};

@@ -5,7 +5,7 @@ import {ProductItem} from '~/components/ProductItem';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {Button} from '~/components/ui/Button';
 import {
-  REASSURANCE_ITEMS,
+  HOME_ASSURANCE_ITEMS,
   SLEEP_QUIZ_LINK,
   STORE_LOCATOR_PATH,
 } from '~/lib/navigation';
@@ -147,26 +147,28 @@ export default function Homepage() {
         </section>
       ) : null}
 
-      <section
-        aria-labelledby="assurance-heading"
-        className="rounded-panel bg-primary-50 px-6 py-8"
-      >
-        <h2 id="assurance-heading" className="text-2xl font-bold">
-          Buy with confidence
-        </h2>
-        <ul className="mt-4 grid gap-3 md:grid-cols-3">
-          {REASSURANCE_ITEMS.map((item) => (
-            <li key={item.id}>
-              <Link
-                to={item.to}
-                className="inline-flex min-h-touch items-center font-bold text-primary-800 underline underline-offset-2"
-              >
-                {item.text}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {HOME_ASSURANCE_ITEMS.length > 0 ? (
+        <section
+          aria-labelledby="assurance-heading"
+          className="rounded-panel bg-primary-50 px-6 py-8"
+        >
+          <h2 id="assurance-heading" className="text-2xl font-bold">
+            Buy with confidence
+          </h2>
+          <ul className="mt-4 grid gap-3 md:grid-cols-3">
+            {HOME_ASSURANCE_ITEMS.map((item) => (
+              <li key={item.id}>
+                <Link
+                  to={item.to}
+                  className="inline-flex min-h-touch items-center font-bold text-primary-800 underline underline-offset-2"
+                >
+                  {item.text}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {/* TODO(P7-02): email and text-message signup with recorded consent (Klaviyo) goes here. */}
     </div>

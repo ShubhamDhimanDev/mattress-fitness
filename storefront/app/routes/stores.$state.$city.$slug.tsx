@@ -1,4 +1,4 @@
-import {useLoaderData} from 'react-router';
+import {data as withHeaders, useLoaderData} from 'react-router';
 import type {Route} from './+types/stores.$state.$city.$slug';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PreviewNotice} from '~/components/pages/PreviewNotice';
@@ -9,7 +9,13 @@ import {StoreMapBlock} from '~/components/stores/StoreMapBlock';
 import {ProductTile} from '~/components/pages/ProductTile';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {PhoneIcon} from '~/components/ui/Icons';
+import {previewRobotsMeta} from '~/lib/pages/head';
 import {myStoreKey, readMyStore} from '~/lib/pages/my-store';
+import {
+  PRIVATE_NO_STORE_HEADERS,
+  forwardLoaderHeaders,
+} from '~/lib/pages/private-response';
+import {resolveSiteOrigin} from '~/lib/site-origin';
 import {loadStoreIndex, notFound} from '~/lib/pages/stores-data';
 import {storeCardView, weeklyHoursView} from '~/lib/pages/stores-view';
 import {
@@ -23,19 +29,20 @@ import {buildStoreJsonLd, serializeJsonLd} from '~/lib/stores/jsonld';
 // P6-06: one store (REQ-LOC-001): address, tap-to-call, today's hours and open status, the full week,
 // directions, LocalBusiness JSON-LD, and "Set as my store" (REQ-LOC-003).
 
-export const meta: Route.MetaFunction = ({data}) => [
-  {title: formatPageTitle(data ? data.name : 'Store not found')},
-  ...(data
+export const meta: Route.MetaFunction = ({data: loaderData}) => [
+  ...previewRobotsMeta(loaderData?.source),
+  {title: formatPageTitle(loaderData ? loaderData.name : 'Store not found')},
+  ...(loaderData
     ? [
         {
           name: 'description',
-          content: `${data.name}: address, opening hours, phone number and directions.`,
+          content: `${loaderData.name}: address, opening hours, phone number and directions.`,
         },
       ]
     : []),
 ];
 
-export async function loader({params, request}: Route.LoaderArgs) {
+export async function loader({params, request, context}: Route.LoaderArgs) {
   const {source, index} = await loadStoreIndex();
   const found = findStore(index, params.state, params.city, params.slug);
   if (!found) throw notFound();
@@ -43,22 +50,35 @@ export async function loader({params, request}: Route.LoaderArgs) {
 
   const mine = readMyStore(index, request.headers.get('Cookie'));
   const nowMs = Date.now();
-  return {
-    source,
-    name: store.name,
-    stateName: state.name,
-    statePath: statePath(state.code),
-    cityName: city.name,
-    cityPath: cityPath(state.code, city.name),
-    view: storeCardView(store, nowMs),
-    week: weeklyHoursView(store, nowMs),
-    photoUrl: store.photoUrl,
-    storeKey: myStoreKey(store),
-    isMine: mine?.id === store.id,
-    // Built from the same store object as the visible text; only an https origin yields absolute URLs.
-    jsonLd: buildStoreJsonLd(store, {siteOrigin: new URL(request.url).origin}),
-  };
+  // Depends on the my_store cookie, so it must never sit in a shared cache (P-L3).
+  return withHeaders(
+    {
+      source,
+      name: store.name,
+      stateName: state.name,
+      statePath: statePath(state.code),
+      cityName: city.name,
+      cityPath: cityPath(state.code, city.name),
+      view: storeCardView(store, nowMs),
+      week: weeklyHoursView(store, nowMs),
+      photoUrl: store.photoUrl,
+      storeKey: myStoreKey(store),
+      isMine: mine?.id === store.id,
+      // Built from the same store object as the visible text. The origin is configured, never the request's
+      // Host (P-L2); only an https origin yields absolute URLs.
+      jsonLd: buildStoreJsonLd(store, {
+        siteOrigin: resolveSiteOrigin({
+          env: context.env,
+          requestUrl: request.url,
+          isDev: import.meta.env.DEV,
+        }),
+      }),
+    },
+    {headers: PRIVATE_NO_STORE_HEADERS},
+  );
 }
+
+export const headers = forwardLoaderHeaders;
 
 export default function StorePage() {
   const data = useLoaderData<typeof loader>();

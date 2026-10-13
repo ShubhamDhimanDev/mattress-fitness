@@ -1,27 +1,33 @@
-import {Link, useLoaderData} from 'react-router';
+import {Link, data, useLoaderData} from 'react-router';
 import type {Route} from './+types/stores.$state._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {StoreCard} from '~/components/stores/StoreCard';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {previewRobotsMeta} from '~/lib/pages/head';
 import {readMyStore} from '~/lib/pages/my-store';
+import {
+  PRIVATE_NO_STORE_HEADERS,
+  forwardLoaderHeaders,
+} from '~/lib/pages/private-response';
 import {loadStoreIndex, notFound} from '~/lib/pages/stores-data';
 import {storeCountText, storeEntry} from '~/lib/pages/stores-view';
 import {STORES_ROOT_PATH, cityPath, findState} from '~/lib/stores/grouping';
 
 // P6-06: stores in one state (REQ-LOC-001). An unknown or malformed state is a 404 inside the shell.
 
-export const meta: Route.MetaFunction = ({data}) => [
+export const meta: Route.MetaFunction = ({data: loaderData}) => [
+  ...previewRobotsMeta(loaderData?.source),
   {
     title: formatPageTitle(
-      data ? `Mattress stores in ${data.name}` : 'Store not found',
+      loaderData ? `Mattress stores in ${loaderData.name}` : 'Store not found',
     ),
   },
-  ...(data
+  ...(loaderData
     ? [
         {
           name: 'description',
-          content: `Our ${storeCountText(data.storeCount)} in ${data.name}: addresses, opening hours and directions.`,
+          content: `Our ${storeCountText(loaderData.storeCount)} in ${loaderData.name}: addresses, opening hours and directions.`,
         },
       ]
     : []),
@@ -34,19 +40,25 @@ export async function loader({params, request}: Route.LoaderArgs) {
 
   const mine = readMyStore(index, request.headers.get('Cookie'));
   const nowMs = Date.now();
-  return {
-    source,
-    name: state.name,
-    storeCount: state.storeCount,
-    cities: state.cities.map((city) => ({
-      name: city.name,
-      path: cityPath(state.code, city.name),
-      stores: city.stores.map((store) =>
-        storeEntry(store, nowMs, mine?.id ?? null),
-      ),
-    })),
-  };
+  // Depends on the my_store cookie, so it must never sit in a shared cache (P-L3).
+  return data(
+    {
+      source,
+      name: state.name,
+      storeCount: state.storeCount,
+      cities: state.cities.map((city) => ({
+        name: city.name,
+        path: cityPath(state.code, city.name),
+        stores: city.stores.map((store) =>
+          storeEntry(store, nowMs, mine?.id ?? null),
+        ),
+      })),
+    },
+    {headers: PRIVATE_NO_STORE_HEADERS},
+  );
 }
+
+export const headers = forwardLoaderHeaders;
 
 export default function StoresStatePage() {
   const {source, name, storeCount, cities} = useLoaderData<typeof loader>();

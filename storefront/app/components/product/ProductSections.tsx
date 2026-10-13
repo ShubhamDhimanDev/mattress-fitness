@@ -1,4 +1,5 @@
 import {Image} from '@shopify/hydrogen';
+import {keyedText} from '~/lib/shopify/keys';
 import {Accordion} from '~/components/ui/Accordion';
 import type {ProductPageView} from '~/lib/shopify/types';
 
@@ -29,8 +30,8 @@ export function ProductSections({product}: {product: ProductPageView}) {
             Overview
           </h2>
           <div className="flex max-w-prose flex-col gap-3 text-base">
-            {product.description.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
+            {keyedText(product.description).map((paragraph) => (
+              <p key={paragraph.key}>{paragraph.text}</p>
             ))}
           </div>
         </section>
@@ -84,16 +85,16 @@ export function ProductSections({product}: {product: ProductPageView}) {
             />
           ) : null}
           <div className="flex max-w-prose flex-col gap-3 text-base">
-            {product.brand.about.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
+            {keyedText(product.brand.about).map((paragraph) => (
+              <p key={paragraph.key}>{paragraph.text}</p>
             ))}
           </div>
           {product.brand.warranty.length > 0 ? (
             <div className="mt-4 max-w-prose">
               <h3 className="mb-2 text-xl font-bold">Warranty</h3>
               <div className="flex flex-col gap-3 text-base">
-                {product.brand.warranty.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
+                {keyedText(product.brand.warranty).map((paragraph) => (
+                  <p key={paragraph.key}>{paragraph.text}</p>
                 ))}
               </div>
             </div>
@@ -114,8 +115,8 @@ export function ProductSections({product}: {product: ProductPageView}) {
               title: faq.question,
               content: (
                 <div className="flex max-w-prose flex-col gap-2">
-                  {faq.answer.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
+                  {keyedText(faq.answer).map((paragraph) => (
+                    <p key={paragraph.key}>{paragraph.text}</p>
                   ))}
                 </div>
               ),

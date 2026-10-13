@@ -11,7 +11,7 @@ import {
   serializeFilterParams,
   toggleSelection,
 } from '~/lib/filters';
-import {catalogCache} from '~/lib/shopify/cache';
+import {pricedCache} from '~/lib/shopify/cache';
 import {mapProductCards} from '~/lib/shopify/card';
 import {fieldRecord, mapImage} from '~/lib/shopify/common';
 import {BRAND_FIELDS, PRIMARY_COLLECTION_HANDLE} from '~/lib/shopify/config';
@@ -161,7 +161,8 @@ export function buildHomeData(home: CatalogHomeQuery): HomeData {
 
 export async function loadHome(storefront: Storefront): Promise<HomeData> {
   const home = await storefront.query(HOME_QUERY, {
-    cache: catalogCache(storefront),
+    // Product cards carry price and availability, so this is the 60 s strategy, not the long one (DEC-024).
+    cache: pricedCache(storefront),
     variables: {primaryHandle: PRIMARY_COLLECTION_HANDLE},
   });
   return buildHomeData(home);

@@ -20,7 +20,10 @@ export const PRODUCT_CARD_FRAGMENT = `#graphql
       width
       height
     }
-    variants(first: 30) {
+    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify's per-product limit): the "From $" price and
+    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong
+    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.
+    variants(first: 100) {
       nodes {
         id
         availableForSale

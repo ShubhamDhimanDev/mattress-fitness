@@ -53,3 +53,16 @@ test.describe('REQ-HOME-001 home page', () => {
     await expectNoHorizontalScroll(page);
   });
 });
+
+test.describe('home page reassurance (REQ-CNT-001 pending)', () => {
+  test('does not show the invented comfort and price guarantee links', async ({
+    page,
+  }) => {
+    await gotoReady(page, '/');
+    const section = page.getByRole('region', {name: 'Buy with confidence'});
+    await expect(section).toBeVisible();
+    await expect(
+      section.getByRole('link', {name: /Comfort guarantee|Price guarantee/}),
+    ).toHaveCount(0);
+  });
+});

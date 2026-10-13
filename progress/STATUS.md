@@ -10,7 +10,7 @@ Commits `392f52f` (review fixes and the security review record), `8c533e2` (quiz
 - **Local checks (agents' report, project manager did not re-run):** typecheck, lint, format:check clean; Vitest 60 files and 2470 tests pass; `node --test` over scripts 205 pass; build OK; e2e 246 pass, 31 skipped, 1 fail (`quiz.spec` full run, a console CSP telemetry error, being fixed). Details: [TEST_RESULTS](TEST_RESULTS.md) V-E1 to V-E8.
 - **Not verified at all:** anything against a dev store (filters V-04, metafields V-05, nested cart lines V-02, cart total equals checkout total) and Lighthouse (B-13, B-02).
 - **Not built:** collection promo tiles (REQ-COL-003), brand pages (REQ-COL-005, P3B-06), home hero copy (`TODO(P3B-13)`) and the homepage section types in definitions, product page slots (reviews P3B-12, pickup P3B-10, delivery promise P5B-03, add-ons P4-03, Extend P5A-05), header display of "my store" (P3B-10), a compare link in the navigation, quiz account sync, a true ARIA combobox for predictive search (needs `layout/HeaderSearch.tsx`), the Extend reconcile script (P5A-14) and the Extend webhook route (P5A-08).
-- **Decisions for the owner or client:** listing price freshness (DEC-024, B-14); acceptance of ADR-0008, a launch blocker (B-12).
+- **Decisions for the owner or client:** acceptance of ADR-0008, a launch blocker (B-12).
 - **Deferred review items (DEC-027):** M-4 shipping ZIP check in the 5B detective report, L-1 webhook replay debounce, shared guest-lookup limiter (P6-14, R-27, needs Q-003), quiz scoring as raw JSON (P6-13), `store.time_zone` (P3B-16).
 
 ## Summary
@@ -48,7 +48,7 @@ Commits `392f52f` (review fixes and the security review record), `8c533e2` (quiz
 ## Next actions (in order)
 
 1. **Owner:** review and send [CLIENT_QUESTION_PACK](../docs/requirements/CLIENT_QUESTION_PACK.md); create or share a Shopify Partner account so we can make a development store (B-02).
-2. **Owner:** approve the project MCP servers with `/mcp` (B-04); accept or reject ADR-0008 for development (B-12); decide on listing price freshness (B-14).
+2. **Owner:** approve the project MCP servers with `/mcp` (B-04); accept or reject ADR-0008 for development (B-12); listing price freshness is decided (B-14 cleared, DEC-024).
 3. **Agents (unblocked, in order):** fix the failing `quiz.spec` full run; finish the independent code and security reviews of 8c533e2 and 46e64a2 and fix findings; then the unbuilt page items that need no dev store: P3B-05 promo tiles, P3B-06 brand pages, P3B-10 header "my store" (needs a layout file claim), the predictive search combobox (layout file claim), P3B-13 homepage section types and copy, P4-09/P4-11 pre-checkout steps wiring.
 4. **Review:** independent review of P1-03, P0-06, P0-07, P0-08, P1-13 (still IN_REVIEW), plus the new rows in the backlog's Sprint 3 block.
 5. **Orchestrator:** run `node scripts/validate-framework.mjs` and record the result in TEST_RESULTS (V-E8).

@@ -1,6 +1,6 @@
 // A stand-in for Hydrogen's storefront client that answers from recorded responses and remembers every
 // call, so the query modules can be tested without a network. The single cast below is the narrowing
-// helper for this: the modules only use `query`, `CacheLong`, `CacheShort` and `CacheNone`.
+// helper for this: the modules only use `query`, `CacheLong`, `CacheShort`, `CacheCustom` and `CacheNone`.
 
 import type {Storefront} from '@shopify/hydrogen';
 
@@ -18,6 +18,10 @@ export function fakeStorefront(respond: Responder) {
     CacheLong: () => ({mode: 'long'}),
     CacheShort: () => ({mode: 'short'}),
     CacheNone: () => ({mode: 'none'}),
+    CacheCustom: (options: Record<string, unknown>) => ({
+      ...options,
+      custom: true,
+    }),
     query: async (
       query: string,
       options: {variables?: Record<string, unknown>; cache?: unknown} = {},

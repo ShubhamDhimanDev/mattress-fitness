@@ -3,17 +3,26 @@ import {useRef, type ReactNode} from 'react';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
 import {CartMessages} from '~/components/cart/CartMessages';
+import {CartOffers} from '~/components/cart/CartOffers';
+import {FreeDeliveryProgress} from '~/components/cart/FreeDeliveryProgress';
+import {useCartOffers} from '~/components/cart/useCartOffers';
 import {CartLineItem, type CartLine} from '~/components/CartLineItem';
 import {CartSummary} from '~/components/CartSummary';
 import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {SLEEP_QUIZ_LINK} from '~/lib/navigation';
+import type {CartOffersView} from '~/lib/offers-runtime/view';
 
 export type CartLayout = 'page' | 'aside';
 
 export type CartMainProps = {
   cart: CartApiQueryFragment | null;
   layout: CartLayout;
+  /**
+   * The offers view from the page loader. The drawer passes none and gets its view from cart action results
+   * or a load of `/cart` while it is open (useCartOffers).
+   */
+  offers?: CartOffersView | null;
   /** Extension points for the pre-checkout work; each renders nothing until its task fills it. */
   slots?: {
     /** Free-delivery progress (REQ-CART-004, P4-07). */
@@ -49,8 +58,19 @@ function getLineItemChildrenMap(lines: CartLine[]): LineItemChildrenMap {
  * the shopper sees them at once; the server result replaces them when it arrives, and any error or
  * warning Shopify returns is shown in `CartMessages`.
  */
-export function CartMain({layout, cart: originalCart, slots}: CartMainProps) {
+export function CartMain({
+  layout,
+  cart: originalCart,
+  offers: providedOffers,
+  slots,
+}: CartMainProps) {
   const cart = useOptimisticCart(originalCart);
+  const {type: asideType} = useAside();
+  const offers = useCartOffers({
+    cartUpdatedAt: originalCart?.updatedAt,
+    provided: providedOffers,
+    active: layout === 'page' || asideType === 'cart',
+  });
   const linesRegion = useRef<HTMLDivElement>(null);
   const lines = cart?.lines?.nodes ?? [];
   const hasItems = (cart?.totalQuantity ?? 0) > 0 && lines.length > 0;
@@ -88,18 +108,25 @@ export function CartMain({layout, cart: originalCart, slots}: CartMainProps) {
                   line={line}
                   layout={layout}
                   childrenMap={childrenMap}
+                  lineSizes={offers?.lineSizes}
                   onRemove={() => linesRegion.current?.focus()}
                 />
               ),
             )}
           </ul>
         </div>
-        {slots?.offers}
+        {slots?.offers ?? (offers ? <CartOffers view={offers} /> : null)}
       </div>
       <CartSummary
         cart={cart}
         layout={layout}
-        freeDeliverySlot={slots?.freeDelivery}
+        blocked={offers?.blocked}
+        freeDeliverySlot={
+          slots?.freeDelivery ??
+          (offers ? (
+            <FreeDeliveryProgress progress={offers.freeDelivery} />
+          ) : null)
+        }
       />
     </div>
   );

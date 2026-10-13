@@ -29,10 +29,14 @@ export type ValidAddLine = {
   attributes?: LineProperty[];
 };
 
+/**
+ * A quantity change only. Line properties are not accepted on update: an update carrying an empty
+ * attribute list would erase the hidden underscore properties the server set (Extend links, security
+ * review P-L1).
+ */
 export type ValidUpdateLine = {
   id: string;
   quantity: number;
-  attributes?: LineProperty[];
 };
 
 export type Validated<T> =
@@ -111,22 +115,39 @@ export function validateUpdateLines(
   for (const entry of list) {
     if (!isRecord(entry)) return {status: 'invalid', reason: 'Invalid line.'};
     const quantity = quantityOf(entry.quantity, MIN_LINE_QUANTITY);
-    const properties = propertiesOf(entry.attributes);
     if (
       typeof entry.id !== 'string' ||
       !LINE_ID.test(entry.id) ||
-      quantity === null ||
-      properties === null
+      quantity === null
     ) {
       return {status: 'invalid', reason: 'Invalid line or quantity.'};
     }
-    lines.push({
-      id: entry.id,
-      quantity,
-      ...(entry.attributes !== undefined ? {attributes: properties} : {}),
-    });
+    lines.push({id: entry.id, quantity});
   }
   return {status: 'ok', value: lines};
+}
+
+export type ValidSizeChange = {lineId: string; merchandiseId: string};
+
+/**
+ * A size swap names the line and the new variant, nothing else. The quantity is the cart's own (read on the
+ * server) and the new variant must belong to the same product: that check needs Shopify and is done by the
+ * action, not here.
+ */
+export function validateSizeChange(raw: unknown): Validated<ValidSizeChange> {
+  if (!isRecord(raw)) return {status: 'invalid', reason: 'Invalid size.'};
+  if (
+    typeof raw.lineId !== 'string' ||
+    !LINE_ID.test(raw.lineId) ||
+    typeof raw.merchandiseId !== 'string' ||
+    !VARIANT_ID.test(raw.merchandiseId)
+  ) {
+    return {status: 'invalid', reason: 'Invalid size.'};
+  }
+  return {
+    status: 'ok',
+    value: {lineId: raw.lineId, merchandiseId: raw.merchandiseId},
+  };
 }
 
 export function validateLineIds(raw: unknown): Validated<string[]> {

@@ -10,7 +10,7 @@ import {
   type SortKey,
 } from '~/lib/filters';
 import {mapProductCards} from '~/lib/shopify/card';
-import {catalogCache} from '~/lib/shopify/cache';
+import {pricedCache} from '~/lib/shopify/cache';
 import {LISTING_PAGE_SIZE} from '~/lib/shopify/config';
 import {mapFaqs} from '~/lib/shopify/product';
 import {textToParagraphs} from '~/lib/shopify/rich-text';
@@ -51,7 +51,8 @@ export async function loadCollectionPage(
   if (!isValidHandle(handle)) return {status: 'not-found'};
   const {sortKey, reverse} = toCollectionSort(state.sort);
   const {collection} = await storefront.query(COLLECTION_QUERY, {
-    cache: catalogCache(storefront),
+    // Cards carry price and availability: 60 s strategy (DEC-024).
+    cache: pricedCache(storefront),
     variables: {
       handle,
       first: LISTING_PAGE_SIZE,
@@ -119,7 +120,7 @@ export async function loadAllProductsPage(
 ): Promise<AllProductsPage> {
   const {sortKey, reverse} = toProductSort(state.sort);
   const {products} = await storefront.query(ALL_PRODUCTS_QUERY, {
-    cache: catalogCache(storefront),
+    cache: pricedCache(storefront),
     variables: {
       first: LISTING_PAGE_SIZE,
       after: state.cursor,

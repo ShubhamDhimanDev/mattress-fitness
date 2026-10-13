@@ -2,6 +2,7 @@ import {CartForm, Image, type OptimisticCartLine} from '@shopify/hydrogen';
 import {Link} from 'react-router';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
+import {CartSizeSelect} from '~/components/cart/CartSizeSelect';
 import {useCartSubmit} from '~/components/cart/useCartSubmit';
 import type {CartLayout, LineItemChildrenMap} from '~/components/CartMain';
 import {Button} from '~/components/ui/Button';
@@ -10,6 +11,7 @@ import {QuantityStepper} from '~/components/ui/QuantityStepper';
 import {MAX_LINE_QUANTITY} from '~/lib/cart/input';
 import {visibleLineProperties, visibleOptions} from '~/lib/cart/lines';
 import {fromCents, toCents} from '~/lib/money';
+import type {SizeChoice} from '~/lib/offers-runtime/view';
 
 export type CartLine = OptimisticCartLine<CartApiQueryFragment>;
 
@@ -17,6 +19,8 @@ type CartLineItemProps = {
   layout: CartLayout;
   line: CartLine;
   childrenMap: LineItemChildrenMap;
+  /** Cart line id -> sizes it can be swapped to, from the offers view (empty until it loads). */
+  lineSizes?: Readonly<Record<string, readonly SizeChoice[]>>;
   /** Called after a remove is submitted, so the cart can move focus somewhere that still exists. */
   onRemove: () => void;
 };
@@ -46,6 +50,7 @@ export function CartLineItem({
   layout,
   line,
   childrenMap,
+  lineSizes,
   onRemove,
 }: CartLineItemProps) {
   const {id, merchandise} = line;
@@ -56,6 +61,7 @@ export function CartLineItem({
   const properties = visibleLineProperties(line.attributes);
   const pending = Boolean(line.isOptimistic);
   const href = `/products/${product.handle}`;
+  const sizeChoices = lineSizes?.[id];
 
   return (
     <li
@@ -109,6 +115,16 @@ export function CartLineItem({
         </div>
       </div>
 
+      {sizeChoices ? (
+        <CartSizeSelect
+          lineId={id}
+          title={product.title}
+          currentVariantId={merchandise.id}
+          choices={sizeChoices}
+          disabled={pending}
+        />
+      ) : null}
+
       <div className="flex items-center justify-between gap-2">
         <LineQuantity line={line} title={product.title} />
         <RemoveButton
@@ -128,6 +144,7 @@ export function CartLineItem({
             <CartLineItem
               key={child.id}
               childrenMap={childrenMap}
+              lineSizes={lineSizes}
               line={child}
               layout={layout}
               onRemove={onRemove}

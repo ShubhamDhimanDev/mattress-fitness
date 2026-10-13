@@ -359,3 +359,18 @@ test.describe('NFR-001 layout at 360 px', () => {
     }
   });
 });
+
+// Review fixes: fixture pages are not indexed (DEC-023), cookie-dependent pages are private (P-L3).
+test.describe('store pages: head and caching', () => {
+  for (const url of ['/stores', '/stores/new-york', STORE_PATH]) {
+    test(`${url} is noindex and private`, async ({page}) => {
+      const response = await gotoReady(page, url);
+      expect(response?.headers()['cache-control']).toBe('private, no-store');
+      expect(response?.headers()['vary'] ?? '').toContain('Cookie');
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        'content',
+        /noindex/,
+      );
+    });
+  }
+});

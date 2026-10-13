@@ -3,6 +3,7 @@ import {
   collectConsoleErrors,
   expectNoSeriousA11yViolations,
 } from './helpers/a11y';
+import {ourErrors} from './helpers/catalog';
 
 // P6-03 / P6-11: the sleep quiz. REQ-QZ-001 (eight one-tap questions, progress, back, keyboard),
 // REQ-QZ-002 (three results with reasons and size price, See all matches, Retake), REQ-QZ-005 (remembered on
@@ -76,7 +77,7 @@ test.describe('REQ-QZ-001 intro', () => {
     ).toBeVisible();
     await expect(page).toHaveTitle(/Sleep quiz/);
     await expectNoSeriousA11yViolations(page);
-    expect(errors, 'console errors').toEqual([]);
+    expect(ourErrors(errors), 'console errors').toEqual([]);
   });
 });
 
@@ -151,7 +152,7 @@ test.describe('REQ-QZ-001 and REQ-QZ-002 full run', () => {
     await expect(
       page.getByRole('link', {name: 'Start the quiz'}),
     ).toBeVisible();
-    expect(errors, 'console errors').toEqual([]);
+    expect(ourErrors(errors), 'console errors').toEqual([]);
   });
 
   test('Back returns to the previous question with the answer still chosen', async ({
