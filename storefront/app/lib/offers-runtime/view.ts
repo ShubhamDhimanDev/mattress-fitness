@@ -161,3 +161,21 @@ export function buildOffersView(input: BuildViewInput): CartOffersView {
     notices: input.notices,
   };
 }
+
+/** The view of a cart that could not be checked: no offers, checkout withheld for the stated reason. */
+export function unverifiedView(
+  updatedAt: string | null,
+  reason: BlockReason,
+): CartOffersView {
+  return {
+    updatedAt,
+    freeDelivery: {enabled: false},
+    nextStep: null,
+    comfortGuarantee: null,
+    gifts: [],
+    addOns: [],
+    lineSizes: {},
+    blocked: [reason],
+    notices: [],
+  };
+}

@@ -1,5 +1,6 @@
 import {redirect} from 'react-router';
 import type {Route} from './+types/discount.$code';
+import {mayCreateCartFromLink} from '~/lib/cart/http';
 import {parseDiscountCode, safeRedirectPath} from '~/lib/cart/input';
 import {PRIVATE_NO_STORE_HEADERS} from '~/lib/pages/private-response';
 import {mergeDiscountCodes} from '~/lib/shopify/discount-codes';
@@ -28,7 +29,8 @@ export async function loader({request, context, params}: Route.LoaderArgs) {
     : target;
 
   const code = parseDiscountCode(params.code);
-  if (!code) {
+  // Document navigations only (O-L4): an image, frame or prefetch of this URL must not touch the cart.
+  if (!code || !mayCreateCartFromLink(request.headers)) {
     return redirect(redirectUrl, {
       headers: new Headers(PRIVATE_NO_STORE_HEADERS),
     });

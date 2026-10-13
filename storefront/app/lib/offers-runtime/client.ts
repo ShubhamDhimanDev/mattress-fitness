@@ -29,18 +29,36 @@ export function readOffersView(data: unknown): CartOffersView | null {
 }
 
 /**
- * Picks the view that describes the cart on screen. A view is trusted only when its cart version matches the
- * cart's (`updatedAt`); with several candidates the first match wins. An optimistic cart has no version of its
- * own, so the caller passes the server cart's.
+ * Picks the view that describes the cart on screen. A view for the same cart version is used; so is a NEWER
+ * one: a page load can repair the cart (removing an orphaned gift) after the drawer's cart was read, and the
+ * drawer should then show the repaired cart's offers rather than none. An older view is never used. An
+ * optimistic cart has no version of its own, so the caller passes the server cart's. With several usable
+ * views the newest wins; ties keep the first.
  */
 export function pickOffersView(
   candidates: readonly (CartOffersView | null)[],
   cartUpdatedAt: string | null | undefined,
 ): CartOffersView | null {
   if (!cartUpdatedAt) return null;
-  return (
-    candidates.find(
-      (view) => view !== null && view.updatedAt === cartUpdatedAt,
-    ) ?? null
-  );
+  const cartTime = Date.parse(cartUpdatedAt);
+  let best: CartOffersView | null = null;
+  let bestTime = Number.NEGATIVE_INFINITY;
+  for (const view of candidates) {
+    if (view === null || view.updatedAt === null) continue;
+    if (view.updatedAt === cartUpdatedAt) {
+      if (bestTime < cartTime || best === null) {
+        best = view;
+        bestTime = cartTime;
+      }
+      continue;
+    }
+    const time = Date.parse(view.updatedAt);
+    if (Number.isNaN(time) || Number.isNaN(cartTime) || time < cartTime)
+      continue;
+    if (time > bestTime) {
+      best = view;
+      bestTime = time;
+    }
+  }
+  return best;
 }

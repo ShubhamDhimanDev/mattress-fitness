@@ -311,10 +311,19 @@ describe('offers view on the client (REQ-CART-003, REQ-CART-004)', () => {
   });
 
   it('uses a view only when it describes the cart on screen', () => {
-    const a = view({updatedAt: 'v1'});
-    const b = view({updatedAt: 'v2'});
-    expect(pickOffersView([null, a, b], 'v2')).toBe(b);
-    expect(pickOffersView([a], 'v2')).toBeNull();
+    const a = view({updatedAt: '2026-10-13T10:00:00Z'});
+    const b = view({updatedAt: '2026-10-13T10:05:00Z'});
+    expect(pickOffersView([null, a, b], '2026-10-13T10:05:00Z')).toBe(b);
     expect(pickOffersView([a], null)).toBeNull();
+    // An older view never describes a newer cart.
+    expect(pickOffersView([a], '2026-10-13T10:05:00Z')).toBeNull();
+    // A newer view (the cart page repaired the cart after the drawer's copy was read) is used, newest first.
+    expect(pickOffersView([a, b], '2026-10-13T10:00:00Z')).toBe(b);
+    expect(pickOffersView([b, a], '2026-10-13T10:00:00Z')).toBe(b);
+    // Versions that are not timestamps only match exactly.
+    expect(pickOffersView([view({updatedAt: 'v2'})], 'v1')).toBeNull();
+    expect(pickOffersView([view({updatedAt: 'v1'})], 'v1')?.updatedAt).toBe(
+      'v1',
+    );
   });
 });

@@ -71,8 +71,9 @@ function GiftPicker({gift}: {gift: GiftView}) {
         {gift.name}
       </h3>
       <p className="text-sm text-fg-muted">
-        Choose your gift. It is added at no charge while the qualifying item is
-        in your cart.
+        {/* Placeholder wording (CLR-011): the gift price is Shopify's promotion, so no price is claimed here. */}
+        Choose your gift. The promotion is applied by Shopify when you check
+        out, while the qualifying item is in your cart.
       </p>
       {selected ? (
         <p className="text-sm">{selected.variant.productTitle}</p>

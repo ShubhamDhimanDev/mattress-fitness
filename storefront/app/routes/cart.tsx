@@ -17,8 +17,8 @@ import {
   revalidateCartOffers,
   swapLineSize,
   type CartMutationResult,
-  type OfferRuntime,
 } from '~/lib/offers-runtime/server';
+import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
 
 export const meta: Route.MetaFunction = () => [
   {title: formatPageTitle('Your cart')},
@@ -42,14 +42,6 @@ function rejected(message: string, status = 400) {
   );
 }
 
-function runtimeOf(context: Route.ActionArgs['context']): OfferRuntime {
-  return {
-    storefront: context.storefront,
-    cart: context.cart,
-    env: context.env,
-  };
-}
-
 /**
  * The one cart endpoint (REQ-CART-001). Every input is validated first (T-01): the browser may name
  * variants, lines, quantities and discount codes, nothing else, and Shopify prices the result. Mutations
@@ -65,7 +57,7 @@ export async function action({request, context}: Route.ActionArgs) {
     return rejected('That request could not be verified.', 403);
   }
   const {cart} = context;
-  const runtime = runtimeOf(context);
+  const runtime = offerRuntimeOf(context);
   const formData = await request.formData();
 
   let parsed: ReturnType<typeof CartForm.getFormInput>;
@@ -82,6 +74,11 @@ export async function action({request, context}: Route.ActionArgs) {
       const lines = validateAddLines(inputs.lines);
       if (lines.status === 'invalid') return rejected(lines.reason);
       result = await cart.addLines(lines.value);
+      // A stale or unknown cart cookie answers with no cart and no error; the shopper must not be unable to
+      // add for the life of the cookie. Start a fresh cart with the same validated lines; its id replaces the cookie.
+      if (!result.cart?.id && !result.errors?.length) {
+        result = await cart.create({lines: lines.value});
+      }
       break;
     }
     case CartForm.ACTIONS.LinesUpdate: {
@@ -164,7 +161,10 @@ export async function loader({context}: Route.LoaderArgs) {
   // The page shows the repaired cart and the reasons for any repair or refusal. A failed check shows the
   // cart as Shopify has it; the hand-off still revalidates.
   try {
-    const checked = await revalidateCartOffers(runtimeOf(context), current);
+    const checked = await revalidateCartOffers(
+      offerRuntimeOf(context),
+      current,
+    );
     return data(
       {cart: checked.cart, offers: checked.view},
       {headers: noStoreHeaders()},

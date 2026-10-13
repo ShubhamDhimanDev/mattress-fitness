@@ -346,6 +346,11 @@ export function parseOfferConfig(raw: unknown): OfferConfigLoad {
 }
 
 /**
+ * NOTE for the P4-12 reader that replaces this one: keep the three outcomes apart. "Offers off" is the
+ * explicit OFFERS_ENABLED=false switch (server.ts). A missing, oversized or unreadable source is NOT "off":
+ * in production it must leave the hand-off unavailable with a loud, value-free log, because without the
+ * rules a gift, protector or service line looks like an ordinary line.
+ *
  * Reads the setting from the request-context env (never `process.env`, ADR-0004). Missing = no offers;
  * unreadable = no offers plus a warning. The cart keeps working either way (NFR-013).
  */

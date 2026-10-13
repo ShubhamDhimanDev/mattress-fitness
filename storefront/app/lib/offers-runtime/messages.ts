@@ -102,3 +102,15 @@ function describeReason(reason: Correction['reason']): string {
     }
   }
 }
+
+/**
+ * The offer rules (or the facts they need) could not be loaded, so the cart cannot be judged. Checkout is
+ * paused rather than handed on unchecked: a gift, protector or service line would otherwise pass as an
+ * ordinary line (ADR-0006: our storefront path fails closed; direct Storefront API carts are detective only).
+ */
+export const OFFERS_UNAVAILABLE_REASON: BlockReason = {
+  code: 'unverified',
+  message:
+    'We cannot confirm the offers on your cart right now, so checkout is paused. Please try again in a moment.',
+  lineIds: [],
+};

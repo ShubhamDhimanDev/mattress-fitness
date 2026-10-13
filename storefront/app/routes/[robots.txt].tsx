@@ -1,8 +1,15 @@
 import type {Route} from './+types/[robots.txt]';
+import {resolveSiteOrigin} from '~/lib/site-origin';
 
-export function loader({request}: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const body = robotsTxtData({url: url.origin});
+export function loader({request, context}: Route.LoaderArgs) {
+  // The sitemap URL comes from PUBLIC_SITE_URL, not the Host header a caller chooses (O-L10). Without it
+  // (outside development) the Sitemap line is left out.
+  const origin = resolveSiteOrigin({
+    env: context.env,
+    requestUrl: request.url,
+    isDev: import.meta.env.DEV,
+  });
+  const body = robotsTxtData({url: origin ?? undefined});
 
   return new Response(body, {
     status: 200,

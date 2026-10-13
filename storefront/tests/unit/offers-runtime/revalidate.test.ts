@@ -1,6 +1,7 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {fakeStorefront} from '../catalog/fake-storefront';
+import {decideCheckout} from '~/lib/cart/checkout';
 import {withCoverageRoles} from '~/lib/offers/roles';
 import type {CartLike} from '~/lib/offers/types';
 import {parseOfferConfig} from '~/lib/offers-runtime/config';
@@ -52,7 +53,7 @@ const PROTECTOR_LINE = {
 
 function runtime(fake: FakeCart): OfferRuntime {
   const {storefront} = fakeStorefront(storefrontResponder());
-  return {storefront, cart: fake, env: ENV};
+  return {storefront, cart: fake, env: ENV, production: true};
 }
 
 async function run(fake: FakeCart) {
@@ -273,15 +274,198 @@ describe('REQ-PRE-006 revalidation of a Shopify cart (tamper cases)', () => {
     expect(result.check?.blocked[0]?.code).toBe('invalid-quantity');
   });
 
-  it('with no rules configured the cart is left alone (degrades to no offers)', async () => {
-    const fake = new FakeCart([{...GIFT_LINE}]);
-    const {storefront} = fakeStorefront(storefrontResponder());
-    const result = await revalidateCartOffers(
-      {storefront, cart: fake, env: {}},
-      fake.snapshot(),
+  describe('missing configuration (fail closed in production, REQ-PRE-006)', () => {
+    const lines = [{...GIFT_LINE}, OTHER_LINE];
+
+    it.each([
+      ['missing', {}],
+      ['blank', {OFFER_CONFIG_JSON: '  '}],
+      ['broken JSON', {OFFER_CONFIG_JSON: '{nope'}],
+    ])(
+      'production: a %s configuration pauses checkout and repairs nothing',
+      async (_name, env) => {
+        const fake = new FakeCart(lines);
+        const {storefront} = fakeStorefront(storefrontResponder());
+        const result = await revalidateCartOffers(
+          {storefront, cart: fake, env, production: true},
+          fake.snapshot(),
+        );
+        expect(fake.calls).toEqual([]);
+        expect(result.view?.blocked[0]?.code).toBe('unverified');
+        expect(result.view?.blocked[0]?.message).toMatch(/checkout is paused/i);
+        expect(decideCheckout(result.cart, result.view).status).toBe('blocked');
+      },
     );
-    expect(fake.calls).toEqual([]);
-    expect(result.view?.gifts).toEqual([]);
+
+    it('OFFERS_ENABLED=false is the explicit "offers off": allowed in production, not blocked, not repaired', async () => {
+      const fake = new FakeCart(lines);
+      const {storefront} = fakeStorefront(storefrontResponder());
+      const result = await revalidateCartOffers(
+        {
+          storefront,
+          cart: fake,
+          env: {OFFERS_ENABLED: 'false'},
+          production: true,
+        },
+        fake.snapshot(),
+      );
+      expect(result.view?.blocked).toEqual([]);
+      expect(fake.calls).toEqual([]);
+    });
+
+    it('any other OFFERS_ENABLED value does not switch offers off', async () => {
+      const fake = new FakeCart(lines);
+      const {storefront} = fakeStorefront(storefrontResponder());
+      const result = await revalidateCartOffers(
+        {storefront, cart: fake, env: {OFFERS_ENABLED: 'no'}, production: true},
+        fake.snapshot(),
+      );
+      expect(result.view?.blocked[0]?.code).toBe('unverified');
+    });
+
+    it('a configured store that loses its configuration stops handing carts on', async () => {
+      const fake = new FakeCart(lines);
+      const {storefront} = fakeStorefront(storefrontResponder());
+      const before = await revalidateCartOffers(
+        {storefront, cart: fake, env: ENV, production: true},
+        fake.snapshot(),
+      );
+      expect(before.view?.blocked).toEqual([]);
+      const after = await revalidateCartOffers(
+        {storefront, cart: fake, env: {}, production: true},
+        fake.snapshot(),
+      );
+      expect(decideCheckout(after.cart, after.view).status).toBe('blocked');
+    });
+
+    it('development and mock stores run with offers off: the cart is left alone and not blocked', async () => {
+      const fake = new FakeCart(lines);
+      const {storefront} = fakeStorefront(storefrontResponder());
+      const result = await revalidateCartOffers(
+        {storefront, cart: fake, env: {}, production: false},
+        fake.snapshot(),
+      );
+      expect(fake.calls).toEqual([]);
+      expect(result.view?.gifts).toEqual([]);
+      expect(result.view?.blocked).toEqual([]);
+    });
+
+    it('logs the problem by name, never the payload', async () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const fake = new FakeCart(lines);
+      const {storefront} = fakeStorefront(storefrontResponder());
+      await revalidateCartOffers(
+        {
+          storefront,
+          cart: fake,
+          env: {OFFER_CONFIG_JSON: '{secret-looking-text'},
+          production: true,
+        },
+        fake.snapshot(),
+      );
+      const logged = JSON.stringify(spy.mock.calls);
+      expect(logged).toContain('Offer config');
+      expect(logged).not.toContain('secret-looking-text');
+    });
+  });
+
+  describe('incomplete product facts (no over-repair)', () => {
+    // A gift that qualifies by COLLECTION: judged by the collections of the products in the cart.
+    const collectionEnv = {
+      OFFER_CONFIG_JSON: JSON.stringify({
+        rules: {
+          gifts: [
+            {
+              id: 'gift-by-collection',
+              name: 'Free pillow',
+              qualifyingCollectionIds: ['gid://shopify/Collection/1'],
+              giftVariantIdsBySize: {Standard: GID.gift},
+              maxQuantity: 1,
+            },
+          ],
+        },
+      }),
+    };
+    const lines = [MATTRESS_LINE, {...GIFT_LINE}];
+
+    async function runWith(
+      respond: (call: {
+        query: string;
+        variables: Record<string, unknown>;
+      }) => unknown,
+      cartLines = lines,
+    ) {
+      const fake = new FakeCart(cartLines);
+      const {storefront} = fakeStorefront(respond);
+      const result = await revalidateCartOffers(
+        {storefront, cart: fake, env: collectionEnv, production: false},
+        fake.snapshot(),
+      );
+      return {fake, result};
+    }
+
+    it('complete read: the gift stays because its mattress is in the collection', async () => {
+      const {fake, result} = await runWith(storefrontResponder());
+      expect(fake.calls).toEqual([]);
+      expect(result.check?.status).toBe('ok');
+    });
+
+    it('a failed read makes no repairs and pauses checkout', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const {fake, result} = await runWith((call) => {
+        if (call.query.includes('query CartOfferProducts')) {
+          throw new Error('Storefront down');
+        }
+        return storefrontResponder()(call);
+      });
+      expect(fake.calls).toEqual([]);
+      expect(fake.lineIds()).toContain(GIFT_LINE.id);
+      expect(result.view?.blocked[0]?.code).toBe('unverified');
+    });
+
+    it('a read that misses a product makes no repairs and pauses checkout', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const {fake, result} = await runWith((call) =>
+        call.query.includes('query CartOfferProducts')
+          ? {nodes: []}
+          : storefrontResponder()(call),
+      );
+      expect(fake.calls).toEqual([]);
+      expect(result.view?.blocked.length).toBeGreaterThan(0);
+    });
+
+    it('more than 100 distinct products is a truncated read: no repairs, checkout paused', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const many = Array.from({length: 101}, (_, i) => ({
+        id: `gid://shopify/CartLine/many-${i}`,
+        variantId: `gid://shopify/ProductVariant/${1000 + i}`,
+        productId: `gid://shopify/Product/${1000 + i}`,
+      }));
+      const {fake, result} = await runWith(storefrontResponder(), [
+        MATTRESS_LINE,
+        {...GIFT_LINE},
+        ...many,
+      ]);
+      expect(fake.calls).toEqual([]);
+      expect(result.view?.blocked[0]?.code).toBe('unverified');
+    });
+
+    it('without collection-qualified rules a failed read does not stop the cart (only size choices are lost)', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const fake = new FakeCart([MATTRESS_LINE]);
+      const {storefront} = fakeStorefront((call) => {
+        if (call.query.includes('query CartOfferProducts')) {
+          throw new Error('Storefront down');
+        }
+        return storefrontResponder()(call);
+      });
+      const result = await revalidateCartOffers(
+        {storefront, cart: fake, env: ENV, production: true},
+        fake.snapshot(),
+      );
+      expect(result.view?.blocked).toEqual([]);
+      expect(result.view?.lineSizes).toEqual({});
+    });
   });
 
   it('an empty or missing cart needs no check', async () => {
@@ -289,7 +473,7 @@ describe('REQ-PRE-006 revalidation of a Shopify cart (tamper cases)', () => {
     expect((await run(fake)).view).toBeNull();
     const {storefront} = fakeStorefront(storefrontResponder());
     const none = await revalidateCartOffers(
-      {storefront, cart: fake, env: ENV},
+      {storefront, cart: fake, env: ENV, production: true},
       null,
     );
     expect(none).toEqual({cart: null, check: null, view: null});

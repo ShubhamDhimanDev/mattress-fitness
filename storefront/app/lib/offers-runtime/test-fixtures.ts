@@ -303,21 +303,31 @@ export function storefrontResponder(options: {soldOut?: string[]} = {}) {
   const available = (id: string) => !soldOut.has(id);
   return (call: {query: string; variables: Record<string, unknown>}) => {
     if (call.query.includes('query CartOfferProducts')) {
+      const ids = Array.isArray(call.variables.ids) ? call.variables.ids : [];
+      // Shopify answers for every product asked about; only the mattress has sizes and a collection here.
       return {
-        nodes: [
-          {
-            id: GID.mattress,
-            variants: {
-              nodes: [GID.mattressQueen, GID.mattressKing].map((id) => ({
-                id,
-                title: sizeOfVariant(id),
-                availableForSale: available(id),
-                selectedOptions: [{name: 'Size', value: sizeOfVariant(id)}],
-              })),
+        nodes: ids.flatMap((id): unknown[] => {
+          if (typeof id !== 'string') return [];
+          if (id !== GID.mattress) {
+            return [{id, variants: {nodes: []}, collections: {nodes: []}}];
+          }
+          return [
+            {
+              id,
+              variants: {
+                nodes: [GID.mattressQueen, GID.mattressKing].map((variant) => ({
+                  id: variant,
+                  title: sizeOfVariant(variant),
+                  availableForSale: available(variant),
+                  selectedOptions: [
+                    {name: 'Size', value: sizeOfVariant(variant)},
+                  ],
+                })),
+              },
+              collections: {nodes: [{id: 'gid://shopify/Collection/1'}]},
             },
-            collections: {nodes: [{id: 'gid://shopify/Collection/1'}]},
-          },
-        ],
+          ];
+        }),
       };
     }
     if (call.query.includes('query CartOfferVariants')) {

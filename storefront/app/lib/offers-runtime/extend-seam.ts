@@ -4,6 +4,10 @@
 // coverage lines are not recognised by the cart revalidation (the engine sees them as ordinary lines), which
 // is why they are not offered anywhere in the storefront either.
 
+// EXIT CRITERION of P5A-06: coverage enforcement through the cart gate. Until the variant list and the
+// eligibility answer come from here, coverage lines look like ordinary lines to the gate and are neither
+// repaired nor refused. This covers our storefront path only; direct Storefront API carts are detective (ADR-0006).
+
 import type {CartLike} from '~/lib/offers/types';
 import {withCoverageRoles} from '~/lib/offers/roles';
 

@@ -12,6 +12,7 @@ import {
   FakeCart,
   GID,
   MATTRESS_LINE,
+  cartOf,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -20,7 +21,7 @@ import {
 
 function runtime(fake: FakeCart, soldOut: string[] = []): OfferRuntime {
   const {storefront} = fakeStorefront(storefrontResponder({soldOut}));
-  return {storefront, cart: fake, env: ENV};
+  return {storefront, cart: fake, env: ENV, production: true};
 }
 
 const OTHER_LINE = {
@@ -124,7 +125,7 @@ describe('size swap (REQ-CART-001)', () => {
       fake.snapshot(),
       change(GID.protectorKing),
     );
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       status: 'rejected',
       reason: 'That size is not available.',
     });
@@ -160,10 +161,88 @@ describe('size swap (REQ-CART-001)', () => {
       lineId: 'gid://shopify/CartLine/gift',
       merchandiseId: GID.gift,
     });
-    expect(gift).toEqual({
+    expect(gift).toMatchObject({
       status: 'rejected',
       reason: 'The size of this item cannot be changed.',
     });
+    expect(fake.calls).toEqual([]);
+  });
+});
+
+describe('step failures never leave a decline next to a protector (REQ-PRE-005)', () => {
+  const declined = [{key: 'offer_declined_comfort_guarantee', value: 'yes'}];
+
+  it('a failed attribute write adds nothing and says so', async () => {
+    const fake = new FakeCart([MATTRESS_LINE], {attributes: declined});
+    fake.failNext = true;
+    const result = await acceptComfortGuarantee(runtime(fake), fake.snapshot());
+    expect(result).toMatchObject({status: 'rejected', code: 'record-failed'});
+    expect(fake.calls.map((call) => call.method)).toEqual(['updateAttributes']);
+    expect(fake.lineIds()).toEqual([MATTRESS_LINE.id]);
+  });
+
+  it('a failed add leaves the shopper not declined, with the step still pending', async () => {
+    const fake = new FakeCart([MATTRESS_LINE], {attributes: declined});
+    const original = fake.addLines.bind(fake);
+    fake.addLines = (lines) => {
+      fake.failNext = true;
+      return original(lines);
+    };
+    const result = await acceptComfortGuarantee(runtime(fake), fake.snapshot());
+    expect(result).toMatchObject({status: 'rejected', code: 'add-failed'});
+    expect(fake.attributeValue('offer_declined_comfort_guarantee')).toBe('no');
+    const view = await revalidateCartOffers(runtime(fake), fake.snapshot());
+    expect(view.view?.nextStep).toBe('comfort-guarantee');
+  });
+
+  it('a failed decline write is reported', async () => {
+    const fake = new FakeCart([MATTRESS_LINE]);
+    fake.failNext = true;
+    const result = await declineComfortGuarantee(
+      runtime(fake),
+      fake.snapshot(),
+    );
+    expect(result).toMatchObject({status: 'rejected', code: 'record-failed'});
+  });
+});
+
+describe('size swap reads the line again (stale snapshot)', () => {
+  it('uses the quantity in the cart now, not the snapshot the page was built from', async () => {
+    const fake = new FakeCart([{...MATTRESS_LINE, quantity: 3}]);
+    const stale = cartOf([{...MATTRESS_LINE, quantity: 1}]);
+    const result = await swapLineSize(runtime(fake), stale, {
+      lineId: MATTRESS_LINE.id,
+      merchandiseId: GID.mattressKing,
+    });
+    expect(result.status).toBe('ok');
+    expect(fake.calls[0]).toEqual({
+      method: 'updateLines',
+      lines: [
+        {id: MATTRESS_LINE.id, quantity: 3, merchandiseId: GID.mattressKing},
+      ],
+    });
+  });
+
+  it('refuses when the line has left the cart in the meantime', async () => {
+    const fake = new FakeCart([OTHER_LINE]);
+    const stale = cartOf([MATTRESS_LINE]);
+    const result = await swapLineSize(runtime(fake), stale, {
+      lineId: MATTRESS_LINE.id,
+      merchandiseId: GID.mattressKing,
+    });
+    expect(result).toMatchObject({status: 'rejected', code: 'cart-gone'});
+    expect(fake.calls).toEqual([]);
+  });
+
+  it('is refused in production when the offer rules are missing (a gift would look like a regular line)', async () => {
+    const fake = new FakeCart([MATTRESS_LINE]);
+    const {storefront} = fakeStorefront(storefrontResponder());
+    const result = await swapLineSize(
+      {storefront, cart: fake, env: {}, production: true},
+      fake.snapshot(),
+      {lineId: MATTRESS_LINE.id, merchandiseId: GID.mattressKing},
+    );
+    expect(result).toMatchObject({status: 'rejected', code: 'unverified'});
     expect(fake.calls).toEqual([]);
   });
 });
@@ -173,7 +252,12 @@ describe('pre-checkout step actions (REQ-PRE-002, REQ-PRE-005, REQ-PRE-006)', ()
     const fake = new FakeCart([MATTRESS_LINE]);
     const result = await acceptComfortGuarantee(runtime(fake), fake.snapshot());
     expect(result.status).toBe('ok');
-    expect(fake.calls[0]).toEqual({
+    // The decline is reset first, then the lines are added (REQ-PRE-005 stays consistent on a failure).
+    expect(fake.calls.map((call) => call.method)).toEqual([
+      'updateAttributes',
+      'addLines',
+    ]);
+    expect(fake.calls[1]).toEqual({
       method: 'addLines',
       lines: [{merchandiseId: GID.protectorQueen, quantity: 1}],
     });

@@ -67,13 +67,27 @@ export const NO_PRODUCT_FACTS: ProductFacts = {
   variants: new Map(),
 };
 
+/**
+ * A complete read, or an incomplete one that says why. Callers that NEED the facts to judge the cart
+ * (collection-qualified gifts) must treat 'incomplete' as unverified and repair nothing: a gift whose
+ * qualifying collection could not be read would otherwise look orphaned and be removed.
+ */
+export type ProductFactsResult =
+  | {readonly status: 'ok'; readonly facts: ProductFacts}
+  | {
+      readonly status: 'incomplete';
+      readonly reason: 'read-failed' | 'truncated' | 'missing-products';
+      readonly facts: ProductFacts;
+    };
+
 export async function loadProductFacts(
   storefront: Storefront,
   productIds: readonly string[],
   withCollections: boolean,
-): Promise<ProductFacts> {
-  const ids = unique(productIds);
-  if (ids.length === 0) return NO_PRODUCT_FACTS;
+): Promise<ProductFactsResult> {
+  const requested = [...new Set(productIds)];
+  if (requested.length === 0) return {status: 'ok', facts: NO_PRODUCT_FACTS};
+  const ids = requested.slice(0, MAX_IDS);
   try {
     const result = await storefront.query(OFFER_PRODUCTS_QUERY, {
       cache: noCache(storefront),
@@ -96,10 +110,21 @@ export async function loadProductFacts(
         })),
       );
     }
-    return {collectionIds, variants};
+    const facts = {collectionIds, variants};
+    if (requested.length > ids.length) {
+      return {status: 'incomplete', reason: 'truncated', facts};
+    }
+    if (ids.some((id) => !variants.has(id))) {
+      return {status: 'incomplete', reason: 'missing-products', facts};
+    }
+    return {status: 'ok', facts};
   } catch (error) {
     logFailure('products', error);
-    return NO_PRODUCT_FACTS;
+    return {
+      status: 'incomplete',
+      reason: 'read-failed',
+      facts: NO_PRODUCT_FACTS,
+    };
   }
 }
 
