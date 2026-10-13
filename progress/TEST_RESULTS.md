@@ -76,3 +76,24 @@ Run on branch `feat/foundation-libs-and-shell` (Node 22 via fnm, Git Bash). Resu
 | V-E8 | Framework validator | `node scripts/validate-framework.mjs` after the record updates of this date | **Pass.** `framework check: OK` (10 agents, 15 skills, 6 rules, 104 requirements, 146 phase tasks), run by the orchestrator |
 
 **Not run, and so not claimed:** any check against a development store or the client store (filters V-04, metafields V-05, nested cart lines V-02, cart total equals checkout total, REQ-CHK-001 totals), Lighthouse or any performance budget (NFR-002), JSON-LD validation, a screen-reader pass, WebKit and Firefox projects, a real Extend call (the Extend library runs against the local mock only), and the CI workflow on a remote. Independent code and security reviews of 8c533e2 and 46e64a2 were still running when this was written; the security review of the earlier foundation commit is [REVIEW-2026-10-12-foundation](../docs/security/REVIEW-2026-10-12-foundation.md).
+
+## Application checks after commit aa1a23e (2026-10-13, round 2)
+
+Commit `aa1a23e`: offers engine wired into the cart and checkout hand-off, plus fixes from the page review. Run on branch `feat/foundation-libs-and-shell` (Node 22 via fnm, Git Bash). V-E9 to V-E14 and V-E16 were run and reported by the orchestrator; V-E15 is agent-reported. The project manager has no shell and did not re-run any of them. All ran against fixtures, mocks and mock.shop: **no check ran against a real Shopify development store.**
+
+| # | What | Command | Result |
+|---|---|---|---|
+| V-E9 | Type check | `npm run typecheck` in `storefront/` | Clean |
+| V-E10 | Lint | `npm run lint` in `storefront/` | Clean |
+| V-E11 | Format check | `npm run format:check` in `storefront/` | Clean |
+| V-E12 | Unit and integration tests | Vitest (`npm test` in `storefront/`) | **71 files, 2587 tests pass** |
+| V-E13 | Script tests | `node --test` over `scripts/` | **205 pass** |
+| V-E14 | Production build | `npm run build` in `storefront/` | OK |
+| V-E15 | End-to-end (Playwright Test), agent-reported | `npm run e2e` in `storefront/`, by spec group | Cart, quiz and shell specs: **110 pass, 31 skipped, 1 fail then fixed** (telemetry console filter; the fix is described by the agents, a re-run result is not recorded here). Page specs: **116 pass**. The e2e no longer skips on store data. The 31 skips are not itemised |
+| V-E16 | Framework validator | `node scripts/validate-framework.mjs` | `framework check: OK`, re-run by the orchestrator after the record updates of this round |
+
+**Not verifiable without a development store, so not claimed:** nested cart lines (V-02); `cartLinesUpdate` with a new `merchandiseId` (V-16: whether child lines are kept, whether duplicate lines merge); `cartAttributesUpdate` replace versus merge; cart total equals checkout total; the offers UI live (mock.shop returns empty for `node` and `nodes`). Also not run: Lighthouse, a screen-reader pass, WebKit and Firefox, a real Extend call.
+
+**Known gaps in what was tested:** the delivery ZIP has no server-side store, so haul-away fails closed and any haul-away line blocks checkout (P3B-11, P5B-04); the Extend seam returns empty inputs (P5A-06, P5A-07); the add-on, bundle and gift pickers are placeholders (P4-04 to P4-06); only the comfort-guarantee step exists (P4-09).
+
+**Security review:** [REVIEW-2026-10-13-pages](../docs/security/REVIEW-2026-10-13-pages.md) found no new High. P-M1 and P-L1 to P-L4 are addressed in aa1a23e and P-M2 is addressed by the revalidation wiring; re-verification by the running security review of aa1a23e is pending. Deferred: P-L5 and P-L6 (P7-07), P-L7 (privacy notes), P-L8 (P6-07); rate limiting needs the hosting answer (Q-003).
