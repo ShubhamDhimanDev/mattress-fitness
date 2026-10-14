@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import {
   cleanup,
+  configure,
   fireEvent,
   render,
   screen,
@@ -13,6 +14,10 @@ import {deliveryViewFor} from '~/lib/delivery/status';
 import type {DeliveryZone} from '~/lib/delivery/zone';
 
 afterEach(cleanup);
+
+// The router's first loads run on a jsdom main thread that is shared with the other test files in a full run; the
+// default 1 s for findBy and waitFor is too tight there (this file was flaky only under full-suite load).
+configure({asyncUtilTimeout: 5000});
 
 // P3B-11, P5B-03: REQ-NAV-003 (validated, persisted, editable), REQ-DEL-002 (yes/no and approved wording).
 
@@ -60,7 +65,7 @@ function renderCheck(options: {
     {initialEntries: ['/products/x']},
   );
   render(<RouterProvider router={router} />);
-  return {submissions, otherLoader};
+  return {submissions, otherLoader, router};
 }
 
 describe('DeliveryCheck', () => {
@@ -89,13 +94,23 @@ describe('DeliveryCheck', () => {
   });
 
   it('saving a ZIP does not re-run the page loaders', async () => {
-    const {otherLoader} = renderCheck({});
-    fireEvent.change(await screen.findByLabelText('ZIP code'), {
-      target: {value: '60645'},
+    const {otherLoader, router} = renderCheck({});
+    const input = await screen.findByLabelText('ZIP code');
+    // The baseline is taken only once the router has finished its own first load, so a slow start cannot add a call
+    // between the baseline and the check.
+    await waitFor(() => {
+      expect(router.state.initialized).toBe(true);
+      expect(router.state.navigation.state).toBe('idle');
     });
+    fireEvent.change(input, {target: {value: '60645'}});
     const callsBefore = otherLoader.mock.calls.length;
     fireEvent.click(screen.getByRole('button', {name: /check delivery/i}));
     await screen.findByText('In-home delivery is available to 60645.');
+    // A revalidation would start after the answer is shown: wait for the router to be quiet before counting.
+    await waitFor(() => {
+      expect(router.state.revalidation).toBe('idle');
+      expect(router.state.navigation.state).toBe('idle');
+    });
     expect(otherLoader.mock.calls.length).toBe(callsBefore);
   });
 

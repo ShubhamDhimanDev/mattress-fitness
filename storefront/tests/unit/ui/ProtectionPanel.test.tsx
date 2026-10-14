@@ -7,6 +7,7 @@ import {
   OFFERS_DEBOUNCE_MS,
   useProtectionOffers,
 } from '~/components/extend/useProtectionOffers';
+import {protectionModeFor} from '~/lib/shopify/protection-mode';
 import {
   formatCoverageTerm,
   readProtectionAnswer,
@@ -103,9 +104,11 @@ describe('readProtectionAnswer: what the page does with the route answer', () =>
 function Harness({
   variantId,
   enabled = true,
+  reserveSpace = true,
 }: {
   variantId: string;
   enabled?: boolean;
+  reserveSpace?: boolean;
 }) {
   const offers = useProtectionOffers(variantId, enabled);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -113,6 +116,7 @@ function Harness({
     <div>
       <ProtectionPanel
         offers={offers}
+        reserveSpace={reserveSpace}
         selectedPlanId={chosen}
         onSelect={setChosen}
       />
@@ -252,12 +256,139 @@ describe('<ProtectionPanel> with the offers hook', () => {
     const {container} = render(<Harness variantId={VARIANT_A} />);
     const loading = container.querySelector('[aria-busy="true"]');
     expect(loading?.className).toContain('min-h-64');
+    // The live region is mounted BEFORE it has text, which is what makes screen readers announce the change.
+    const status = screen.getByRole('status');
+    expect(status).toBeEmptyDOMElement();
     await settle();
     expect(container.querySelector('fieldset')?.className).toContain(
       'min-h-64',
     );
-    expect(screen.getByRole('status')).toHaveTextContent(
+    expect(screen.getByRole('status')).toBe(status);
+    expect(status).toHaveTextContent(
       '1 protection plan is available for this size.',
     );
+  });
+
+  it('a product with no reserved space shows no skeleton, and renders nothing while loading or when there is no plan', async () => {
+    vi.stubGlobal('fetch', respondWith(answer(VARIANT_A, [])));
+    const {container} = render(
+      <Harness variantId={VARIANT_A} reserveSpace={false} />,
+    );
+    expect(container.querySelector('[aria-busy]')).toBeNull();
+    expect(container.querySelector('[class*="min-h"]')).toBeNull();
+    expect(container.querySelector('fieldset')).toBeNull();
+    await settle();
+    expect(container.querySelector('fieldset')).toBeNull();
+    expect(container.querySelector('[class*="min-h"]')).toBeNull();
+  });
+
+  it('without reserved space the plans still appear, and keep no minimum height', async () => {
+    vi.stubGlobal('fetch', respondWith(answer(VARIANT_A, [plan('P-1')])));
+    const {container} = render(
+      <Harness variantId={VARIANT_A} reserveSpace={false} />,
+    );
+    await settle();
+    expect(container.querySelector('fieldset')).not.toBeNull();
+    expect(container.querySelector('fieldset')?.className).not.toContain(
+      'min-h',
+    );
+  });
+});
+
+describe('useProtectionOffers: what is remembered for the life of the page (REQ-ADD-003, NFR-013)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  async function settle() {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(OFFERS_DEBOUNCE_MS + 10);
+    });
+  }
+
+  it.each([
+    [
+      'a non-OK status',
+      () => Promise.resolve(new Response('{}', {status: 503})),
+    ],
+    ['a network error', () => Promise.reject(new TypeError('offline'))],
+    ['a body that is not JSON', () => Promise.resolve(new Response('<html>'))],
+  ])(
+    'a failed request (%s) hides the panel without a stuck skeleton and is asked again when the size comes back',
+    async (_name, failing) => {
+      let calls = 0;
+      const fetchMock = vi.fn((url: string) => {
+        calls += 1;
+        return calls === 1
+          ? failing()
+          : Promise.resolve(
+              new Response(
+                JSON.stringify(
+                  String(url).includes(encodeURIComponent(VARIANT_B))
+                    ? answer(VARIANT_B, [plan('P-B')])
+                    : answer(VARIANT_A, [plan('P-A')]),
+                ),
+              ),
+            );
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      const view = render(<Harness variantId={VARIANT_A} />);
+      await settle();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      // Hidden now, and not "loading" forever.
+      expect(view.container.querySelector('[aria-busy]')).toBeNull();
+      expect(view.container.querySelector('fieldset')).toBeNull();
+
+      view.rerender(<Harness variantId={VARIANT_B} />);
+      await settle();
+      expect(screen.getByRole('radio', {name: /Plan P-B/})).toBeInTheDocument();
+
+      view.rerender(<Harness variantId={VARIANT_A} />);
+      await settle();
+      // Not remembered as "no plans": the failed size is asked a second time and now shows its plan.
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(screen.getByRole('radio', {name: /Plan P-A/})).toBeInTheDocument();
+    },
+  );
+
+  it('plans and a definitive "no plans" are remembered: switching back asks nothing', async () => {
+    const fetchMock = vi.fn((url: string) =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify(
+            String(url).includes(encodeURIComponent(VARIANT_A))
+              ? answer(VARIANT_A, [])
+              : answer(VARIANT_B, [plan('P-B')]),
+          ),
+        ),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const view = render(<Harness variantId={VARIANT_A} />);
+    await settle();
+    view.rerender(<Harness variantId={VARIANT_B} />);
+    await settle();
+    view.rerender(<Harness variantId={VARIANT_A} />);
+    await settle();
+    view.rerender(<Harness variantId={VARIANT_B} />);
+    await settle();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('radio', {name: /Plan P-B/})).toBeInTheDocument();
+  });
+});
+
+describe('protectionModeFor: where the panel goes before any answer (NFR-002)', () => {
+  it.each([
+    [{enabled: false, eligible: true}, 'off'],
+    [{enabled: false, eligible: null}, 'off'],
+    [{enabled: true, eligible: false}, 'off'],
+    [{enabled: true, eligible: true}, 'eligible'],
+    [{enabled: true, eligible: null}, 'unknown'],
+  ] as const)('%j -> %s', (input, expected) => {
+    expect(protectionModeFor(input)).toBe(expected);
   });
 });

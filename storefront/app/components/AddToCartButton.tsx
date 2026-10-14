@@ -1,4 +1,5 @@
-import {CartForm, type OptimisticCartLineInput} from '@shopify/hydrogen';
+import {type OptimisticCartLineInput, CartForm} from '@shopify/hydrogen';
+import {CartActionForm} from '~/components/cart/CartActionForm';
 import type {ReactNode} from 'react';
 import {Button} from '~/components/ui/Button';
 
@@ -19,7 +20,11 @@ export function AddToCartButton({
   onClick?: () => void;
 }) {
   return (
-    <CartForm route="/cart" inputs={{lines}} action={CartForm.ACTIONS.LinesAdd}>
+    <CartActionForm
+      route="/cart"
+      inputs={{lines}}
+      action={CartForm.ACTIONS.LinesAdd}
+    >
       {(fetcher) => (
         <Button
           type="submit"
@@ -34,6 +39,6 @@ export function AddToCartButton({
           {children}
         </Button>
       )}
-    </CartForm>
+    </CartActionForm>
   );
 }

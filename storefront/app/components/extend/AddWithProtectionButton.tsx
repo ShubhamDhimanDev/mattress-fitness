@@ -1,4 +1,5 @@
 import {CartForm} from '@shopify/hydrogen';
+import {CartActionForm} from '~/components/cart/CartActionForm';
 import {Button} from '~/components/ui/Button';
 import {ADD_WITH_PROTECTION_ACTION} from '~/lib/cart/custom-actions';
 
@@ -20,7 +21,7 @@ export function AddWithProtectionButton({
   onClick?: () => void;
 }) {
   return (
-    <CartForm
+    <CartActionForm
       route="/cart"
       inputs={{variantId, quantity: 1, planKey}}
       action={ADD_WITH_PROTECTION_ACTION}
@@ -39,6 +40,6 @@ export function AddWithProtectionButton({
           Add to cart with protection
         </Button>
       )}
-    </CartForm>
+    </CartActionForm>
   );
 }

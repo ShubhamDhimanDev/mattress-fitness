@@ -106,18 +106,21 @@ async function resolvePlan(
   };
 }
 
+type DeclineClearing = 'none' | 'cleared' | 'failed';
+
 /**
- * A decline that was recorded earlier is cleared BEFORE protection is added, so a failed add never leaves a protection
- * line next to a "declined" mark (the same order as the comfort guarantee, REQ-PRE-005). Returns false when the write
- * failed; nothing has been added then.
+ * A decline that was recorded earlier is cleared BEFORE protection is added, so a successful add never leaves a
+ * protection line next to a "declined" mark (the same order as the comfort guarantee, REQ-PRE-005). `failed` means the
+ * write failed and nothing has been added. `cleared` obliges the caller to put the mark back if the add then fails
+ * (`failAdd`), otherwise a refused add would silently turn a decline into "not asked yet".
  */
 async function clearEarlierDecline(
   runtime: OfferRuntime,
   cart: Pick<CartApiQueryFragment, 'attributes'> | null,
-): Promise<boolean> {
-  if (!cart) return true;
+): Promise<DeclineClearing> {
+  if (!cart) return 'none';
   if (!parseOfferAttributes(cart.attributes).declined['accident-protection']) {
-    return true;
+    return 'none';
   }
   const reset = await runtime.cart.updateAttributes(
     withAttribute(
@@ -125,7 +128,25 @@ async function clearEarlierDecline(
       clearDeclineAttribute('accident-protection'),
     ),
   );
-  return !failed(reset);
+  return failed(reset) ? 'failed' : 'cleared';
+}
+
+/**
+ * The add was refused and nothing changed, so the shopper's earlier decline still stands: write it back from the cart
+ * as it was before. Best effort: if this write fails too, the cart only loses the "declined" mark, which means the
+ * protection step is asked again; it never leaves protection and a decline together.
+ */
+async function failAdd(
+  runtime: OfferRuntime,
+  before: Pick<CartApiQueryFragment, 'attributes'> | null,
+  clearing: DeclineClearing,
+): Promise<RejectedStep> {
+  if (clearing === 'cleared' && before) {
+    await runtime.cart.updateAttributes(
+      withAttribute(before.attributes, declineAttribute('accident-protection')),
+    );
+  }
+  return rejectedStep('protection-add-failed');
 }
 
 type CartLineNode = CartApiQueryFragment['lines']['nodes'][number];
@@ -193,9 +214,8 @@ export async function addItemWithProtection(
   if (resolved.status === 'rejected') return resolved;
   const attributes = buildCoverageAttributes(resolved.plan, resolved.productId);
   if (attributes === null) return rejectedStep('protection-unavailable');
-  if (!(await clearEarlierDecline(runtime, current))) {
-    return rejectedStep('record-failed');
-  }
+  const clearing = await clearEarlierDecline(runtime, current);
+  if (clearing === 'failed') return rejectedStep('record-failed');
 
   const alreadyInCart =
     current !== null && topLevelLinesOf(current, input.variantId).length > 0;
@@ -215,14 +235,14 @@ export async function addItemWithProtection(
       result = await create({lines});
     }
     return failed(result)
-      ? rejectedStep('protection-add-failed')
+      ? failAdd(runtime, current, clearing)
       : {status: 'ok', result};
   }
 
   const added = await runtime.cart.addLines([
     {merchandiseId: input.variantId, quantity: input.quantity},
   ]);
-  if (failed(added)) return rejectedStep('protection-add-failed');
+  if (failed(added)) return failAdd(runtime, current, clearing);
   const after = await runtime.cart.get();
   const parent = after ? parentAfterAdd(after, input.variantId) : null;
   if (!parent)
@@ -281,9 +301,8 @@ export async function addProtectionToLine(
   if (coverageVariantId === undefined || attributes === null) {
     return rejectedStep('protection-unavailable');
   }
-  if (!(await clearEarlierDecline(runtime, cart))) {
-    return rejectedStep('record-failed');
-  }
+  const clearing = await clearEarlierDecline(runtime, cart);
+  if (clearing === 'failed') return rejectedStep('record-failed');
   const added = await runtime.cart.addLines([
     {
       merchandiseId: coverageVariantId,
@@ -293,7 +312,7 @@ export async function addProtectionToLine(
     },
   ]);
   return failed(added)
-    ? rejectedStep('protection-add-failed')
+    ? failAdd(runtime, cart, clearing)
     : {status: 'ok', result: added};
 }
 

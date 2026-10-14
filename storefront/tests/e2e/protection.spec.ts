@@ -22,6 +22,7 @@ import {
 // the development store (V-16, V-02) for a live run. Here /api/extend/offers is answered at the network layer.
 
 const FLAG_ON = process.env.E2E_PROTECTION_FLAG === 'on';
+const PANEL_TIMEOUT_MS = 20_000;
 const VARIANT_ID = /^gid:\/\/shopify\/ProductVariant\/\d+$/;
 
 const PLANS = [
@@ -76,6 +77,58 @@ async function visit(page: Page, path: string) {
   await page.goto(path, {waitUntil: 'domcontentloaded'});
 }
 
+// The mock stores have no `custom.extend_category` metafield, so by default the loader says "not eligible" and the page
+// shows no panel at all (the case the hidden-product test below relies on). The loader honours this cookie in
+// development only (`import.meta.env.DEV`, products.$handle.tsx) to treat a page as eligible; a real store reads the metafield.
+async function markEligible(page: Page) {
+  await page
+    .context()
+    .addCookies([
+      {name: 'e2e_extend_eligible', value: '1', domain: 'localhost', path: '/'},
+    ]);
+}
+
+// Records, from the first paint on, every layout shift that moved the Add to cart button (NFR-002).
+async function watchAddToCartShifts(page: Page) {
+  await page.addInitScript(() => {
+    const store = window as unknown as {__addToCartShifts: number};
+    store.__addToCartShifts = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const sources: {node?: Node | null}[] =
+          (entry as unknown as {sources?: {node?: Node | null}[]}).sources ??
+          [];
+        for (const source of sources) {
+          const node = source.node;
+          const element = node instanceof Element ? node : node?.parentElement;
+          // Chrome reports the form that wraps the button as the shifted node, so either one counts.
+          const holder = element?.closest('form, button');
+          if (holder?.textContent?.trim().startsWith('Add to cart')) {
+            store.__addToCartShifts += 1;
+          }
+        }
+      }
+    }).observe({type: 'layout-shift', buffered: true});
+  });
+}
+
+// Two animation frames: layout shifts for what has already happened are delivered by then, without a fixed sleep.
+async function addToCartShifts(page: Page): Promise<number> {
+  return page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() =>
+            resolve(
+              (window as unknown as {__addToCartShifts: number})
+                .__addToCartShifts,
+            ),
+          ),
+        );
+      }),
+  );
+}
+
 async function openBuyableProduct(page: Page) {
   const listing = await firstCollectionPath(page);
   const product = await findProduct(page, listing, 'buyable', isPurchasable);
@@ -93,11 +146,13 @@ test.describe('product-page protection panel, flag ON', () => {
   }) => {
     const errors = collectConsoleErrors(page);
     const asked = await stubOffers(page, answerWith(PLANS));
+    await markEligible(page);
     const product = await openBuyableProduct(page);
     await visit(page, product);
 
     const panel = page.getByRole('group', {name: 'Accident protection'});
-    await expect(panel).toBeVisible();
+    // The plans arrive after hydration plus the debounce; the dev server hydrates slowly when workers share it.
+    await expect(panel).toBeVisible({timeout: PANEL_TIMEOUT_MS});
     await expect(
       panel.getByRole('radio', {name: 'No protection'}),
     ).toBeChecked();
@@ -147,6 +202,8 @@ test.describe('product-page protection panel, flag ON', () => {
         body: JSON.stringify(answerWith([PLANS[0]])(variantId)),
       });
     });
+    await markEligible(page);
+    await watchAddToCartShifts(page);
     const product = await openBuyableProduct(page);
     // Not gotoReady: it waits for the network to go quiet, which would wait out the delayed answer.
     await page.goto(product, {waitUntil: 'domcontentloaded'});
@@ -155,9 +212,31 @@ test.describe('product-page protection panel, flag ON', () => {
     const before = await add.boundingBox();
     await expect(
       page.getByRole('group', {name: 'Accident protection'}),
-    ).toBeVisible();
+    ).toBeVisible({timeout: PANEL_TIMEOUT_MS});
     const after = await add.boundingBox();
     expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThanOrEqual(2);
+    expect(await addToCartShifts(page)).toBe(0);
+  });
+
+  test('a product with no Extend category: no panel, no skeleton, no request, and the Add to cart button never moves', async ({
+    page,
+  }) => {
+    // Not marked eligible: the mock store has no category, which is what the real loader sees for such a product.
+    await page.clock.install();
+    await watchAddToCartShifts(page);
+    const asked = await stubOffers(page, answerWith(PLANS));
+    const product = await openBuyableProduct(page);
+    await visit(page, product);
+    const add = page.getByRole('button', {name: 'Add to cart'});
+    await expect(add).toBeEnabled();
+    // Fast-forward past the debounce and the request timeout: a panel or a request would have appeared by now.
+    await page.clock.runFor(10_000);
+    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+    await expect(
+      page.getByRole('group', {name: 'Accident protection'}),
+    ).toHaveCount(0);
+    expect(asked).toEqual([]);
+    expect(await addToCartShifts(page)).toBe(0);
   });
 
   test('Extend unavailable or without a plan: the panel is not shown and the item can still be added', async ({
@@ -165,6 +244,7 @@ test.describe('product-page protection panel, flag ON', () => {
   }) => {
     const errors = collectConsoleErrors(page);
     const asked = await stubOffers(page, {status: 'unavailable'});
+    await markEligible(page);
     const product = await openBuyableProduct(page);
     await visit(page, product);
     await expect(
@@ -178,6 +258,7 @@ test.describe('product-page protection panel, flag ON', () => {
     page,
   }) => {
     const asked = await stubOffers(page, {}, 500);
+    await markEligible(page);
     const product = await openBuyableProduct(page);
     await visit(page, product);
     await expect(
@@ -190,6 +271,7 @@ test.describe('product-page protection panel, flag ON', () => {
     page,
   }) => {
     await stubOffers(page, answerWith(PLANS));
+    await markEligible(page);
     const product = await openBuyableProduct(page);
     await visit(page, product);
     const panel = page.getByRole('group', {name: 'Accident protection'});
@@ -206,12 +288,19 @@ test.describe('product-page protection panel, flag ON', () => {
     // The real server re-quotes: bedding.mock.shop cannot confirm the variant, so nothing is added and the shopper is
     // told so in fixed text (T-01: the plan key alone is never enough).
     expect(response.status()).toBe(400);
-    // The answer carries the fixed text. Whether the shopper SEES it is CartMessages' job; in dev, React StrictMode's
-    // double effect deletes the form's fetcher before CartMessages can read it (pre-existing, all cart forms; to confirm
-    // in a production build), so this asserts the response, not the dev DOM.
     expect(await response.text()).toContain(
       'Protection is not available for this item right now',
     );
+    // And the shopper SEES it (B-20): CartMessages shows the refused answer in its alert region. The cart drawer opens
+    // on the click and has its own region, so more than one may match; one visible is enough.
+    await expect(
+      page
+        .getByRole('alert')
+        .filter({
+          hasText: 'Protection is not available for this item right now',
+        })
+        .first(),
+    ).toBeVisible();
   });
 });
 

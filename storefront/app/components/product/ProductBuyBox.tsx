@@ -12,6 +12,7 @@ import {Badge} from '~/components/ui/Badge';
 import {Price} from '~/components/ui/Price';
 import {SizeSelector} from '~/components/ui/SizeSelector';
 import {SIZE_OPTION_NAME, toSlug} from '~/lib/catalog/attributes';
+import type {ProtectionMode} from '~/lib/shopify/protection-mode';
 import {savingsLabel} from '~/lib/shopify/pricing';
 import type {ProductPageView, VariantView} from '~/lib/shopify/types';
 import {
@@ -27,18 +28,20 @@ import {
  * (`?Size=Queen`) and everything below from the variants already on the page, with no full reload. Price,
  * savings, SKU and availability all come from the selected variant, which came from Shopify.
  *
- * `protectionEnabled` is the server's Extend feature flag (P5A-05, REQ-ADD-003): with it off nothing Extend-related
- * renders and no request is made. With it on, the accident-protection panel asks our own route for plans for the
- * selected size, and a chosen plan turns the button into an add-with-protection submission.
+ * `protection` is decided by the loader from the server's Extend flag and the product's Extend category (P5A-05,
+ * REQ-ADD-003, NFR-002): 'off' renders nothing Extend-related from the first paint and makes no request; 'eligible'
+ * shows the accident-protection panel above the button and holds its height while it loads; 'unknown' (the category
+ * could not be read) shows it BELOW the button with no reserved space, so its answer cannot move Add to cart. A chosen
+ * plan turns the button into an add-with-protection submission.
  */
 export function ProductBuyBox({
   product,
   variant,
-  protectionEnabled = false,
+  protection = 'off',
 }: {
   product: ProductPageView;
   variant: VariantView;
-  protectionEnabled?: boolean;
+  protection?: ProtectionMode;
 }) {
   const navigate = useNavigate();
   const {open} = useAside();
@@ -49,7 +52,7 @@ export function ProductBuyBox({
   } | null>(null);
   const offers = useProtectionOffers(
     variant.id,
-    protectionEnabled && variant.available,
+    protection !== 'off' && variant.available,
   );
   const chosenPlan =
     offers.status === 'plans' && choice?.variantId === variant.id
@@ -74,6 +77,17 @@ export function ProductBuyBox({
       {replace: true, preventScrollReset: true},
     );
   }
+
+  const panel = (
+    <ProtectionPanel
+      offers={offers}
+      reserveSpace={protection === 'eligible'}
+      selectedPlanId={chosenPlan?.planId ?? null}
+      onSelect={(planId) =>
+        setChoice(planId === null ? null : {variantId: variant.id, planId})
+      }
+    />
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -145,14 +159,8 @@ export function ProductBuyBox({
           );
         })}
 
-      {/* Accident protection for the selected size (P5A-05). Renders nothing when Extend is off or has no plan. */}
-      <ProtectionPanel
-        offers={offers}
-        selectedPlanId={chosenPlan?.planId ?? null}
-        onSelect={(planId) =>
-          setChoice(planId === null ? null : {variantId: variant.id, planId})
-        }
-      />
+      {/* Accident protection for the selected size (P5A-05): above the button only when its height is reserved. */}
+      {protection === 'eligible' ? panel : null}
 
       {chosenPlan ? (
         <AddWithProtectionButton
@@ -191,6 +199,7 @@ export function ProductBuyBox({
           {variant.available ? 'Add to cart' : 'Sold out'}
         </AddToCartButton>
       )}
+      {protection === 'unknown' ? panel : null}
       <CartMessages />
       <CompareToggle handle={product.handle} title={product.title} />
 

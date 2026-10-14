@@ -447,6 +447,61 @@ describe('addItemWithProtection: the product-page add (P5A-05, REQ-ADD-003)', ()
     expect(fake.calls[0]?.method).toBe('updateAttributes');
     expect(fake.attributeValue('offer_declined_protection')).toBe('no');
   });
+
+  it('a refused add puts the earlier decline back (item and plan, nothing in the cart changed)', async () => {
+    stubExtend();
+    const fake = new FakeCart([], {
+      attributes: [{key: 'offer_declined_protection', value: 'yes'}],
+    });
+    const {runtime} = setup(fake, EXTEND_ENV, {
+      addLines: () => Promise.resolve({userErrors: [{message: 'nope'}]}),
+    });
+    const result = await addItemWithProtection(runtime, fake.snapshot(), {
+      variantId: GID.mattressQueen,
+      quantity: 1,
+      planKey: 'PLAN-LO',
+    });
+    expect(rejection(result)).toBe('protection-add-failed');
+    expect(fake.attributeValue('offer_declined_protection')).toBe('yes');
+  });
+
+  it('a refused first step with the item already in the cart also keeps the decline', async () => {
+    stubExtend();
+    const fake = new FakeCart([MATTRESS_LINE], {
+      attributes: [{key: 'offer_declined_protection', value: 'yes'}],
+    });
+    const {runtime} = setup(fake, EXTEND_ENV, {
+      addLines: () => Promise.resolve({userErrors: [{message: 'nope'}]}),
+    });
+    const result = await addItemWithProtection(runtime, fake.snapshot(), {
+      variantId: GID.mattressQueen,
+      quantity: 1,
+      planKey: 'PLAN-LO',
+    });
+    expect(rejection(result)).toBe('protection-add-failed');
+    expect(fake.attributeValue('offer_declined_protection')).toBe('yes');
+  });
+
+  it('when the item landed but its plan did not, the decline stays cleared: the shopper wanted protection and is asked again', async () => {
+    stubExtend();
+    const fake = new FakeCart([MATTRESS_LINE], {
+      attributes: [{key: 'offer_declined_protection', value: 'yes'}],
+    });
+    let n = 0;
+    const {runtime} = setup(fake, EXTEND_ENV, {
+      addLines: (lines) =>
+        ++n === 2
+          ? Promise.resolve({userErrors: [{message: 'nope'}]})
+          : fake.addLines(lines),
+    });
+    const result = await addItemWithProtection(runtime, fake.snapshot(), {
+      variantId: GID.mattressQueen,
+      quantity: 1,
+      planKey: 'PLAN-LO',
+    });
+    expect(result).toMatchObject({status: 'ok', warning: 'protection-partial'});
+    expect(fake.attributeValue('offer_declined_protection')).toBe('no');
+  });
 });
 
 describe('addProtectionToLine and declineProtection: cart and pre-checkout step (P5A-07, REQ-PRE-004, REQ-PRE-005)', () => {
@@ -502,6 +557,22 @@ describe('addProtectionToLine and declineProtection: cart and pre-checkout step 
     expect(gate.check?.status).toBe('ok');
     expect(gate.view?.accidentProtection?.status).toBe('accepted');
     expect(gate.view?.nextStep).toBeNull();
+  });
+
+  it('a refused protection add from the cart keeps an earlier decline', async () => {
+    stubExtend();
+    const fake = new FakeCart([MATTRESS_LINE], {
+      attributes: [{key: 'offer_declined_protection', value: 'yes'}],
+    });
+    const {runtime} = setup(fake, EXTEND_ENV, {
+      addLines: () => Promise.resolve({userErrors: [{message: 'nope'}]}),
+    });
+    const result = await addProtectionToLine(runtime, fake.snapshot(), {
+      lineId: LINE,
+      planKey: 'PLAN-LO',
+    });
+    expect(rejection(result)).toBe('protection-add-failed');
+    expect(fake.attributeValue('offer_declined_protection')).toBe('yes');
   });
 
   it('covers only what is still uncovered when part of the line already has coverage', async () => {

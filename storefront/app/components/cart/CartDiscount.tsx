@@ -1,4 +1,5 @@
 import {CartForm} from '@shopify/hydrogen';
+import {CartActionForm} from '~/components/cart/CartActionForm';
 import {useId} from 'react';
 import {Button} from '~/components/ui/Button';
 import {Input} from '~/components/ui/Input';
@@ -24,7 +25,7 @@ export function CartDiscount({
         <ul id={listId} className="flex flex-col gap-2">
           {applied.map((discount) => (
             <li key={discount.code}>
-              <CartForm
+              <CartActionForm
                 route="/cart"
                 action={CartForm.ACTIONS.DiscountCodesUpdate}
                 inputs={{
@@ -51,13 +52,13 @@ export function CartDiscount({
                     Remove
                   </Button>
                 </div>
-              </CartForm>
+              </CartActionForm>
             </li>
           ))}
         </ul>
       ) : null}
 
-      <CartForm
+      <CartActionForm
         route="/cart"
         action={CartForm.ACTIONS.DiscountCodesUpdate}
         inputs={{discountCodes: applied.map((discount) => discount.code)}}
@@ -83,7 +84,7 @@ export function CartDiscount({
             </Button>
           </div>
         )}
-      </CartForm>
+      </CartActionForm>
     </section>
   );
 }
