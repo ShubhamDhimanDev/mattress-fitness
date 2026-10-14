@@ -322,7 +322,8 @@ describe('Extend off: safe defaults and no network (NFR-013)', () => {
       // Recognition by name needs no network; there are no eligible lines while Extend is off (E-M1).
       expect(outcome).toMatchObject({
         status: 'disabled',
-        inputs: {protectionEligibleLineIds: []},
+        // The explicit extendOff mode (review of d068db6, Major B): nothing can be covered, so the gate removes it all.
+        inputs: {protectionEligibleLineIds: NOTHING_ELIGIBLE},
       });
       expect(outcome.inputs.coveragePlanPricesByLineId.size).toBe(0);
       expect(spy.loadCatalog).not.toHaveBeenCalled();

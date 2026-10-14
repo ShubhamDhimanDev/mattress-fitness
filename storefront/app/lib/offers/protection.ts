@@ -77,8 +77,13 @@ export function evaluateAccidentProtection(
     }
 
     // The price-point SKU must be one of the plans quoted for THIS parent. A line with no readable price cannot be
-    // verified, so it goes too. Parents with no quote on record (Extend unavailable) are not judged here.
-    const allowed = planPrices?.get(parentId);
+    // verified, so it goes too. An ELIGIBLE parent with no entry is judged against an empty list (nothing can be confirmed,
+    // so its coverage goes: review of d068db6, Major A). Only a parent that is not on the eligible list at all, which is
+    // what an Extend outage looks like (the list is empty then), is left unjudged; the order sync cross-checks it later.
+    const allowed =
+      planPrices !== undefined && eligibleSet.has(parentId)
+        ? (planPrices.get(parentId) ?? [])
+        : planPrices?.get(parentId);
     if (
       allowed !== undefined &&
       (line.unitPriceCents === undefined ||

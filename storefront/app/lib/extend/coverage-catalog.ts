@@ -16,9 +16,18 @@ import {
   type PricePointVariant,
 } from '~/lib/extend/price-points';
 import {toCents} from '~/lib/money';
-import {pricedCache} from '~/lib/shopify/cache';
 
 export const COVERAGE_PRODUCT_TAG = 'extend-coverage';
+
+/**
+ * The catalog read has its own, longer window (review of d068db6, item E; the 60 s priced strategy of DEC-024 is for
+ * cards the shopper reads a price from). Here the list is used to RECOGNISE coverage lines, which needs no price
+ * freshness, and a failed read pauses checkout for every cart while Extend is on. Fresh for 5 minutes, then served stale
+ * for up to an hour while a refresh runs, so a short Storefront hiccup never reaches the shopper. A stale price point is
+ * safe: the coverage line's real price is Shopify's, and the cart gate compares it with the quoted plan on every pass.
+ */
+export const COVERAGE_CATALOG_MAX_AGE_SECONDS = 300;
+export const COVERAGE_CATALOG_STALE_WHILE_REVALIDATE_SECONDS = 3600;
 const MAX_COVERAGE_PRODUCTS = 10;
 
 export const EXTEND_COVERAGE_VARIANTS_QUERY = `#graphql
@@ -158,11 +167,15 @@ export async function loadCoverageCatalog(
   storefront: CatalogStorefront,
 ): Promise<CoverageCatalogResult> {
   try {
-    // Carries prices and availability, so the 60 second strategy (DEC-024); the key holds only the tag.
+    // The key holds only the tag (no personal data).
     const raw: unknown = await storefront.query(
       EXTEND_COVERAGE_VARIANTS_QUERY,
       {
-        cache: pricedCache(storefront),
+        cache: storefront.CacheCustom({
+          mode: 'public',
+          maxAge: COVERAGE_CATALOG_MAX_AGE_SECONDS,
+          staleWhileRevalidate: COVERAGE_CATALOG_STALE_WHILE_REVALIDATE_SECONDS,
+        }),
         variables: {query: `tag:${COVERAGE_PRODUCT_TAG}`},
       },
     );

@@ -1,10 +1,14 @@
 import {CartForm} from '@shopify/hydrogen';
 import {useFetcher} from 'react-router';
-import {CHANGE_SIZE_ACTION} from '~/lib/cart/custom-actions';
+import {
+  ADD_PROTECTION_ACTION,
+  CHANGE_SIZE_ACTION,
+} from '~/lib/cart/custom-actions';
 
 type CartAction =
   | (typeof CartForm.ACTIONS)[keyof typeof CartForm.ACTIONS]
-  | typeof CHANGE_SIZE_ACTION;
+  | typeof CHANGE_SIZE_ACTION
+  | typeof ADD_PROTECTION_ACTION;
 
 /**
  * Submits a cart action without a visible form (quantity steppers). The payload has the same shape

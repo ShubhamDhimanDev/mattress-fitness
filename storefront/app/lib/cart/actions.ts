@@ -5,6 +5,7 @@
 // Shopify prices the lines, and linking lines (Extend, add-ons) is decided on the server (P4, P5A).
 
 import {cleanText} from '~/lib/catalog/text';
+import {isPlausiblePlanId} from '~/lib/extend/ids';
 import {
   MAX_LINE_QUANTITY,
   MIN_LINE_QUANTITY,
@@ -13,7 +14,7 @@ import {
 
 const VARIANT_ID = /^gid:\/\/shopify\/ProductVariant\/[1-9]\d{0,19}$/;
 // Real ids look like gid://shopify/CartLine/<token>?cart=<cart token>.
-const LINE_ID =
+export const LINE_ID =
   /^gid:\/\/shopify\/CartLine\/[A-Za-z0-9_-]{1,64}(\?cart=[A-Za-z0-9_-]{1,80})?$/;
 const PROPERTY_KEY = /^[A-Za-z0-9][A-Za-z0-9 .:-]{0,59}$/;
 const MAX_LINES_PER_REQUEST = 20;
@@ -148,6 +149,53 @@ export function validateSizeChange(raw: unknown): Validated<ValidSizeChange> {
     status: 'ok',
     value: {lineId: raw.lineId, merchandiseId: raw.merchandiseId},
   };
+}
+
+export type ValidAddWithProtection = {
+  variantId: string;
+  quantity: number;
+  planKey: string;
+};
+
+/**
+ * Item plus protection plan (P5A-05). Only these three fields are read: a coverage variant id, a price, a parent, a
+ * quantity for the coverage line or attributes in the request are ignored here and never reach Shopify; the server
+ * derives all of them from its own quote.
+ */
+export function validateAddWithProtection(
+  raw: unknown,
+): Validated<ValidAddWithProtection> {
+  if (!isRecord(raw)) return {status: 'invalid', reason: 'Invalid item.'};
+  const quantity = quantityOf(raw.quantity, MIN_LINE_QUANTITY);
+  if (
+    typeof raw.variantId !== 'string' ||
+    !VARIANT_ID.test(raw.variantId) ||
+    quantity === null ||
+    !isPlausiblePlanId(raw.planKey)
+  ) {
+    return {status: 'invalid', reason: 'Invalid item or protection plan.'};
+  }
+  return {
+    status: 'ok',
+    value: {variantId: raw.variantId, quantity, planKey: raw.planKey},
+  };
+}
+
+export type ValidAddProtection = {lineId: string; planKey: string};
+
+/** Protection for a line in the cart (P5A-07): a line id and a plan key; the quantity is the server's. */
+export function validateAddProtection(
+  raw: unknown,
+): Validated<ValidAddProtection> {
+  if (
+    !isRecord(raw) ||
+    typeof raw.lineId !== 'string' ||
+    !LINE_ID.test(raw.lineId) ||
+    !isPlausiblePlanId(raw.planKey)
+  ) {
+    return {status: 'invalid', reason: 'Invalid protection plan.'};
+  }
+  return {status: 'ok', value: {lineId: raw.lineId, planKey: raw.planKey}};
 }
 
 export function validateLineIds(raw: unknown): Validated<string[]> {

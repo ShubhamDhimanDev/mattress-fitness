@@ -12,6 +12,7 @@ import {ProductSections} from '~/components/product/ProductSections';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {buildBreadcrumbJsonLd, buildProductJsonLd} from '~/lib/shopify/jsonld';
 import {loadProductPage} from '~/lib/shopify/product-data';
+import {offersConfigOf} from '~/lib/extend/runtime';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {
   parseSelectedOptions,
@@ -64,6 +65,11 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   const origin = siteOrigin ?? '';
   return {
     product,
+    // The Extend UI flag (P5A-05): the same for every shopper, so it adds nothing to cache keys, and it spares a page
+    // with the flag off both the request and the space the panel would reserve.
+    protectionEnabled:
+      offersConfigOf({env: context.env, production: import.meta.env.PROD})
+        .status === 'enabled',
     canonical: siteOrigin ? `${siteOrigin}/products/${product.handle}` : null,
     productJsonLd: buildProductJsonLd(product, origin),
     breadcrumbJsonLd: buildBreadcrumbJsonLd(
@@ -78,7 +84,7 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
 }
 
 export default function Product() {
-  const {product} = useLoaderData<typeof loader>();
+  const {product, protectionEnabled} = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
 
   // The same pure functions the server used, so the first render and later switches always agree.
@@ -107,7 +113,11 @@ export default function Product() {
           title={product.title}
           initialIndex={Math.max(variantImageIndex, 0)}
         />
-        <ProductBuyBox product={product} variant={variant} />
+        <ProductBuyBox
+          product={product}
+          variant={variant}
+          protectionEnabled={protectionEnabled}
+        />
       </div>
       <ProductSections product={product} />
       <Analytics.ProductView

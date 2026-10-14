@@ -3,6 +3,7 @@ import {createCircuitBreaker} from '~/lib/extend/circuit-breaker';
 import {parseExtendConfig, type ExtendConfigResult} from '~/lib/extend/config';
 import {
   createOffersMemo,
+  MAX_QUOTE_BATCHES,
   quoteCoverage,
   type CoverageItem,
   type QuoteDeps,
@@ -190,16 +191,40 @@ describe('REQ-EXT-002 quoteCoverage', () => {
     expect([...result.plansByKey.keys()]).toEqual(['a', 'b']);
   });
 
-  it('does not judge a cart with more distinct sizes of one product than it can ask about: unavailable, so the outage rule applies', async () => {
-    const {fetchFn, calls} = offersFetch([]);
+  it('judges a four-size cart of one product in full: one request per price band (review of d068db6, Major A)', async () => {
+    const {fetchFn, calls} = offersFetch([offer('501', [plan('P-79', 7999)])]);
     const result = await quoteCoverage(
       deps(fetchFn),
       [1, 2, 3, 4].map((n) =>
         item(`l${n}`, '501', {unitPriceCents: 100_000 + n}),
       ),
     );
-    expect(result).toEqual({status: 'unavailable', reason: 'unjudged_lines'});
-    expect(calls).toHaveLength(0);
+    expect(calls).toHaveLength(4);
+    if (result.status !== 'ok') throw new Error('expected ok');
+    expect(result.unjudgedKeys).toBeUndefined();
+    expect([...result.plansByKey.keys()].sort()).toEqual([
+      'l1',
+      'l2',
+      'l3',
+      'l4',
+    ]);
+  });
+
+  it('lines beyond the request cap are reported as unjudged, never as "no plan" and never as an outage', async () => {
+    const {fetchFn, calls} = offersFetch([offer('501', [plan('P-79', 7999)])]);
+    const result = await quoteCoverage(
+      deps(fetchFn),
+      Array.from({length: MAX_QUOTE_BATCHES + 2}, (_, n) =>
+        item(`l${n}`, '501', {unitPriceCents: 100_000 + n}),
+      ),
+    );
+    expect(calls).toHaveLength(MAX_QUOTE_BATCHES);
+    if (result.status !== 'ok') throw new Error('expected ok');
+    expect([...(result.unjudgedKeys ?? [])].sort()).toEqual([
+      `l${MAX_QUOTE_BATCHES}`,
+      `l${MAX_QUOTE_BATCHES + 1}`,
+    ]);
+    expect(result.plansByKey.has(`l${MAX_QUOTE_BATCHES}`)).toBe(false);
   });
 
   it('ignores Extend plans for a product nobody asked about', async () => {

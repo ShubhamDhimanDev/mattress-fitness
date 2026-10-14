@@ -5,7 +5,7 @@
 // pre-checkout steps and then redirects here.
 
 import type {BlockReason} from '~/lib/offers-runtime/messages';
-import type {SupportedStepId} from '~/lib/offers-runtime/view';
+import type {PreCheckoutStepId} from '~/lib/offers-runtime/view';
 
 export const CHECKOUT_STEPS_PATH = '/checkout-steps';
 
@@ -36,13 +36,13 @@ export function getCheckoutHref(
 
 export type CheckoutDecision =
   | {readonly status: 'ready'; readonly href: string}
-  | {readonly status: 'step'; readonly step: SupportedStepId}
+  | {readonly status: 'step'; readonly step: PreCheckoutStepId}
   | {readonly status: 'blocked'; readonly reasons: readonly BlockReason[]}
   | {readonly status: 'unavailable'};
 
 type DecisionView = {
   readonly blocked: readonly BlockReason[];
-  readonly nextStep: SupportedStepId | null;
+  readonly nextStep: PreCheckoutStepId | null;
 };
 
 /**

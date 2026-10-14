@@ -16,7 +16,9 @@ import type {BlockReason} from './messages';
 
 /**
  * Steps the pre-checkout flow can ask today, in the order they are asked. The delivery question comes before
- * haul-away because haul-away exists only for in-home delivery (P5B-04). Accident protection is Phase 5A.
+ * haul-away because haul-away exists only for in-home delivery (P5B-04). These are the steps whose form commands
+ * delivery-runtime/step-command.ts parses; accident protection (P5A-07) has its own command parser
+ * (protection-command.ts) and is the LAST question, after the comfort guarantee, delivery and haul-away.
  */
 export const SUPPORTED_STEPS = [
   'comfort-guarantee',
@@ -24,6 +26,18 @@ export const SUPPORTED_STEPS = [
   'haul-away',
 ] as const;
 export type SupportedStepId = (typeof SUPPORTED_STEPS)[number];
+
+export const PROTECTION_STEP = 'protection' as const;
+/** Every step the /checkout-steps page can show. */
+export type PreCheckoutStepId = SupportedStepId | typeof PROTECTION_STEP;
+
+/** Narrows a URL value to a step this build can show; anything else is null (never trusted, never echoed). */
+export function parsePreCheckoutStepId(
+  value: unknown,
+): PreCheckoutStepId | null {
+  if (value === PROTECTION_STEP) return PROTECTION_STEP;
+  return SUPPORTED_STEPS.find((step) => step === value) ?? null;
+}
 
 export type OfferedVariant = {
   readonly variantId: string;
@@ -71,6 +85,37 @@ export type DeliveryChoiceView = {
   };
 };
 
+/** One plan Extend quoted for an item, as the shopper may see it. The price equals a real price-point variant. */
+export type ProtectionPlanView = {
+  /** Extend's plan id: the only handle the browser sends back; the server re-derives everything else. */
+  readonly planId: string;
+  readonly title: string;
+  readonly priceCents: number;
+  /** Months of coverage, when Extend states a term. */
+  readonly termMonths: number | null;
+  /** https link to the plan details and terms (REQ-EXT-004). */
+  readonly termsUrl: string;
+  readonly recommended: boolean;
+};
+
+export type ProtectionLineView = {
+  readonly lineId: string;
+  readonly productTitle: string;
+  readonly variantTitle: string | null;
+  readonly quantity: number;
+  /** Units of this line that have no coverage yet; an accept covers exactly these. */
+  readonly uncoveredQuantity: number;
+  readonly plans: readonly ProtectionPlanView[];
+};
+
+/** Extend accident protection per uncovered eligible cart line (REQ-PRE-004). Present only with the Extend flag on. */
+export type AccidentProtectionView = {
+  readonly status: OfferStepStatus;
+  readonly lines: readonly ProtectionLineView[];
+  /** Extend's branding rule (REQ-EXT-004): shown next to every offer. */
+  readonly poweredBy: 'Extend';
+};
+
 export type GiftView = {
   readonly ruleId: string;
   readonly name: string;
@@ -93,10 +138,11 @@ export type CartOffersView = {
   readonly updatedAt: string | null;
   readonly freeDelivery: FreeDeliveryProgress;
   /** The first supported step the shopper still has to answer, or null. */
-  readonly nextStep: SupportedStepId | null;
+  readonly nextStep: PreCheckoutStepId | null;
   readonly comfortGuarantee: ComfortGuaranteeView | null;
   readonly deliveryChoice: DeliveryChoiceView | null;
   readonly haulAway: HaulAwayView | null;
+  readonly accidentProtection: AccidentProtectionView | null;
   readonly gifts: readonly GiftView[];
   readonly addOns: readonly AddOnView[];
   /** Cart line id -> the sizes it can be swapped to (regular lines of multi-size products only). */
@@ -136,7 +182,48 @@ export type BuildViewInput = {
   /** The delivery question, decided from ZIP, zone and rules by the server (choice-step.ts). */
   readonly deliveryChoice: DeliveryChoiceState;
   readonly promises: DeliveryChoiceView['promises'];
+  /** Server data for the accident-protection step; absent when Extend is off (the view then carries no protection). */
+  readonly protection?: {
+    readonly plansByLineId: ReadonlyMap<string, readonly ProtectionPlanView[]>;
+    readonly titles: ReadonlyMap<
+      string,
+      {readonly productTitle: string; readonly variantTitle: string | null}
+    >;
+  };
 };
+
+function protectionViewOf(
+  input: BuildViewInput,
+): AccidentProtectionView | null {
+  const [, , accident] = input.evaluation.steps;
+  const lines = accident.options.flatMap((option) => {
+    const plans = input.protection?.plansByLineId.get(option.lineId) ?? [];
+    const title = input.protection?.titles.get(option.lineId);
+    if (plans.length === 0 || !title) return [];
+    return [
+      {
+        lineId: option.lineId,
+        productTitle: title.productTitle,
+        variantTitle: title.variantTitle,
+        quantity: option.quantity,
+        uncoveredQuantity: option.uncoveredQuantity,
+        // Field by field: nothing else Extend sent (an image address, a raw payload) travels to the browser.
+        plans: plans.map((plan) => ({
+          planId: plan.planId,
+          title: plan.title,
+          priceCents: plan.priceCents,
+          termMonths: plan.termMonths,
+          termsUrl: plan.termsUrl,
+          recommended: plan.recommended,
+        })),
+      },
+    ];
+  });
+  // Like the protector: a step with nothing to buy is not a step, so it can never stall checkout.
+  return accident.applies && (lines.length > 0 || accident.status !== 'pending')
+    ? {status: accident.status, lines, poweredBy: 'Extend'}
+    : null;
+}
 
 export function buildOffersView(input: BuildViewInput): CartOffersView {
   const {evaluation, variants} = input;
@@ -182,14 +269,18 @@ export function buildOffersView(input: BuildViewInput): CartOffersView {
       : null;
 
   // First unanswered question wins, in the order the shopper meets them.
-  const nextStep: SupportedStepId | null =
+  const protectionView = protectionViewOf(input);
+  const nextStep: PreCheckoutStepId | null =
     comfortView?.status === 'pending' && comfortOptions.length > 0
       ? 'comfort-guarantee'
       : deliveryView?.status === 'pending'
         ? 'delivery-choice'
         : haulAwayView?.status === 'pending'
           ? 'haul-away'
-          : null;
+          : protectionView?.status === 'pending' &&
+              protectionView.lines.length > 0
+            ? PROTECTION_STEP
+            : null;
 
   const gifts = evaluation.gifts.flatMap((gift) => {
     const sizes = gift.sizes.flatMap((size) => {
@@ -229,6 +320,7 @@ export function buildOffersView(input: BuildViewInput): CartOffersView {
     comfortGuarantee: comfortView,
     deliveryChoice: deliveryView,
     haulAway: haulAwayView,
+    accidentProtection: protectionView,
     gifts,
     addOns,
     lineSizes: input.lineSizes,
@@ -249,6 +341,7 @@ export function unverifiedView(
     comfortGuarantee: null,
     deliveryChoice: null,
     haulAway: null,
+    accidentProtection: null,
     gifts: [],
     addOns: [],
     lineSizes: {},

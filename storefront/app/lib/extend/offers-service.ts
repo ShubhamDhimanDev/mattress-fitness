@@ -48,13 +48,19 @@ export type CoveragePlan = {
 };
 
 export type CoverageUnavailableReason =
-  'disabled' | 'no_price_points' | 'unjudged_lines' | OffersFailureReason;
+  'disabled' | 'no_price_points' | OffersFailureReason;
 
 export type CoverageQuote =
   | {
       status: 'ok';
       /** Items that can be covered, with at least one sellable plan. An item missing here has no offer. */
       plansByKey: ReadonlyMap<string, readonly CoveragePlan[]>;
+      /**
+       * Items Extend WAS reachable for but that this call could not ask about (a cart with more distinct sizes of one
+       * product than MAX_QUOTE_BATCHES). They are neither "no plan" nor an outage: the cart gate must NOT keep coverage
+       * on them unchecked, so it removes it with a notice (review of d068db6, Major A).
+       */
+      unjudgedKeys?: readonly string[];
     }
   | {status: 'unavailable'; reason: CoverageUnavailableReason};
 
@@ -122,8 +128,12 @@ export type QuoteDeps = {
 
 /** The Offers API accepts a handful of items per request. */
 export const MAX_QUOTE_ITEMS = 50;
-/** A cart with more distinct sizes of one product than this is not judged (see 'unjudged_lines'). */
-export const MAX_QUOTE_BATCHES = 3;
+/**
+ * Requests one quote may make (one per distinct price and quantity of a single product). Raised from 3 so an ordinary
+ * multi-size cart is judged in full; the batches run in parallel and every answer is remembered, so the cost is bounded
+ * and a repeat visit costs nothing. Lines beyond the cap are `unjudgedKeys`, never kept unchecked.
+ */
+export const MAX_QUOTE_BATCHES = 8;
 
 /** One question for Extend: a product at a price and quantity, and every cart line that shares it. */
 type Requested = {
@@ -189,23 +199,30 @@ export async function quoteCoverage(
   if (deps.index.byPriceCents.size === 0) {
     return {status: 'unavailable', reason: 'no_price_points'};
   }
-  // Lines the quote cannot cover in full are NOT judged: the caller then applies the outage rule (keep coverage on a
-  // regular parent) instead of removing coverage from a line nobody asked about.
-  if (
-    batches.length > MAX_QUOTE_BATCHES ||
-    batches.some((batch) => batch.length > MAX_QUOTE_ITEMS)
-  ) {
-    return {status: 'unavailable', reason: 'unjudged_lines'};
-  }
-
   const plansByKey = new Map<string, readonly CoveragePlan[]>();
-  for (const requested of batches) {
-    const memoKey = signature(requested);
-    let value = deps.memo.get(memoKey);
-    if (value === undefined) {
-      value = await askExtend(deps, requested);
-      deps.memo.set(memoKey, value);
+  const unjudgedKeys: string[] = [];
+  const askable: Requested[][] = [];
+  batches.forEach((batch, index) => {
+    if (index >= MAX_QUOTE_BATCHES || batch.length > MAX_QUOTE_ITEMS) {
+      // Extend is not asked about these; the caller removes coverage on them rather than keep it unchecked.
+      for (const requested of batch) unjudgedKeys.push(...requested.keys);
+    } else {
+      askable.push(batch);
     }
+  });
+
+  const answers = await Promise.all(
+    askable.map(async (requested) => {
+      const memoKey = signature(requested);
+      let value = deps.memo.get(memoKey);
+      if (value === undefined) {
+        value = await askExtend(deps, requested);
+        deps.memo.set(memoKey, value);
+      }
+      return {requested, value};
+    }),
+  );
+  for (const {requested, value} of answers) {
     if (value.status === 'unavailable') return value;
     for (const {productId, keys} of requested) {
       const plans = value.plansByProductId.get(productId);
@@ -213,7 +230,9 @@ export async function quoteCoverage(
       for (const key of keys) plansByKey.set(key, plans);
     }
   }
-  return {status: 'ok', plansByKey};
+  return unjudgedKeys.length > 0
+    ? {status: 'ok', plansByKey, unjudgedKeys}
+    : {status: 'ok', plansByKey};
 }
 
 async function askExtend(

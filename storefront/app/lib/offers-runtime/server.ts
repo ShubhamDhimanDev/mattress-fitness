@@ -38,10 +38,13 @@ import {
   loadProductFacts,
   type ProductFacts,
 } from './facts';
+import type {CoveragePlan} from '~/lib/extend/offers-service';
 import {
   DELIVERY_STEP_FAILURE_TEXT,
   OFFERS_UNAVAILABLE_REASON,
+  PROTECTION_STEP_FAILURE_TEXT,
   type DeliveryStepFailure,
+  type ProtectionStepFailure,
 } from './messages';
 import {
   applyServerRoles,
@@ -49,6 +52,7 @@ import {
   loadExtendCartInputs,
   unitPricesByLineId,
   withUnitPrices,
+  type ExtendCartInputs,
   type ExtendInputsOutcome,
 } from './extend-seam';
 import {
@@ -73,6 +77,18 @@ export type CartMutationResult = {
   readonly warnings?: readonly unknown[] | null;
 };
 
+/**
+ * One line of a cart add. `parent` nests the line under another (Shopify nested lines, ADR-0009): by `merchandiseId` when
+ * the parent is added in the SAME request, by `lineId` when it is already in the cart (Shopify refuses a variant
+ * reference to an existing line: PARENT_LINE_INVALID_REFERENCE). Only server code builds `attributes` and `parent`.
+ */
+export type CartLineAddInput = {
+  merchandiseId: string;
+  quantity: number;
+  attributes?: Array<{key: string; value: string}>;
+  parent?: {lineId: string} | {merchandiseId: string};
+};
+
 /** The slice of Hydrogen's cart handler this module uses (structural, so tests pass a fake). */
 export type CartHandlerLike = {
   get(): Promise<CartApiQueryFragment | null>;
@@ -80,9 +96,7 @@ export type CartHandlerLike = {
   updateLines(
     lines: Array<{id: string; quantity: number; merchandiseId?: string}>,
   ): Promise<CartMutationResult>;
-  addLines(
-    lines: Array<{merchandiseId: string; quantity: number}>,
-  ): Promise<CartMutationResult>;
+  addLines(lines: CartLineAddInput[]): Promise<CartMutationResult>;
   updateAttributes(
     attributes: Array<{key: string; value: string}>,
   ): Promise<CartMutationResult>;
@@ -102,6 +116,15 @@ export type OfferRuntime = {
   readonly zip?: string | null;
 };
 
+/**
+ * What the accept-protection actions need from the pass that just judged the cart: the plans Extend quoted per eligible
+ * line and the price-point variant for each price. Server data; it is never serialised into a response.
+ */
+export type CoverageSource = {
+  readonly plansByLineId: ReadonlyMap<string, readonly CoveragePlan[]>;
+  readonly variantIdByPriceCents: ReadonlyMap<number, string>;
+};
+
 /** What the Extend adapter reported for this check, without the inputs themselves (for logs and diagnostics). */
 export type ExtendSummary = {
   readonly status: ExtendInputsOutcome['status'];
@@ -114,6 +137,8 @@ export type OffersResult = {
   readonly view: CartOffersView | null;
   /** Present when Extend is on; `degraded` names what could not be read (never values). */
   readonly extend?: ExtendSummary;
+  /** Present when the cart was judged; empty maps while Extend is off or unavailable. Server use only. */
+  readonly coverage?: CoverageSource;
 };
 
 export function failed(result: CartMutationResult): boolean {
@@ -206,6 +231,7 @@ type Prepared =
       readonly rules: OfferRules;
       readonly zone: DeliveryZone | null;
       readonly extend: ExtendSummary;
+      readonly inputs: ExtendCartInputs;
     }
   | {readonly status: 'unverified'; readonly extend?: ExtendSummary};
 
@@ -265,12 +291,45 @@ async function prepareRuntime(
       coveragePlanPricesByLineId: extend.coveragePlanPricesByLineId,
     }),
   };
-  return {status: 'ready', deps, facts, rules, zone, extend: summary};
+  return {
+    status: 'ready',
+    deps,
+    facts,
+    rules,
+    zone,
+    extend: summary,
+    inputs: extend,
+  };
 }
 
 function approvedText(value: string | undefined): string | null {
   const text = value?.trim();
   return text ? text : null;
+}
+
+/** "Default Title" is Shopify's placeholder for a product with one variant; it is not worth showing. */
+function variantTitleOf(title: string | undefined): string | null {
+  const text = title?.trim();
+  return text && text !== 'Default Title' ? text : null;
+}
+
+function protectionTitles(
+  cart: CartApiQueryFragment,
+): Map<string, {productTitle: string; variantTitle: string | null}> {
+  const titles = new Map<
+    string,
+    {productTitle: string; variantTitle: string | null}
+  >();
+  for (const line of cart.lines.nodes) {
+    const productTitle = line.merchandise?.product?.title;
+    if (productTitle) {
+      titles.set(line.id, {
+        productTitle,
+        variantTitle: variantTitleOf(line.merchandise?.title),
+      });
+    }
+  }
+  return titles;
 }
 
 async function viewOf(
@@ -280,9 +339,10 @@ async function viewOf(
     readonly facts: ProductFacts;
     readonly rules: OfferRules;
     readonly zone: DeliveryZone | null;
+    readonly inputs: ExtendCartInputs;
   },
 ): Promise<CartOffersView> {
-  const {facts, rules, zone} = prepared;
+  const {facts, rules, zone, inputs} = prepared;
   const index = buildRuleIndex(rules);
   // The haul-away service is looked up before in-home is chosen too: the delivery question is asked only
   // when there is a service that can be bought afterwards.
@@ -316,6 +376,14 @@ async function viewOf(
       inHome: approvedText(zone?.promise.inHome),
       pickup: approvedText(zone?.promise.pickup),
     },
+    ...(inputs.plansByLineId.size > 0
+      ? {
+          protection: {
+            plansByLineId: inputs.plansByLineId,
+            titles: protectionTitles(check.cart),
+          },
+        }
+      : {}),
   });
 }
 
@@ -343,7 +411,16 @@ export async function revalidateCartOffers(
   const {deps} = prepared;
   const check = await revalidateCart(current, portFor(runtime), deps);
   const view = await viewOf(runtime, check, prepared);
-  return {cart: check.cart, check, view, extend: prepared.extend};
+  return {
+    cart: check.cart,
+    check,
+    view,
+    extend: prepared.extend,
+    coverage: {
+      plansByLineId: prepared.inputs.plansByLineId,
+      variantIdByPriceCents: prepared.inputs.coverageVariantIdByPriceCents,
+    },
+  };
 }
 
 export type StepFailure =
@@ -354,7 +431,8 @@ export type StepFailure =
   | 'not-changeable'
   | 'size-unavailable'
   | 'unverified'
-  | DeliveryStepFailure;
+  | DeliveryStepFailure
+  | ProtectionStepFailure;
 
 const STEP_FAILURE_TEXT: Record<StepFailure, string> = {
   'cart-gone': 'That item is no longer in your cart.',
@@ -367,6 +445,7 @@ const STEP_FAILURE_TEXT: Record<StepFailure, string> = {
   'size-unavailable': 'That size is not available.',
   unverified: OFFERS_UNAVAILABLE_REASON.message,
   ...DELIVERY_STEP_FAILURE_TEXT,
+  ...PROTECTION_STEP_FAILURE_TEXT,
 };
 
 export function stepFailureText(code: StepFailure): string {
@@ -383,14 +462,21 @@ export function parseStepFailure(value: unknown): StepFailure | null {
 }
 
 export type StepChangeResult =
-  | {readonly status: 'ok'; readonly result: CartMutationResult}
+  | {
+      readonly status: 'ok';
+      readonly result: CartMutationResult;
+      /** The change went through but part of what the shopper asked for did not (a known code, shown as fixed text). */
+      readonly warning?: StepFailure;
+    }
   | {
       readonly status: 'rejected';
       readonly code: StepFailure;
       readonly reason: string;
     };
 
-export function rejectedStep(code: StepFailure): StepChangeResult {
+export type RejectedStep = Extract<StepChangeResult, {status: 'rejected'}>;
+
+export function rejectedStep(code: StepFailure): RejectedStep {
   return {status: 'rejected', code, reason: STEP_FAILURE_TEXT[code]};
 }
 

@@ -42,6 +42,7 @@ function view(overrides: Partial<CartOffersView> = {}): CartOffersView {
     comfortGuarantee: null,
     deliveryChoice: null,
     haulAway: null,
+    accidentProtection: null,
     gifts: [],
     addOns: [],
     lineSizes: {},

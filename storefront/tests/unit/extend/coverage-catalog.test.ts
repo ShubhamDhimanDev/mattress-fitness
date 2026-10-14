@@ -120,7 +120,7 @@ describe('REQ-EXT-002 coverage catalog', () => {
     });
   });
 
-  it('asks Shopify for the tagged products with the short priced cache, and survives a failed read', async () => {
+  it('asks Shopify for the tagged products with its own 5 minute fresh / 1 hour stale window (review item E), and survives a failed read', async () => {
     const good = fakeStorefront(() =>
       page([variant('1', 'Extend-Protection-Plan-14.99', '14.99')]),
     );
@@ -129,7 +129,10 @@ describe('REQ-EXT-002 coverage catalog', () => {
     expect(good.calls[0]?.variables).toEqual({
       query: `tag:${COVERAGE_PRODUCT_TAG}`,
     });
-    expect(good.calls[0]?.cache).toMatchObject({maxAge: 60});
+    expect(good.calls[0]?.cache).toMatchObject({
+      maxAge: 300,
+      staleWhileRevalidate: 3600,
+    });
 
     const failing = fakeStorefront(() => {
       throw new Error('upstream down');

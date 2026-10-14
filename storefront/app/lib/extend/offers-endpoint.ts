@@ -133,9 +133,10 @@ export type DistinctVariantLimiter = {
 };
 
 /**
- * Stopgap against someone walking the catalog through this route to run up Storefront and Extend calls (T-13): at most
- * `perWindow` DISTINCT variants per window per isolate. Per isolate is weak by design; real rate limiting is a host
- * feature and waits for the hosting answer (Q-003).
+ * Stopgap against someone walking the catalog through this route to run up Extend calls (T-13): at most `perWindow`
+ * DISTINCT, REAL variants per window per isolate (the caller passes only ids Shopify returned facts for). Ids already in
+ * the window always pass, so a known variant keeps its offers while the budget is spent. Per isolate is weak by design;
+ * real rate limiting is a host feature and waits for the hosting answer (Q-003).
  */
 export function createDistinctVariantLimiter(options: {
   now: () => number;
@@ -174,6 +175,33 @@ export type OffersEndpointDeps = {
   log?: ExtendLogger;
 };
 
+/**
+ * The one rule for "can this variant be quoted for coverage": the offers route and the add-with-protection action both
+ * use it, so what the product page showed is exactly what the server will accept. A coverage variant is never itself
+ * coverable and a sold-out item is not offered coverage; an unknown variant has no facts.
+ */
+export function coverageItemFor(
+  variantId: string,
+  quantity: number,
+  fact: VariantFact | undefined,
+  coverageVariantIds: ReadonlySet<string>,
+): CoverageItem | null {
+  if (
+    fact === undefined ||
+    !fact.available ||
+    coverageVariantIds.has(variantId)
+  ) {
+    return null;
+  }
+  return {
+    key: variantId,
+    productId: fact.productId,
+    category: fact.category,
+    unitPriceCents: fact.unitPriceCents,
+    quantity,
+  };
+}
+
 export async function answerOffers(
   request: readonly OffersRequestItem[],
   deps: OffersEndpointDeps,
@@ -186,38 +214,41 @@ export async function answerOffers(
   // Flag off, or not configured: no Shopify or Extend traffic at all.
   if (deps.config.status !== 'enabled') return {status: 'unavailable'};
 
-  if (deps.allow && !deps.allow(request.map((item) => item.variantId))) {
-    log({
-      level: 'warn',
-      event: 'offers.route_rejected',
-      reason: 'distinct_variant_cap',
-    });
-    return {status: 'unavailable'};
-  }
-
   const catalog = await deps.loadCatalog();
   if (catalog.status !== 'ok') return unavailable('catalog_unavailable');
   const facts = await deps.loadFacts(request.map((item) => item.variantId));
   if (facts.status !== 'ok') return unavailable('facts_unavailable');
 
+  // The stopgap budget is charged only for variants Shopify actually knows (review of d068db6, Major C): a loop of
+  // fabricated ids reaches no Extend call and costs nobody else their offers. Repeats inside the request count once, and
+  // a variant already inside the window never spends budget again.
+  if (deps.allow) {
+    const known = [
+      ...new Set(
+        request
+          .map((item) => item.variantId)
+          .filter((variantId) => facts.facts.has(variantId)),
+      ),
+    ];
+    if (known.length > 0 && !deps.allow(known)) {
+      log({
+        level: 'warn',
+        event: 'offers.route_rejected',
+        reason: 'distinct_variant_cap',
+      });
+      return {status: 'unavailable'};
+    }
+  }
+
   const items: CoverageItem[] = [];
   for (const {variantId, quantity} of request) {
-    const fact = facts.facts.get(variantId);
-    // A coverage variant is never itself coverable, and a sold-out item is not offered coverage.
-    if (
-      fact === undefined ||
-      !fact.available ||
-      catalog.catalog.coverageVariantIds.has(variantId)
-    ) {
-      continue;
-    }
-    items.push({
-      key: variantId,
-      productId: fact.productId,
-      category: fact.category,
-      unitPriceCents: fact.unitPriceCents,
+    const item = coverageItemFor(
+      variantId,
       quantity,
-    });
+      facts.facts.get(variantId),
+      catalog.catalog.coverageVariantIds,
+    );
+    if (item !== null) items.push(item);
   }
 
   const quote = await deps.quote(items, catalog.catalog.index);

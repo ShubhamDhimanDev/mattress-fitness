@@ -50,3 +50,7 @@ The ZIP check needs a delivery zone, which the server reads from the non-secret 
 2. `npm run dev -- --port 3700 --env-file .env.delivery`, then `E2E_PORT=3700 npx playwright test tests/e2e/delivery.spec.ts`.
 
 The haul-away and delivery-choice steps cannot be exercised here: they need Storefront `nodes(ids)` lookups of the service variant, which the mock stores do not answer. They are covered by `tests/unit/routes/delivery-routes.test.ts` and need the development store (a real `haulAway` rule with a variant id) for a live run.
+
+## Extend protection panel (P5A-05, P5A-07)
+
+The product-page panel shows only when the server flag is on. Create `storefront/.env.protection` (git-ignored) with the four variables from `.env.bedding` plus `PUBLIC_EXTEND_ENABLED=true`, `EXTEND_API_HOST=http://127.0.0.1:4010`, `EXTEND_STORE_ID=mock-store-id`, `EXTEND_ACCESS_TOKEN=mock-access-token` (values of the local mock, not credentials), start `npm run dev -- --port 3900 --env-file .env.protection` and run `E2E_PORT=3900 E2E_PROTECTION_FLAG=on npx playwright test tests/e2e/protection.spec.ts`. The offers answer is stubbed at the network layer; the add-with-protection submit is refused by the real server because bedding.mock.shop answers no variant lookups (that refusal is what the spec asserts). Against a server without the flag, run the spec without `E2E_PROTECTION_FLAG`: the flag-off test runs and the others skip. Needs the development store: the success path (item plus nested coverage line), V-16, V-02.
