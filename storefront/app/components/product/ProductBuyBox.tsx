@@ -3,6 +3,7 @@ import {AddToCartButton} from '~/components/AddToCartButton';
 import {useAside} from '~/components/Aside';
 import {CartMessages} from '~/components/cart/CartMessages';
 import {CompareToggle} from '~/components/compare/CompareToggle';
+import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {Badge} from '~/components/ui/Badge';
 import {Price} from '~/components/ui/Price';
 import {SizeSelector} from '~/components/ui/SizeSelector';
@@ -152,8 +153,11 @@ export function ProductBuyBox({
       <CartMessages />
       <CompareToggle handle={product.handle} title={product.title} />
 
+      {/* Delivery promise for the saved ZIP (P5B-03, REQ-DEL-002). Read after load so this page carries no ZIP. */}
+      {/* TODO(P5B-03): hide it for products that never ship in-home once the catalog says which (Q-008, CLR-009). */}
+      <DeliveryCheck />
+
       {/* Extension slots, each filled by its own task; they render nothing today. */}
-      {/* TODO(P5B-03): delivery promise for the saved ZIP (REQ-DEL-002). */}
       {/* TODO(P3B-10): store pickup availability and "try in store" (REQ-PDP-003, REQ-PDP-004). */}
       {/* TODO(P4-03): size-matched foundations, bases and frames (REQ-ADD-001). */}
       {/* TODO(P5A-05): accident-protection offer for the selected size (REQ-EXT-001). */}

@@ -20,6 +20,8 @@
  *     removal semantics; the contract states themselves are invented).
  *   - Refunded is terminal: once an order is refunded the mock keeps its contracts refunded.
  *   - PUT /orders answers 200 with {"mock": true}; the real response body is not documented.
+ *   - GET /__mock/orders returns the stored orders and contracts for the reconcile script. It is invented here
+ *     (Extend documents no read-back) and needs the same access token.
  *   - Fault injection (setFault) and the in-memory `state` exist only for tests.
  *
  * Usage as a library:  const mock = await startMock({accessToken, storeId});  mock.url / mock.state / mock.close()
@@ -523,7 +525,12 @@ export async function startMock(options) {
       }
     }
 
-    if (url.pathname !== "/offers" && url.pathname !== "/orders") {
+    const isMockRead = url.pathname === "/__mock/orders";
+    if (
+      url.pathname !== "/offers" &&
+      url.pathname !== "/orders" &&
+      !isMockRead
+    ) {
       return reply(404, {
         message:
           "MOCK: unknown path (only /offers and /orders are implemented)",
@@ -533,6 +540,14 @@ export async function startMock(options) {
       return reply(401, {
         message: "MOCK: missing or invalid X-Extend-Access-Token",
       });
+    }
+    // MOCK ONLY, not an Extend endpoint: Extend documents no way to read orders back, so the reconcile script
+    // (scripts/extend/reconcile.mjs) reads the mock's stored orders and contracts here. It does not exist on Extend.
+    if (isMockRead) {
+      if (req.method !== "GET") {
+        return reply(405, { message: "MOCK: method not allowed for this path" });
+      }
+      return reply(200, { mock: true, orders: state.storedOrders() });
     }
     if (!String(req.headers.accept ?? "").includes(ACCEPT_VERSION)) {
       return reply(400, {

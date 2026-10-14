@@ -4,6 +4,7 @@ import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
 import {CartMessages} from '~/components/cart/CartMessages';
 import {CartOffers} from '~/components/cart/CartOffers';
+import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {FreeDeliveryProgress} from '~/components/cart/FreeDeliveryProgress';
 import {useCartOffers} from '~/components/cart/useCartOffers';
 import {CartLineItem, type CartLine} from '~/components/CartLineItem';
@@ -116,6 +117,8 @@ export function CartMain({
           </ul>
         </div>
         {slots?.offers ?? (offers ? <CartOffers view={offers} /> : null)}
+        {/* The ZIP decides the in-home and recycling offers at checkout (P3B-11, P5B-04). */}
+        <DeliveryCheck className="mt-6" />
       </div>
       <CartSummary
         cart={cart}

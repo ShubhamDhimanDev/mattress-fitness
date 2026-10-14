@@ -4,13 +4,23 @@
 // It evaluates, repairs through the cart handler, and returns the final cart with the view the UI renders.
 //
 // Nothing here trusts the browser. Rules and the delivery zone come from server configuration, roles come
-// from server-side variant lists (offers/roles.ts), the delivery ZIP has no server-side store yet so
-// haul-away fails closed, and the cart's own attributes are read only through the strict parser.
+// from server-side variant lists (offers/roles.ts), the delivery ZIP is the signed cookie the route read
+// (absent = haul-away fails closed, zip-missing), and the cart's own attributes are read only through the
+// strict parser.
 
 import type {Storefront} from '@shopify/hydrogen';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
+import {
+  deliveryChoiceState,
+  type DeliveryChoiceState,
+} from '~/lib/delivery/choice-step';
+import type {DeliveryZone} from '~/lib/delivery/zone';
 import {buildRuleIndex, classifyLine} from '~/lib/offers/lines';
-import {clearDeclineAttribute, declineAttribute} from '~/lib/offers/attributes';
+import {
+  clearDeclineAttribute,
+  declineAttribute,
+  parseOfferAttributes,
+} from '~/lib/offers/attributes';
 import type {CartLike, OfferRules} from '~/lib/offers/types';
 import {toCartLike} from '~/lib/shopify/cart-mapper';
 import {isSizeSwap, swapChoicesFor} from './sizes';
@@ -28,8 +38,12 @@ import {
   loadProductFacts,
   type ProductFacts,
 } from './facts';
-import {OFFERS_UNAVAILABLE_REASON} from './messages';
-import {applyServerRoles, NO_EXTEND_INPUTS} from './extend-seam';
+import {
+  DELIVERY_STEP_FAILURE_TEXT,
+  OFFERS_UNAVAILABLE_REASON,
+  type DeliveryStepFailure,
+} from './messages';
+import {applyServerRoles, loadExtendCartInputs} from './extend-seam';
 import {
   revalidateCart,
   type CartCheck,
@@ -74,6 +88,11 @@ export type OfferRuntime = {
   readonly env: object;
   /** Production fails closed when the offer rules are missing; dev and mock stores run with offers off. */
   readonly production: boolean;
+  /**
+   * The shopper's saved delivery ZIP, read by the route from the signed cookie (delivery-runtime/zip-cookie).
+   * Absent or null reads as "no ZIP": haul-away then fails closed (zip-missing) and no delivery question is asked.
+   */
+  readonly zip?: string | null;
 };
 
 export type OffersResult = {
@@ -82,7 +101,7 @@ export type OffersResult = {
   readonly view: CartOffersView | null;
 };
 
-function failed(result: CartMutationResult): boolean {
+export function failed(result: CartMutationResult): boolean {
   return Boolean(result.errors?.length || result.userErrors?.length);
 }
 
@@ -170,6 +189,7 @@ type Prepared =
       readonly deps: RevalidationDeps;
       readonly facts: ProductFacts;
       readonly rules: OfferRules;
+      readonly zone: DeliveryZone | null;
     }
   | {readonly status: 'unverified'};
 
@@ -193,31 +213,53 @@ async function prepareRuntime(
     return {status: 'unverified'};
   }
   const facts = loadedFacts.facts;
+  // Which variants are Extend coverage and which lines can be covered (P5A-06, review O-M2). Read once per pass set from
+  // the cart as Shopify returned it; it never blocks the cart (a failure degrades to the outage rule inside the seam).
+  const extend = (await loadExtendCartInputs(runtime, cart)).inputs;
   const deps: RevalidationDeps = {
     rules,
     // The server adds what only it knows; roles on the incoming cart are never believed.
     prepare: async (mapped) =>
-      applyServerRoles(withCollections(mapped, facts), NO_EXTEND_INPUTS),
+      applyServerRoles(withCollections(mapped, facts), extend),
     contextFor: (mapped) =>
       buildOfferContext(mapped, {
-        zip: null,
+        zip: runtime.zip ?? null,
         zone,
-        protectionEligibleLineIds: NO_EXTEND_INPUTS.protectionEligibleLineIds,
+        protectionEligibleLineIds: extend.protectionEligibleLineIds,
       }),
   };
-  return {status: 'ready', deps, facts, rules};
+  return {status: 'ready', deps, facts, rules, zone};
+}
+
+function approvedText(value: string | undefined): string | null {
+  const text = value?.trim();
+  return text ? text : null;
 }
 
 async function viewOf(
   runtime: OfferRuntime,
   check: CartCheck<CartApiQueryFragment>,
-  facts: ProductFacts,
-  index: ReturnType<typeof buildRuleIndex>,
+  prepared: {
+    readonly facts: ProductFacts;
+    readonly rules: OfferRules;
+    readonly zone: DeliveryZone | null;
+  },
 ): Promise<CartOffersView> {
+  const {facts, rules, zone} = prepared;
+  const index = buildRuleIndex(rules);
+  // The haul-away service is looked up before in-home is chosen too: the delivery question is asked only
+  // when there is a service that can be bought afterwards.
+  const haulVariantId = rules.haulAway?.variantId;
   const variants = await loadOfferedVariants(
     runtime.storefront,
-    offeredVariantIds(check.evaluation),
+    offeredVariantIds(check.evaluation, haulVariantId ? [haulVariantId] : []),
   );
+  const deliveryChoice: DeliveryChoiceState = deliveryChoiceState({
+    haulAwayOffered: haulVariantId !== undefined && variants.has(haulVariantId),
+    zone,
+    zip: runtime.zip ?? null,
+    choice: parseOfferAttributes(check.cart.attributes).deliveryChoice,
+  });
   const regularIds = new Set(
     toCartLike(check.cart)
       .lines.filter((line) => classifyLine(line, index) === 'regular')
@@ -232,6 +274,11 @@ async function viewOf(
     ),
     blocked: check.blocked,
     notices: check.notices,
+    deliveryChoice,
+    promises: {
+      inHome: approvedText(zone?.promise.inHome),
+      pickup: approvedText(zone?.promise.pickup),
+    },
   });
 }
 
@@ -255,9 +302,9 @@ export async function revalidateCartOffers(
       ),
     };
   }
-  const {deps, facts, rules} = prepared;
+  const {deps} = prepared;
   const check = await revalidateCart(current, portFor(runtime), deps);
-  const view = await viewOf(runtime, check, facts, buildRuleIndex(rules));
+  const view = await viewOf(runtime, check, prepared);
   return {cart: check.cart, check, view};
 }
 
@@ -268,7 +315,8 @@ export type StepFailure =
   | 'record-failed'
   | 'not-changeable'
   | 'size-unavailable'
-  | 'unverified';
+  | 'unverified'
+  | DeliveryStepFailure;
 
 const STEP_FAILURE_TEXT: Record<StepFailure, string> = {
   'cart-gone': 'That item is no longer in your cart.',
@@ -280,6 +328,7 @@ const STEP_FAILURE_TEXT: Record<StepFailure, string> = {
   'not-changeable': 'The size of this item cannot be changed.',
   'size-unavailable': 'That size is not available.',
   unverified: OFFERS_UNAVAILABLE_REASON.message,
+  ...DELIVERY_STEP_FAILURE_TEXT,
 };
 
 export function stepFailureText(code: StepFailure): string {
@@ -303,7 +352,7 @@ export type StepChangeResult =
       readonly reason: string;
     };
 
-function rejectedStep(code: StepFailure): StepChangeResult {
+export function rejectedStep(code: StepFailure): StepChangeResult {
   return {status: 'rejected', code, reason: STEP_FAILURE_TEXT[code]};
 }
 

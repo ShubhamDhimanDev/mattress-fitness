@@ -4,16 +4,25 @@
 // Nothing here computes a payable price, and a gift is shown as free only because the engine says the rule
 // applies (its price is a Shopify discount, ADR-0003).
 
+import type {DeliveryChoiceState} from '~/lib/delivery/choice-step';
 import type {
   AddOnCategory,
+  DeliveryChoice,
   FreeDeliveryProgress,
   OfferEvaluation,
   OfferStepStatus,
 } from '~/lib/offers/types';
 import type {BlockReason} from './messages';
 
-/** Steps the cart can ask today. Haul-away is Phase 5B, accident protection is Phase 5A. */
-export const SUPPORTED_STEPS = ['comfort-guarantee'] as const;
+/**
+ * Steps the pre-checkout flow can ask today, in the order they are asked. The delivery question comes before
+ * haul-away because haul-away exists only for in-home delivery (P5B-04). Accident protection is Phase 5A.
+ */
+export const SUPPORTED_STEPS = [
+  'comfort-guarantee',
+  'delivery-choice',
+  'haul-away',
+] as const;
 export type SupportedStepId = (typeof SUPPORTED_STEPS)[number];
 
 export type OfferedVariant = {
@@ -42,6 +51,26 @@ export type ComfortGuaranteeView = {
   }>;
 };
 
+/** The recycling and disposal service (REQ-PRE-003): one variant, its quantity is the number of pieces. */
+export type HaulAwayView = {
+  /** pending = not yet answered; accepted = pieces are in the cart; declined = recorded as a cart attribute. */
+  readonly status: OfferStepStatus;
+  readonly variant: OfferedVariant;
+  readonly maxPieces: number;
+  readonly currentQuantity: number;
+};
+
+/** The in-home or pickup question; present only while it is pending or already answered. */
+export type DeliveryChoiceView = {
+  readonly status: 'pending' | 'answered';
+  readonly choice: DeliveryChoice | null;
+  /** Client-approved wording per method, plain text; null when none was supplied. */
+  readonly promises: {
+    readonly inHome: string | null;
+    readonly pickup: string | null;
+  };
+};
+
 export type GiftView = {
   readonly ruleId: string;
   readonly name: string;
@@ -66,6 +95,8 @@ export type CartOffersView = {
   /** The first supported step the shopper still has to answer, or null. */
   readonly nextStep: SupportedStepId | null;
   readonly comfortGuarantee: ComfortGuaranteeView | null;
+  readonly deliveryChoice: DeliveryChoiceView | null;
+  readonly haulAway: HaulAwayView | null;
   readonly gifts: readonly GiftView[];
   readonly addOns: readonly AddOnView[];
   /** Cart line id -> the sizes it can be swapped to (regular lines of multi-size products only). */
@@ -75,11 +106,18 @@ export type CartOffersView = {
   readonly notices: readonly string[];
 };
 
-/** Every variant id the evaluation wants to show, so one lookup covers the whole view. */
-export function offeredVariantIds(evaluation: OfferEvaluation): string[] {
-  const ids = new Set<string>();
-  const [comfort] = evaluation.steps;
+/**
+ * Every variant id the evaluation wants to show, so one lookup covers the whole view. `extraIds` are
+ * variants the view needs that the evaluation cannot name yet (the haul-away service before in-home is chosen).
+ */
+export function offeredVariantIds(
+  evaluation: OfferEvaluation,
+  extraIds: readonly string[] = [],
+): string[] {
+  const ids = new Set<string>(extraIds);
+  const [comfort, haulAway] = evaluation.steps;
   for (const option of comfort.options) ids.add(option.protectorVariantId);
+  for (const option of haulAway.options) ids.add(option.variantId);
   for (const gift of evaluation.gifts) {
     for (const size of gift.sizes) ids.add(size.variantId);
   }
@@ -95,6 +133,9 @@ export type BuildViewInput = {
   readonly lineSizes: Readonly<Record<string, readonly SizeChoice[]>>;
   readonly blocked: readonly BlockReason[];
   readonly notices: readonly string[];
+  /** The delivery question, decided from ZIP, zone and rules by the server (choice-step.ts). */
+  readonly deliveryChoice: DeliveryChoiceState;
+  readonly promises: DeliveryChoiceView['promises'];
 };
 
 export function buildOffersView(input: BuildViewInput): CartOffersView {
@@ -113,10 +154,42 @@ export function buildOffersView(input: BuildViewInput): CartOffersView {
     (comfortOptions.length > 0 || comfort.status !== 'pending')
       ? {status: comfort.status, options: comfortOptions}
       : null;
+  const [, haulAway] = evaluation.steps;
+  const haulOption = haulAway.options[0];
+  const haulVariant = haulOption
+    ? variants.get(haulOption.variantId)
+    : undefined;
+  // Like the protector: a service that cannot be bought now (sold out, unreadable) is not a step.
+  const haulAwayView: HaulAwayView | null =
+    haulAway.applies && haulOption && haulVariant
+      ? {
+          status: haulAway.status,
+          variant: haulVariant,
+          maxPieces: haulOption.maxPieces,
+          currentQuantity: haulOption.currentQuantity,
+        }
+      : null;
+
+  const deliveryState = input.deliveryChoice;
+  const deliveryView: DeliveryChoiceView | null =
+    deliveryState.status === 'pending' || deliveryState.status === 'answered'
+      ? {
+          status: deliveryState.status,
+          choice:
+            deliveryState.status === 'answered' ? deliveryState.choice : null,
+          promises: input.promises,
+        }
+      : null;
+
+  // First unanswered question wins, in the order the shopper meets them.
   const nextStep: SupportedStepId | null =
     comfortView?.status === 'pending' && comfortOptions.length > 0
       ? 'comfort-guarantee'
-      : null;
+      : deliveryView?.status === 'pending'
+        ? 'delivery-choice'
+        : haulAwayView?.status === 'pending'
+          ? 'haul-away'
+          : null;
 
   const gifts = evaluation.gifts.flatMap((gift) => {
     const sizes = gift.sizes.flatMap((size) => {
@@ -154,6 +227,8 @@ export function buildOffersView(input: BuildViewInput): CartOffersView {
     freeDelivery: evaluation.freeDelivery,
     nextStep,
     comfortGuarantee: comfortView,
+    deliveryChoice: deliveryView,
+    haulAway: haulAwayView,
     gifts,
     addOns,
     lineSizes: input.lineSizes,
@@ -172,6 +247,8 @@ export function unverifiedView(
     freeDelivery: {enabled: false},
     nextStep: null,
     comfortGuarantee: null,
+    deliveryChoice: null,
+    haulAway: null,
     gifts: [],
     addOns: [],
     lineSizes: {},

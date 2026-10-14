@@ -30,7 +30,8 @@ export type WebhookAction = {
   intent: WebhookIntent;
 };
 
-const MAX_BODY_BYTES = 5 * 1024 * 1024;
+/** Also enforced by the route on Content-Length BEFORE the body is buffered (security review L-1). */
+export const MAX_WEBHOOK_BODY_BYTES = 5 * 1024 * 1024;
 const DEFAULT_FUTURE_SKEW_MS = 5 * 60 * 1000;
 const encoder = new TextEncoder();
 
@@ -259,7 +260,8 @@ export async function receiveShopifyWebhook(
   };
 
   const bytes = toBytes(input.rawBody);
-  if (bytes.length > MAX_BODY_BYTES) return reject('payload_too_large', 413);
+  if (bytes.length > MAX_WEBHOOK_BODY_BYTES)
+    return reject('payload_too_large', 413);
 
   // Signature first: nothing else about an unauthenticated request is examined or revealed.
   const verified = await verifyShopifyWebhook(

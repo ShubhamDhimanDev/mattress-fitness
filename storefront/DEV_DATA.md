@@ -36,3 +36,17 @@ The app reads its store from `PUBLIC_STORE_DOMAIN`. The default `.env` points at
 ## Needs the development store (not verifiable here)
 
 Filter counts matching Shopify admin (V-04), metafield-driven badges, specifications, FAQs and brand sections (V-05), the `brand` and `homepage_section` metaobjects, compare-at (sale) pricing and sold-out sizes on real data, nested cart lines (V-02), a checkout total that equals the cart total, and the cache TTL decision.
+
+## Delivery ZIP and the product-page promise (P3B-11, P5B-03)
+
+The ZIP check needs a delivery zone, which the server reads from the non-secret `OFFER_CONFIG_JSON` setting (`zone` key; the metaobject reader replaces it later). With no zone the product page and cart say nothing about delivery, by design, and `tests/e2e/delivery.spec.ts` skips with that reason.
+
+1. Create `storefront/.env.delivery` (git-ignored by the `.env.*` pattern) with the four variables from `.env.bedding` plus one line (placeholder zone and wording, not client data):
+
+   ```
+   OFFER_CONFIG_JSON={"zone":{"name":"Test metro","postalCodes":"606*, 60007","feeCents":14900,"freeOverCents":99900,"promise":{"inHome":"Free in-home delivery and setup for your area.","parcel":"","pickup":""}}}
+   ```
+
+2. `npm run dev -- --port 3700 --env-file .env.delivery`, then `E2E_PORT=3700 npx playwright test tests/e2e/delivery.spec.ts`.
+
+The haul-away and delivery-choice steps cannot be exercised here: they need Storefront `nodes(ids)` lookups of the service variant, which the mock stores do not answer. They are covered by `tests/unit/routes/delivery-routes.test.ts` and need the development store (a real `haulAway` rule with a variant id) for a live run.

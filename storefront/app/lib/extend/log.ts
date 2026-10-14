@@ -14,7 +14,16 @@ export type ExtendLogEventName =
   | 'sync.succeeded'
   | 'sync.gave_up'
   | 'webhook.rejected'
-  | 'webhook.ignored';
+  | 'webhook.ignored'
+  | 'webhook.accepted'
+  | 'webhook.coalesced'
+  | 'webhook.order_read_failed'
+  | 'webhook.background_failed'
+  | 'offers.route_rejected'
+  | 'offers.route_unavailable'
+  | 'coverage.catalog_unavailable'
+  | 'coverage.catalog_incomplete'
+  | 'coverage.inputs_degraded';
 
 export type ExtendLogEvent = {
   level: 'info' | 'warn' | 'error';

@@ -10,12 +10,22 @@ import type {Route} from './+types/checkout-steps';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {Button} from '~/components/ui/Button';
 import {Price} from '~/components/ui/Price';
+import {Select} from '~/components/ui/Select';
 import {
   CHECKOUT_STEPS_PATH,
   decideCheckout,
   getCheckoutHref,
 } from '~/lib/cart/checkout';
 import {isSameOriginRequest, noStoreHeaders} from '~/lib/cart/http';
+import {
+  acceptHaulAway,
+  chooseDelivery,
+  declineHaulAway,
+} from '~/lib/delivery-runtime/steps';
+import {
+  parseStepCommand,
+  parseStepId,
+} from '~/lib/delivery-runtime/step-command';
 import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
 import {
   acceptComfortGuarantee,
@@ -23,9 +33,11 @@ import {
   parseStepFailure,
   revalidateCartOffers,
   stepFailureText,
+  type OfferRuntime,
   type OffersResult,
+  type StepChangeResult,
 } from '~/lib/offers-runtime/server';
-import {SUPPORTED_STEPS, type SupportedStepId} from '~/lib/offers-runtime/view';
+import type {SupportedStepId} from '~/lib/offers-runtime/view';
 
 export const meta: Route.MetaFunction = () => [
   {title: formatPageTitle('Before you check out')},
@@ -39,15 +51,19 @@ export const headers: HeadersFunction = ({loaderHeaders, actionHeaders}) =>
 
 /** The step named in the URL, only if it is one this build knows (P4-09: the step lives in the URL). */
 function parseStep(raw: string | null): SupportedStepId | null {
-  return SUPPORTED_STEPS.find((step) => step === raw) ?? null;
+  return parseStepId(raw);
 }
 
 async function check(
   context: Route.LoaderArgs['context'],
+  request: Request,
   current: CartApiQueryFragment,
 ): Promise<OffersResult | null> {
   try {
-    return await revalidateCartOffers(offerRuntimeOf(context), current);
+    return await revalidateCartOffers(
+      await offerRuntimeOf(context, request),
+      current,
+    );
   } catch (error) {
     console.error(
       'Checkout revalidation failed:',
@@ -73,7 +89,7 @@ export async function loader({request, context}: Route.LoaderArgs) {
   if (!current || current.lines.nodes.length === 0) {
     return redirect('/cart', {headers: noStoreHeaders()});
   }
-  const checked = await check(context, current);
+  const checked = await check(context, request, current);
   if (!checked) {
     return data(
       {state: 'unavailable' as const},
@@ -130,6 +146,8 @@ export async function loader({request, context}: Route.LoaderArgs) {
           state: 'step' as const,
           step: decision.step,
           options: view?.comfortGuarantee?.options ?? [],
+          delivery: view?.deliveryChoice ?? null,
+          haulAway: view?.haulAway ?? null,
           notices,
           error: failure ? stepFailureText(failure) : null,
           skipHref: getCheckoutHref(checked.cart, view)
@@ -146,11 +164,37 @@ export async function loader({request, context}: Route.LoaderArgs) {
   }
 }
 
+/** Runs the one thing the form asked for, against the real cart. */
+function applyCommand(
+  command: NonNullable<ReturnType<typeof parseStepCommand>>,
+  runtime: OfferRuntime,
+  current: CartApiQueryFragment | null,
+): Promise<StepChangeResult> {
+  switch (command.step) {
+    case 'comfort-guarantee':
+      return command.intent === 'accept'
+        ? acceptComfortGuarantee(runtime, current)
+        : declineComfortGuarantee(runtime, current);
+    case 'delivery-choice':
+      return chooseDelivery(runtime, current, command.choice);
+    case 'haul-away':
+      return command.intent === 'accept'
+        ? acceptHaulAway(runtime, current, command.pieces)
+        : declineHaulAway(runtime, current);
+    default: {
+      const unreachable: never = command;
+      return unreachable;
+    }
+  }
+}
+
 /**
- * Accept or decline the current step. Nothing but the intent comes from the browser: what an accept adds is
- * decided by the engine against the real cart, and a decline is recorded as the documented cart attribute
- * (REQ-PRE-005). Either way the shopper goes back to the gate, which decides what comes next; a failure
- * travels as a known code in the redirect (shown as fixed text) and always leaves a way to continue.
+ * Answer the current step. Nothing but the intent comes from the browser: what an accept adds is decided
+ * by the engine against the real cart (the comfort protector, the haul-away service capped at its maximum),
+ * the delivery answer is recorded only if the saved ZIP allows it, and a decline is recorded as the
+ * documented cart attribute (REQ-PRE-005). Either way the shopper goes back to the gate, which decides what
+ * comes next; a failure travels as a known code in the redirect (shown as fixed text) and always leaves a
+ * way to continue.
  */
 export async function action({request, context}: Route.ActionArgs) {
   if (!isSameOriginRequest(request)) {
@@ -159,27 +203,20 @@ export async function action({request, context}: Route.ActionArgs) {
       headers: noStoreHeaders(),
     });
   }
-  const form = await request.formData();
-  const intent = form.get('intent');
-  const step = parseStep(
-    typeof form.get('step') === 'string' ? String(form.get('step')) : null,
-  );
-  if (step === null || (intent !== 'accept' && intent !== 'decline')) {
+  const command = parseStepCommand(await request.formData());
+  if (command === null) {
     throw new Response('That step is not valid.', {
       status: 400,
       headers: noStoreHeaders(),
     });
   }
 
-  const runtime = offerRuntimeOf(context);
+  const runtime = await offerRuntimeOf(context, request);
   const current = await context.cart.get();
-  const outcome =
-    intent === 'accept'
-      ? await acceptComfortGuarantee(runtime, current)
-      : await declineComfortGuarantee(runtime, current);
+  const outcome = await applyCommand(command, runtime, current);
   if (outcome.status === 'rejected') {
     return redirect(
-      `${CHECKOUT_STEPS_PATH}?step=${step}&error=${outcome.code}`,
+      `${CHECKOUT_STEPS_PATH}?step=${command.step}&error=${outcome.code}`,
       {headers: noStoreHeaders()},
     );
   }
@@ -200,9 +237,23 @@ export default function CheckoutSteps() {
       {state.state === 'step' || state.state === 'blocked' ? (
         <Notices notices={state.notices} />
       ) : null}
-      {state.state === 'step' ? (
+      {state.state === 'step' && state.step === 'comfort-guarantee' ? (
         <ComfortGuaranteeStep
           options={state.options}
+          error={state.error}
+          skipHref={state.skipHref}
+        />
+      ) : null}
+      {state.state === 'step' && state.step === 'delivery-choice' ? (
+        <DeliveryChoiceStep
+          delivery={state.delivery}
+          error={state.error}
+          skipHref={state.skipHref}
+        />
+      ) : null}
+      {state.state === 'step' && state.step === 'haul-away' ? (
+        <HaulAwayStep
+          haulAway={state.haulAway}
           error={state.error}
           skipHref={state.skipHref}
         />
@@ -359,6 +410,142 @@ function ComfortGuaranteeStep({
           Continue to checkout without it
         </Button>
       ) : null}
+    </section>
+  );
+}
+
+function StepError({error}: {error: string | null}) {
+  if (!error) return null;
+  return (
+    <p
+      role="alert"
+      className="rounded-choice bg-error-bg p-3 text-sm font-bold text-error-fg"
+    >
+      {error}
+    </p>
+  );
+}
+
+function SkipLink({href}: {href: string | null}) {
+  if (!href) return null;
+  return (
+    <Button to={href} reloadDocument variant="ghost" className="self-start">
+      Continue to checkout without it
+    </Button>
+  );
+}
+
+/**
+ * Step 2 (P5B-04, REQ-PRE-003): in-home delivery or store pickup. Shown only for a saved ZIP inside the delivery
+ * zone, so the question never promises something the ZIP cannot have. The answer is stored as the documented
+ * `delivery_choice` cart attribute. Wording is placeholder copy until the client approves it (Q-008, CLR-010);
+ * the only client-approved text shown is the promise per method from the delivery zone.
+ */
+function DeliveryChoiceStep({
+  delivery,
+  error,
+  skipHref,
+}: Pick<StepData, 'delivery' | 'error' | 'skipHref'>) {
+  return (
+    <section aria-labelledby="delivery-heading" className="flex flex-col gap-4">
+      <h2 id="delivery-heading" className="text-xl font-bold">
+        How would you like to receive your order?
+      </h2>
+      <StepError error={error} />
+      <ul className="flex flex-col gap-3">
+        <li className="rounded-card border border-line p-3">
+          <span className="block font-bold">In-home delivery</span>
+          {delivery?.promises.inHome ? (
+            <span className="block text-sm text-fg-muted">
+              {delivery.promises.inHome}
+            </span>
+          ) : null}
+        </li>
+        <li className="rounded-card border border-line p-3">
+          <span className="block font-bold">Store pickup</span>
+          {delivery?.promises.pickup ? (
+            <span className="block text-sm text-fg-muted">
+              {delivery.promises.pickup}
+            </span>
+          ) : null}
+        </li>
+      </ul>
+      <Form method="post" className="flex flex-wrap gap-3">
+        <input type="hidden" name="step" value="delivery-choice" />
+        <input type="hidden" name="intent" value="choose" />
+        <Button type="submit" name="choice" value="in-home" variant="primary">
+          In-home delivery
+        </Button>
+        <Button type="submit" name="choice" value="pickup" variant="secondary">
+          Store pickup
+        </Button>
+      </Form>
+      {/* Answering is optional: nothing is bought here, so skipping is always offered. */}
+      <SkipLink href={skipHref} />
+    </section>
+  );
+}
+
+/** Pieces the shopper may ask us to take away: 1 up to the admin maximum, the same cap the server applies. */
+function pieceOptions(maxPieces: number) {
+  return Array.from({length: maxPieces}, (_, index) => ({
+    value: String(index + 1),
+    label: String(index + 1),
+  }));
+}
+
+/**
+ * Step 3 (P5B-04, REQ-PRE-003): the recycling and disposal service, only for in-home delivery inside the
+ * zone. The price shown is Shopify's for the variant; the quantity is capped at the maximum here and again on
+ * the server. Wording is placeholder copy until the client approves it (CLR-010).
+ */
+function HaulAwayStep({
+  haulAway,
+  error,
+  skipHref,
+}: Pick<StepData, 'haulAway' | 'error' | 'skipHref'>) {
+  if (!haulAway) return null;
+  return (
+    <section aria-labelledby="haul-heading" className="flex flex-col gap-4">
+      <h2 id="haul-heading" className="text-xl font-bold">
+        Remove your old mattress
+      </h2>
+      <StepError error={error} />
+      <p className="text-base text-fg-muted">
+        We can take away and recycle the pieces you are replacing when we
+        deliver. You can take away up to {haulAway.maxPieces}{' '}
+        {haulAway.maxPieces === 1 ? 'piece' : 'pieces'}.
+      </p>
+      <div className="flex items-baseline justify-between gap-3 rounded-card border border-line p-3">
+        <span className="font-bold">{haulAway.variant.productTitle}</span>
+        <span className="flex items-baseline gap-1 text-sm">
+          <Price price={haulAway.variant.price} size="sm" />
+          <span className="text-fg-muted">per piece</span>
+        </span>
+      </div>
+      <Form method="post" className="flex flex-col gap-3">
+        <input type="hidden" name="step" value="haul-away" />
+        <Select
+          label="Pieces to take away"
+          name="pieces"
+          options={pieceOptions(haulAway.maxPieces)}
+          defaultValue="1"
+        />
+        <div className="flex flex-wrap gap-3">
+          <Button type="submit" name="intent" value="accept" variant="primary">
+            Add to my order
+          </Button>
+          <Button
+            type="submit"
+            name="intent"
+            value="decline"
+            variant="secondary"
+          >
+            No thanks
+          </Button>
+        </div>
+      </Form>
+      {error ? <SkipLink href={skipHref} /> : null}
     </section>
   );
 }

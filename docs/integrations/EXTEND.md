@@ -160,3 +160,20 @@ Each is tagged in code with the same label. A mock-green result proves none of t
 - Use `computeLinkOperations` after every cart mutation and before hand-off, passing `quotes` from a fresh `fetchOffers` when Extend is healthy; apply `remove` and `setQuantity` through the cart handler.
 - The browser sends variant ids and quantities only; plan ids and prices are re-derived server-side.
 - A durable replay store (for example KV) is needed in production; `createMemoryReplayStore` is for tests and local development.
+
+## 8. Status notes (2026-10-14, P5A-04, P5A-06 seam, P5A-08, P5A-14)
+
+Everything below is built against the local MOCK and is mock-green only; nothing has run against Extend's demo host or a real Shopify webhook delivery (IR-09, IR-11, V-12, V-20).
+
+| Piece | Where | State |
+|---|---|---|
+| Webhook route `POST /webhooks/shopify` | `app/routes/webhooks.shopify.tsx`, `app/lib/extend/webhook-handler.ts`, `webhook-processor.ts`, `order-coalescer.ts`, `replay-store.ts` | Built. HMAC on the raw bytes with `SHOPIFY_APP_CLIENT_SECRET`; bad or missing signature is 401 with no body; missing secret is 503; Content-Length over 5 MiB is 413 before buffering; freshness window 6 h (review L-1); answers 200 then syncs in `waitUntil` (a plain background promise where the platform has none); a webhook id is marked seen only after a successful sync; per-order coalescer (one sync per order per 10 s, merged events get one trailing run); only when `EXTEND_ORDER_SYNC=self` (other modes make no Admin or Extend call) |
+| Order read | `admin-order.ts`, `admin-client.ts` | Read-only Admin GraphQL `order(id)`, host `<PUBLIC_STORE_DOMAIN>` must be `*.myshopify.com`, token `SHOPIFY_ADMIN_API_ACCESS_TOKEN`, API version 2026-10, 3 attempts with backoff, orders with more than 100 lines refused (never a partial snapshot) |
+| Cross-check (ADR-0009 item 7) | `orders.ts` through `sync.ts` | Wired: price versus quoted plan, covered product on the order; mismatches are logged by line id and reason and never sent |
+| Offers route `GET/POST /api/extend/offers` | `app/routes/api.extend.offers.tsx`, `offers-endpoint.ts`, `offers-service.ts` | Built. Input: variant GID and quantity only (max 10 items); price, product and category read from Shopify; answer holds plan id, title, price, term, terms link, image, recommended and `poweredBy: "Extend"`; `private, no-store`; same-origin POST; short memory of answers (5 min) and of failures (30 s) plus the circuit breaker; any failure answers `{"status":"unavailable"}` |
+| Cart gate inputs | `app/lib/offers-runtime/extend-seam.ts` (`loadExtendCartInputs`) | Built and tested through the real revalidation loop. **Not yet called by `offers-runtime/server.ts`** (it still passes `NO_EXTEND_INPUTS`): wiring that call is the last step of P5A-06 / O-M2 |
+| Reconcile | `scripts/extend/reconcile.mjs` | Built (dry run by default; `--resend --live` only for the mock or the demo host; production refused) |
+
+**Conventions of ours, not Extend's (confirm on the development store):** coverage products carry the Shopify product tag `extend-coverage` (ASSUMPTION V-16/V-20: the Storefront `products(query:)` returns them although they are hidden from search); the Extend category is the product metafield `custom.extend_category` and a product without it is not eligible; fulfilled quantity is read as `currentQuantity - unfulfilledQuantity`; Shopify documents no parent-line field on an order line item, so the nested-line parent is not read and the sync uses the covered product id (flag `covered_product_ambiguous` when two lines share a product).
+
+**Deliberately not built:** the haul-away shipping-ZIP versus zone note (review M-4) is `TODO(P5B-05)`: it must run whether or not Extend sync is on and needs the offer configuration; Extend documents no order read-back, so reconcile reads the mock's invented `GET /__mock/orders` or a JSON export (`--extend-file`); the browser accept action that adds a coverage line (server re-derives the variant from the plan id) is not built.

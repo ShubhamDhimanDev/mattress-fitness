@@ -3,6 +3,47 @@
 /* eslint-disable */
 import type * as StorefrontAPI from '@shopify/hydrogen/storefront-api-types';
 
+export type ExtendVariantFactsQueryVariables = StorefrontAPI.Exact<{
+  ids:
+    | Array<StorefrontAPI.Scalars['ID']['input']>
+    | StorefrontAPI.Scalars['ID']['input'];
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type ExtendVariantFactsQuery = {
+  nodes: Array<
+    StorefrontAPI.Maybe<
+      Pick<StorefrontAPI.ProductVariant, 'id' | 'availableForSale'> & {
+        price: Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>;
+        product: Pick<StorefrontAPI.Product, 'id'> & {
+          metafield?: StorefrontAPI.Maybe<
+            Pick<StorefrontAPI.Metafield, 'value'>
+          >;
+        };
+      }
+    >
+  >;
+};
+
+export type ExtendProductCategoriesQueryVariables = StorefrontAPI.Exact<{
+  ids:
+    | Array<StorefrontAPI.Scalars['ID']['input']>
+    | StorefrontAPI.Scalars['ID']['input'];
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type ExtendProductCategoriesQuery = {
+  nodes: Array<
+    StorefrontAPI.Maybe<
+      Pick<StorefrontAPI.Product, 'id'> & {
+        metafield?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'value'>>;
+      }
+    >
+  >;
+};
+
 export type MoneyFragment = Pick<
   StorefrontAPI.MoneyV2,
   'currencyCode' | 'amount'
@@ -445,6 +486,110 @@ export type CartOfferSwapTargetQuery = {
       >;
     }
   >;
+};
+
+export type CatalogBrandsIndexQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type CatalogBrandsIndexQuery = {
+  brands: {
+    nodes: Array<
+      Pick<StorefrontAPI.Metaobject, 'id' | 'handle'> & {
+        fields: Array<
+          Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'> & {
+            reference?: StorefrontAPI.Maybe<{
+              image?: StorefrontAPI.Maybe<
+                Pick<
+                  StorefrontAPI.Image,
+                  'url' | 'altText' | 'width' | 'height'
+                >
+              >;
+            }>;
+          }
+        >;
+      }
+    >;
+  };
+};
+
+export type CatalogBrandPageQueryVariables = StorefrontAPI.Exact<{
+  handle: StorefrontAPI.Scalars['String']['input'];
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type CatalogBrandPageQuery = {
+  brand?: StorefrontAPI.Maybe<
+    Pick<StorefrontAPI.Metaobject, 'id' | 'handle'> & {
+      fields: Array<
+        Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'> & {
+          reference?: StorefrontAPI.Maybe<{
+            image?: StorefrontAPI.Maybe<
+              Pick<StorefrontAPI.Image, 'url' | 'altText' | 'width' | 'height'>
+            >;
+          }>;
+        }
+      >;
+    }
+  >;
+  anyBrand: {nodes: Array<Pick<StorefrontAPI.Metaobject, 'id'>>};
+};
+
+export type CatalogHomeSectionsQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type CatalogHomeSectionsQuery = {
+  sections: {
+    nodes: Array<
+      Pick<StorefrontAPI.Metaobject, 'id'> & {
+        fields: Array<
+          Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'> & {
+            reference?: StorefrontAPI.Maybe<{
+              image?: StorefrontAPI.Maybe<
+                Pick<
+                  StorefrontAPI.Image,
+                  'url' | 'altText' | 'width' | 'height'
+                >
+              >;
+            }>;
+          }
+        >;
+      }
+    >;
+  };
+};
+
+export type CatalogPromoTilesQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type CatalogPromoTilesQuery = {
+  tiles: {
+    nodes: Array<
+      Pick<StorefrontAPI.Metaobject, 'id'> & {
+        fields: Array<
+          Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'> & {
+            reference?: StorefrontAPI.Maybe<
+              | Pick<StorefrontAPI.Collection, 'handle'>
+              | {
+                  image?: StorefrontAPI.Maybe<
+                    Pick<
+                      StorefrontAPI.Image,
+                      'url' | 'altText' | 'width' | 'height'
+                    >
+                  >;
+                }
+            >;
+          }
+        >;
+      }
+    >;
+  };
 };
 
 export type CatalogProductCardFragment = Pick<
@@ -1295,6 +1440,14 @@ export type PredictiveSearchQuery = {
 };
 
 interface GeneratedQueryTypes {
+  '#graphql\n  query ExtendVariantFacts($ids: [ID!]!, $country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    nodes(ids: $ids) {\n      ... on ProductVariant {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        product {\n          id\n          metafield(namespace: "custom", key: "extend_category") {\n            value\n          }\n        }\n      }\n    }\n  }\n': {
+    return: ExtendVariantFactsQuery;
+    variables: ExtendVariantFactsQueryVariables;
+  };
+  '#graphql\n  query ExtendProductCategories($ids: [ID!]!, $country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    nodes(ids: $ids) {\n      ... on Product {\n        id\n        metafield(namespace: "custom", key: "extend_category") {\n          value\n        }\n      }\n    }\n  }\n': {
+    return: ExtendProductCategoriesQuery;
+    variables: ExtendProductCategoriesQueryVariables;
+  };
   '#graphql\n  fragment Shop on Shop {\n    id\n    name\n    description\n    primaryDomain {\n      url\n    }\n    brand {\n      logo {\n        image {\n          url\n        }\n      }\n    }\n  }\n  query Header(\n    $country: CountryCode\n    $headerMenuHandle: String!\n    $language: LanguageCode\n  ) @inContext(language: $language, country: $country) {\n    shop {\n      ...Shop\n    }\n    menu(handle: $headerMenuHandle) {\n      ...Menu\n    }\n  }\n  #graphql\n  fragment MenuItem on MenuItem {\n    id\n    resourceId\n    tags\n    title\n    type\n    url\n  }\n  fragment ChildMenuItem on MenuItem {\n    ...MenuItem\n  }\n  fragment ParentMenuItem on MenuItem {\n    ...MenuItem\n    items {\n      ...ChildMenuItem\n    }\n  }\n  fragment Menu on Menu {\n    id\n    items {\n      ...ParentMenuItem\n    }\n  }\n\n': {
     return: HeaderQuery;
     variables: HeaderQueryVariables;
@@ -1314,6 +1467,22 @@ interface GeneratedQueryTypes {
   '#graphql\n  query CartOfferSwapTarget($id: ID!, $country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    node(id: $id) {\n      ... on ProductVariant {\n        id\n        availableForSale\n        product {\n          id\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n  }\n': {
     return: CartOfferSwapTargetQuery;
     variables: CartOfferSwapTargetQueryVariables;
+  };
+  '#graphql\n  query CatalogBrandsIndex($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    brands: metaobjects(type: "brand", first: 100) {\n      nodes {\n        id\n        handle\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
+    return: CatalogBrandsIndexQuery;
+    variables: CatalogBrandsIndexQueryVariables;
+  };
+  '#graphql\n  query CatalogBrandPage(\n    $handle: String!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    brand: metaobject(handle: {handle: $handle, type: "brand"}) {\n      id\n      handle\n      fields {\n        key\n        value\n        reference {\n          ... on MediaImage {\n            image {\n              url\n              altText\n              width\n              height\n            }\n          }\n        }\n      }\n    }\n    anyBrand: metaobjects(type: "brand", first: 1) {\n      nodes {\n        id\n      }\n    }\n  }\n': {
+    return: CatalogBrandPageQuery;
+    variables: CatalogBrandPageQueryVariables;
+  };
+  '#graphql\n  query CatalogHomeSections($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    sections: metaobjects(type: "homepage_section", first: 30) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
+    return: CatalogHomeSectionsQuery;
+    variables: CatalogHomeSectionsQueryVariables;
+  };
+  '#graphql\n  query CatalogPromoTiles($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    tiles: metaobjects(type: "promo_tile", first: 100) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n            ... on Collection {\n              handle\n            }\n          }\n        }\n      }\n    }\n  }\n': {
+    return: CatalogPromoTilesQuery;
+    variables: CatalogPromoTilesQueryVariables;
   };
   '#graphql\n  query CatalogCollection(\n    $handle: String!\n    $first: Int!\n    $after: String\n    $sortKey: ProductCollectionSortKeys\n    $reverse: Boolean\n    $filters: [ProductFilter!]\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    collection(handle: $handle) {\n      id\n      handle\n      title\n      description\n      seo {\n        title\n        description\n      }\n      faqs: metafield(namespace: "custom", key: "faqs") {\n        references(first: 20) {\n          nodes {\n            ... on Metaobject {\n              id\n              fields {\n                key\n                value\n              }\n            }\n          }\n        }\n      }\n      products(\n        first: $first\n        after: $after\n        sortKey: $sortKey\n        reverse: $reverse\n        filters: $filters\n      ) {\n        nodes {\n          ...CatalogProductCard\n        }\n        filters {\n          id\n          label\n          type\n          values {\n            id\n            label\n            count\n            input\n          }\n        }\n        pageInfo {\n          hasNextPage\n          endCursor\n        }\n      }\n    }\n  }\n  #graphql\n  fragment CatalogProductCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify\'s per-product limit): the "From $" price and\n    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong\n    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.\n    variants(first: 100) {\n      nodes {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        compareAtPrice {\n          amount\n          currencyCode\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n    metafields(\n      identifiers: [\n        {namespace: "custom", key: "comfort_level"}\n        {namespace: "custom", key: "mattress_type"}\n        {namespace: "custom", key: "benefits"}\n        {namespace: "custom", key: "product_line"}\n      ]\n    ) {\n      key\n      value\n    }\n  }\n\n': {
     return: CatalogCollectionQuery;

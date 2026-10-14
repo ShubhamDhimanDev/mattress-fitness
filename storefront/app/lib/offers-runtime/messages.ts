@@ -114,3 +114,19 @@ export const OFFERS_UNAVAILABLE_REASON: BlockReason = {
     'We cannot confirm the offers on your cart right now, so checkout is paused. Please try again in a moment.',
   lineIds: [],
 };
+
+/** Why a delivery or haul-away step could not be applied (P5B-04). Fixed text; nothing from the request is echoed. */
+export type DeliveryStepFailure =
+  | 'delivery-choice-invalid'
+  | 'delivery-choice-unavailable'
+  | 'quantity-invalid'
+  | 'haul-away-unavailable';
+
+export const DELIVERY_STEP_FAILURE_TEXT: Record<DeliveryStepFailure, string> = {
+  'delivery-choice-invalid': 'Choose in-home delivery or store pickup.',
+  'delivery-choice-unavailable':
+    'In-home delivery is not available for your ZIP code. You can choose store pickup or continue to checkout.',
+  'quantity-invalid': 'Choose how many pieces you would like us to take away.',
+  'haul-away-unavailable':
+    'Recycling and disposal is not available right now. You can continue to checkout without it.',
+};

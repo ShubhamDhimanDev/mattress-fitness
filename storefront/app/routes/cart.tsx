@@ -57,7 +57,7 @@ export async function action({request, context}: Route.ActionArgs) {
     return rejected('That request could not be verified.', 403);
   }
   const {cart} = context;
-  const runtime = offerRuntimeOf(context);
+  const runtime = await offerRuntimeOf(context, request);
   const formData = await request.formData();
 
   let parsed: ReturnType<typeof CartForm.getFormInput>;
@@ -156,13 +156,13 @@ export async function action({request, context}: Route.ActionArgs) {
   );
 }
 
-export async function loader({context}: Route.LoaderArgs) {
+export async function loader({context, request}: Route.LoaderArgs) {
   const current = await context.cart.get();
   // The page shows the repaired cart and the reasons for any repair or refusal. A failed check shows the
   // cart as Shopify has it; the hand-off still revalidates.
   try {
     const checked = await revalidateCartOffers(
-      offerRuntimeOf(context),
+      await offerRuntimeOf(context, request),
       current,
     );
     return data(
