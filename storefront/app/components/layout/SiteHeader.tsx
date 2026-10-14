@@ -33,6 +33,7 @@ import {
   STORE_LOCATOR_PATH,
   type MainNavItem,
   type PromoMessage,
+  type SupportPhone,
 } from '~/lib/navigation';
 
 const NAV_ITEMS: readonly MainNavItem[] = [...MAIN_NAV, SLEEP_QUIZ_LINK];
@@ -44,6 +45,9 @@ type SiteHeaderProps = {
   topStrip?: ReactNode;
   /** Name of the shopper's chosen store, read from the validated my_store cookie by the root loader (P3B-10). */
   storeName?: string | null;
+  supportPhone?: SupportPhone | null;
+  /** False in production when the ZIP cookie cannot be signed: no control that implies saving works. */
+  deliveryZipAvailable?: boolean;
 };
 
 /**
@@ -57,9 +61,12 @@ export function SiteHeader({
   promo,
   topStrip,
   storeName = null,
+  supportPhone = null,
+  deliveryZipAvailable = true,
 }: SiteHeaderProps) {
-  // The saved ZIP lives in a signed cookie that only the server reads (P3B-11). The hook shares one answer
-  // with the product-page and cart delivery check, so the header and those agree.
+  // The saved ZIP lives in a signed cookie that only the server reads (P3B-11). The root loader hands the
+  // answer down with the page, so the first paint is right; the hook shares it with the product-page and cart
+  // delivery check, so the header and those agree.
   const {response, pending, save, clear} = useDeliveryZip();
   const delivery = response?.delivery;
   // A ZIP shows only when the server resolved it; with no delivery zone configured the header says nothing.
@@ -72,16 +79,18 @@ export function SiteHeader({
     <header className="relative z-30 bg-surface">
       <PromoBar message={promo} />
       <TopStrip visible={Boolean(topStrip)}>{topStrip}</TopStrip>
-      <UtilityBar>
-        <DeliveryZipControl
-          zip={zip}
-          onSubmit={(next) => void save(next)}
-          onClear={() => void clear()}
-          pending={pending}
-          error={
-            response?.error ? DELIVERY_ERROR_TEXT[response.error] : undefined
-          }
-        />
+      <UtilityBar supportPhone={supportPhone}>
+        {deliveryZipAvailable ? (
+          <DeliveryZipControl
+            zip={zip}
+            onSubmit={(next) => void save(next)}
+            onClear={() => void clear()}
+            pending={pending}
+            error={
+              response?.error ? DELIVERY_ERROR_TEXT[response.error] : undefined
+            }
+          />
+        ) : null}
         <StoreSelectorLink storeName={storeName} />
       </UtilityBar>
 
@@ -227,7 +236,17 @@ function CartLink({count}: {count: number}) {
 }
 
 /** Content of the mobile menu drawer; rendered by PageLayout inside the 'mobile' aside. */
-export function MobileMenuContent() {
+export function MobileMenuContent({
+  supportPhone = null,
+}: {
+  supportPhone?: SupportPhone | null;
+}) {
   const {close} = useAside();
-  return <MobileNav items={NAV_ITEMS} onNavigate={close} />;
+  return (
+    <MobileNav
+      items={NAV_ITEMS}
+      onNavigate={close}
+      supportPhone={supportPhone}
+    />
+  );
 }

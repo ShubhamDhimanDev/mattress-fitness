@@ -1,7 +1,9 @@
-import {describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it, vi} from 'vitest';
+import {resetReportedSecrets} from '~/lib/cookie-secret';
 import {
   DELIVERY_ZIP_COOKIE,
   clearDeliveryZipHeader,
+  deliveryZipSavingAvailable,
   readDeliveryZip,
   saveDeliveryZipHeader,
 } from '~/lib/delivery-runtime/zip-cookie';
@@ -155,5 +157,42 @@ describe('delivery ZIP cookie', () => {
     expect(header).toContain(`${DELIVERY_ZIP_COOKIE}=`);
     expect(header).toMatch(/Max-Age=0/i);
     expect(header).toMatch(/Expires=Thu, 01 Jan 1970/i);
+  });
+});
+
+// A missing secret must show itself: production hides the header ZIP entry and logs the name once.
+describe('deliveryZipSavingAvailable', () => {
+  afterEach(() => {
+    resetReportedSecrets();
+    vi.restoreAllMocks();
+  });
+
+  it('is true with a usable secret, and logs nothing', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(deliveryZipSavingAvailable(ENV, true)).toBe(true);
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['missing', {}],
+    ['short', {DELIVERY_COOKIE_SECRET: 'x'.repeat(31)}],
+    ['the session secret only', {SESSION_SECRET: SECRET}],
+  ])(
+    'is false in production when the secret is %s, logging the name once and no value',
+    (_label, env) => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      expect(deliveryZipSavingAvailable(env, true)).toBe(false);
+      expect(deliveryZipSavingAvailable(env, true)).toBe(false);
+      expect(error).toHaveBeenCalledTimes(1);
+      const line = String(error.mock.calls[0][0]);
+      expect(line).toContain('DELIVERY_COOKIE_SECRET');
+      expect(line).not.toContain('xxxx');
+    },
+  );
+
+  it('stays true in development so the mock stores keep their ZIP control', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(deliveryZipSavingAvailable({}, false)).toBe(true);
+    expect(error).not.toHaveBeenCalled();
   });
 });

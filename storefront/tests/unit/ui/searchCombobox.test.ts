@@ -146,7 +146,7 @@ describe('searchHref', () => {
   });
 });
 
-describe('moveActive (arrow keys)', () => {
+describe('moveActive (arrow, Home and End keys)', () => {
   it.each([
     // current, count, key, expected
     [-1, 3, 'ArrowDown', 0],
@@ -157,6 +157,12 @@ describe('moveActive (arrow keys)', () => {
     [2, 3, 'ArrowUp', 1],
     [-1, 0, 'ArrowDown', -1], // nothing to move to
     [5, 0, 'ArrowUp', -1],
+    [2, 5, 'Home', 0],
+    [0, 5, 'Home', 0],
+    [1, 5, 'End', 4],
+    [4, 5, 'End', 4],
+    [3, 0, 'Home', -1], // nothing to jump to
+    [3, 0, 'End', -1],
   ] as const)('%i of %i with %s -> %i', (current, count, key, expected) => {
     expect(moveActive(current, count, key)).toBe(expected);
   });

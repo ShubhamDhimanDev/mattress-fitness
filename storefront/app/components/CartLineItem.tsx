@@ -1,4 +1,5 @@
 import {CartForm, Image, type OptimisticCartLine} from '@shopify/hydrogen';
+import {CartActionForm} from '~/components/cart/CartActionForm';
 import {Link} from 'react-router';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
@@ -186,7 +187,7 @@ function RemoveButton({
   onRemove: () => void;
 }) {
   return (
-    <CartForm
+    <CartActionForm
       route="/cart"
       action={CartForm.ACTIONS.LinesRemove}
       inputs={{lineIds: [lineId]}}
@@ -201,6 +202,6 @@ function RemoveButton({
       >
         Remove
       </Button>
-    </CartForm>
+    </CartActionForm>
   );
 }

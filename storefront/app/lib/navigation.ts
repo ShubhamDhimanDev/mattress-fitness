@@ -1,19 +1,38 @@
 // Static fallback content for the site chrome (REQ-NAV-001, REQ-NAV-002).
-// Pure data and types, no framework imports. Every URL and label here is a PLACEHOLDER until the client's
-// catalog, Shopify navigation menus and content pages exist; the Shopify menu mapping replaces this
-// config in P3B-02 and the layout components keep the same prop shapes.
+// Pure data and types, no framework imports (the phone parser is a pure helper from lib/stores).
+// Every URL and label here is a PLACEHOLDER until the client's catalog, Shopify navigation menus and content
+// pages exist; the Shopify menu mapping replaces this config in P3B-02 and the layout components keep the same
+// prop shapes.
+
+import {normalizeUsPhone} from '~/lib/stores/directions';
 
 /** Placeholder brand until the brand kit arrives (CLR-013). */
 export const SITE_NAME = 'Mattress Store';
 
+export type SupportPhone = {display: string; href: string};
+
 /**
- * Placeholder contact number from the reserved fictional range (555-0100 to 555-0199).
- * The real number comes from Shopify admin or the client (CLR-013); never ship this value.
+ * Contact number from fictional range 555-0100 to 555-0199, labelled as a placeholder. It is shown only in
+ * development (see `resolveSupportPhone`) so layouts can be checked; it must never reach a shopper (B-15).
  */
-export const SUPPORT_PHONE = {
-  display: '1-800-555-0100',
+const DEV_PLACEHOLDER_PHONE: SupportPhone = {
+  display: '1-800-555-0100 (dev placeholder)',
   href: 'tel:+18005550100',
-} as const;
+};
+
+/**
+ * The support phone to show, or null to show none (REQ-CNT-001, B-15). The number is the client's, set in
+ * `PUBLIC_SUPPORT_PHONE`; until it is configured, and whenever the value is not a usable US number, no phone
+ * link is rendered anywhere. Only development falls back to a clearly labelled placeholder.
+ */
+export function resolveSupportPhone(
+  raw: unknown,
+  isDev: boolean,
+): SupportPhone | null {
+  const parsed = normalizeUsPhone(raw);
+  if (parsed) return {display: parsed.display, href: `tel:${parsed.e164}`};
+  return isDev ? DEV_PLACEHOLDER_PHONE : null;
+}
 
 export type NavLinkItem = {
   kind: 'link';
@@ -257,10 +276,10 @@ export type ReassuranceItem = {
 };
 
 /**
- * Every reassurance item the design has room for. The two guarantees are invented placeholder wording: the
- * client has not supplied them (REQ-CNT-001, B-15), so they stay marked `awaitingContent` and are not shown.
- * TODO(REQ-CNT-001): drop `awaitingContent` from the comfort and price items once the client's pages and
- * terms exist.
+ * Every reassurance item the design has room for. All three are invented placeholder wording: the client has
+ * not supplied the delivery promise, the comfort guarantee or the price guarantee (REQ-CNT-001, B-15), so
+ * they stay marked `awaitingContent` and nothing is shown, strip included.
+ * TODO(REQ-CNT-001): drop `awaitingContent` from each item once the client's wording, pages and terms exist.
  */
 export const REASSURANCE_DRAFT: readonly ReassuranceItem[] = [
   {
@@ -268,6 +287,8 @@ export const REASSURANCE_DRAFT: readonly ReassuranceItem[] = [
     icon: 'truck',
     text: 'In-home delivery & setup',
     to: '/pages/delivery-and-shipping',
+    // A service claim the client has not confirmed (one delivery zone, ADR-0007; wording Q-008).
+    awaitingContent: true,
   },
   {
     id: 'comfort',
@@ -292,14 +313,11 @@ export const REASSURANCE_ITEMS: readonly ReassuranceItem[] =
 export const HOME_ASSURANCE_ITEMS: readonly ReassuranceItem[] =
   REASSURANCE_ITEMS;
 
+/**
+ * The promotion bar message. It comes from `site_settings.promo_bar_text` and `promo_bar_link` in Shopify
+ * admin (P3B-13); until a typed read of that entry exists the bar is not rendered (no invented text, B-15).
+ */
 export type PromoMessage = {text: string; linkLabel?: string; to?: string};
-
-/** Placeholder promotion; the real message is edited in Shopify admin (P3B-13). */
-export const DEFAULT_PROMO: PromoMessage = {
-  text: 'Sample promotion text goes here.',
-  linkLabel: 'Shop the sale',
-  to: '/collections/sale',
-};
 
 export type FooterGroup = {id: string; heading: string; links: NavGroupLink[]};
 
@@ -312,8 +330,13 @@ export const FOOTER_SUPPORT_GROUPS_DRAFT: readonly FooterGroup[] = [
       {label: 'Contact us', to: '/pages/contact'},
       {label: 'Track your order', to: '/track-order'},
       {label: 'Delivery and shipping', to: '/pages/delivery-and-shipping'},
-      {label: 'Financing', to: '/pages/financing'},
-      {label: 'Warranty and returns', to: '/pages/warranty-and-returns'},
+      // Financing and warranty terms are the client's to supply (REQ-CNT-001, B-15, Q-016): no link until then.
+      {label: 'Financing', to: '/pages/financing', awaitingContent: true},
+      {
+        label: 'Warranty and returns',
+        to: '/pages/warranty-and-returns',
+        awaitingContent: true,
+      },
       {label: 'FAQ', to: '/pages/faq'},
     ],
   },

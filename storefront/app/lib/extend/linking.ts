@@ -16,6 +16,36 @@ export const EXTEND_LINE_ATTRIBUTES = {
   term: '_extend_term',
 } as const;
 
+export type CoverageAttribute = {key: string; value: string};
+
+/**
+ * The hidden line attributes the SERVER writes on a coverage line it adds (P5A-05, P5A-07). The browser never supplies
+ * them: the plan comes from the server's own quote and the covered product from the cart or Shopify. Null when either
+ * value is not a plain token, so a malformed id can never be written to a line (T-05, T-06).
+ */
+export function buildCoverageAttributes(
+  plan: {planId: string; termMonths: number | null},
+  coveredProductId: string,
+): CoverageAttribute[] | null {
+  const product = normalizeShopifyId(coveredProductId);
+  if (!isPlausiblePlanId(plan.planId) || product === null) return null;
+  const attributes: CoverageAttribute[] = [
+    {key: EXTEND_LINE_ATTRIBUTES.planId, value: plan.planId},
+    {key: EXTEND_LINE_ATTRIBUTES.coveredProductId, value: product},
+  ];
+  if (
+    plan.termMonths !== null &&
+    Number.isSafeInteger(plan.termMonths) &&
+    plan.termMonths > 0
+  ) {
+    attributes.push({
+      key: EXTEND_LINE_ATTRIBUTES.term,
+      value: String(plan.termMonths),
+    });
+  }
+  return attributes;
+}
+
 export type CartLineLike = {
   id: string;
   variantId: string;

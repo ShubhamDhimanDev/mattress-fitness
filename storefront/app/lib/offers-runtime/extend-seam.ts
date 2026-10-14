@@ -32,6 +32,7 @@ import {
 import {
   quoteCoverage,
   type CoverageItem,
+  type CoveragePlan,
   type CoverageQuote,
 } from '~/lib/extend/offers-service';
 import {
@@ -50,12 +51,21 @@ export type ExtendCartInputs = {
   readonly protectionEligibleLineIds: readonly string[];
   /** Eligible line id -> the plan prices Extend quoted for it (cents). A coverage line must cost one of them. */
   readonly coveragePlanPricesByLineId: ReadonlyMap<string, readonly number[]>;
+  /**
+   * Eligible line id -> the plans Extend quoted for it, as the shopper may see them (P5A-05, P5A-07). Server data only:
+   * the view shows them and the accept action looks the chosen plan up here, never in anything the browser sent.
+   */
+  readonly plansByLineId: ReadonlyMap<string, readonly CoveragePlan[]>;
+  /** Sellable price-point variants by price in cents: how an accepted plan becomes the coverage variant to add. */
+  readonly coverageVariantIdByPriceCents: ReadonlyMap<number, string>;
 };
 
 export const NO_EXTEND_INPUTS: ExtendCartInputs = {
   coverageVariantIds: new Set<string>(),
   protectionEligibleLineIds: [],
   coveragePlanPricesByLineId: new Map<string, readonly number[]>(),
+  plansByLineId: new Map<string, readonly CoveragePlan[]>(),
+  coverageVariantIdByPriceCents: new Map<number, string>(),
 };
 
 /**
@@ -84,6 +94,7 @@ export type ExtendDegradation =
   | 'catalog-incomplete'
   | 'categories-unavailable'
   | 'offers-unavailable'
+  | 'lines-unjudged'
   | 'no-price-points';
 
 export type ExtendInputsOutcome =
@@ -153,6 +164,8 @@ type SeamLine = {
   readonly merchandise?: {
     readonly id?: string;
     readonly title?: string;
+    /** The variant SKU: the catalog read matches price points on it too, so recognition with Extend off must as well. */
+    readonly sku?: string | null;
     readonly price?: {readonly amount: string; readonly currencyCode?: string};
     readonly product?: {readonly id: string; readonly title?: string};
   } | null;
@@ -183,7 +196,8 @@ export type ExtendSeamDeps = {
   ) => Promise<CoverageQuote>;
 };
 
-function realDeps(runtime: ExtendSeamRuntime): ExtendSeamDeps {
+/** The real network-backed dependencies; the accept actions (protection-steps.ts) reuse them so they quote exactly as the gate does. */
+export function realExtendSeamDeps(runtime: ExtendSeamRuntime): ExtendSeamDeps {
   const config = offersConfigOf(runtime);
   const shared = getExtendShared();
   return {
@@ -209,8 +223,13 @@ const MAX_QUANTITY = 99;
 
 /** A line whose own Shopify-supplied name is a price point is coverage even if the catalog read missed it. */
 function isPricePointByName(line: SeamLine): boolean {
-  return [line.merchandise?.title, line.merchandise?.product?.title].some(
-    (name) => name !== undefined && parsePricePointName(name).status === 'ok',
+  return [
+    line.merchandise?.sku,
+    line.merchandise?.title,
+    line.merchandise?.product?.title,
+  ].some(
+    (name) =>
+      typeof name === 'string' && parsePricePointName(name).status === 'ok',
   );
 }
 
@@ -240,7 +259,7 @@ export function resetExtendSeamLogsForTests(): void {
 export async function loadExtendCartInputs(
   runtime: ExtendSeamRuntime,
   cart: SeamCart,
-  deps: ExtendSeamDeps = realDeps(runtime),
+  deps: ExtendSeamDeps = realExtendSeamDeps(runtime),
 ): Promise<ExtendInputsOutcome> {
   // Coverage RECOGNITION does not depend on the flag (security review E-M1): a coverage line that exists while Extend is
   // off or misconfigured (left over from an earlier session, or added through a permalink) must still be corrected,
@@ -266,12 +285,13 @@ export async function loadExtendCartInputs(
     if (note !== null) logDegradedOnce(note);
     return {
       status: 'disabled',
-      // No eligible lines from Offers while Extend is off: the empty list is the outage rule, which keeps coverage on an
-      // ordinary parent and removes it when alone or under a gift, a service or another coverage line.
+      // EXTEND OFF (the NFR-013 kill switch, or a flag-on configuration that is incomplete): no order sync will report a
+      // coverage line and no price can be judged, so EVERY coverage line is removed, with a notice (review of d068db6,
+      // Major B). The keep-coverage outage rule is only for a healthy flag with Extend unreachable (below), never for this.
       inputs: {
+        ...NO_EXTEND_INPUTS,
         coverageVariantIds: byName,
-        protectionEligibleLineIds: [],
-        coveragePlanPricesByLineId: new Map(),
+        protectionEligibleLineIds: NOTHING_ELIGIBLE,
       },
       coverageLinesInCart,
     };
@@ -309,11 +329,19 @@ export async function loadExtendCartInputs(
       string,
       readonly number[]
     > = new Map(),
+    plansByLineId: ReadonlyMap<string, readonly CoveragePlan[]> = new Map(),
   ): ExtendInputsOutcome => {
     const inputs: ExtendCartInputs = {
       coverageVariantIds,
       protectionEligibleLineIds,
       coveragePlanPricesByLineId,
+      plansByLineId,
+      coverageVariantIdByPriceCents: new Map(
+        [...index.byPriceCents].map(([cents, variant]) => [
+          cents,
+          variant.variantId,
+        ]),
+      ),
     };
     if (degraded.length === 0)
       return {status: 'ok', inputs, coverageLinesInCart};
@@ -363,18 +391,22 @@ export async function loadExtendCartInputs(
     );
     return finish([]);
   }
+  // Lines Extend was reachable for but the quote could not ask about (too many distinct sizes of one product): they are
+  // kept in the eligible list with an EMPTY price list, so any coverage on them is removed ("cannot be confirmed"), and
+  // they get no offer. Never kept unchecked (review of d068db6, Major A).
+  const unjudged = new Set(quote.unjudgedKeys ?? []);
+  if (unjudged.size > 0) degraded.push('lines-unjudged');
   const eligible = candidates
-    .filter((line) => quote.plansByKey.has(line.id))
+    .filter((line) => quote.plansByKey.has(line.id) || unjudged.has(line.id))
     .map((line) => line.id);
   const prices = new Map<string, readonly number[]>();
+  const plans = new Map<string, readonly CoveragePlan[]>();
   for (const id of eligible) {
-    prices.set(id, [
-      ...new Set(
-        (quote.plansByKey.get(id) ?? []).map((plan) => plan.priceCents),
-      ),
-    ]);
+    const quoted = unjudged.has(id) ? [] : (quote.plansByKey.get(id) ?? []);
+    plans.set(id, quoted);
+    prices.set(id, [...new Set(quoted.map((plan) => plan.priceCents))]);
   }
   return eligible.length > 0
-    ? finish(eligible, prices)
+    ? finish(eligible, prices, plans)
     : finish(NOTHING_ELIGIBLE);
 }

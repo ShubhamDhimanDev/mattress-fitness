@@ -14,6 +14,9 @@ export default defineConfig({
       'tests/integration/**/*.test.{ts,tsx}',
     ],
     environment: 'node',
+    // Hydrogen's CartForm calls react-router's hooks; left external it loads a second copy of react-router and
+    // cannot see the test's data router (B-20 tests). Processing it here makes both share one copy.
+    server: {deps: {inline: ['@shopify/hydrogen']}},
     setupFiles: ['./tests/setup.ts'],
     restoreMocks: true,
     coverage: {

@@ -3,6 +3,7 @@ import {previewRobotsMeta} from '~/lib/pages/head';
 import {shouldSecureCookie} from '~/lib/pages/my-store';
 import {
   PRIVATE_NO_STORE_HEADERS,
+  PRIVATE_REVALIDATE_HEADERS,
   forwardLoaderHeaders,
 } from '~/lib/pages/private-response';
 
@@ -41,6 +42,17 @@ describe('private responses', () => {
   it('marks the response private, no-store, varying on the cookie', () => {
     expect(PRIVATE_NO_STORE_HEADERS['Cache-Control']).toBe('private, no-store');
     expect(PRIVATE_NO_STORE_HEADERS.Vary).toBe('Cookie');
+  });
+
+  it('lets page documents be revalidated and restored from the back/forward cache, still private', () => {
+    expect(PRIVATE_REVALIDATE_HEADERS['Cache-Control']).toBe(
+      'private, no-cache',
+    );
+    expect(PRIVATE_REVALIDATE_HEADERS.Vary).toBe('Cookie');
+    // no-store is what disables the back/forward cache; it must not creep back into the document policy.
+    expect(PRIVATE_REVALIDATE_HEADERS['Cache-Control']).not.toContain(
+      'no-store',
+    );
   });
 
   it('forwards the loader headers to the response', () => {

@@ -1,13 +1,18 @@
+import {useState} from 'react';
 import {useNavigate} from 'react-router';
 import {AddToCartButton} from '~/components/AddToCartButton';
 import {useAside} from '~/components/Aside';
 import {CartMessages} from '~/components/cart/CartMessages';
 import {CompareToggle} from '~/components/compare/CompareToggle';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
+import {AddWithProtectionButton} from '~/components/extend/AddWithProtectionButton';
+import {ProtectionPanel} from '~/components/extend/ProtectionPanel';
+import {useProtectionOffers} from '~/components/extend/useProtectionOffers';
 import {Badge} from '~/components/ui/Badge';
 import {Price} from '~/components/ui/Price';
 import {SizeSelector} from '~/components/ui/SizeSelector';
 import {SIZE_OPTION_NAME, toSlug} from '~/lib/catalog/attributes';
+import type {ProtectionMode} from '~/lib/shopify/protection-mode';
 import {savingsLabel} from '~/lib/shopify/pricing';
 import type {ProductPageView, VariantView} from '~/lib/shopify/types';
 import {
@@ -22,16 +27,37 @@ import {
  * Title, price, option selectors and Add to cart (REQ-PDP-001). Choosing a size updates the URL
  * (`?Size=Queen`) and everything below from the variants already on the page, with no full reload. Price,
  * savings, SKU and availability all come from the selected variant, which came from Shopify.
+ *
+ * `protection` is decided by the loader from the server's Extend flag and the product's Extend category (P5A-05,
+ * REQ-ADD-003, NFR-002): 'off' renders nothing Extend-related from the first paint and makes no request; 'eligible'
+ * shows the accident-protection panel above the button and holds its height while it loads; 'unknown' (the category
+ * could not be read) shows it BELOW the button with no reserved space, so its answer cannot move Add to cart. A chosen
+ * plan turns the button into an add-with-protection submission.
  */
 export function ProductBuyBox({
   product,
   variant,
+  protection = 'off',
 }: {
   product: ProductPageView;
   variant: VariantView;
+  protection?: ProtectionMode;
 }) {
   const navigate = useNavigate();
   const {open} = useAside();
+  // The choice remembers its variant: switching size forgets it (a plan quoted for one size is never sent for another).
+  const [choice, setChoice] = useState<{
+    variantId: string;
+    planId: string;
+  } | null>(null);
+  const offers = useProtectionOffers(
+    variant.id,
+    protection !== 'off' && variant.available,
+  );
+  const chosenPlan =
+    offers.status === 'plans' && choice?.variantId === variant.id
+      ? (offers.plans.find((plan) => plan.planId === choice.planId) ?? null)
+      : null;
   const selection = selectionOf(variant, product.options);
   const savings = savingsLabel(variant.price, variant.compareAt);
   const attributeBadges = [
@@ -51,6 +77,17 @@ export function ProductBuyBox({
       {replace: true, preventScrollReset: true},
     );
   }
+
+  const panel = (
+    <ProtectionPanel
+      offers={offers}
+      reserveSpace={protection === 'eligible'}
+      selectedPlanId={chosenPlan?.planId ?? null}
+      onSelect={(planId) =>
+        setChoice(planId === null ? null : {variantId: variant.id, planId})
+      }
+    />
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -122,34 +159,47 @@ export function ProductBuyBox({
           );
         })}
 
-      <AddToCartButton
-        disabled={!variant.available}
-        onClick={() => open('cart')}
-        lines={[
-          {
-            merchandiseId: variant.id,
-            quantity: 1,
-            selectedVariant: {
-              id: variant.id,
-              title: variant.title,
-              availableForSale: variant.available,
-              requiresShipping: true,
-              price: variant.price,
-              compareAtPrice: variant.compareAt,
-              image: variant.image ?? product.images[0] ?? null,
-              selectedOptions: [...variant.selectedOptions],
-              product: {
-                id: product.id,
-                handle: product.handle,
-                title: product.title,
-                vendor: product.vendor,
+      {/* Accident protection for the selected size (P5A-05): above the button only when its height is reserved. */}
+      {protection === 'eligible' ? panel : null}
+
+      {chosenPlan ? (
+        <AddWithProtectionButton
+          variantId={variant.id}
+          planKey={chosenPlan.planId}
+          disabled={!variant.available}
+          onClick={() => open('cart')}
+        />
+      ) : (
+        <AddToCartButton
+          disabled={!variant.available}
+          onClick={() => open('cart')}
+          lines={[
+            {
+              merchandiseId: variant.id,
+              quantity: 1,
+              selectedVariant: {
+                id: variant.id,
+                title: variant.title,
+                availableForSale: variant.available,
+                requiresShipping: true,
+                price: variant.price,
+                compareAtPrice: variant.compareAt,
+                image: variant.image ?? product.images[0] ?? null,
+                selectedOptions: [...variant.selectedOptions],
+                product: {
+                  id: product.id,
+                  handle: product.handle,
+                  title: product.title,
+                  vendor: product.vendor,
+                },
               },
             },
-          },
-        ]}
-      >
-        {variant.available ? 'Add to cart' : 'Sold out'}
-      </AddToCartButton>
+          ]}
+        >
+          {variant.available ? 'Add to cart' : 'Sold out'}
+        </AddToCartButton>
+      )}
+      {protection === 'unknown' ? panel : null}
       <CartMessages />
       <CompareToggle handle={product.handle} title={product.title} />
 
@@ -160,7 +210,6 @@ export function ProductBuyBox({
       {/* Extension slots, each filled by its own task; they render nothing today. */}
       {/* TODO(P3B-10): store pickup availability and "try in store" (REQ-PDP-003, REQ-PDP-004). */}
       {/* TODO(P4-03): size-matched foundations, bases and frames (REQ-ADD-001). */}
-      {/* TODO(P5A-05): accident-protection offer for the selected size (REQ-EXT-001). */}
     </div>
   );
 }

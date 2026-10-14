@@ -343,6 +343,33 @@ describe('REQ-EXT-003 webhook receiver: background sync, replay and flood contro
     expect(await h.replay.seen('wh-00000001-aaaa')).toBe(true);
   });
 
+  it.each([
+    ['a failed sync', {status: 'failed'}, 'sync_failed'],
+    [
+      'a failed detective read when there was no sync',
+      {status: 'failed', source: 'detective'},
+      'detective_failed',
+    ],
+  ] satisfies [string, ProcessOutcome, string][])(
+    'logs %s as %s, and never marks the id seen',
+    async (_name, outcome, reason) => {
+      const h = harness(() => Promise.resolve(outcome));
+      await send(h);
+      await h.drain();
+      expect(await h.replay.seen('wh-00000001-aaaa')).toBe(false);
+      expect(
+        h.logs.filter((e) => e.event === 'webhook.background_failed'),
+      ).toEqual([
+        {
+          level: 'error',
+          event: 'webhook.background_failed',
+          orderId: '7001',
+          reason,
+        },
+      ]);
+    },
+  );
+
   it('acknowledges a repeated webhook id without syncing again', async () => {
     const h = harness();
     await send(h);

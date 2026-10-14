@@ -63,7 +63,7 @@ export type CartLineFragment = Pick<
   };
   merchandise: Pick<
     StorefrontAPI.ProductVariant,
-    'id' | 'availableForSale' | 'requiresShipping' | 'title'
+    'id' | 'availableForSale' | 'requiresShipping' | 'title' | 'sku'
   > & {
     compareAtPrice?: StorefrontAPI.Maybe<
       Pick<StorefrontAPI.MoneyV2, 'currencyCode' | 'amount'>
@@ -96,7 +96,7 @@ export type CartLineComponentFragment = Pick<
   };
   merchandise: Pick<
     StorefrontAPI.ProductVariant,
-    'id' | 'availableForSale' | 'requiresShipping' | 'title'
+    'id' | 'availableForSale' | 'requiresShipping' | 'title' | 'sku'
   > & {
     compareAtPrice?: StorefrontAPI.Maybe<
       Pick<StorefrontAPI.MoneyV2, 'currencyCode' | 'amount'>
@@ -125,7 +125,7 @@ export type CartLineComponentFragment = Pick<
       };
       merchandise: Pick<
         StorefrontAPI.ProductVariant,
-        'id' | 'availableForSale' | 'requiresShipping' | 'title'
+        'id' | 'availableForSale' | 'requiresShipping' | 'title' | 'sku'
       > & {
         compareAtPrice?: StorefrontAPI.Maybe<
           Pick<StorefrontAPI.MoneyV2, 'currencyCode' | 'amount'>
@@ -188,7 +188,7 @@ export type CartApiQueryFragment = Pick<
           };
           merchandise: Pick<
             StorefrontAPI.ProductVariant,
-            'id' | 'availableForSale' | 'requiresShipping' | 'title'
+            'id' | 'availableForSale' | 'requiresShipping' | 'title' | 'sku'
           > & {
             compareAtPrice?: StorefrontAPI.Maybe<
               Pick<StorefrontAPI.MoneyV2, 'currencyCode' | 'amount'>
@@ -226,7 +226,7 @@ export type CartApiQueryFragment = Pick<
           };
           merchandise: Pick<
             StorefrontAPI.ProductVariant,
-            'id' | 'availableForSale' | 'requiresShipping' | 'title'
+            'id' | 'availableForSale' | 'requiresShipping' | 'title' | 'sku'
           > & {
             compareAtPrice?: StorefrontAPI.Maybe<
               Pick<StorefrontAPI.MoneyV2, 'currencyCode' | 'amount'>
@@ -264,7 +264,7 @@ export type CartApiQueryFragment = Pick<
               };
               merchandise: Pick<
                 StorefrontAPI.ProductVariant,
-                'id' | 'availableForSale' | 'requiresShipping' | 'title'
+                'id' | 'availableForSale' | 'requiresShipping' | 'title' | 'sku'
               > & {
                 compareAtPrice?: StorefrontAPI.Maybe<
                   Pick<StorefrontAPI.MoneyV2, 'currencyCode' | 'amount'>

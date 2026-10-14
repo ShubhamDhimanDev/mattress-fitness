@@ -4,6 +4,7 @@
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import type {
   CartHandlerLike,
+  CartLineAddInput,
   CartMutationResult,
 } from '~/lib/offers-runtime/server';
 
@@ -23,6 +24,8 @@ export const GID = {
   pillowVariant: 'gid://shopify/ProductVariant/51',
   otherVariant: 'gid://shopify/ProductVariant/91',
   coverageVariant: 'gid://shopify/ProductVariant/61',
+  coverageHigh: 'gid://shopify/ProductVariant/62',
+  coverageProduct: 'gid://shopify/Product/900',
 } as const;
 
 export const CONFIG = {
@@ -191,6 +194,16 @@ export class FakeCart implements CartHandlerLike {
     return this.specs.map((line) => line.id);
   }
 
+  /** A copy of one line as the fake holds it, for assertions on parent and attributes. */
+  lineSpec(lineId: string): LineSpec | undefined {
+    const found = this.specs.find((line) => line.id === lineId);
+    return found ? {...found} : undefined;
+  }
+
+  allSpecs(): LineSpec[] {
+    return this.specs.map((line) => ({...line}));
+  }
+
   quantityOf(lineId: string): number | undefined {
     return this.specs.find((line) => line.id === lineId)?.quantity;
   }
@@ -245,21 +258,75 @@ export class FakeCart implements CartHandlerLike {
     return Promise.resolve(this.done());
   }
 
-  addLines(
-    lines: Array<{merchandiseId: string; quantity: number}>,
-  ): Promise<CartMutationResult> {
+  /** The calls this fake would refuse like Shopify does: a parent that cannot be resolved (F-26). */
+  failOnBadParent = true;
+
+  addLines(lines: CartLineAddInput[]): Promise<CartMutationResult> {
     this.calls.push({method: 'addLines', lines});
-    if (!this.failing()) {
-      for (const line of lines) {
-        this.specs.push({
-          id: `gid://shopify/CartLine/new-${this.nextLine++}`,
-          variantId: line.merchandiseId,
-          productId: productOfVariant(line.merchandiseId),
-          quantity: line.quantity,
-          size: sizeOfVariant(line.merchandiseId),
-        });
+    if (this.failing()) return Promise.resolve(this.done());
+    // Shopify resolves a parent by variant only among the lines of the SAME request, and by line id among existing lines.
+    const idsInRequest = new Map<string, string>();
+    const planned = lines.map((line) => {
+      const id = `gid://shopify/CartLine/new-${this.nextLine++}`;
+      if (!idsInRequest.has(line.merchandiseId)) {
+        idsInRequest.set(line.merchandiseId, id);
+      }
+      return {line, id};
+    });
+    const resolved: Array<string | undefined> = [];
+    for (const {line} of planned) {
+      const parent = line.parent;
+      if (!parent) {
+        resolved.push(undefined);
+      } else if ('lineId' in parent) {
+        const found = this.specs.find((spec) => spec.id === parent.lineId);
+        if (!found && this.failOnBadParent) {
+          return Promise.resolve({
+            cart: this.snapshot(),
+            userErrors: [{message: 'PARENT_LINE_NOT_FOUND'}],
+          });
+        }
+        resolved.push(parent.lineId);
+      } else {
+        const sameRequest = idsInRequest.get(parent.merchandiseId);
+        if (!sameRequest && this.failOnBadParent) {
+          return Promise.resolve({
+            cart: this.snapshot(),
+            userErrors: [{message: 'PARENT_LINE_INVALID_REFERENCE'}],
+          });
+        }
+        resolved.push(sameRequest);
       }
     }
+    planned.forEach(({line, id}, index) => {
+      const parentId = resolved[index];
+      // Identical plain lines merge, as in Shopify's cart.
+      const twin =
+        parentId === undefined && !line.attributes?.length
+          ? this.specs.find(
+              (spec) =>
+                spec.variantId === line.merchandiseId &&
+                spec.parentId === undefined &&
+                !spec.attributes?.length,
+            )
+          : undefined;
+      if (twin) {
+        twin.quantity = (twin.quantity ?? 1) + line.quantity;
+        return;
+      }
+      this.specs.push({
+        id,
+        variantId: line.merchandiseId,
+        productId: productOfVariant(line.merchandiseId),
+        quantity: line.quantity,
+        size: sizeOfVariant(line.merchandiseId),
+        ...(line.attributes ? {attributes: line.attributes} : {}),
+        ...(parentId ? {parentId} : {}),
+        ...(PRICE_OF_VARIANT[line.merchandiseId] !== undefined
+          ? {priceCents: PRICE_OF_VARIANT[line.merchandiseId]}
+          : {}),
+      });
+    });
     return Promise.resolve(this.done());
   }
 
@@ -281,6 +348,13 @@ const VARIANT_PRODUCT: Record<string, string> = {
   [GID.haulVariant]: GID.haul,
   [GID.pillowVariant]: GID.pillow,
   [GID.otherVariant]: GID.other,
+  [GID.coverageVariant]: GID.coverageProduct,
+  [GID.coverageHigh]: GID.coverageProduct,
+};
+// Extend price-point variants (coverage-catalog fixtures): their Shopify price equals the price in their name.
+const PRICE_OF_VARIANT: Record<string, number | undefined> = {
+  [GID.coverageVariant]: 7999,
+  [GID.coverageHigh]: 9999,
 };
 const VARIANT_SIZE: Record<string, string> = {
   [GID.mattressQueen]: 'Queen',

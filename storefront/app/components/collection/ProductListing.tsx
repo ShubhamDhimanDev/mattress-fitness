@@ -149,20 +149,21 @@ export function ProductListing({
           <>
             <h2 className="sr-only">Products</h2>
             <ul className="mt-4 grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 xl:grid-cols-4">
-              {placePromoTiles(list.products, promoTiles).map((item) =>
-                item.kind === 'tile' ? (
-                  <li key={`tile-${item.tile.id}`}>
-                    <PromoTileCard tile={item.tile} />
-                  </li>
-                ) : (
-                  <li key={item.product.id}>
-                    <ProductItem
-                      product={item.product}
-                      index={item.productIndex}
-                      loading={item.productIndex < 4 ? 'eager' : 'lazy'}
-                    />
-                  </li>
-                ),
+              {placePromoTiles(list.products, promoTiles, list.hasMore).map(
+                (item) =>
+                  item.kind === 'tile' ? (
+                    <li key={`tile-${item.tile.id}`}>
+                      <PromoTileCard tile={item.tile} />
+                    </li>
+                  ) : (
+                    <li key={item.product.id}>
+                      <ProductItem
+                        product={item.product}
+                        index={item.productIndex}
+                        loading={item.productIndex < 4 ? 'eager' : 'lazy'}
+                      />
+                    </li>
+                  ),
               )}
             </ul>
             {list.hasMore && list.nextHref ? (

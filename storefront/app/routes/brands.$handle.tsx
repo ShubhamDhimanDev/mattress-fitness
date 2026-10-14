@@ -1,5 +1,5 @@
 import {keyedText} from '~/lib/shopify/keys';
-import {useLoaderData} from 'react-router';
+import {data as respond, useLoaderData} from 'react-router';
 import type {Route} from './+types/brands.$handle';
 import {BrandHeader} from '~/components/brand/BrandHeader';
 import {ProductListing} from '~/components/collection/ProductListing';
@@ -19,6 +19,12 @@ const MAX_DESCRIPTION_LENGTH = 160;
 
 export const meta: Route.MetaFunction = ({data}) => {
   if (!data) return [{title: formatPageTitle('Brand not found')}];
+  if (data.status === 'unavailable') {
+    return [
+      {title: formatPageTitle('Brand')},
+      {name: 'robots', content: 'noindex'},
+    ];
+  }
   const description = data.brand.about[0]?.slice(0, MAX_DESCRIPTION_LENGTH);
   return [
     ...previewRobotsMeta(data.source),
@@ -41,23 +47,29 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     context.storefront,
     params.handle ?? '',
     state,
+    // Sample brands are a development aid; production never shows them.
+    {allowFixtures: !import.meta.env.PROD},
   );
   if (page.status === 'not-found') {
     throw new Response('Brand not found', {status: 404});
   }
+  if (page.status === 'unavailable') {
+    // A temporary failure, not a missing page and not a crash: 503 keeps crawlers from dropping the URL.
+    return respond({status: 'unavailable' as const}, {status: 503});
+  }
 
-  // Never the request's Host (P-L2); relative URLs when no site origin is configured.
-  const origin =
-    resolveSiteOrigin({
-      env: context.env,
-      requestUrl: request.url,
-      isDev: import.meta.env.DEV,
-    }) ?? '';
+  // Never the request's Host (P-L2); no site origin means no absolute URLs in structured data.
+  const siteOrigin = resolveSiteOrigin({
+    env: context.env,
+    requestUrl: request.url,
+    isDev: import.meta.env.DEV,
+  });
+  const origin = siteOrigin ?? '';
   // Sample brands are fictional and noindex: no structured data for them.
   const real = page.source === 'shopify';
   return {
     ...page,
-    jsonLd: real ? buildBrandJsonLd(page.brand, origin) : null,
+    jsonLd: real ? buildBrandJsonLd(page.brand, siteOrigin) : null,
     breadcrumbJsonLd: buildBreadcrumbJsonLd(
       [
         {name: 'Home', path: '/'},
@@ -71,6 +83,22 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
 
 export default function BrandPage() {
   const data = useLoaderData<typeof loader>();
+  if (data.status === 'unavailable') {
+    return (
+      <div className="py-4">
+        <Breadcrumb
+          items={[
+            {label: 'Home', to: '/'},
+            {label: 'Brands', to: '/brands'},
+          ]}
+        />
+        <h1 className="mt-2 text-3xl font-bold">Brand</h1>
+        <p className="mt-6 text-base text-fg-muted">
+          This brand is not available right now. Please try again in a moment.
+        </p>
+      </div>
+    );
+  }
   const {brand} = data;
   const real = data.source === 'shopify';
 

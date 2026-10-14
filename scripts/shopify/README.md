@@ -18,7 +18,14 @@ node scripts/shopify/apply-definitions.mjs --store x.myshopify.com --live
 - Dry run is the default; `--live` needs `SHOPIFY_ALLOWED_STORES` to list the store and `SHOPIFY_ADMIN_API_ACCESS_TOKEN` to be set (see `scripts/catalog/README.md`, section 5). Without them it exits with code 3 before sending anything.
 - One failing definition does not stop the others; failures are listed and the exit code is 1. Re-running creates only what is missing.
 - Not done by this tool, on purpose: **Search and Discovery filter configuration**. The Admin API calls used here do not configure storefront filters; this stays a manual step in the import checklist (V-04).
-- Field `type` of `homepage_section`, the shape of `quiz_option.scoring_rules` and the `offer_rule.price_source` values are intentionally open text or JSON until Phases 3B, 4 and 6 fix them; nothing invented.
+- The shape of `quiz_option.scoring_rules` and the `offer_rule.price_source` values are intentionally open text or JSON until Phases 4 and 6 fix them; nothing invented.
+
+### Conventions encoded in definitions.json
+
+- **`homepage_section.type`** is fixed to eight choices: `hero`, `promo-banner`, `shop-by-size`, `featured`, `brands`, `categories`, `financing`, `signup`. `hero`, `promo-banner` and `financing` show the heading, body, image and link; `shop-by-size`, `featured`, `brands` and `categories` fill themselves from the catalog and use only the heading, order and enabled switch; `signup` is reserved for the signup form (P7-02) and shows nothing until then. The storefront lists the same values (`HOMEPAGE_SECTION_TYPES`) and a test keeps the two in step, so a change to one needs the other. Because this tool never modifies an existing definition, adding a value to a store that already has the definition is a manual change in admin or a deliberate migration; the tool will report it as `DIFF`.
+- **`homepage_section.link_label`** is optional text for the button of the section's link. Empty means the heading itself is the link. `link`, here and on `promo_tile` and `site_settings.promo_bar_link`, is plain text (a relative path or an https URL) because Shopify's `url` type rejects relative paths; the storefront validates it against an allow-list. `order` is a required whole number (smaller first); `enabled` switches a section on.
+- **`promo_tile`**: `collection` and `heading` and `position` are required; `position` has a minimum of 1 and counts products and tiles together (1 is first, 4 is the fourth cell); a tile beyond the products shown waits for "Load more"; without a valid link the tile is shown but not clickable.
+- **`brand`**: `name` and `slug` are required; `slug` must be lowercase and hyphenated and must equal the metaobject handle, because the product importer finds the brand by it. Products point to a brand through `custom.brand`.
 
 ## check-delivery-parity.mjs
 

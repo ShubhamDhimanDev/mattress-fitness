@@ -15,7 +15,10 @@ export const meta: Route.MetaFunction = ({data}) => [
 ];
 
 export async function loader({context}: Route.LoaderArgs) {
-  return loadBrandsIndex(context.storefront);
+  // Sample brands are a development aid; production never shows them.
+  return loadBrandsIndex(context.storefront, {
+    allowFixtures: !import.meta.env.PROD,
+  });
 }
 
 export default function BrandsIndex() {

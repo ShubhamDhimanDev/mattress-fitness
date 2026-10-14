@@ -48,13 +48,19 @@ export type CoveragePlan = {
 };
 
 export type CoverageUnavailableReason =
-  'disabled' | 'no_price_points' | 'unjudged_lines' | OffersFailureReason;
+  'disabled' | 'no_price_points' | OffersFailureReason;
 
 export type CoverageQuote =
   | {
       status: 'ok';
       /** Items that can be covered, with at least one sellable plan. An item missing here has no offer. */
       plansByKey: ReadonlyMap<string, readonly CoveragePlan[]>;
+      /**
+       * Items Extend WAS reachable for but that this call could not ask about (a cart with more distinct sizes of one
+       * product than MAX_QUOTE_BATCHES). They are neither "no plan" nor an outage: the cart gate must NOT keep coverage
+       * on them unchecked, so it removes it with a notice (review of d068db6, Major A).
+       */
+      unjudgedKeys?: readonly string[];
     }
   | {status: 'unavailable'; reason: CoverageUnavailableReason};
 
@@ -66,7 +72,7 @@ type MemoValue =
   | {status: 'unavailable'; reason: CoverageUnavailableReason};
 
 /**
- * Short-lived memory of Extend's answers, keyed by the request (product, category, price, quantity: no personal data).
+ * Short-lived memory of Extend's answers, keyed by the request (product, category, price: no personal data, and no quantity, see QUOTE_QUANTITY).
  * It spares Extend repeated identical questions from cart reloads and revalidation passes (T-13) and gives an outage a
  * short negative memory so every page load does not wait for the timeout again (NFR-013). Per isolate, best effort.
  */
@@ -122,10 +128,24 @@ export type QuoteDeps = {
 
 /** The Offers API accepts a handful of items per request. */
 export const MAX_QUOTE_ITEMS = 50;
-/** A cart with more distinct sizes of one product than this is not judged (see 'unjudged_lines'). */
-export const MAX_QUOTE_BATCHES = 3;
+/**
+ * Requests one quote may make (one per distinct price of a single product). Raised from 3 so an ordinary
+ * multi-size cart is judged in full; the batches run in parallel and every answer is remembered, so the cost is bounded
+ * and a repeat visit costs nothing. Lines beyond the cap are `unjudgedKeys`, never kept unchecked.
+ */
+export const MAX_QUOTE_BATCHES = 8;
 
-/** One question for Extend: a product at a price and quantity, and every cart line that shares it. */
+/**
+ * The quantity every Offers request carries (security review N-M1). Extend's documented plan fields (id, price, title,
+ * contract, url) are per covered item and price and carry no quantity; the mock bands plans by price and category only.
+ * So quantity is NOT part of the question: a cart line of 99 gets the same plans as a line of 1, and the memo, the limiter
+ * and the Extend call count depend on (product, category, price) only. ASSUMPTION(V-11): if Extend's real plan list or price
+ * turns out to depend on quantity, bucket it here (for example 1 versus 2 or more) and in the memo key together, and
+ * count the bucket in the route's limiter. Coverage quantity itself still follows the covered line (offers/protection.ts).
+ */
+export const QUOTE_QUANTITY = 1;
+
+/** One question for Extend: a product at a price, and every cart line that shares it. */
 type Requested = {
   item: CoverageItem;
   productId: string;
@@ -134,7 +154,7 @@ type Requested = {
 };
 
 /**
- * Lines that share product, category, price and quantity are one question. Extend identifies items by `productId`, so
+ * Lines that share product, category and price are one question, whatever their quantities. Extend identifies items by `productId`, so
  * two lines of the same product at DIFFERENT prices (a Twin XL and a Queen) cannot share a request; they go into
  * separate batches, one request each, so every line is quoted at its own price band. Items without a category or a
  * readable id are not eligible and are not sent.
@@ -144,7 +164,7 @@ function batchesOf(items: readonly CoverageItem[]): Requested[][] {
   for (const item of items) {
     const productId = normalizeShopifyId(item.productId);
     if (productId === null || item.category === null) continue;
-    const id = `${productId}|${item.category}|${item.unitPriceCents}|${item.quantity}`;
+    const id = `${productId}|${item.category}|${item.unitPriceCents}`;
     const existing = groups.get(id);
     if (existing) existing.keys.push(item.key);
     else
@@ -165,13 +185,12 @@ function batchesOf(items: readonly CoverageItem[]): Requested[][] {
   return batches;
 }
 
-// Quantity stays in the memo key on purpose: the Offers request carries it and Extend does not document whether plans
-// or prices depend on it, so an answer for one quantity must not be reused for another (EXTEND.md section 3).
+// Quantity is deliberately NOT in the memo key (see QUOTE_QUANTITY): cycling it must not cost an Extend call.
 function signature(requested: readonly Requested[]): string {
   return requested
     .map(
       ({productId, category, item}) =>
-        `${productId}|${category}|${item.unitPriceCents}|${item.quantity}`,
+        `${productId}|${category}|${item.unitPriceCents}`,
     )
     .sort()
     .join(',');
@@ -189,23 +208,30 @@ export async function quoteCoverage(
   if (deps.index.byPriceCents.size === 0) {
     return {status: 'unavailable', reason: 'no_price_points'};
   }
-  // Lines the quote cannot cover in full are NOT judged: the caller then applies the outage rule (keep coverage on a
-  // regular parent) instead of removing coverage from a line nobody asked about.
-  if (
-    batches.length > MAX_QUOTE_BATCHES ||
-    batches.some((batch) => batch.length > MAX_QUOTE_ITEMS)
-  ) {
-    return {status: 'unavailable', reason: 'unjudged_lines'};
-  }
-
   const plansByKey = new Map<string, readonly CoveragePlan[]>();
-  for (const requested of batches) {
-    const memoKey = signature(requested);
-    let value = deps.memo.get(memoKey);
-    if (value === undefined) {
-      value = await askExtend(deps, requested);
-      deps.memo.set(memoKey, value);
+  const unjudgedKeys: string[] = [];
+  const askable: Requested[][] = [];
+  batches.forEach((batch, index) => {
+    if (index >= MAX_QUOTE_BATCHES || batch.length > MAX_QUOTE_ITEMS) {
+      // Extend is not asked about these; the caller removes coverage on them rather than keep it unchecked.
+      for (const requested of batch) unjudgedKeys.push(...requested.keys);
+    } else {
+      askable.push(batch);
     }
+  });
+
+  const answers = await Promise.all(
+    askable.map(async (requested) => {
+      const memoKey = signature(requested);
+      let value = deps.memo.get(memoKey);
+      if (value === undefined) {
+        value = await askExtend(deps, requested);
+        deps.memo.set(memoKey, value);
+      }
+      return {requested, value};
+    }),
+  );
+  for (const {requested, value} of answers) {
     if (value.status === 'unavailable') return value;
     for (const {productId, keys} of requested) {
       const plans = value.plansByProductId.get(productId);
@@ -213,7 +239,9 @@ export async function quoteCoverage(
       for (const key of keys) plansByKey.set(key, plans);
     }
   }
-  return {status: 'ok', plansByKey};
+  return unjudgedKeys.length > 0
+    ? {status: 'ok', plansByKey, unjudgedKeys}
+    : {status: 'ok', plansByKey};
 }
 
 async function askExtend(
@@ -225,7 +253,7 @@ async function askExtend(
       category,
       productId,
       purchasePriceCents: item.unitPriceCents,
-      quantity: item.quantity,
+      quantity: QUOTE_QUANTITY,
     }),
   );
   const result = await fetchOffers(

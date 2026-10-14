@@ -12,6 +12,8 @@
 // The Admin documents are deliberately NOT tagged `#graphql`: Hydrogen's codegen validates tagged documents against
 // the Storefront schema and would reject them.
 
+import {SIZE_OPTION_NAME, toSlug} from '~/lib/catalog/attributes';
+import type {DetectiveFacts, DetectiveOrder} from '~/lib/detective/types';
 import type {
   ShopifyAddressLike,
   ShopifyCustomerLike,
@@ -274,6 +276,227 @@ export function parseAdminOrder(node: unknown): ParseOrderResult {
       refundState: refundStateOf(node.displayFinancialStatus),
       customer: customerOf(node),
       lineItems: lines,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Detective read (P5B-05). A SEPARATE, leaner document, on purpose:
+// - Query cost. Shopify rejects a query whose requested cost is over 1,000 points, and requested cost is counted from the
+//   `first:` arguments, not from what comes back. The Extend document above is already close to that limit with 100
+//   line items, so adding the fields below to it could push the order read the Extend sync depends on over the limit.
+//   ASSUMPTION(V-20): Shopify's rule is roughly one point per object and none per scalar; the figures here are
+//   estimates to be confirmed against the extensions.cost of a real response on the development store.
+// - Personal data. The detective needs only the shipping ZIP and country, never a name, email, phone or street, so those
+//   fields are not requested at all.
+// Fields checked against shopify.dev (Admin GraphQL, latest) on 2026-10-14: Order.customAttributes ([Attribute!]!),
+// Order.shippingAddress (MailingAddress, null when no shipping is needed), ProductVariant.selectedOptions
+// ([SelectedOption!]!). UNVERIFIED(V-20) until a development-store order shows them: that cart attributes (delivery_choice)
+// are copied to Order.customAttributes, and that a local-pickup order has a null shippingAddress.
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Lines read per order. A bigger order is unjudgeable (truncated), never judged on a sample. */
+export const DETECTIVE_LINE_PAGE_SIZE = 50;
+
+/** Orders per page for the report script: 2 x (50 lines x about 8 objects) stays under the 1,000 point limit (estimate, V-20). */
+export const DETECTIVE_ORDERS_PAGE_SIZE = 2;
+
+const DETECTIVE_FRAGMENT = `
+fragment DetectiveOrderFields on Order {
+  id
+  name
+  createdAt
+  cancelledAt
+  currencyCode
+  displayFinancialStatus
+  totalPriceSet { shopMoney { amount currencyCode } }
+  customAttributes { key value }
+  shippingAddress { countryCodeV2 zip }
+  lineItems(first: ${DETECTIVE_LINE_PAGE_SIZE}) {
+    pageInfo { hasNextPage }
+    nodes {
+      id
+      title
+      variantTitle
+      sku
+      quantity
+      currentQuantity
+      originalUnitPriceSet { shopMoney { amount currencyCode } }
+      customAttributes { key value }
+      product { id metafield(namespace: "${CATEGORY_NAMESPACE}", key: "${CATEGORY_KEY}") { value } }
+      variant { id selectedOptions { name value } }
+    }
+  }
+}`;
+
+export const DETECTIVE_ORDER_BY_ID_QUERY = `query DetectiveOrderById($id: ID!) {
+  order(id: $id) { ...DetectiveOrderFields }
+}
+${DETECTIVE_FRAGMENT}`;
+
+// reverse: true is load-bearing. The report stops at --limit, and Shopify's default direction is oldest first, so without
+// it a truncated run would drop the NEWEST orders, the ones most likely to still be actionable. With it the run keeps the
+// newest `limit` orders and drops the oldest.
+export const DETECTIVE_ORDERS_PAGE_QUERY = `query DetectiveOrdersPage($first: Int!, $after: String, $query: String) {
+  orders(first: $first, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
+    pageInfo { hasNextPage endCursor }
+    nodes { ...DetectiveOrderFields }
+  }
+}
+${DETECTIVE_FRAGMENT}`;
+
+export type ParseDetectiveResult =
+  | {status: 'ok'; order: DetectiveOrder}
+  | {status: 'error'; reason: ParseOrderFailure; detail: string};
+
+const SIZE_KEY = toSlug(SIZE_OPTION_NAME);
+
+/** The Size option of a variant node: undefined when the shape is wrong, null when there is simply no Size option. */
+function sizeOfVariant(variant: unknown): string | null | undefined {
+  if (variant === null) return null;
+  if (!isRecord(variant) || !Array.isArray(variant.selectedOptions)) {
+    return undefined;
+  }
+  const options: readonly unknown[] = variant.selectedOptions;
+  for (const option of options) {
+    if (!isRecord(option)) return undefined;
+    const name = text(option.name, 100);
+    if (name !== null && toSlug(name) === SIZE_KEY) {
+      return text(option.value, 100);
+    }
+  }
+  return null;
+}
+
+function detectiveLineOf(
+  value: unknown,
+): {line: ShopifyOrderLineLike; size: string | null} | null {
+  if (!isRecord(value)) return null;
+  const id = text(value.id, 100);
+  const title = text(value.title, 500);
+  const quantity = count(value.quantity);
+  const current = count(value.currentQuantity);
+  const unitPriceCents = moneyCents(value.originalUnitPriceSet);
+  const attributes = attributesOf(value.customAttributes);
+  const size = sizeOfVariant(value.variant ?? null);
+  if (
+    id === null ||
+    title === null ||
+    quantity === null ||
+    current === null ||
+    unitPriceCents === null ||
+    attributes === null ||
+    size === undefined
+  ) {
+    return null;
+  }
+  const product = isRecord(value.product) ? value.product : null;
+  const variant = isRecord(value.variant) ? value.variant : null;
+  const metafield = isRecord(product?.metafield) ? product.metafield : null;
+  return {
+    size,
+    line: {
+      id,
+      productId: text(product?.id, 100),
+      variantId: text(variant?.id, 100),
+      sku: text(value.sku, 200),
+      title,
+      variantTitle: text(value.variantTitle, 200),
+      quantity,
+      refundedQuantity: Math.max(0, quantity - current),
+      // Not read: the detective never looks at fulfilment or at the discounted price, and asking for them would raise the
+      // query cost. Neutral values keep the shared order type satisfied; nothing in app/lib/detective reads them.
+      fulfilledQuantity: 0,
+      unitPriceCents,
+      paidUnitPriceCents: unitPriceCents,
+      category: text(metafield?.value, 64),
+      attributes,
+      parentLineItemId: null,
+    },
+  };
+}
+
+function shippingOf(value: unknown): ShopifyAddressLike | null | undefined {
+  if (value === null) return null;
+  if (!isRecord(value)) return undefined;
+  return {
+    address1: null,
+    address2: null,
+    city: null,
+    countryCode: text(value.countryCodeV2, 2),
+    postalCode: text(value.zip, 20),
+    province: null,
+  };
+}
+
+/** Maps one Admin order node read with the detective document. Anything missing or malformed is an error, never a guess. */
+export function parseDetectiveOrder(node: unknown): ParseDetectiveResult {
+  const malformed = (detail: string): ParseDetectiveResult => ({
+    status: 'error',
+    reason: 'malformed',
+    detail,
+  });
+  if (!isRecord(node)) return malformed('order');
+  const id = text(node.id, 100);
+  const name = text(node.name, 50);
+  const createdAt = text(node.createdAt, 40);
+  const currency = text(node.currencyCode, 3);
+  const totalCents = moneyCents(node.totalPriceSet);
+  const orderAttributes = attributesOf(node.customAttributes);
+  const shipping = shippingOf(node.shippingAddress ?? null);
+  if (
+    id === null ||
+    name === null ||
+    createdAt === null ||
+    currency === null ||
+    totalCents === null ||
+    orderAttributes === null ||
+    shipping === undefined
+  ) {
+    return malformed('order fields');
+  }
+  const lineItems = node.lineItems;
+  if (!isRecord(lineItems) || !Array.isArray(lineItems.nodes)) {
+    return malformed('line items');
+  }
+  const page = isRecord(lineItems.pageInfo) ? lineItems.pageInfo : null;
+  if (page === null || typeof page.hasNextPage !== 'boolean') {
+    return malformed('line item page info');
+  }
+  if (page.hasNextPage || lineItems.nodes.length > DETECTIVE_LINE_PAGE_SIZE) {
+    return {status: 'error', reason: 'truncated', detail: 'line items'};
+  }
+  const lines: ShopifyOrderLineLike[] = [];
+  const sizeByLineId = new Map<string, string | null>();
+  for (const [index, entry] of lineItems.nodes.entries()) {
+    const mapped = detectiveLineOf(entry);
+    if (mapped === null) return malformed(`line ${index}`);
+    lines.push(mapped.line);
+    sizeByLineId.set(mapped.line.id, mapped.size);
+  }
+  const facts: DetectiveFacts = {attributes: orderAttributes, sizeByLineId};
+  return {
+    status: 'ok',
+    order: {
+      order: {
+        id,
+        name,
+        currency,
+        createdAt,
+        totalCents,
+        cancelledAt: text(node.cancelledAt, 40),
+        refundState: refundStateOf(node.displayFinancialStatus),
+        // No name, email, phone or street is requested; only the shipping ZIP and country (see above).
+        customer: {
+          name: null,
+          email: null,
+          phone: null,
+          billingAddress: null,
+          shippingAddress: shipping,
+        },
+        lineItems: lines,
+      },
+      facts,
     },
   };
 }

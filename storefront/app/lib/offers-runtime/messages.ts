@@ -96,6 +96,7 @@ function describeReason(reason: Correction['reason']): string {
     case 'coverage-price-mismatch':
       return 'A protection plan was removed because its price no longer matches the item it covers. You can add protection again.';
     case 'orphan-coverage':
+      return 'A protection plan was removed because it is not linked to an item it can cover, or protection is not available right now.';
     case 'coverage-exceeds-item':
       return 'A protection plan was adjusted because it has to stay linked to the item it covers.';
     default: {
@@ -134,4 +135,34 @@ export const DELIVERY_STEP_FAILURE_TEXT: Record<DeliveryStepFailure, string> = {
     'Recycling and disposal is already in your cart. Remove it from your cart first if you no longer want it.',
   'haul-away-unavailable':
     'Recycling and disposal is not available right now. You can continue to checkout without it.',
+};
+
+/**
+ * Why adding or declining Extend protection could not be applied (P5A-05, P5A-07). Fixed text; nothing from the request
+ * is echoed. Wording is placeholder copy until the client approves it (Q-005, CLR-010). Every code leaves the shopper
+ * able to continue without protection.
+ */
+export type ProtectionStepFailure =
+  | 'protection-unavailable'
+  | 'protection-plan-unknown'
+  | 'protection-not-allowed'
+  | 'protection-not-offered'
+  | 'protection-add-failed'
+  | 'protection-partial';
+
+export const PROTECTION_STEP_FAILURE_TEXT: Record<
+  ProtectionStepFailure,
+  string
+> = {
+  'protection-unavailable':
+    'Protection is not available for this item right now. Your cart was not changed. You can add the item without protection.',
+  'protection-plan-unknown':
+    'That protection plan is no longer offered for this item. Your cart was not changed. Please choose again or continue without protection.',
+  'protection-not-allowed': 'Protection cannot be added to that item.',
+  'protection-not-offered':
+    'Protection is not being offered on your cart right now. You can continue to checkout.',
+  'protection-add-failed':
+    'We could not add protection to your cart. Your cart was not changed. You can try again or continue without it.',
+  'protection-partial':
+    'Your item was added, but we could not add its protection plan. You can add protection from your cart or continue without it.',
 };

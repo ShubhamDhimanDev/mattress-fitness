@@ -20,6 +20,9 @@ export const PROMO_FIELDS = {
   enabled: 'enabled',
 } as const;
 
+/** How many `promo_tile` entries one read returns (the query is not paged). */
+export const PROMO_TILE_READ_CAP = 100;
+
 const MAX_HEADING_LENGTH = 80;
 /** Positions beyond this are not a realistic grid cell; they are ignored. */
 const MAX_POSITION = 200;
@@ -113,6 +116,13 @@ export async function loadPromoTiles(
     const {tiles} = await storefront.query(PROMO_TILES_QUERY, {
       cache: catalogCache(storefront),
     });
+    // A full page may mean more entries exist than were read. Tiles are decoration, so the grid still
+    // renders, but the count is logged so the cap is noticed before a tile silently disappears.
+    if (tiles.nodes.length >= PROMO_TILE_READ_CAP) {
+      console.error(
+        `[collection] promo tiles: read cap of ${PROMO_TILE_READ_CAP} entries reached; later entries are not shown`,
+      );
+    }
     return mapPromoTiles(tiles.nodes, collectionHandle);
   } catch {
     // No error text is logged: it can quote the request (T-05).

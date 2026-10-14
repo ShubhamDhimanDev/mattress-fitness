@@ -5,20 +5,31 @@ import {CartMain} from '~/components/CartMain';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {
   validateAddLines,
+  validateAddProtection,
+  validateAddWithProtection,
   validateDiscountCodes,
   validateLineIds,
   validateSizeChange,
   validateUpdateLines,
 } from '~/lib/cart/actions';
-import {CHANGE_SIZE_ACTION} from '~/lib/cart/custom-actions';
+import {
+  ADD_PROTECTION_ACTION,
+  ADD_WITH_PROTECTION_ACTION,
+  CHANGE_SIZE_ACTION,
+} from '~/lib/cart/custom-actions';
 import {isSameOriginRequest, noStoreHeaders} from '~/lib/cart/http';
 import {safeRedirectPath} from '~/lib/cart/input';
 import {
   revalidateCartOffers,
+  stepFailureText,
   swapLineSize,
   type CartMutationResult,
 } from '~/lib/offers-runtime/server';
 import {readSmallForm} from '~/lib/delivery-runtime/form';
+import {
+  addItemWithProtection,
+  addProtectionToLine,
+} from '~/lib/offers-runtime/protection-steps';
 import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
 
 export const meta: Route.MetaFunction = () => [
@@ -79,6 +90,8 @@ export async function action({request, context}: Route.ActionArgs) {
   const {action, inputs} = parsed;
 
   let result: CartMutationResult;
+  // Fixed texts for a change that went through only in part (never anything from the request).
+  const partial: string[] = [];
   switch (action) {
     case CartForm.ACTIONS.LinesAdd: {
       const lines = validateAddLines(inputs.lines);
@@ -123,6 +136,34 @@ export async function action({request, context}: Route.ActionArgs) {
       result = swapped.result;
       break;
     }
+    case ADD_WITH_PROTECTION_ACTION: {
+      // Variant, quantity and plan key only (T-01): the server re-quotes the plan and derives the coverage variant,
+      // its price, its attributes and its parent line (P5A-05).
+      const input = validateAddWithProtection(inputs);
+      if (input.status === 'invalid') return rejected(input.reason);
+      const added = await addItemWithProtection(
+        runtime,
+        await cart.get(),
+        input.value,
+        (created) => cart.create(created),
+      );
+      if (added.status === 'rejected') return rejected(added.reason);
+      result = added.result;
+      if (added.warning) partial.push(stepFailureText(added.warning));
+      break;
+    }
+    case ADD_PROTECTION_ACTION: {
+      const input = validateAddProtection(inputs);
+      if (input.status === 'invalid') return rejected(input.reason);
+      const added = await addProtectionToLine(
+        runtime,
+        await cart.get(),
+        input.value,
+      );
+      if (added.status === 'rejected') return rejected(added.reason);
+      result = added.result;
+      break;
+    }
     default:
       return rejected('That cart action is not supported.');
   }
@@ -150,6 +191,7 @@ export async function action({request, context}: Route.ActionArgs) {
   const errors = result.errors;
   const warnings = [
     ...(result.warnings ?? []),
+    ...partial.map((message) => ({message})),
     ...notices.map((message) => ({message})),
   ];
 

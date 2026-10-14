@@ -89,6 +89,18 @@ export function CartSummary({
               </li>
             ))}
           </ul>
+          {/* A cart that could not be checked is usually a passing problem: offer the retry (review of d068db6, item E). */}
+          {blocked.some((reason) => reason.code === 'unverified') ? (
+            <Button
+              to="/cart"
+              reloadDocument
+              variant="secondary"
+              size="sm"
+              className="self-start"
+            >
+              Try again
+            </Button>
+          ) : null}
         </div>
       ) : checkoutHref ? (
         <Button

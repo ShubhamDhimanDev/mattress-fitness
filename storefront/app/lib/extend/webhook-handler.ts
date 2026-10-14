@@ -32,8 +32,19 @@ import {
  */
 export const WEBHOOK_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
-/** `done`: synced or intentionally skipped (nothing to retry). `failed`: the sync did not complete. */
-export type ProcessOutcome = {status: 'done'} | {status: 'failed'};
+/**
+ * `done`: synced or intentionally skipped (nothing to retry). `failed`: the sync did not complete, or, when `source` is
+ * `detective`, there was no sync to run and the detective order read failed (logged as `detective_failed`).
+ */
+export type ProcessOutcome =
+  {status: 'done'} | {status: 'failed'; source?: 'detective'};
+
+function failureReason(outcome: ProcessOutcome | 'crashed'): string {
+  if (outcome === 'crashed') return 'crashed';
+  return outcome.status === 'failed' && outcome.source === 'detective'
+    ? 'detective_failed'
+    : 'sync_failed';
+}
 
 export type WebhookHandlerDeps = {
   /** SHOPIFY_APP_CLIENT_SECRET (Shopify signs app webhooks with the app's client secret, ADR-0009 addendum). */
@@ -48,7 +59,7 @@ export type WebhookHandlerDeps = {
   maxAgeMs?: number;
   /**
    * This store's `<shop>.myshopify.com` domain (PUBLIC_STORE_DOMAIN). When both it and `X-Shopify-Shop-Domain` are present
-   * and differ, the event is logged and ignored with a 200 (security review E-L2): a signed body from another store that
+   * and differ (compared only when this is a myshopify.com name), the event is logged at error level and ignored with a 200 (security review E-L2): a signed body from another store that
    * shares the secret must not make us read an order id that belongs to somebody else's shop.
    */
   expectedShopDomain?: string | null;
@@ -60,6 +71,17 @@ function normaliseShop(value: string): string {
     .toLowerCase()
     .replace(/^https:\/\//, '')
     .replace(/\/+$/, '');
+}
+
+/**
+ * The header is compared only against a `<shop>.myshopify.com` domain. PUBLIC_STORE_DOMAIN may be a custom or a mock
+ * domain (the storefront's public address), and Shopify always sends the myshopify.com name, so comparing those would
+ * drop every genuine event.
+ */
+function isMyshopifyDomain(value: string | null | undefined): value is string {
+  return (
+    typeof value === 'string' && normaliseShop(value).endsWith('.myshopify.com')
+  );
 }
 
 function reply(status: number, extra?: HeadersInit): Response {
@@ -123,12 +145,14 @@ export async function handleShopifyWebhook(
     const {action, webhookId} = decision;
     const shopHeader = request.headers.get('x-shopify-shop-domain');
     if (
-      deps.expectedShopDomain &&
+      isMyshopifyDomain(deps.expectedShopDomain) &&
       shopHeader !== null &&
       normaliseShop(shopHeader) !== normaliseShop(deps.expectedShopDomain)
     ) {
+      // Error level: a signed event from another shop means the secret is shared or leaked, which someone must look at
+      // (review of d068db6, item D). Answered 200 so Shopify does not retry it or delete the subscription.
       log({
-        level: 'warn',
+        level: 'error',
         event: 'webhook.ignored',
         reason: 'shop_domain_mismatch',
       });
@@ -164,7 +188,7 @@ export async function handleShopifyWebhook(
           level: 'error',
           event: 'webhook.background_failed',
           orderId: action.orderId,
-          reason: outcome === 'crashed' ? 'crashed' : 'sync_failed',
+          reason: failureReason(outcome),
         });
       }),
     );

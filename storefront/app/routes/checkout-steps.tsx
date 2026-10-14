@@ -7,6 +7,12 @@ import {
 } from 'react-router';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import type {Route} from './+types/checkout-steps';
+import {
+  PlanPrice,
+  PlanSummary,
+  PlanTermsLink,
+  PoweredByExtend,
+} from '~/components/extend/PlanParts';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {Button} from '~/components/ui/Button';
 import {Price} from '~/components/ui/Price';
@@ -23,10 +29,15 @@ import {
   chooseDelivery,
   declineHaulAway,
 } from '~/lib/delivery-runtime/steps';
+import {parseStepCommand} from '~/lib/delivery-runtime/step-command';
 import {
-  parseStepCommand,
-  parseStepId,
-} from '~/lib/delivery-runtime/step-command';
+  parseProtectionCommand,
+  type ProtectionCommand,
+} from '~/lib/offers-runtime/protection-command';
+import {
+  addProtectionToLine,
+  declineProtection,
+} from '~/lib/offers-runtime/protection-steps';
 import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
 import {
   acceptComfortGuarantee,
@@ -38,7 +49,10 @@ import {
   type OffersResult,
   type StepChangeResult,
 } from '~/lib/offers-runtime/server';
-import type {SupportedStepId} from '~/lib/offers-runtime/view';
+import {
+  parsePreCheckoutStepId,
+  type PreCheckoutStepId,
+} from '~/lib/offers-runtime/view';
 
 export const meta: Route.MetaFunction = () => [
   {title: formatPageTitle('Before you check out')},
@@ -51,8 +65,8 @@ export const headers: HeadersFunction = ({loaderHeaders, actionHeaders}) =>
   );
 
 /** The step named in the URL, only if it is one this build knows (P4-09: the step lives in the URL). */
-function parseStep(raw: string | null): SupportedStepId | null {
-  return parseStepId(raw);
+function parseStep(raw: string | null): PreCheckoutStepId | null {
+  return parsePreCheckoutStepId(raw);
 }
 
 async function check(
@@ -149,6 +163,7 @@ export async function loader({request, context}: Route.LoaderArgs) {
           options: view?.comfortGuarantee?.options ?? [],
           delivery: view?.deliveryChoice ?? null,
           haulAway: view?.haulAway ?? null,
+          protection: view?.accidentProtection ?? null,
           notices,
           error: failure ? stepFailureText(failure) : null,
           skipHref: getCheckoutHref(checked.cart, view)
@@ -167,7 +182,7 @@ export async function loader({request, context}: Route.LoaderArgs) {
 
 /** Runs the one thing the form asked for, against the real cart. */
 function applyCommand(
-  command: NonNullable<ReturnType<typeof parseStepCommand>>,
+  command: NonNullable<ReturnType<typeof parseStepCommand>> | ProtectionCommand,
   runtime: OfferRuntime,
   current: CartApiQueryFragment | null,
 ): Promise<StepChangeResult> {
@@ -182,6 +197,14 @@ function applyCommand(
       return command.intent === 'accept'
         ? acceptHaulAway(runtime, current, command.pieces)
         : declineHaulAway(runtime, current);
+    case 'protection':
+      // The plan key is looked up again in the server's own quote; the line must be one the engine offers (P5A-07).
+      return command.intent === 'accept'
+        ? addProtectionToLine(runtime, current, {
+            lineId: command.lineId,
+            planKey: command.planKey,
+          })
+        : declineProtection(runtime, current);
     default: {
       const unreachable: never = command;
       return unreachable;
@@ -211,7 +234,10 @@ export async function action({request, context}: Route.ActionArgs) {
       headers: noStoreHeaders(),
     });
   }
-  const command = read.status === 'ok' ? parseStepCommand(read.form) : null;
+  const command =
+    read.status === 'ok'
+      ? (parseProtectionCommand(read.form) ?? parseStepCommand(read.form))
+      : null;
   if (command === null) {
     throw new Response('That step is not valid.', {
       status: 400,
@@ -266,6 +292,13 @@ export default function CheckoutSteps() {
           skipHref={state.skipHref}
         />
       ) : null}
+      {state.state === 'step' && state.step === 'protection' ? (
+        <ProtectionStep
+          protection={state.protection}
+          error={state.error}
+          skipHref={state.skipHref}
+        />
+      ) : null}
       {state.state === 'emptied' ? (
         <section
           aria-labelledby="emptied-heading"
@@ -315,9 +348,17 @@ export default function CheckoutSteps() {
               </li>
             ))}
           </ul>
-          <Button to="/cart" variant="primary" className="self-start">
-            Back to your cart
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            {/* An unverified cart is usually a passing problem: say so and let the shopper try again at once. */}
+            {state.reasons.some((reason) => reason.code === 'unverified') ? (
+              <Button to={CHECKOUT_STEPS_PATH} reloadDocument variant="primary">
+                Try again
+              </Button>
+            ) : null}
+            <Button to="/cart" variant="secondary">
+              Back to your cart
+            </Button>
+          </div>
         </section>
       ) : null}
       {state.state === 'unavailable' ? (
@@ -553,6 +594,88 @@ function HaulAwayStep({
           </Button>
         </div>
       </Form>
+      {error ? <SkipLink href={skipHref} /> : null}
+    </section>
+  );
+}
+
+/**
+ * Step 4 (P5A-07, REQ-PRE-004, REQ-EXT-004): Extend accident protection for each eligible item that is not covered yet.
+ * Each plan is its own small form that posts the line id and the plan key and nothing else; the server re-reads the
+ * plan, price and quantity (protection-steps.ts). "No thanks" records the documented decline attribute. Every plan shows
+ * its price, term and a terms link, and the step carries Extend's branding. Wording is placeholder copy until the
+ * client approves it (Q-005, CLR-010).
+ */
+function ProtectionStep({
+  protection,
+  error,
+  skipHref,
+}: Pick<StepData, 'protection' | 'error' | 'skipHref'>) {
+  if (!protection) return null;
+  return (
+    <section
+      aria-labelledby="protection-heading"
+      className="flex flex-col gap-4"
+    >
+      <h2 id="protection-heading" className="text-xl font-bold">
+        Protect your purchase
+      </h2>
+      <StepError error={error} />
+      <p className="text-base text-fg-muted">
+        Choose a protection plan for each item, or continue without one. The
+        plan details and terms are linked under each plan.
+      </p>
+      {protection.lines.map((line) => (
+        <div
+          key={line.lineId}
+          role="group"
+          aria-labelledby={`protection-line-${line.lineId}`}
+          className="flex flex-col gap-3 rounded-card border border-line p-3"
+        >
+          <h3 id={`protection-line-${line.lineId}`} className="font-bold">
+            {line.productTitle}
+            {line.variantTitle ? `, ${line.variantTitle}` : ''}
+            {line.uncoveredQuantity > 1
+              ? ` (${line.uncoveredQuantity} items)`
+              : ''}
+          </h3>
+          <ul className="flex flex-col gap-3">
+            {line.plans.map((plan) => (
+              <li
+                key={plan.planId}
+                className="flex flex-wrap items-center justify-between gap-3"
+              >
+                <span className="flex min-w-0 flex-col">
+                  <PlanSummary plan={plan} />
+                  <PlanTermsLink plan={plan} />
+                </span>
+                <Form method="post" className="flex items-center gap-3">
+                  <input type="hidden" name="step" value="protection" />
+                  <input type="hidden" name="intent" value="accept" />
+                  <input type="hidden" name="lineId" value={line.lineId} />
+                  <input type="hidden" name="planKey" value={plan.planId} />
+                  <PlanPrice plan={plan} />
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    size="sm"
+                    aria-label={`Add ${plan.title} for ${line.productTitle}`}
+                  >
+                    Add protection
+                  </Button>
+                </Form>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      <Form method="post" className="flex flex-wrap gap-3">
+        <input type="hidden" name="step" value="protection" />
+        <Button type="submit" name="intent" value="decline" variant="secondary">
+          No thanks
+        </Button>
+      </Form>
+      <PoweredByExtend />
       {error ? <SkipLink href={skipHref} /> : null}
     </section>
   );

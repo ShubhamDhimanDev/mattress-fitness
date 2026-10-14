@@ -258,6 +258,26 @@ describe('parseAdminLink (T-08)', () => {
     ['/collections/sale', {href: '/collections/sale', external: false}],
     ['  /pages/a?x=1  ', {href: '/pages/a?x=1', external: false}],
     ['https://example.com/a', {href: 'https://example.com/a', external: true}],
+    ['/', {href: '/', external: false}],
+    ['/?utm=x', {href: '/?utm=x', external: false}],
+    ['/collections', {href: '/collections', external: false}],
+    [
+      '/products/queen-mattress',
+      {href: '/products/queen-mattress', external: false},
+    ],
+    ['/brands/acme', {href: '/brands/acme', external: false}],
+    [
+      '/blogs/journal/post#top',
+      {href: '/blogs/journal/post#top', external: false},
+    ],
+    ['/stores', {href: '/stores', external: false}],
+    ['/quiz', {href: '/quiz', external: false}],
+    ['/compare?ids=1', {href: '/compare?ids=1', external: false}],
+    ['/search?q=firm', {href: '/search?q=firm', external: false}],
+    [
+      '/policies/refund-policy',
+      {href: '/policies/refund-policy', external: false},
+    ],
   ])('accepts %s', (raw, expected) => {
     expect(parseAdminLink(raw)).toEqual(expected);
   });
@@ -277,6 +297,22 @@ describe('parseAdminLink (T-08)', () => {
     'collections/sale',
     '/x\u0000y',
     `/${'a'.repeat(600)}`,
+    // Internal paths outside the public pages (T-08): API, webhooks, cart, account and lookalikes.
+    '/api/anything',
+    '/webhooks/shopify',
+    '/cart',
+    '/account/orders',
+    '/delivery',
+    '/checkout-steps',
+    '/pagesx',
+    '/pages-hidden/x',
+    '/Collections/x',
+    // Walking out of an allowed prefix.
+    '/pages/../api/x',
+    '/collections/%2e%2e/api',
+    '/collections/%2E%2E/api',
+    '/pages/a%2F..%2F..%2Fapi',
+    '/pages/%zz',
   ])('rejects %j', (raw) => {
     expect(parseAdminLink(raw)).toBeNull();
   });

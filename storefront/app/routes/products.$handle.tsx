@@ -11,7 +11,12 @@ import {ProductGallery} from '~/components/product/ProductGallery';
 import {ProductSections} from '~/components/product/ProductSections';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {buildBreadcrumbJsonLd, buildProductJsonLd} from '~/lib/shopify/jsonld';
-import {loadProductPage} from '~/lib/shopify/product-data';
+import {
+  loadExtendEligibility,
+  loadProductPage,
+} from '~/lib/shopify/product-data';
+import {protectionModeFor} from '~/lib/shopify/protection-mode';
+import {offersConfigOf} from '~/lib/extend/runtime';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {
   parseSelectedOptions,
@@ -49,6 +54,30 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
   return defaultShouldRevalidate;
 };
 
+/**
+ * Development only: the mock stores have no `custom.extend_category` metafield, so the e2e spec opts a page in with this
+ * cookie. `import.meta.env.DEV` is false in a production build, so the branch is removed there and no request can opt in.
+ */
+const DEV_ASSUME_ELIGIBLE_COOKIE = /(?:^|;s*)e2e_extend_eligible=1(?:;|$)/;
+
+async function protectionModeOf(
+  context: Route.LoaderArgs['context'],
+  request: Request,
+  productId: string,
+) {
+  const enabled =
+    offersConfigOf({env: context.env, production: import.meta.env.PROD})
+      .status === 'enabled';
+  if (!enabled) return protectionModeFor({enabled, eligible: false});
+  const assumed =
+    import.meta.env.DEV &&
+    DEV_ASSUME_ELIGIBLE_COOKIE.test(request.headers.get('Cookie') ?? '');
+  const eligible = assumed
+    ? true
+    : await loadExtendEligibility(context.storefront, productId);
+  return protectionModeFor({enabled, eligible});
+}
+
 export async function loader({context, params, request}: Route.LoaderArgs) {
   const result = await loadProductPage(context.storefront, params.handle ?? '');
   if (result.status === 'not-found') {
@@ -62,8 +91,12 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     isDev: import.meta.env.DEV,
   });
   const origin = siteOrigin ?? '';
+  const protection = await protectionModeOf(context, request, product.id);
   return {
     product,
+    // The Extend flag and the product's own eligibility (P5A-05): the same for every shopper, so neither touches a
+    // cache key. 'off' costs the page no request and no reserved space (NFR-002).
+    protection,
     canonical: siteOrigin ? `${siteOrigin}/products/${product.handle}` : null,
     productJsonLd: buildProductJsonLd(product, origin),
     breadcrumbJsonLd: buildBreadcrumbJsonLd(
@@ -78,7 +111,7 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
 }
 
 export default function Product() {
-  const {product} = useLoaderData<typeof loader>();
+  const {product, protection} = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
 
   // The same pure functions the server used, so the first render and later switches always agree.
@@ -107,7 +140,11 @@ export default function Product() {
           title={product.title}
           initialIndex={Math.max(variantImageIndex, 0)}
         />
-        <ProductBuyBox product={product} variant={variant} />
+        <ProductBuyBox
+          product={product}
+          variant={variant}
+          protection={protection}
+        />
       </div>
       <ProductSections product={product} />
       <Analytics.ProductView

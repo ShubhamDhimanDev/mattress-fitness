@@ -6,7 +6,9 @@
 // Node that is per isolate or process, which is enough for its purpose (stop hammering a failing provider, bound repeated
 // work) and keeps NFR-006 (no database). It is created lazily so importing this module has no side effect.
 
+import {detectiveConfigFromOffers} from '~/lib/detective/config';
 import {parseExtendConfig, type ExtendConfigResult} from '~/lib/extend/config';
+import {readOfferConfig} from '~/lib/offers-runtime/config';
 import {adminConfigFromEnv} from '~/lib/extend/admin-client';
 import {
   createCircuitBreaker,
@@ -146,6 +148,8 @@ export function webhookDepsFor(
         now: realNow,
         log: consoleLogger,
         breaker: state.breaker,
+        // P5B-05: the detective order check reads the same rules and zone as the cart gate, whatever EXTEND_ORDER_SYNC is.
+        detective: detectiveConfigFromOffers(readOfferConfig(input.env)),
       }),
     // Without waitUntil (Node, long-lived process) the promise simply runs on after the response is sent.
     schedule:

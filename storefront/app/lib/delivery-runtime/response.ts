@@ -16,3 +16,43 @@ export const DELIVERY_ERROR_TEXT: Record<DeliveryError, string> = {
   'save-failed':
     'We could not save your ZIP code. You can still continue shopping.',
 };
+
+/**
+ * The delivery answer carried in the root loader's data, read back as a typed value. Route data reaches
+ * components untyped (`useRouteLoaderData` without the root type, to avoid an import cycle), so it is checked
+ * here rather than cast. Anything that does not match means "no seed": the caller then asks `/delivery`.
+ */
+export function readDeliverySeed(rootData: unknown): DeliveryResponse | null {
+  if (typeof rootData !== 'object' || rootData === null) return null;
+  const seed: unknown = Reflect.get(rootData, 'deliverySeed');
+  if (typeof seed !== 'object' || seed === null) return null;
+  const view: unknown = Reflect.get(seed, 'delivery');
+  if (typeof view !== 'object' || view === null) return null;
+  const status: unknown = Reflect.get(view, 'status');
+  switch (status) {
+    case 'unavailable':
+    case 'no-zip':
+      return {delivery: {status}, error: null};
+    case 'outside-zone': {
+      const zip: unknown = Reflect.get(view, 'zip');
+      return typeof zip === 'string'
+        ? {delivery: {status, zip}, error: null}
+        : null;
+    }
+    case 'in-zone': {
+      const zip: unknown = Reflect.get(view, 'zip');
+      const promise: unknown = Reflect.get(view, 'promise');
+      if (typeof zip !== 'string') return null;
+      return {
+        delivery: {
+          status,
+          zip,
+          promise: typeof promise === 'string' ? promise : null,
+        },
+        error: null,
+      };
+    }
+    default:
+      return null;
+  }
+}

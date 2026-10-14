@@ -376,7 +376,7 @@ describe('coverage is recognised even when Extend is off or misconfigured (E-M1)
     expect(calls.some((c) => c.query.includes('query Extend'))).toBe(false);
   });
 
-  it('keeps coverage on an ordinary parent (the outage rule) and logs the misconfiguration once', async () => {
+  it('REMOVES coverage on an ordinary parent when Extend is off or misconfigured (explicit extendOff, Major B), says why, and logs the misconfiguration once', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const named = {
       ...cover('cov', MATTRESS_LINE.id),
@@ -385,15 +385,103 @@ describe('coverage is recognised even when Extend is off or misconfigured (E-M1)
     const broken = {...EXTEND_ENV, EXTEND_ACCESS_TOKEN: undefined};
     for (let i = 0; i < 3; i += 1) {
       const fake = new FakeCart([MATTRESS_LINE, named]);
-      await revalidateCartOffers(
+      const result = await revalidateCartOffers(
         setup(fake, undefined, broken).runtime,
         fake.snapshot(),
       );
-      expect(fake.lineIds()).toContain('cov');
+      expect(fake.lineIds()).toEqual([MATTRESS_LINE.id]);
+      expect(result.view?.notices.join(' ')).toMatch(
+        /protection plan was removed/i,
+      );
     }
     const lines = warn.mock.calls.filter((call) =>
       String(call[0]).includes('config:missing_credentials'),
     );
     expect(lines).toHaveLength(1);
+  });
+});
+
+describe('flag off removes every coverage line, flag ON with Extend down keeps it (review of d068db6, Major B)', () => {
+  const named = {
+    ...cover('cov', MATTRESS_LINE.id),
+    size: 'Extend-Protection-Plan-79.99',
+  };
+
+  it('PUBLIC_EXTEND_ENABLED=false: coverage on an ordinary parent is removed with a notice and no Extend call', async () => {
+    const fetchMock = stubExtend();
+    const fake = new FakeCart([MATTRESS_LINE, named]);
+    const off = {...EXTEND_ENV, PUBLIC_EXTEND_ENABLED: 'false'};
+    const result = await revalidateCartOffers(
+      setup(fake, undefined, off).runtime,
+      fake.snapshot(),
+    );
+    expect(fake.lineIds()).toEqual([MATTRESS_LINE.id]);
+    expect(result.view?.notices.length).toBeGreaterThan(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+    // Idempotent: the second pass finds nothing left to remove.
+    const before = fake.calls.length;
+    await revalidateCartOffers(
+      setup(fake, undefined, off).runtime,
+      fake.snapshot(),
+    );
+    expect(fake.calls.length).toBe(before);
+  });
+
+  it('flag ON, Extend down: coverage is kept (genuine outage rule)', async () => {
+    stubExtend(503);
+    const fake = new FakeCart([MATTRESS_LINE, cover('cov', MATTRESS_LINE.id)]);
+    await revalidateCartOffers(setup(fake).runtime, fake.snapshot());
+    expect(fake.lineIds()).toContain('cov');
+  });
+});
+
+describe('a cart with many sizes of one product is judged, not waved through (review of d068db6, Major A)', () => {
+  const sizeLine = (n: number, parentOf?: string) => ({
+    id: `gid://shopify/CartLine/size${n}`,
+    variantId: GID.mattressQueen,
+    productId: GID.mattress,
+    size: 'Queen',
+    priceCents: 100_000 + n * 1_000,
+    ...(parentOf ? {parentId: parentOf} : {}),
+  });
+
+  it('four sizes: a $29.99 price-point SKU under any of them is removed, the quoted $79.99 plan stays', async () => {
+    stubExtend();
+    const lines = [1, 2, 3, 4].map((n) => sizeLine(n));
+    const fake = new FakeCart([
+      ...lines,
+      cover('good', lines[0]?.id ?? null, 7999),
+      cover('cheap', lines[3]?.id ?? null, 2999),
+    ]);
+    const result = await revalidateCartOffers(
+      setup(fake).runtime,
+      fake.snapshot(),
+    );
+    expect(fake.lineIds()).toContain('good');
+    expect(fake.lineIds()).not.toContain('cheap');
+    expect(result.view?.notices.join(' ')).toMatch(/price no longer matches/i);
+  });
+
+  it('more sizes than one quote can ask about: coverage on the unasked lines is removed with a notice, not kept unchecked', async () => {
+    const fetchMock = stubExtend();
+    const lines = Array.from({length: 10}, (_, n) => sizeLine(n + 1));
+    const fake = new FakeCart([
+      ...lines,
+      cover('first', lines[0]?.id ?? null, 7999),
+      cover('last', lines[9]?.id ?? null, 7999),
+    ]);
+    const result = await revalidateCartOffers(
+      setup(fake).runtime,
+      fake.snapshot(),
+    );
+    expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(8);
+    expect(fake.lineIds()).toContain('first');
+    expect(fake.lineIds()).not.toContain('last');
+    expect(result.extend?.degraded).toContain('lines-unjudged');
+    expect(result.view?.notices.join(' ')).toMatch(/price no longer matches/i);
+    // The unchecked line gets no offer either.
+    expect(
+      result.view?.accidentProtection?.lines.map((l) => l.lineId),
+    ).not.toContain(lines[9]?.id);
   });
 });

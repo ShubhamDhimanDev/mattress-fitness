@@ -1,6 +1,7 @@
 import type {RefObject} from 'react';
 import {Link} from 'react-router';
 import {CartForm, type OptimisticCartLineInput} from '@shopify/hydrogen';
+import {CartActionForm} from '~/components/cart/CartActionForm';
 import {useAside} from '~/components/Aside';
 import {ProductTile} from '~/components/pages/ProductTile';
 import {Button} from '~/components/ui/Button';
@@ -208,7 +209,11 @@ function AddMatchToCart({
     {merchandiseId: match.variantId, quantity: 1},
   ];
   return (
-    <CartForm route="/cart" inputs={{lines}} action={CartForm.ACTIONS.LinesAdd}>
+    <CartActionForm
+      route="/cart"
+      inputs={{lines}}
+      action={CartForm.ACTIONS.LinesAdd}
+    >
       {(fetcher) => (
         <Button
           type="submit"
@@ -223,6 +228,6 @@ function AddMatchToCart({
           Add {match.size} to cart
         </Button>
       )}
-    </CartForm>
+    </CartActionForm>
   );
 }

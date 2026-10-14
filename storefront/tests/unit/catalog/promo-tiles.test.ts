@@ -1,12 +1,15 @@
-import {describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it, vi} from 'vitest';
 import {fakeStorefront} from './fake-storefront';
 import {
   PROMO_TILES_QUERY,
+  PROMO_TILE_READ_CAP,
   loadPromoTiles,
   mapPromoTiles,
 } from '~/lib/shopify/promo-data';
+import {emptyFilterState, withSort} from '~/lib/filters';
 import {
   placePromoTiles,
+  showsPromoTiles,
   type PromoTileView,
 } from '~/lib/shopify/promo-placement';
 
@@ -41,6 +44,10 @@ function tile(
     ],
   };
 }
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('mapPromoTiles', () => {
   it('keeps the enabled tiles of this collection only', () => {
@@ -102,6 +109,24 @@ describe('loadPromoTiles', () => {
     expect(tiles.map((t) => t.id)).toEqual(['a']);
   });
 
+  it('logs the count, never the content, when the read cap is reached', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const nodes = Array.from({length: PROMO_TILE_READ_CAP}, (_, n) =>
+      tile(`t${n}`, 'm', {heading: 'Secret heading'}),
+    );
+    const {storefront} = fakeStorefront(() => ({tiles: {nodes}}));
+    await loadPromoTiles(storefront, 'm');
+    expect(error).toHaveBeenCalledTimes(1);
+    const message = String(error.mock.calls[0][0]);
+    expect(message).toContain(String(PROMO_TILE_READ_CAP));
+    expect(message).not.toContain('Secret heading');
+
+    error.mockClear();
+    const few = fakeStorefront(() => ({tiles: {nodes: nodes.slice(0, 3)}}));
+    await loadPromoTiles(few.storefront, 'm');
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it('returns no tiles when the read fails', async () => {
     const {storefront} = fakeStorefront(() => {
       throw new Error('down');
@@ -123,7 +148,7 @@ describe('placePromoTiles', () => {
   const products = ['p1', 'p2', 'p3', 'p4', 'p5'];
 
   it('puts a tile in the Nth cell, counting products and tiles together', () => {
-    expect(labels(placePromoTiles(products, [view('t', 3)]))).toEqual([
+    expect(labels(placePromoTiles(products, [view('t', 3)], false))).toEqual([
       'p1',
       'p2',
       '[t]',
@@ -131,47 +156,103 @@ describe('placePromoTiles', () => {
       'p4',
       'p5',
     ]);
-    expect(labels(placePromoTiles(products, [view('t', 1)]))[0]).toBe('[t]');
-  });
-
-  it('allows a tile right after the last product but never leaves a gap', () => {
-    expect(labels(placePromoTiles(products, [view('t', 6)])).at(-1)).toBe(
+    expect(labels(placePromoTiles(products, [view('t', 1)], false))[0]).toBe(
       '[t]',
     );
-    expect(labels(placePromoTiles(products, [view('t', 7)]))).toEqual(products);
+  });
+
+  it('never leaves a lone tile after the last product when there are no more pages', () => {
+    // Position n+1 with nothing following would be a trailing, orphaned cell.
+    expect(labels(placePromoTiles(products, [view('t', 6)], false))).toEqual(
+      products,
+    );
+    expect(labels(placePromoTiles(products, [view('t', 7)], false))).toEqual(
+      products,
+    );
+  });
+
+  it('shows a tile at position n+1 only while another page follows', () => {
+    expect(labels(placePromoTiles(products, [view('t', 6)], true)).at(-1)).toBe(
+      '[t]',
+    );
+    // Still no gap: two cells past the end is never placed.
+    expect(labels(placePromoTiles(products, [view('t', 7)], true))).toEqual(
+      products,
+    );
+  });
+
+  it('counts an earlier tile when deciding what is trailing', () => {
+    // After t1 takes cell 3 the list has 6 cells, so position 7 is the trailing cell.
+    const tiles = [view('t1', 3), view('t2', 7)];
+    expect(labels(placePromoTiles(products, tiles, false))).toEqual([
+      'p1',
+      'p2',
+      '[t1]',
+      'p3',
+      'p4',
+      'p5',
+    ]);
+    expect(labels(placePromoTiles(products, tiles, true)).at(-1)).toBe('[t2]');
   });
 
   it('holds a tile back until Load more brings enough products, without moving earlier cells', () => {
     const tile = view('t', 8);
-    expect(labels(placePromoTiles(products, [tile]))).toEqual(products);
+    expect(labels(placePromoTiles(products, [tile], true))).toEqual(products);
     const more = [...products, 'p6', 'p7', 'p8'];
-    const placed = labels(placePromoTiles(more, [tile]));
+    // With 8 products the 8th cell is inside the grid, so it is placed whether or not more pages follow.
+    const placed = labels(placePromoTiles(more, [tile], false));
     expect(placed.indexOf('[t]')).toBe(7);
     expect(placed.slice(0, 5)).toEqual(products);
+    const placedMore = labels(placePromoTiles(more, [tile], true));
+    expect(placedMore.indexOf('[t]')).toBe(7);
+    expect(placedMore.slice(0, 5)).toEqual(products);
   });
 
   it('gives tiles at the same position consecutive cells in the order received', () => {
     expect(
-      labels(placePromoTiles(products, [view('a', 2), view('b', 2)])),
+      labels(placePromoTiles(products, [view('a', 2), view('b', 2)], false)),
     ).toEqual(['p1', '[a]', '[b]', 'p2', 'p3', 'p4', 'p5']);
   });
 
   it('orders tiles by position whatever order they arrive in', () => {
     expect(
-      labels(placePromoTiles(products, [view('late', 5), view('early', 2)])),
+      labels(
+        placePromoTiles(products, [view('late', 5), view('early', 2)], false),
+      ),
     ).toEqual(['p1', '[early]', 'p2', 'p3', '[late]', 'p4', 'p5']);
   });
 
-  it('works with no products and no tiles', () => {
-    expect(placePromoTiles([], [])).toEqual([]);
-    expect(labels(placePromoTiles([], [view('t', 1)]))).toEqual(['[t]']);
+  it('places nothing without products unless more pages follow', () => {
+    expect(placePromoTiles([], [], false)).toEqual([]);
+    expect(labels(placePromoTiles([], [view('t', 1)], false))).toEqual([]);
+    expect(labels(placePromoTiles([], [view('t', 1)], true))).toEqual(['[t]']);
   });
 
   it('numbers product cells without counting tiles (used for Load more focus)', () => {
-    const items = placePromoTiles(products, [view('t', 1)]);
+    const items = placePromoTiles(products, [view('t', 1)], false);
     const indices = items.flatMap((i) =>
       i.kind === 'product' ? [i.productIndex] : [],
     );
     expect(indices).toEqual([0, 1, 2, 3, 4]);
+  });
+});
+
+describe('showsPromoTiles (positions only mean something in the default view)', () => {
+  const base = emptyFilterState();
+
+  it('is true for the unfiltered, default-sorted first view', () => {
+    expect(showsPromoTiles(base)).toBe(true);
+  });
+
+  it.each([
+    [
+      'an active filter',
+      {...base, selected: {...base.selected, size: ['Queen']}},
+    ],
+    ['a price range', {...base, priceMinCents: 10000}],
+    ['another sort', withSort(base, 'price-asc')],
+    ['a cursor (deep link past the first page)', {...base, cursor: 'abc'}],
+  ])('is false with %s', (_label, state) => {
+    expect(showsPromoTiles(state)).toBe(false);
   });
 });

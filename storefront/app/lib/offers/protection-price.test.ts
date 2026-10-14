@@ -94,13 +94,27 @@ describe('coverage price must be a quoted plan for its parent', () => {
     ]);
   });
 
-  it('does not judge price when the parent has no quote on record (Extend unavailable): the order sync cross-checks later', () => {
+  it('an Extend OUTAGE (empty eligible list) keeps coverage on a regular parent: the order sync cross-checks later', () => {
+    const result = evaluateOffers(
+      cartOf([coverage('c1', 'mattress-queen', 1, {unitPriceCents: 2999})]),
+      RULES,
+      context({
+        protectionEligibleLineIds: [],
+        coveragePlanPricesByLineId: new Map(),
+      }),
+    );
+    expect(result.corrections).toEqual([]);
+  });
+
+  it('an ELIGIBLE parent with no quote on record is judged against an empty list: its coverage goes (review of d068db6, Major A)', () => {
     const result = evaluateOffers(
       cartOf([coverage('c1', 'mattress-queen', 1, {unitPriceCents: 2999})]),
       RULES,
       context({coveragePlanPricesByLineId: new Map()}),
     );
-    expect(result.corrections).toEqual([]);
+    expect(result.corrections).toEqual([
+      {type: 'remove-line', lineId: 'c1', reason: 'coverage-price-mismatch'},
+    ]);
   });
 
   it('is idempotent: after the correction a second pass finds nothing', () => {

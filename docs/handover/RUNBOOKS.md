@@ -24,7 +24,7 @@
 5. [Rotate a secret](#5-rotate-a-secret)
 6. [Add a store](#6-add-a-store)
 7. [Refresh the product catalog](#7-refresh-the-product-catalog)
-8. [Investigate a flagged haul-away order](#8-investigate-a-flagged-haul-away-order)
+8. [Investigate a flagged order (haul-away, gift, protector, protection)](#8-investigate-a-flagged-order-haul-away-gift-protector-protection)
 9. [Upgrade Hydrogen](#9-upgrade-hydrogen)
 10. [Open items and document conflicts](#10-open-items-and-document-conflicts)
 
@@ -431,34 +431,78 @@ Sequential, throttled calls (about 400 products times 3 calls); bulk operations 
 
 ---
 
-## 8. Investigate a flagged haul-away order
+## 8. Investigate a flagged order (haul-away, gift, protector, protection)
 
-**State.** The detective control is `UNVERIFIED` (V-17) and `PLANNED` (P5B-05). It is either a Shopify Flow rule on *Order created*, or a webhook check (`app/lib/orders/haul-away-check.ts`, which does not exist yet). The replacement for the SOW's in-checkout Function is not yet acknowledged by the client (SD-01, CR-08). Use order IDs only in tickets, no customer details.
+**State (2026-10-14).** The detective order check is **built** (P5B-05) and passes its tests against scripted Shopify answers. It has **not run against a development store** yet, so the assumptions listed under "What is unverified" are `UNVERIFIED` (V-20). It exists because Shopify's public Storefront API lets a shopper build a cart our server never saw, and because the delivery address is typed inside Shopify's hosted checkout, where our cart gate cannot see it (ADR-0006, security review E-M3). The replacement for the SOW's in-checkout Function is not yet acknowledged by the client (SD-01, CR-08). Use order IDs only in tickets, no customer details.
 
-**What the preventive layers do** (`storefront/app/lib/offers/haul-away.ts`)
+**Two ways it runs, one function** (`storefront/app/lib/detective/detect.ts`, built on the same offer engine the cart gate uses):
 
-- Haul-away is eligible only when: a usable rule exists with a maximum of at least 1; the shopper chose `in-home`; the zone loaded; and the ZIP is valid and inside the zone. Ineligible reasons: `not-configured`, `delivery-not-chosen`, `pickup-selected`, `zone-unavailable`, `zip-missing`, `zip-invalid`, `outside-zone`.
-- Quantity is clamped to 0 to the maximum, with anything non-numeric read as 0.
-- Revalidation before checkout reduces or removes over-limit lines (`haul-away-over-max`), removes lines when the offer is switched off (`haul-away-disabled`), and reports a `haul-away-not-eligible` violation for a line the shopper is not entitled to.
+1. **On every order webhook.** `app/lib/extend/webhook-processor.ts` judges the order after `orders/paid` and `orders/updated`, whatever `EXTEND_ORDER_SYNC` says and even when Extend is not configured. It needs `OFFER_CONFIG_JSON` (the rules and the zone, the same setting the cart reads), `SHOPIFY_ADMIN_API_ACCESS_TOKEN` and `PUBLIC_STORE_DOMAIN`. It logs one JSON line per finding, with the order ID and a code only (no ZIP, name, address or email):
+   - `detective.checked` with `reason` `clean`, `violations` or `unjudgeable`, and the number of violations;
+   - `detective.violation` with `reason` = the code and `lineIds`;
+   - `detective.unjudged` with `reason` = why part of the order could not be judged;
+   - `detective.skipped` (no Admin token) and `detective.read_failed` (Shopify did not answer) are deployment faults, not order findings. When the detective read fails and the Extend sync did not run (`off`, `extend-app`, Extend not configured), the delivery is also logged `webhook.background_failed` with `reason` `detective_failed` (an Extend sync failure is `sync_failed`), and the webhook id is not marked seen, so a repeat of the delivery is processed.
+
+   Search the host's logs for `"event":"detective.`.
+2. **On demand, for a date range** (the fallback for orders placed before the check ran, or while it could not read Shopify):
+
+   ```bash
+   node scripts/detective/report.mjs --store <shop>.myshopify.com --since 2026-10-01
+   node scripts/detective/report.mjs --store <shop>.myshopify.com --json --out report.json
+   ```
+
+   Flags: `--since YYYY-MM-DD` (default 14 days back), `--limit 1..1000` (default 200; orders are read newest first, so when the limit is reached it is the **oldest** orders in the window that are not checked, and the report says so: raise `--limit` or narrow `--since`), `--offer-config-file <json>` (default: the `OFFER_CONFIG_JSON` environment variable), `--json`, `--out <file>` (a new local file; an existing one is refused). It only reads: the Admin client has no write path, the store must be in `SHOPIFY_ALLOWED_STORES`, and the token comes from the environment. Exit codes: 0 every order judged and clean; 1 a violation, an order not judged (this includes `coverage_price_unjudged`), or a failed Shopify read; 2 usage; 3 store refused. The report holds order IDs, line IDs and codes only.
+
+**What a violation means.** Each code is a rule the cart gate enforces; the order breaks it, so the cart did not come from our gate, or the shopper changed the delivery in checkout.
+
+| Code | Meaning | Usual cause | Next |
+|---|---|---|---|
+| `haul-away-outside-zone` | Haul-away line, and the shipping ZIP (or a non-US country) is outside the delivery zone | Out-of-zone address typed in checkout, or a direct-API cart | Staff handle the order (ADMIN_GUIDE 4.6). Check the Shopify delivery-zone restriction is on (ADR-0007) |
+| `haul-away-no-shipping-zip` | Haul-away line and the order has no shipping address or ZIP | Pickup order, or a direct-API cart | Staff handle the order |
+| `haul-away-zip-invalid` | The shipping ZIP is not a US ZIP | Typo, or a postcode with no country | Staff handle the order |
+| `haul-away-pickup` | Haul-away line and the order attribute `delivery_choice` says `pickup` | Direct-API cart | Staff handle the order |
+| `haul-away-delivery-not-recorded` | Haul-away line and no valid `delivery_choice` attribute on the order | Direct-API cart, **or the attribute is not copied to orders (V-20)** | See "What is unverified" before acting |
+| `haul-away-over-max` | Haul-away pieces above the admin maximum (all lines added together) | Direct-API cart, or a maximum lowered after the order | Compare with the maximum at the time |
+| `gift-without-qualifier` | Gift line without a qualifying product on the order | Direct-API cart | Staff handle the order |
+| `gift-over-allowance` | More gift units than the promotion allows | Direct-API cart | Staff handle the order |
+| `protector-without-mattress`, `wrong-size-protector`, `protector-exceeds-mattresses` | Comfort-guarantee protector with no matching mattress, the wrong size, or too many | Direct-API cart | Staff handle the order |
+| `coverage-without-covered-item` | An Extend protection line whose covered product is not on the order | Direct-API cart (protection bought alone) | The line is never sent to Extend (ADR-0009); staff refund it |
+| `coverage-unlinked`, `coverage-on-ineligible-item`, `coverage-duplicate`, `coverage-quantity-mismatch` | Protection line with no valid plan or covered-product ID, on an item with no Extend category, a second one for the same item, or for more units than the item | Direct-API cart | Staff handle the order. With `EXTEND_ORDER_SYNC=self` the Extend sync applies the same structural checks and also compares price and plan with Extend's quote; see section 4 |
+
+A finding can also say **not judged** (`unjudgeable`, or a `violations` finding with a not-judged part). An order that could not be judged is never reported as clean. Reasons: `order_unreadable` (malformed answer, or more than 50 lines), `invalid_order`, `malformed_lines`, `rules_unavailable` (no or invalid `OFFER_CONFIG_JSON`: fix the setting, then run the report for the gap), `zone_unavailable` (haul-away line and no zone configured), `gift_collection_qualifier` (a gift rule that qualifies by collection: an order line carries no collections), `mattress_size_unreadable` (a qualifying mattress has no Size option), `coverage_link_ambiguous` (two lines share the covered product and Shopify keeps no nested-line parent on the order), `coverage_price_unjudged` (see below), `internal_error` (a defect: report it).
+
+**`coverage_price_unjudged`: protection price and plan are not judged by the detective.** The detective is offline. The right plan price for a covered item comes only from Extend's quote (a price point such as `Extend-Protection-Plan-5.00` is just a catalog SKU), so a $5 protection line on a $2,000 mattress passes every check the detective makes. The detective therefore says so on every order that still holds a protection line (not refunded, not cancelled), and counts it under "not judged", separately from clean. It is not a violation: the line may be right.
+
+- **Webhook:** the code is added unless `EXTEND_ORDER_SYNC=self`, because only that sync compares each line's price and plan with Extend's quote and flags a mismatch (`price_mismatch`, `unknown_plan`; never sent to Extend, section 4). With `off`, `extend-app` or Extend not configured, nobody checks the price, and every order with protection logs `detective.unjudged` with `reason` `coverage_price_unjudged`.
+- **Report script:** always added, because the script cannot know what the webhook did when the order arrived, and it makes no Extend call. A window with protection orders therefore exits 1 and prints "not judged: coverage_price_unjudged=N". To judge the price, compare the line's price in Shopify admin with the plan price Extend shows for that product (Extend dashboard) or run the reconcile script (section 4) with Extend credentials. Until a real Extend account exists (ADR-0009 mock), nothing judges it.
 
 **Steps**
 
-1. Get the order number from the Flow email or the order tag.
-2. In Shopify admin (read-only), note: the quantity of the "Recycle and disposal service" line, the delivery method, and the order attributes `delivery_choice` and `offer_declined_haul_away`.
-3. Compare with the current maximum in `site_settings.haul_away_max` **and** with the number set by hand in the Flow condition. If they differ, the flag may be a false positive (stale Flow number). Which of `site_settings.haul_away_max` and the `offer_rule` field `max_quantity` is authoritative is open (conflict C5).
+1. Get the order ID from the log line or the report. In Shopify admin open Orders; the ID is the number at the end of the order's admin URL.
+2. Note, read-only: the quantity of the "Recycle and disposal service" line, the delivery method and shipping address, and the order attributes `delivery_choice` and `offer_declined_haul_away`.
+3. The check judges against the **current** rules and zone (`OFFER_CONFIG_JSON`, the same setting the cart reads), so there is no separate number to keep in sync. If the maximum or the zone changed after the order was placed, the finding may not be a defect. Which of `site_settings.haul_away_max` and the `offer_rule` field `max_quantity` is authoritative is still open (conflict C5); the check reads whatever the cart gate reads.
 4. Classify:
 
    | Finding | Meaning | Next |
    |---|---|---|
    | Quantity above the maximum, cart built by our site | A defect in the preventive layers | Reproduce on staging; write a failing test; fix; this is a Major |
-   | Quantity above the maximum, no sign of our flow | A cart built directly through the public Storefront API | Expected residual risk (SD-01). Staff handle the order |
-   | Haul-away on a pickup or parcel order | The shopper changed the delivery method inside checkout | Expected residual risk. Staff handle the order |
+   | Any code, no sign of our flow | A cart built directly through the public Storefront API | Expected residual risk (SD-01). Staff handle the order |
+   | Out of zone, but the cart gate had said yes | The shopper typed a different ZIP in checkout (E-M3) | Expected residual risk until the checkout zone restriction is proven (B-17). Staff handle the order |
+   | Haul-away on a pickup or parcel order | The shopper changed the delivery method inside checkout | Expected residual risk; see "What is unverified" for what the check can see |
    | ZIP in or out of the zone does not match checkout | The two ZIP lists differ | Run the parity check `PLANNED` (P5B-02); fix both lists |
-   | Flow number stale | Maximum changed in one place only | Fix the Flow condition; record |
 
 5. Staff handle the order under the client's policy (ADMIN_GUIDE section 4.6).
-6. If flags are frequent, consider the optional App Store quantity-limit app (CR-13, V-18 unverified on Basic with Storefront API carts), host-level rate limits, or a review of the public token's exposure.
-7. If Flow turns out unable to test a line-item quantity or send an internal email (V-17), switch to the webhook check, or fall back to a reconciliation report staff run (REQ-PROMO-003).
+6. If findings are frequent, consider the optional App Store quantity-limit app (CR-13, V-18 unverified on Basic with Storefront API carts), host-level rate limits, or a review of the public token's exposure.
+
+**What is unverified (V-20) and what the check cannot see**
+
+- **False positives from `delivery_choice`.** The check assumes Shopify copies cart attributes to `Order.customAttributes`. If it does not, every haul-away order reads `haul-away-delivery-not-recorded`. One development-store order with a haul-away line proves or disproves it; record the result here. A shopper can write any cart attribute, so `delivery_choice` is a claim, not proof.
+- **Delivery method is not read from Shopify.** Shopify documents no local-delivery or pickup marker on an order or its shipping line (`ShippingLine.deliveryCategory` has no documented values). A parcel order to an in-zone ZIP therefore passes unless the attribute says otherwise. After the development-store test orders for Local delivery, pickup and parcel (V-06), read what each shipping line carries and add a matcher to `detect.ts` (a small, tested change).
+- **A pickup order is assumed to have no shipping address.** Shopify documents the field only as null "for digital orders or orders that don't require shipping".
+- **Query cost.** The order read asks for 50 lines per order and the script for 2 orders per page. Shopify counts the requested cost against a 1,000 point limit and the figures here are estimates. If Shopify refuses a page, the script drops to one order per request; an order with more than 50 lines is `order_unreadable`.
+- **Order age.** Shopify is believed to limit apps to the last 60 days of orders without the `read_all_orders` scope (not re-checked on 2026-10-14); a longer `--since` may return fewer orders than expected.
+- **Token.** A read-only Admin token with the order read scope is enough; the read asks for the shipping ZIP and country only. Security review E-L8 asks for a separate token for the webhook read.
+- **Repeats.** A violation may be logged more than once for one order (`orders/paid`, then `orders/updated`). De-duplicate by order ID and code.
 
 ---
 
@@ -495,7 +539,7 @@ Hydrogen is calendar-versioned and released about quarterly. Reassess monthly (A
 | Connect to a dev store; document env vars | P3A-01 |
 | Store importer | P3A-07 (`scripts/catalog/import-stores.mjs`) |
 | Delivery parity script | P5B-02 (`scripts/shopify/check-delivery-parity.mjs`) |
-| Haul-away detective control | P5B-05 |
+| Haul-away detective control | P5B-05: built 2026-10-14 (webhook check and `scripts/detective/report.mjs`); not yet run on a development store (V-20) |
 | Webhook route | P5A-08 (`app/routes/webhooks.shopify.tsx`) |
 | Reconciliation script and failure logging | P5A-10 (`scripts/reconcile-extend.mjs`) |
 | Extend demo-host run and Extend's review | P5A-12 |

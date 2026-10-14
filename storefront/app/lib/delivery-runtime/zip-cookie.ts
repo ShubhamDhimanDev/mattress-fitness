@@ -12,7 +12,7 @@
 
 import {createCookie} from 'react-router';
 import {isLocalHost} from '~/lib/cart/cookie';
-import {usableCookieSecret} from '~/lib/cookie-secret';
+import {reportUnusableSecret, usableCookieSecret} from '~/lib/cookie-secret';
 import {parseZip} from '~/lib/delivery/zip';
 
 export const DELIVERY_ZIP_COOKIE = 'delivery_zip';
@@ -25,7 +25,11 @@ function cookieFor(env: object, requestUrl: string) {
   // Reflect.get: the request-context Env is an interface with no index signature.
   const secret = usableCookieSecret(Reflect.get(env, 'DELIVERY_COOKIE_SECRET'));
   // Without a long enough secret nothing can be signed or verified: read nothing, write nothing (fail closed).
-  if (secret === null) return null;
+  // Production says so once, by variable name, so the silence has a visible cause.
+  if (secret === null) {
+    reportUnusableSecret('DELIVERY_COOKIE_SECRET');
+    return null;
+  }
   return createCookie(DELIVERY_ZIP_COOKIE, {
     httpOnly: true,
     sameSite: 'lax',
@@ -35,6 +39,21 @@ function cookieFor(env: object, requestUrl: string) {
     path: '/',
     secrets: [secret],
   });
+}
+
+/**
+ * Whether a ZIP can be saved on this deployment. False only in production with a missing or short secret
+ * (reported once by name): the header then offers no ZIP entry that could never work. Development keeps the
+ * control so the mock stores stay usable; saving there answers with the fixed error instead.
+ */
+export function deliveryZipSavingAvailable(
+  env: object,
+  production: boolean = import.meta.env.PROD,
+): boolean {
+  const usable =
+    usableCookieSecret(Reflect.get(env, 'DELIVERY_COOKIE_SECRET')) !== null;
+  if (!usable) reportUnusableSecret('DELIVERY_COOKIE_SECRET', production);
+  return usable || !production;
 }
 
 /** The saved ZIP, or null when there is none, the signature is wrong or the value is not a ZIP. Never throws. */

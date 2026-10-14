@@ -7,7 +7,7 @@ import {MAIN_CONTENT_ID} from '~/components/layout/SkipLink';
 import {MobileMenuContent, SiteHeader} from '~/components/layout/SiteHeader';
 import {SiteFooter} from '~/components/layout/SiteFooter';
 import {Skeleton} from '~/components/ui/Skeleton';
-import {DEFAULT_PROMO} from '~/lib/navigation';
+import type {PromoMessage, SupportPhone} from '~/lib/navigation';
 import type {MyStoreSummary} from '~/lib/pages/my-store-summary';
 
 type PageLayoutProps = {
@@ -15,6 +15,12 @@ type PageLayoutProps = {
   isLoggedIn: Promise<boolean>;
   /** The shopper's chosen store from the validated cookie, or null (REQ-LOC-003). */
   myStore?: MyStoreSummary | null;
+  /** From site_settings once a typed read exists (P3B-13); null hides the bar, nothing is invented (B-15). */
+  promo?: PromoMessage | null;
+  /** The client's number from the environment, or null: no phone link is rendered without one (REQ-CNT-001). */
+  supportPhone?: SupportPhone | null;
+  /** False when the deployment cannot save a ZIP; the header then offers no ZIP entry. */
+  deliveryZipAvailable?: boolean;
   children?: React.ReactNode;
 };
 
@@ -26,16 +32,20 @@ export function PageLayout({
   cart,
   isLoggedIn,
   myStore = null,
+  promo = null,
+  supportPhone = null,
+  deliveryZipAvailable = true,
   children = null,
 }: PageLayoutProps) {
   return (
     <Aside.Provider>
-      {/* TODO(P3B-13): the promotion text comes from Shopify admin; this placeholder keeps the bar visible. */}
       <SiteHeader
         cart={cart}
         isLoggedIn={isLoggedIn}
-        promo={DEFAULT_PROMO}
+        promo={promo}
         storeName={myStore?.name ?? null}
+        supportPhone={supportPhone}
+        deliveryZipAvailable={deliveryZipAvailable}
       />
       <main
         id={MAIN_CONTENT_ID}
@@ -44,10 +54,10 @@ export function PageLayout({
       >
         {children}
       </main>
-      <SiteFooter />
+      <SiteFooter supportPhone={supportPhone} />
       <CartAside cart={cart} />
       <Aside type="mobile" heading="Menu" side="left">
-        <MobileMenuContent />
+        <MobileMenuContent supportPhone={supportPhone} />
       </Aside>
     </Aside.Provider>
   );
