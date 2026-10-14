@@ -61,6 +61,13 @@ export function ProtectionPanel({
           <Skeleton className="h-4 w-28" />
         </div>
       ) : null}
+      {offers.status !== 'loading' &&
+      offers.status !== 'plans' &&
+      reserveSpace ? (
+        // An eligible product whose answer is "no plan" (Extend down, no plan for this size) keeps its box so the Add to cart
+        // button does not jump when the answer arrives (NFR-002).
+        <div aria-hidden="true" className={RESERVED} />
+      ) : null}
       {offers.status === 'plans' ? (
         <PlanGroup
           plans={offers.plans}

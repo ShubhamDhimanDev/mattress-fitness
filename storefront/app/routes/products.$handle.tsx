@@ -15,7 +15,10 @@ import {
   loadExtendEligibility,
   loadProductPage,
 } from '~/lib/shopify/product-data';
-import {protectionModeFor} from '~/lib/shopify/protection-mode';
+import {
+  hasDevEligibleCookie,
+  protectionModeFor,
+} from '~/lib/shopify/protection-mode';
 import {offersConfigOf} from '~/lib/extend/runtime';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {
@@ -58,8 +61,6 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
  * Development only: the mock stores have no `custom.extend_category` metafield, so the e2e spec opts a page in with this
  * cookie. `import.meta.env.DEV` is false in a production build, so the branch is removed there and no request can opt in.
  */
-const DEV_ASSUME_ELIGIBLE_COOKIE = /(?:^|;s*)e2e_extend_eligible=1(?:;|$)/;
-
 async function protectionModeOf(
   context: Route.LoaderArgs['context'],
   request: Request,
@@ -71,7 +72,7 @@ async function protectionModeOf(
   if (!enabled) return protectionModeFor({enabled, eligible: false});
   const assumed =
     import.meta.env.DEV &&
-    DEV_ASSUME_ELIGIBLE_COOKIE.test(request.headers.get('Cookie') ?? '');
+    hasDevEligibleCookie(request.headers.get('Cookie') ?? '');
   const eligible = assumed
     ? true
     : await loadExtendEligibility(context.storefront, productId);
@@ -141,6 +142,7 @@ export default function Product() {
           initialIndex={Math.max(variantImageIndex, 0)}
         />
         <ProductBuyBox
+          key={product.id}
           product={product}
           variant={variant}
           protection={protection}

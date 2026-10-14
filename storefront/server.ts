@@ -52,7 +52,12 @@ export default {
       return response;
     } catch (error) {
       // The error name only: its message and cause can hold the query, variables and a cart id with its key (N-L4).
-      console.error('Unhandled request error:', describeError(error));
+      console.error(
+        'Unhandled request error:',
+        describeError(error),
+        // The path only: a query string can carry search text or a cart key.
+        new URL(request.url).pathname,
+      );
       return new Response('An unexpected error occurred', {status: 500});
     }
   },

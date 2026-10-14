@@ -25,3 +25,11 @@ export function protectionModeFor(input: {
   if (!input.enabled || input.eligible === false) return 'off';
   return input.eligible === true ? 'eligible' : 'unknown';
 }
+
+// Dev-only test hook (see products.$handle.tsx): the e2e opts a page into 'eligible' with this cookie. Kept here as a pure
+// function so the multi-cookie header case is tested (a `;s*` typo once matched only a sole or first cookie).
+const DEV_ELIGIBLE_COOKIE = /(?:^|;\s*)e2e_extend_eligible=1(?:;|$)/;
+
+export function hasDevEligibleCookie(cookieHeader: string): boolean {
+  return DEV_ELIGIBLE_COOKIE.test(cookieHeader);
+}
