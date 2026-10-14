@@ -10,6 +10,7 @@ import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {isSameOriginRequest, noStoreHeaders} from '~/lib/cart/http';
 import {parseZip} from '~/lib/delivery/zip';
+import {readSmallForm} from '~/lib/delivery-runtime/form';
 import {deliveryViewFor} from '~/lib/delivery/status';
 import type {
   DeliveryError,
@@ -79,7 +80,17 @@ export async function action({request, context}: Route.ActionArgs) {
   if (!isSameOriginRequest(request)) {
     return failure(env, current, 'save-failed', 403);
   }
-  const form = await request.formData();
+  const read = await readSmallForm(request);
+  // An oversized or unreadable body is refused with a fixed message before anything is parsed further.
+  if (read.status !== 'ok') {
+    return failure(
+      env,
+      current,
+      'save-failed',
+      read.status === 'too-large' ? 413 : 400,
+    );
+  }
+  const {form} = read;
   const intent = form.get('intent');
   const zone = loadDeliveryZone(env);
 

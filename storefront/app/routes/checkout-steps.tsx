@@ -17,6 +17,7 @@ import {
   getCheckoutHref,
 } from '~/lib/cart/checkout';
 import {isSameOriginRequest, noStoreHeaders} from '~/lib/cart/http';
+import {readSmallForm} from '~/lib/delivery-runtime/form';
 import {
   acceptHaulAway,
   chooseDelivery,
@@ -203,7 +204,14 @@ export async function action({request, context}: Route.ActionArgs) {
       headers: noStoreHeaders(),
     });
   }
-  const command = parseStepCommand(await request.formData());
+  const read = await readSmallForm(request);
+  if (read.status === 'too-large') {
+    throw new Response('That request is too large.', {
+      status: 413,
+      headers: noStoreHeaders(),
+    });
+  }
+  const command = read.status === 'ok' ? parseStepCommand(read.form) : null;
   if (command === null) {
     throw new Response('That step is not valid.', {
       status: 400,

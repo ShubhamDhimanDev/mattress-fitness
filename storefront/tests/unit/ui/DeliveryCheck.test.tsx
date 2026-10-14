@@ -26,19 +26,28 @@ const ZONE: DeliveryZone = {
 
 /** An in-memory stand-in for the /delivery route: same shapes, no cookie. */
 function renderCheck(options: {
+  /** Holds the first answer back until released, to look at the loading state. */
+  gate?: Promise<void>;
   zone?: DeliveryZone | null;
   saved?: string | null;
 }) {
   let saved = options.saved ?? null;
   const zone = options.zone === undefined ? ZONE : options.zone;
   const submissions: string[] = [];
+  const otherLoader = vi.fn(() => null);
   const router = createMemoryRouter(
     [
-      {path: '/products/x', element: <DeliveryCheck />},
+      {
+        path: '/products/x',
+        loader: otherLoader,
+        element: <DeliveryCheck />,
+      },
       {
         path: '/delivery',
-        loader: () =>
-          data({delivery: deliveryViewFor(zone, saved), error: null}),
+        loader: async () => {
+          await options.gate;
+          return data({delivery: deliveryViewFor(zone, saved), error: null});
+        },
         action: async ({request}) => {
           const form = await request.formData();
           submissions.push(String(form.get('zip') ?? form.get('intent')));
@@ -51,7 +60,7 @@ function renderCheck(options: {
     {initialEntries: ['/products/x']},
   );
   render(<RouterProvider router={router} />);
-  return {submissions};
+  return {submissions, otherLoader};
 }
 
 describe('DeliveryCheck', () => {
@@ -61,6 +70,33 @@ describe('DeliveryCheck', () => {
     expect(
       screen.getByText(/Enter your ZIP code to see delivery options/i),
     ).toBeInTheDocument();
+  });
+
+  it('holds its space with a busy placeholder until the first answer, then shows the form', async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    renderCheck({gate});
+    expect(
+      await screen.findByRole('region', {name: 'Delivery'}),
+    ).toHaveAttribute('aria-busy', 'true');
+    release();
+    expect(await screen.findByLabelText('ZIP code')).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Delivery'})).not.toHaveAttribute(
+      'aria-busy',
+    );
+  });
+
+  it('saving a ZIP does not re-run the page loaders', async () => {
+    const {otherLoader} = renderCheck({});
+    fireEvent.change(await screen.findByLabelText('ZIP code'), {
+      target: {value: '60645'},
+    });
+    const callsBefore = otherLoader.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', {name: /check delivery/i}));
+    await screen.findByText('In-home delivery is available to 60645.');
+    expect(otherLoader.mock.calls.length).toBe(callsBefore);
   });
 
   it('shows an inline error and sends nothing for an invalid ZIP', async () => {

@@ -8,8 +8,11 @@ import {
 
 // P3B-11, REQ-NAV-003: a signed, HttpOnly cookie; a value we did not write is never believed.
 
-const ENV = {SESSION_SECRET: 'unit-test-secret-not-real'};
-const OTHER_ENV = {SESSION_SECRET: 'a-different-secret'};
+const SECRET = 'unit-test-delivery-secret-0123456789-not-real';
+const ENV = {DELIVERY_COOKIE_SECRET: SECRET};
+const OTHER_ENV = {
+  DELIVERY_COOKIE_SECRET: 'a-different-delivery-secret-0123456789-xx',
+};
 const URL_HTTPS = 'https://shop.example/products/x';
 const URL_LOCAL = 'http://localhost:3000/products/x';
 
@@ -109,9 +112,42 @@ describe('delivery ZIP cookie', () => {
     ).toBeNull();
     expect(
       await readDeliveryZip(requestWith(cookiePair(header)), {
-        SESSION_SECRET: '',
+        DELIVERY_COOKIE_SECRET: '',
       }),
     ).toBeNull();
+  });
+
+  it('refuses a secret shorter than 32 characters for reading and writing (E-L1)', async () => {
+    const weak = {DELIVERY_COOKIE_SECRET: 'x'.repeat(31)};
+    expect(
+      await saveDeliveryZipHeader('60645', requestWith(null), weak),
+    ).toBeNull();
+    expect(await clearDeliveryZipHeader(requestWith(null), weak)).toBeNull();
+    const header =
+      (await saveDeliveryZipHeader('60645', requestWith(null), ENV)) ?? '';
+    expect(
+      await readDeliveryZip(requestWith(cookiePair(header)), weak),
+    ).toBeNull();
+    // Exactly 32 is enough.
+    const edge = {DELIVERY_COOKIE_SECRET: 'x'.repeat(32)};
+    expect(
+      await saveDeliveryZipHeader('60645', requestWith(null), edge),
+    ).not.toBeNull();
+  });
+
+  it('never uses the session secret: a cookie signed with it is not believed, and it does not sign', async () => {
+    const sessionOnly = {SESSION_SECRET: SECRET};
+    expect(
+      await saveDeliveryZipHeader('60645', requestWith(null), sessionOnly),
+    ).toBeNull();
+    // Same key material under the right name signs fine, but an unprefixed (other purpose) payload is not a ZIP.
+    const {createCookie} = await import('react-router');
+    const other = createCookie(DELIVERY_ZIP_COOKIE, {secrets: [SECRET]});
+    const bare = (await other.serialize('60645')).split(';')[0] ?? '';
+    expect(await readDeliveryZip(requestWith(bare), ENV)).toBeNull();
+    const otherPurpose =
+      (await other.serialize('session:60645')).split(';')[0] ?? '';
+    expect(await readDeliveryZip(requestWith(otherPurpose), ENV)).toBeNull();
   });
 
   it('clears by expiring the cookie', async () => {

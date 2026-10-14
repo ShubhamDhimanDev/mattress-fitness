@@ -55,9 +55,10 @@ export function deliveryChoiceState(
 }
 
 /**
- * In-home needs a ZIP inside the zone; pickup is a valid answer while the question applies. Judged without
- * the recorded answer, so changing one's mind works but a forged "in-home" for an out-of-zone or unknown
- * ZIP is refused rather than recorded.
+ * Both answers are valid only while the question applies, which means a saved ZIP inside the zone (the
+ * question is put to nobody else; see the `needs-zip` case of deliveryChoiceState). Judged without the
+ * recorded answer, so changing one's mind works but a forged answer for an out-of-zone or unknown ZIP is
+ * refused rather than recorded.
  */
 export function mayChoose(
   input: DeliveryChoiceInput,
@@ -67,8 +68,9 @@ export function mayChoose(
   switch (state.status) {
     case 'pending':
       return true;
+    // No saved ZIP: the shopper is not asked at /checkout-steps, so there is nothing to answer. (Pickup would be
+    // harmless, but accepting an answer to a question that was never put only invites stale attributes.)
     case 'needs-zip':
-      return choice === 'pickup';
     case 'not-applicable':
     case 'answered':
       return false;

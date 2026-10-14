@@ -93,6 +93,8 @@ function describeReason(reason: Correction['reason']): string {
       return 'The recycling and disposal service was removed because it is not available right now.';
     case 'haul-away-over-max':
       return 'The recycling and disposal service was reduced to the maximum number of pieces we allow.';
+    case 'coverage-price-mismatch':
+      return 'A protection plan was removed because its price no longer matches the item it covers. You can add protection again.';
     case 'orphan-coverage':
     case 'coverage-exceeds-item':
       return 'A protection plan was adjusted because it has to stay linked to the item it covers.';
@@ -120,13 +122,16 @@ export type DeliveryStepFailure =
   | 'delivery-choice-invalid'
   | 'delivery-choice-unavailable'
   | 'quantity-invalid'
-  | 'haul-away-unavailable';
+  | 'haul-away-unavailable'
+  | 'haul-away-in-cart';
 
 export const DELIVERY_STEP_FAILURE_TEXT: Record<DeliveryStepFailure, string> = {
   'delivery-choice-invalid': 'Choose in-home delivery or store pickup.',
   'delivery-choice-unavailable':
     'In-home delivery is not available for your ZIP code. You can choose store pickup or continue to checkout.',
   'quantity-invalid': 'Choose how many pieces you would like us to take away.',
+  'haul-away-in-cart':
+    'Recycling and disposal is already in your cart. Remove it from your cart first if you no longer want it.',
   'haul-away-unavailable':
     'Recycling and disposal is not available right now. You can continue to checkout without it.',
 };

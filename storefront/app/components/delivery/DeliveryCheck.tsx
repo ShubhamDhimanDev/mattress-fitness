@@ -3,6 +3,7 @@ import {useDeliveryZip} from '~/components/delivery/useDeliveryZip';
 import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {TruckIcon} from '~/components/ui/Icons';
+import {Skeleton} from '~/components/ui/Skeleton';
 import {Input} from '~/components/ui/Input';
 import {parseZip} from '~/lib/delivery/zip';
 import type {DeliveryView} from '~/lib/delivery/status';
@@ -18,6 +19,8 @@ type DeliveryCheckProps = {
   initial?: DeliveryResponse;
   /** The product page and cart say nothing when no delivery zone is configured; the /delivery page does. */
   showWhenUnavailable?: boolean;
+  /** Re-run the page's loaders after a change, for surfaces whose server data depends on the ZIP (the cart). */
+  refreshPageAfterChange?: boolean;
   className?: string;
 };
 
@@ -32,9 +35,12 @@ export function DeliveryCheck({
   title = 'Delivery',
   initial,
   showWhenUnavailable = false,
+  refreshPageAfterChange = false,
   className,
 }: DeliveryCheckProps) {
-  const {response, pending, save, clear} = useDeliveryZip(initial);
+  const {response, pending, save, clear} = useDeliveryZip(initial, {
+    refreshPageAfterChange,
+  });
   const headingId = useId();
   const [editing, setEditing] = useState(false);
   const [localError, setLocalError] = useState<string | undefined>(undefined);
@@ -63,6 +69,37 @@ export function DeliveryCheck({
 
   if (delivery?.status === 'unavailable' && !showWhenUnavailable) return null;
 
+  // Before the first answer (fetched after load so the page itself carries no ZIP) hold the space the form
+  // takes, so nothing below jumps (NFR-002). Without scripts the link below is the way in.
+  if (delivery === null) {
+    return (
+      <section
+        aria-labelledby={headingId}
+        aria-busy="true"
+        className={cn(
+          'flex min-h-60 flex-col gap-3 rounded-card border border-line p-4',
+          className,
+        )}
+      >
+        <h2
+          id={headingId}
+          className="flex items-center gap-2 text-base font-bold"
+        >
+          <TruckIcon className="size-5" />
+          {title}
+        </h2>
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-11 w-40" />
+        <noscript>
+          <a href="/delivery" className="font-bold underline">
+            Check delivery to your ZIP code
+          </a>
+        </noscript>
+      </section>
+    );
+  }
+
   const showForm = delivery === null || delivery.status === 'no-zip' || editing;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -84,6 +121,7 @@ export function DeliveryCheck({
       aria-labelledby={headingId}
       className={cn(
         'flex flex-col gap-3 rounded-card border border-line p-4',
+        showForm && 'min-h-60',
         className,
       )}
     >

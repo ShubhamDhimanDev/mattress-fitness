@@ -21,14 +21,32 @@ import {
   type OfferRuntime,
   type StepChangeResult,
 } from '~/lib/offers-runtime/server';
-import {loadDeliveryZone} from './zone';
+import {loadDeliveryZone, loadHaulAwayVariantId} from './zone';
 import {withAttribute} from '~/lib/offers-runtime/step-attributes';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import type {DeliveryChoice} from '~/lib/offers/types';
 
+/** Cart lines that are the haul-away service. The role comes from the server's rule variant, never from the cart. */
+function haulAwayLineIds(
+  cart: CartApiQueryFragment,
+  variantId: string | null,
+): string[] {
+  if (variantId === null) return [];
+  return cart.lines.nodes
+    .filter((line) => line.merchandise?.id === variantId)
+    .map((line) => line.id);
+}
+
 /**
  * Records in-home delivery or store pickup. In-home is recorded only when the saved ZIP is inside the zone
  * and a haul-away service exists to follow it; a forged request for anything else is refused, not stored.
+ *
+ * The question is only asked of a shopper whose saved ZIP is inside the zone (a shopper with no ZIP is not
+ * asked here; they enter one through the cart or product page control and are asked on the next visit), so
+ * "applies" below means pending or already answered. Switching to pickup removes any haul-away service
+ * already added: it is for in-home delivery only, and leaving the line would block checkout. The removal
+ * comes BEFORE the attribute write, so a failure in between leaves a shopper who is still "in-home" with
+ * nothing blocking, never a pickup order with a service line.
  */
 export async function chooseDelivery(
   runtime: OfferRuntime,
@@ -59,6 +77,13 @@ export async function chooseDelivery(
       choice,
     );
   if (!allowed) return rejectedStep('delivery-choice-unavailable');
+  if (choice === 'pickup') {
+    const haulIds = haulAwayLineIds(cart, loadHaulAwayVariantId(runtime.env));
+    if (haulIds.length > 0) {
+      const removed = await runtime.cart.removeLines(haulIds);
+      if (failed(removed)) return rejectedStep('record-failed');
+    }
+  }
   const written = await runtime.cart.updateAttributes(
     withAttribute(cart.attributes, deliveryChoiceAttribute(choice)),
   );
@@ -101,7 +126,12 @@ export async function acceptHaulAway(
     : {status: 'ok', result: added};
 }
 
-/** Declining is recorded as a cart attribute that becomes an order note attribute (REQ-PRE-005). */
+/**
+ * Declining is recorded as a cart attribute that becomes an order note attribute (REQ-PRE-005). It is only
+ * recorded for a step that was actually put to the shopper: in-home chosen, a ZIP inside the zone, the
+ * service offered and bought nowhere yet. Anything else gets a known code, so a forged post cannot write a
+ * decline for an offer that never applied, and a decline never sits next to a service line.
+ */
 export async function declineHaulAway(
   runtime: OfferRuntime,
   current: CartApiQueryFragment | null,
@@ -109,8 +139,20 @@ export async function declineHaulAway(
   if (!current || current.lines.nodes.length === 0) {
     return rejectedStep('cart-gone');
   }
+  const offers = await revalidateCartOffers(runtime, current);
+  const cart = offers.cart;
+  if (!cart || cart.lines.nodes.length === 0) return rejectedStep('cart-gone');
+  const haul = offers.view?.haulAway ?? null;
+  if (haul === null) return rejectedStep('haul-away-unavailable');
+  // Mirror of acceptHaulAway: a recorded decline next to a service line would contradict the order.
+  if (
+    haul.currentQuantity > 0 ||
+    haulAwayLineIds(cart, loadHaulAwayVariantId(runtime.env)).length > 0
+  ) {
+    return rejectedStep('haul-away-in-cart');
+  }
   const written = await runtime.cart.updateAttributes(
-    withAttribute(current.attributes, declineAttribute('haul-away')),
+    withAttribute(cart.attributes, declineAttribute('haul-away')),
   );
   return failed(written)
     ? rejectedStep('record-failed')

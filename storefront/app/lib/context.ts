@@ -1,5 +1,6 @@
 import {createHydrogenContext} from '@shopify/hydrogen';
 import {cartSetId} from '~/lib/cart/cookie';
+import {usableCookieSecret} from '~/lib/cookie-secret';
 import {AppSession} from '~/lib/session';
 import {CART_QUERY_FRAGMENT} from '~/lib/fragments';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
@@ -38,6 +39,11 @@ export async function createHydrogenRouterContext(
    */
   if (!env?.SESSION_SECRET) {
     throw new Error('SESSION_SECRET environment variable is not set');
+  }
+  // A short signing key is guessable (E-L1). Production refuses to start on one; local placeholder env files
+  // for the mock stores are shorter and stay allowed in development.
+  if (import.meta.env.PROD && usableCookieSecret(env.SESSION_SECRET) === null) {
+    throw new Error('SESSION_SECRET must be at least 32 characters');
   }
 
   const waitUntil = executionContext.waitUntil.bind(executionContext);

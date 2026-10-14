@@ -23,7 +23,10 @@ import {
 // the helper below builds them from plain parts (a documented test-only narrowing, as in cart-routes.test.ts).
 
 const ORIGIN = 'http://localhost:3000';
-const ENV = {...OFFER_ENV, SESSION_SECRET: 'unit-test-secret-not-real'};
+const ENV = {
+  ...OFFER_ENV,
+  DELIVERY_COOKIE_SECRET: 'unit-test-delivery-secret-0123456789-not-real',
+};
 const CHECKOUT = 'https://shop.example/checkouts/c/c1-test';
 const IN_ZONE = '60645';
 const OUT_OF_ZONE = '90210';
@@ -171,9 +174,20 @@ describe('GET /delivery (P5B-03, REQ-DEL-002)', () => {
     expect(JSON.stringify(outside.data)).not.toMatch(/White-glove/);
   });
 
+  it('claims nothing when offers are switched off (the gate then runs on the empty configuration)', async () => {
+    const {context} = contextFor(new FakeCart([]), {
+      ...ENV,
+      OFFERS_ENABLED: 'false',
+    });
+    const result = unwrap(
+      await deliveryLoader(args(await withZip(IN_ZONE, '/delivery'), context)),
+    );
+    expect(result.data.delivery).toEqual({status: 'unavailable'});
+  });
+
   it('claims nothing when no delivery zone is configured', async () => {
     const {context} = contextFor(new FakeCart([]), {
-      SESSION_SECRET: ENV.SESSION_SECRET,
+      DELIVERY_COOKIE_SECRET: ENV.DELIVERY_COOKIE_SECRET,
     });
     const result = unwrap(
       await deliveryLoader(args(await withZip(IN_ZONE, '/delivery'), context)),
@@ -247,7 +261,7 @@ describe('POST /delivery (P3B-11, REQ-NAV-003)', () => {
     '12 345',
     '<script>alert(1)</script>',
     '60645\r\nSet-Cookie: evil=1',
-    '9'.repeat(5000),
+    '9'.repeat(3000),
   ])('rejects %j with a fixed message, 400 and no cookie', async (zip) => {
     const {context} = contextFor(new FakeCart([]));
     const result = await deliveryAction(args(save(zip), context));
@@ -293,6 +307,27 @@ describe('POST /delivery (P3B-11, REQ-NAV-003)', () => {
     );
     expect(locationOf(stray)).toBeNull();
     expect(unwrap(stray).data.error).toBeNull();
+  });
+
+  it('refuses an oversized or unreadable body with a fixed message and no cookie', async () => {
+    const {context} = contextFor(new FakeCart([]));
+    const big = new Request(`${ORIGIN}/delivery`, {
+      method: 'POST',
+      body: `intent=save&zip=${'1'.repeat(10_000)}`,
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    });
+    const tooLarge = await deliveryAction(args(big, context));
+    expect(unwrap(tooLarge)).toMatchObject({
+      status: 413,
+      data: {error: 'save-failed'},
+    });
+    expect(cookieOf(tooLarge)).toBe('');
+    const json = new Request(`${ORIGIN}/delivery`, {
+      method: 'POST',
+      body: '{"intent":"save"}',
+      headers: {'Content-Type': 'application/json'},
+    });
+    expect(unwrap(await deliveryAction(args(json, context))).status).toBe(400);
   });
 
   it('clears the saved ZIP', async () => {
@@ -577,6 +612,63 @@ describe('delivery and haul-away steps through the gate (P5B-04)', () => {
       ),
     );
     expect(unknown.data.error).toBeNull();
+  });
+
+  it('refuses an oversized or unreadable step post with a fixed response', async () => {
+    const {context} = contextFor(new FakeCart([OTHER]));
+    const big = new Request(`${ORIGIN}/checkout-steps`, {
+      method: 'POST',
+      body: `step=haul-away&intent=decline&pad=${'x'.repeat(10_000)}`,
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    });
+    expect(await thrownStatus(() => stepsAction(args(big, context)))).toBe(413);
+    const json = new Request(`${ORIGIN}/checkout-steps`, {
+      method: 'POST',
+      body: '{}',
+      headers: {'Content-Type': 'application/json'},
+    });
+    expect(await thrownStatus(() => stepsAction(args(json, context)))).toBe(
+      400,
+    );
+  });
+
+  it('pickup after buying haul-away removes the service and the gate goes on to checkout', async () => {
+    const fake = new FakeCart([OTHER, {...HAUL, quantity: 2}], {
+      attributes: IN_HOME,
+    });
+    const {context} = contextFor(fake);
+    const result = await stepsAction(
+      args(
+        await stepsPost(IN_ZONE, {
+          step: 'delivery-choice',
+          intent: 'choose',
+          choice: 'pickup',
+        }),
+        context,
+      ),
+    );
+    expect(locationOf(result)).toBe('/checkout-steps');
+    expect(fake.lineIds()).toEqual([OTHER.id]);
+    expect(
+      locationOf(await stepsLoader(args(await stepsGet(IN_ZONE), context))),
+    ).toBe(CHECKOUT);
+  });
+
+  it('declining haul-away while the service is in the cart carries a known code back', async () => {
+    const fake = new FakeCart([OTHER, {...HAUL, quantity: 1}], {
+      attributes: IN_HOME,
+    });
+    const {context} = contextFor(fake);
+    const result = await stepsAction(
+      args(
+        await stepsPost(IN_ZONE, {step: 'haul-away', intent: 'decline'}),
+        context,
+      ),
+    );
+    expect(locationOf(result)).toBe(
+      '/checkout-steps?step=haul-away&error=haul-away-in-cart',
+    );
+    expect(fake.attributeValue('offer_declined_haul_away')).toBeUndefined();
   });
 
   it('refuses another origin and unknown step or intent combinations', async () => {

@@ -81,9 +81,10 @@ describe('mayChoose (a forged answer is refused, not recorded)', () => {
     ).toBe(false);
   });
 
-  it('refuses in-home without a ZIP, allows pickup', () => {
+  it('refuses both answers without a saved ZIP: that shopper is never asked the question', () => {
     expect(mayChoose({...base, zip: null}, 'in-home')).toBe(false);
-    expect(mayChoose({...base, zip: null}, 'pickup')).toBe(true);
+    expect(mayChoose({...base, zip: null}, 'pickup')).toBe(false);
+    expect(mayChoose({...base, zip: '12'}, 'pickup')).toBe(false);
   });
 
   it('refuses everything when the question does not apply', () => {

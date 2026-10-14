@@ -118,7 +118,7 @@ export function CartMain({
         </div>
         {slots?.offers ?? (offers ? <CartOffers view={offers} /> : null)}
         {/* The ZIP decides the in-home and recycling offers at checkout (P3B-11, P5B-04). */}
-        <DeliveryCheck className="mt-6" />
+        <DeliveryCheck className="mt-6" refreshPageAfterChange />
       </div>
       <CartSummary
         cart={cart}

@@ -181,6 +181,50 @@ describe('delivery question (REQ-PRE-003, P5B-04)', () => {
   });
 });
 
+describe('changing to pickup after haul-away (P5B-04)', () => {
+  const HAULED = () =>
+    new FakeCart([OTHER_LINE, {...HAUL_LINE, quantity: 2}], {
+      attributes: IN_HOME,
+    });
+
+  it('removes the haul-away service, then records pickup, so checkout is not blocked', async () => {
+    const fake = HAULED();
+    const outcome = await chooseDelivery(
+      runtime(fake),
+      fake.snapshot(),
+      'pickup',
+    );
+    expect(outcome.status).toBe('ok');
+    expect(fake.quantityOf(HAUL_LINE.id)).toBeUndefined();
+    expect(fake.attributeValue('delivery_choice')).toBe('pickup');
+    const order = fake.calls.map((call) => call.method);
+    expect(order.indexOf('removeLines')).toBeLessThan(
+      order.indexOf('updateAttributes'),
+    );
+    const {check} = await viewOf(fake);
+    expect(check?.blocked).toEqual([]);
+  });
+
+  it('keeps other lines, and a failed removal records nothing', async () => {
+    const fake = HAULED();
+    fake.failNext = true;
+    const outcome = await chooseDelivery(
+      runtime(fake),
+      fake.snapshot(),
+      'pickup',
+    );
+    expect(outcome).toMatchObject({status: 'rejected', code: 'record-failed'});
+    expect(fake.attributeValue('delivery_choice')).toBe('in-home');
+    expect(fake.lineIds()).toContain(OTHER_LINE.id);
+  });
+
+  it('choosing in-home again leaves the service alone', async () => {
+    const fake = HAULED();
+    await chooseDelivery(runtime(fake), fake.snapshot(), 'in-home');
+    expect(fake.quantityOf(HAUL_LINE.id)).toBe(2);
+  });
+});
+
 describe('haul-away step (REQ-PRE-003, REQ-PRE-005, REQ-PRE-006)', () => {
   const ready = () => new FakeCart([OTHER_LINE], {attributes: IN_HOME});
 
@@ -306,6 +350,47 @@ describe('haul-away step (REQ-PRE-003, REQ-PRE-005, REQ-PRE-006)', () => {
     await acceptHaulAway(runtime(fake), fake.snapshot(), 1);
     expect(fake.attributeValue('offer_declined_haul_away')).toBe('no');
   });
+
+  it('refuses to record a decline while the service is in the cart (mirror of the accept guard)', async () => {
+    const fake = new FakeCart([OTHER_LINE, {...HAUL_LINE, quantity: 1}], {
+      attributes: IN_HOME,
+    });
+    const outcome = await declineHaulAway(runtime(fake), fake.snapshot());
+    expect(outcome).toMatchObject({
+      status: 'rejected',
+      code: 'haul-away-in-cart',
+    });
+    expect(fake.attributeValue('offer_declined_haul_away')).toBeUndefined();
+    expect(fake.calls).toEqual([]);
+  });
+
+  it.each([
+    ['in-home was not chosen', [], IN_ZONE, []],
+    [
+      'pickup was chosen',
+      [{key: 'delivery_choice', value: 'pickup'}],
+      IN_ZONE,
+      [],
+    ],
+    ['the ZIP is outside the zone', IN_HOME, OUT_OF_ZONE, []],
+    ['there is no saved ZIP', IN_HOME, null, []],
+    ['the service is sold out', IN_HOME, IN_ZONE, [GID.haulVariant]],
+  ])(
+    'refuses to record a decline when %s (the step never applied)',
+    async (_n, attributes, zip, soldOut) => {
+      const fake = new FakeCart([OTHER_LINE], {attributes});
+      const outcome = await declineHaulAway(
+        runtime(fake, {zip, soldOut}),
+        fake.snapshot(),
+      );
+      expect(outcome).toMatchObject({
+        status: 'rejected',
+        code: 'haul-away-unavailable',
+      });
+      expect(fake.attributeValue('offer_declined_haul_away')).toBeUndefined();
+      expect(fake.calls).toEqual([]);
+    },
+  );
 
   it('the shopper can always decline: even a failed write is reported, not trapped', async () => {
     const fake = ready();

@@ -8,8 +8,9 @@ import type {CartLike, OfferContext} from '~/lib/offers/types';
 
 export type ContextInput = {
   /**
-   * The shopper's saved delivery ZIP. No server-side store for it exists yet (the header control keeps it in
-   * component state, REQ-NAV-003), so callers pass null and haul-away fails closed (zip-missing).
+   * The shopper's saved delivery ZIP, read from the signed `delivery_zip` cookie by the route
+   * (delivery-runtime/zip-cookie, P3B-11). A shopper without one passes null and haul-away fails closed
+   * (zip-missing).
    */
   readonly zip: string | null;
   readonly zone: DeliveryZone | null;
