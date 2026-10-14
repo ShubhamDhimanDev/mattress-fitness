@@ -164,6 +164,8 @@ type SeamLine = {
   readonly merchandise?: {
     readonly id?: string;
     readonly title?: string;
+    /** The variant SKU: the catalog read matches price points on it too, so recognition with Extend off must as well. */
+    readonly sku?: string | null;
     readonly price?: {readonly amount: string; readonly currencyCode?: string};
     readonly product?: {readonly id: string; readonly title?: string};
   } | null;
@@ -221,8 +223,13 @@ const MAX_QUANTITY = 99;
 
 /** A line whose own Shopify-supplied name is a price point is coverage even if the catalog read missed it. */
 function isPricePointByName(line: SeamLine): boolean {
-  return [line.merchandise?.title, line.merchandise?.product?.title].some(
-    (name) => name !== undefined && parsePricePointName(name).status === 'ok',
+  return [
+    line.merchandise?.sku,
+    line.merchandise?.title,
+    line.merchandise?.product?.title,
+  ].some(
+    (name) =>
+      typeof name === 'string' && parsePricePointName(name).status === 'ok',
   );
 }
 

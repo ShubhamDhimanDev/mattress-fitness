@@ -72,7 +72,7 @@ type MemoValue =
   | {status: 'unavailable'; reason: CoverageUnavailableReason};
 
 /**
- * Short-lived memory of Extend's answers, keyed by the request (product, category, price, quantity: no personal data).
+ * Short-lived memory of Extend's answers, keyed by the request (product, category, price: no personal data, and no quantity, see QUOTE_QUANTITY).
  * It spares Extend repeated identical questions from cart reloads and revalidation passes (T-13) and gives an outage a
  * short negative memory so every page load does not wait for the timeout again (NFR-013). Per isolate, best effort.
  */
@@ -129,13 +129,23 @@ export type QuoteDeps = {
 /** The Offers API accepts a handful of items per request. */
 export const MAX_QUOTE_ITEMS = 50;
 /**
- * Requests one quote may make (one per distinct price and quantity of a single product). Raised from 3 so an ordinary
+ * Requests one quote may make (one per distinct price of a single product). Raised from 3 so an ordinary
  * multi-size cart is judged in full; the batches run in parallel and every answer is remembered, so the cost is bounded
  * and a repeat visit costs nothing. Lines beyond the cap are `unjudgedKeys`, never kept unchecked.
  */
 export const MAX_QUOTE_BATCHES = 8;
 
-/** One question for Extend: a product at a price and quantity, and every cart line that shares it. */
+/**
+ * The quantity every Offers request carries (security review N-M1). Extend's documented plan fields (id, price, title,
+ * contract, url) are per covered item and price and carry no quantity; the mock bands plans by price and category only.
+ * So quantity is NOT part of the question: a cart line of 99 gets the same plans as a line of 1, and the memo, the limiter
+ * and the Extend call count depend on (product, category, price) only. ASSUMPTION(V-11): if Extend's real plan list or price
+ * turns out to depend on quantity, bucket it here (for example 1 versus 2 or more) and in the memo key together, and
+ * count the bucket in the route's limiter. Coverage quantity itself still follows the covered line (offers/protection.ts).
+ */
+export const QUOTE_QUANTITY = 1;
+
+/** One question for Extend: a product at a price, and every cart line that shares it. */
 type Requested = {
   item: CoverageItem;
   productId: string;
@@ -144,7 +154,7 @@ type Requested = {
 };
 
 /**
- * Lines that share product, category, price and quantity are one question. Extend identifies items by `productId`, so
+ * Lines that share product, category and price are one question, whatever their quantities. Extend identifies items by `productId`, so
  * two lines of the same product at DIFFERENT prices (a Twin XL and a Queen) cannot share a request; they go into
  * separate batches, one request each, so every line is quoted at its own price band. Items without a category or a
  * readable id are not eligible and are not sent.
@@ -154,7 +164,7 @@ function batchesOf(items: readonly CoverageItem[]): Requested[][] {
   for (const item of items) {
     const productId = normalizeShopifyId(item.productId);
     if (productId === null || item.category === null) continue;
-    const id = `${productId}|${item.category}|${item.unitPriceCents}|${item.quantity}`;
+    const id = `${productId}|${item.category}|${item.unitPriceCents}`;
     const existing = groups.get(id);
     if (existing) existing.keys.push(item.key);
     else
@@ -175,13 +185,12 @@ function batchesOf(items: readonly CoverageItem[]): Requested[][] {
   return batches;
 }
 
-// Quantity stays in the memo key on purpose: the Offers request carries it and Extend does not document whether plans
-// or prices depend on it, so an answer for one quantity must not be reused for another (EXTEND.md section 3).
+// Quantity is deliberately NOT in the memo key (see QUOTE_QUANTITY): cycling it must not cost an Extend call.
 function signature(requested: readonly Requested[]): string {
   return requested
     .map(
       ({productId, category, item}) =>
-        `${productId}|${category}|${item.unitPriceCents}|${item.quantity}`,
+        `${productId}|${category}|${item.unitPriceCents}`,
     )
     .sort()
     .join(',');
@@ -244,7 +253,7 @@ async function askExtend(
       category,
       productId,
       purchasePriceCents: item.unitPriceCents,
-      quantity: item.quantity,
+      quantity: QUOTE_QUANTITY,
     }),
   );
   const result = await fetchOffers(

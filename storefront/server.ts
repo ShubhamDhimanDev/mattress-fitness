@@ -1,6 +1,7 @@
 import * as serverBuild from 'virtual:react-router/server-build';
 import {createRequestHandler, storefrontRedirect} from '@shopify/hydrogen';
 import {createHydrogenRouterContext} from '~/lib/context';
+import {appendSetCookie, describeError} from '~/lib/server-safety';
 
 /**
  * Export a fetch handler in module format.
@@ -31,10 +32,8 @@ export default {
       const response = await handleRequest(request);
 
       if (hydrogenContext.session.isPending) {
-        response.headers.set(
-          'Set-Cookie',
-          await hydrogenContext.session.commit(),
-        );
+        // Append, never set: a route may already have written the cart or ZIP cookie on this response (N-L4).
+        appendSetCookie(response, await hydrogenContext.session.commit());
       }
 
       if (response.status === 404) {
@@ -52,7 +51,8 @@ export default {
 
       return response;
     } catch (error) {
-      console.error(error);
+      // The error name only: its message and cause can hold the query, variables and a cart id with its key (N-L4).
+      console.error('Unhandled request error:', describeError(error));
       return new Response('An unexpected error occurred', {status: 500});
     }
   },

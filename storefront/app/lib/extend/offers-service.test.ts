@@ -125,7 +125,8 @@ describe('REQ-EXT-002 quoteCoverage', () => {
           category: 'mattress',
           productId: '501',
           purchasePrice: 129_900,
-          quantity: 2,
+          // Quantity is not part of the question (N-M1): a line of 2 is asked about as 1.
+          quantity: 1,
         },
       ],
     });
@@ -267,6 +268,35 @@ describe('REQ-EXT-002 quoteCoverage', () => {
     expect((await quoteCoverage(deps(broken), [item('a', '501')])).status).toBe(
       'unavailable',
     );
+  });
+});
+
+describe('N-M1 quantity is not part of the question', () => {
+  it('cycling quantity 1 to 99 for one product and price makes ONE Extend call', async () => {
+    const {fetchFn, calls} = offersFetch([offer('501', [plan('P-79', 7999)])]);
+    const d = deps(fetchFn);
+    for (let quantity = 1; quantity <= 99; quantity += 1) {
+      const result = await quoteCoverage(d, [item('a', '501', {quantity})]);
+      expect(result.status).toBe('ok');
+    }
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0]?.body ?? '{}')).toMatchObject({
+      items: [{quantity: 1}],
+    });
+  });
+
+  it('lines of one product and price with different quantities are one question; a different price is a new one', async () => {
+    const {fetchFn, calls} = offersFetch([offer('501', [plan('P-79', 7999)])]);
+    const d = deps(fetchFn);
+    const result = await quoteCoverage(d, [
+      item('a', '501', {quantity: 1}),
+      item('b', '501', {quantity: 50}),
+    ]);
+    if (result.status !== 'ok') throw new Error('expected ok');
+    expect([...result.plansByKey.keys()]).toEqual(['a', 'b']);
+    expect(calls).toHaveLength(1);
+    await quoteCoverage(d, [item('a', '501', {unitPriceCents: 139_900})]);
+    expect(calls).toHaveLength(2);
   });
 });
 
