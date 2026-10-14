@@ -10,6 +10,7 @@ import {SORT_KEYS, parseFilterParams} from '~/lib/filters';
 import {buildBreadcrumbJsonLd, buildFaqJsonLd} from '~/lib/shopify/jsonld';
 import {isValidHandle, loadCollectionPage} from '~/lib/shopify/collection-data';
 import {loadPromoTiles} from '~/lib/shopify/promo-data';
+import {showsPromoTiles} from '~/lib/shopify/promo-placement';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 
 export const meta: Route.MetaFunction = ({data}) => {
@@ -28,10 +29,11 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   const url = new URL(request.url);
   const state = parseFilterParams(url.searchParams);
   const handle = params.handle ?? '';
-  // Tiles are read alongside the products; a failed tile read only means a grid without tiles.
+  // Tiles are read alongside the products; a failed tile read only means a grid without tiles. They belong to
+  // the unfiltered, default-sorted first view only, so other views skip the read.
   const [page, promoTiles] = await Promise.all([
     loadCollectionPage(context.storefront, handle, state),
-    isValidHandle(handle)
+    isValidHandle(handle) && showsPromoTiles(state)
       ? loadPromoTiles(context.storefront, handle)
       : Promise.resolve([]),
   ]);

@@ -2,16 +2,18 @@ import {Link} from 'react-router';
 import {Accordion, type AccordionItem} from '~/components/ui/Accordion';
 import {ChatIcon, PhoneIcon} from '~/components/ui/Icons';
 import {
-  SUPPORT_PHONE,
   UTILITY_LINKS,
   type MainNavItem,
   type NavMenuItem,
+  type SupportPhone,
 } from '~/lib/navigation';
 
 type MobileNavProps = {
   items: readonly MainNavItem[];
   /** Called when any link is followed, so the drawer can close. */
   onNavigate: () => void;
+  /** The client's number; without one no phone link is rendered. */
+  supportPhone?: SupportPhone | null;
 };
 
 const LINK_CLASSES =
@@ -64,7 +66,11 @@ function MenuSection({
 }
 
 /** Mobile navigation inside the menu drawer: an accordion of the same items the desktop menu has. */
-export function MobileNav({items, onNavigate}: MobileNavProps) {
+export function MobileNav({
+  items,
+  onNavigate,
+  supportPhone = null,
+}: MobileNavProps) {
   const accordionItems: AccordionItem[] = items.map((item) =>
     item.kind === 'link'
       ? {id: item.id, title: item.label, to: item.to, onNavigate}
@@ -90,13 +96,15 @@ export function MobileNav({items, onNavigate}: MobileNavProps) {
               </Link>
             </li>
           ))}
-          <li>
-            <a href={SUPPORT_PHONE.href} className={LINK_CLASSES}>
-              <PhoneIcon className="size-5" />
-              <span className="sr-only">Call us: </span>
-              {SUPPORT_PHONE.display}
-            </a>
-          </li>
+          {supportPhone ? (
+            <li>
+              <a href={supportPhone.href} className={LINK_CLASSES}>
+                <PhoneIcon className="size-5" />
+                <span className="sr-only">Call us: </span>
+                {supportPhone.display}
+              </a>
+            </li>
+          ) : null}
         </ul>
       </nav>
     </div>

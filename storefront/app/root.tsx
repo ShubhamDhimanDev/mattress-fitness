@@ -18,7 +18,9 @@ import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PageLayout} from '~/components/layout/PageLayout';
 import {MAIN_CONTENT_ID, SkipLink} from '~/components/layout/SkipLink';
 import {Button} from '~/components/ui/Button';
-import {PRIVATE_NO_STORE_HEADERS} from '~/lib/pages/private-response';
+import {loadDeliverySummary} from '~/lib/delivery-runtime/summary';
+import {PRIVATE_REVALIDATE_HEADERS} from '~/lib/pages/private-response';
+import {resolveSupportPhone} from '~/lib/navigation';
 import {
   hasMyStoreCookie,
   summarizeMyStore,
@@ -78,11 +80,16 @@ export function links() {
 }
 
 /**
- * The root loader's output depends on cookies (the cart, the signed-in state and the chosen store), so no
- * shared cache may keep or reuse a page built from it. A route that exports its own `headers` replaces this.
+ * The root loader's output depends on cookies (the cart, the signed-in state, the chosen store and the saved
+ * delivery ZIP), so no shared cache may keep or reuse a page built from it: `private` plus `Vary: Cookie`.
+ * `no-cache` instead of `no-store` keeps that safety (the browser must revalidate before reuse) while still
+ * allowing the back/forward cache, so Back restores the page instantly. Responses that set a cookie or are a
+ * per-shopper answer (the delivery resource, cart actions, the discount redirect) keep `no-store` in their own
+ * `headers`. A route that exports its own `headers` replaces this; none may make its document publicly
+ * cacheable while the root loader carries the ZIP.
  */
 export function headers() {
-  return new Headers(PRIVATE_NO_STORE_HEADERS);
+  return new Headers(PRIVATE_REVALIDATE_HEADERS);
 }
 
 /**
@@ -106,17 +113,26 @@ async function loadMyStore(request: Request): Promise<MyStoreSummary | null> {
 export async function loader(args: Route.LoaderArgs) {
   // Start fetching non-critical data without blocking time to first byte
   const deferredData = loadDeferredData(args);
-
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-  const myStore = await loadMyStore(args.request);
-
   const {storefront, env} = args.context;
+
+  // Await the critical data required to render initial state of the page. The store lookup and the ZIP
+  // cookie read are independent of it, so they run alongside instead of after.
+  const [criticalData, myStore, delivery] = await Promise.all([
+    loadCriticalData(args),
+    loadMyStore(args.request),
+    loadDeliverySummary(args.request, env),
+  ]);
 
   return {
     ...deferredData,
     ...criticalData,
     myStore,
+    ...delivery,
+    // Shown only when configured (PUBLIC_SUPPORT_PHONE); development shows a labelled placeholder (REQ-CNT-001).
+    supportPhone: resolveSupportPhone(
+      env.PUBLIC_SUPPORT_PHONE,
+      import.meta.env.DEV,
+    ),
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     shop: getShopAnalytics({
       storefront,
@@ -220,6 +236,8 @@ export default function App() {
         cart={data.cart}
         isLoggedIn={data.isLoggedIn}
         myStore={data.myStore}
+        supportPhone={data.supportPhone}
+        deliveryZipAvailable={data.deliveryZipAvailable}
       >
         <Outlet />
       </PageLayout>
@@ -313,6 +331,8 @@ export function ErrorBoundary() {
         cart={data.cart}
         isLoggedIn={data.isLoggedIn}
         myStore={data.myStore}
+        supportPhone={data.supportPhone}
+        deliveryZipAvailable={data.deliveryZipAvailable}
       >
         {content}
       </PageLayout>

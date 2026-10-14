@@ -26,9 +26,8 @@ test.describe('REQ-HOME-001 home page', () => {
       'href',
       /^\/collections\/[^?]+\?size=/,
     );
-    await expect(
-      page.getByRole('region', {name: 'Buy with confidence'}),
-    ).toBeVisible();
+    // The "Buy with confidence" block is absent until the client supplies its claims (REQ-CNT-001, B-15);
+    // the reassurance test below covers that.
     expect(ourErrors(errors), 'console errors on the home page').toEqual([]);
   });
 
@@ -55,14 +54,19 @@ test.describe('REQ-HOME-001 home page', () => {
 });
 
 test.describe('home page reassurance (REQ-CNT-001 pending)', () => {
-  test('does not show the invented comfort and price guarantee links', async ({
+  // Every reassurance item is invented wording until the client supplies it (B-15), so the block is absent.
+  // When items are published (drop `awaitingContent` in lib/navigation.ts), expect the region and its links.
+  test('does not show the invented delivery, comfort and price claims', async ({
     page,
   }) => {
     await gotoReady(page, '/');
-    const section = page.getByRole('region', {name: 'Buy with confidence'});
-    await expect(section).toBeVisible();
     await expect(
-      section.getByRole('link', {name: /Comfort guarantee|Price guarantee/}),
+      page.getByRole('region', {name: 'Buy with confidence'}),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('main').getByRole('link', {
+        name: /In-home delivery|Comfort guarantee|Price guarantee/,
+      }),
     ).toHaveCount(0);
   });
 });

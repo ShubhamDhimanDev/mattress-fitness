@@ -7,8 +7,8 @@ import {
   FOOTER_SHOP_GROUPS,
   FOOTER_SUPPORT_GROUPS,
   SITE_NAME,
-  SUPPORT_PHONE,
   type FooterGroup,
+  type SupportPhone,
 } from '~/lib/navigation';
 
 const LINK_CLASSES =
@@ -78,7 +78,12 @@ function FooterGroups({
   );
 }
 
-export function SiteFooter() {
+export function SiteFooter({
+  supportPhone = null,
+}: {
+  /** The client's number; without one no phone link is rendered. */
+  supportPhone?: SupportPhone | null;
+}) {
   return (
     <footer className="on-dark mt-auto bg-surface-inverse text-fg-inverse">
       <nav
@@ -107,16 +112,18 @@ export function SiteFooter() {
                 </Link>
               </li>
             ))}
-            <li>
-              <a
-                href={SUPPORT_PHONE.href}
-                className={cn(LINK_CLASSES, 'gap-1')}
-              >
-                <PhoneIcon className="size-4" />
-                <span className="sr-only">Call us: </span>
-                {SUPPORT_PHONE.display}
-              </a>
-            </li>
+            {supportPhone ? (
+              <li>
+                <a
+                  href={supportPhone.href}
+                  className={cn(LINK_CLASSES, 'gap-1')}
+                >
+                  <PhoneIcon className="size-4" />
+                  <span className="sr-only">Call us: </span>
+                  {supportPhone.display}
+                </a>
+              </li>
+            ) : null}
           </ul>
         </div>
       </div>

@@ -210,17 +210,22 @@ export function optionDomId(prefix: string, index: number): string {
   return `${prefix}-option-${index}`;
 }
 
+export type ActiveMoveKey = 'ArrowDown' | 'ArrowUp' | 'Home' | 'End';
+
 /**
- * Next active option for a vertical arrow key. -1 means "none; focus is on the text". ArrowDown from the
+ * Next active option for a navigation key. -1 means "none; focus is on the text". ArrowDown from the
  * last option and ArrowUp from none both wrap, so the list is a loop and every option is reachable from
- * either direction (WAI-ARIA combobox pattern).
+ * either direction (WAI-ARIA combobox pattern). Home and End jump to the first and last option; the field
+ * only hands them over while an option is highlighted, so the caret keys keep working in the text.
  */
 export function moveActive(
   current: number,
   count: number,
-  key: 'ArrowDown' | 'ArrowUp',
+  key: ActiveMoveKey,
 ): number {
   if (count <= 0) return -1;
+  if (key === 'Home') return 0;
+  if (key === 'End') return count - 1;
   if (key === 'ArrowDown') return current + 1 >= count ? 0 : current + 1;
   return current <= 0 ? count - 1 : current - 1;
 }

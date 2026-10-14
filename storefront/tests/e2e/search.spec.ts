@@ -160,6 +160,79 @@ test.describe('predictive search (REQ-SRCH-001)', () => {
     ).toEqual([]);
   });
 
+  test('is a search field that asks the phone keyboard for a Search key', async ({
+    page,
+  }) => {
+    await gotoReady(page, '/');
+    await expect(headerCombobox(page)).toHaveAttribute(
+      'enterkeyhint',
+      'search',
+    );
+  });
+
+  // A click or tap on a non-focusable area (the grey utility bar here) gives the blur event no related
+  // target, so closing on blur alone left the panel open. The mobile project taps with touch events.
+  test('a click or tap on the page background closes the suggestions', async ({
+    page,
+    isMobile,
+  }) => {
+    await gotoReady(page, '/');
+    const box = headerCombobox(page);
+    await box.fill('lin');
+    await expect(box).toHaveAttribute('aria-expanded', 'true');
+    await expect(
+      page.getByRole('option', {name: /View all results for/}),
+    ).toBeVisible();
+
+    const background = page.getByRole('banner');
+    if (isMobile) await background.tap({position: {x: 2, y: 2}});
+    else await background.click({position: {x: 2, y: 2}});
+
+    await expect(box).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expect(box).toHaveValue('lin');
+  });
+
+  test('pressing inside the open panel does not close it', async ({page}) => {
+    await gotoReady(page, '/');
+    const box = headerCombobox(page);
+    await box.fill('lin');
+    await expect(
+      page.getByRole('option', {name: /View all results for/}),
+    ).toBeVisible();
+    await page.getByRole('listbox').dispatchEvent('pointerdown');
+    await expect(box).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  test('Home and End jump to the first and last option while one is highlighted, and leave the caret keys alone otherwise', async ({
+    page,
+  }) => {
+    const term = await productTerm(page);
+    await gotoReady(page, '/');
+    const box = headerCombobox(page);
+    await box.fill(term);
+    const options = page
+      .getByRole('listbox', {name: 'Search suggestions'})
+      .getByRole('option');
+    await expect.poll(() => options.count()).toBeGreaterThan(1);
+    const count = await options.count();
+
+    // Nothing highlighted yet: Home belongs to the text field (caret), so no option is selected.
+    await box.press('Home');
+    await expect(box).not.toHaveAttribute('aria-activedescendant');
+
+    await box.press('ArrowDown');
+    await box.press('ArrowDown');
+    await box.press('End');
+    await expect(options.nth(count - 1)).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await box.press('Home');
+    await expect(options.first()).toHaveAttribute('aria-selected', 'true');
+    await expect(box).toBeFocused();
+  });
+
   test('Escape closes the suggestions', async ({page}) => {
     await gotoReady(page, '/');
     const box = page

@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it, vi} from 'vitest';
 import collection from '../../fixtures/shopify/collection.json';
 import {fakeStorefront} from './fake-storefront';
 import {emptyFilterState, parseFilterParams} from '~/lib/filters';
@@ -16,7 +16,12 @@ import {
 } from '~/lib/shopify/brand-data';
 import {FIXTURE_BRANDS} from '~/lib/shopify/brand-fixtures';
 
-// REQ-COL-005 / P3B-06: brand pages from the `brand` metaobject, fixtures only when the store has none.
+// REQ-COL-005 / P3B-06: brand pages from the `brand` metaobject, fixtures only when the store has none
+// AND the caller allows them (development and mock stores, never production).
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 type Node = Parameters<typeof mapBrandNode>[0];
 
@@ -118,11 +123,21 @@ describe('brands index', () => {
     expect(index.brands[0].to).toBe('/brands/acme-sleep');
   });
 
-  it('uses the fictional fixtures only when the store has no usable brand', () => {
-    const index = buildBrandsIndex([]);
+  it('uses the fictional fixtures only when allowed and the store has no usable brand', () => {
+    const index = buildBrandsIndex([], {allowFixtures: true});
     expect(index.source).toBe('fixtures');
     expect(index.brands.map((b) => b.name)).toEqual(
       FIXTURE_BRANDS.map((b) => b.name),
+    );
+    // Production passes no permission: an empty live store lists nothing rather than fictional brands.
+    expect(buildBrandsIndex([])).toEqual({source: 'shopify', brands: []});
+    expect(buildBrandsIndex([], {allowFixtures: false})).toEqual({
+      source: 'shopify',
+      brands: [],
+    });
+    // A store with brands never shows fixtures, allowed or not.
+    expect(buildBrandsIndex([ACME], {allowFixtures: true}).source).toBe(
+      'shopify',
     );
   });
 
@@ -231,13 +246,14 @@ describe('loadBrandPage', () => {
     expect(bad.calls).toHaveLength(0);
   });
 
-  it('uses a fixture brand only when the store has no brands at all', async () => {
+  it('uses a fixture brand only when allowed and the store has no brands at all', async () => {
     const empty = fakeStorefront(respond(null, false));
     const fixture = FIXTURE_BRANDS[0];
     const page = await loadBrandPage(
       empty.storefront,
       fixture.handle,
       emptyFilterState(),
+      {allowFixtures: true},
     );
     expect(page).toMatchObject({status: 'ok', source: 'fixtures'});
     if (page.status === 'ok') {
@@ -245,7 +261,14 @@ describe('loadBrandPage', () => {
       expect(page.products.every((p) => p.vendor === fixture.name)).toBe(true);
     }
     expect(
-      await loadBrandPage(empty.storefront, 'unknown', emptyFilterState()),
+      await loadBrandPage(empty.storefront, 'unknown', emptyFilterState(), {
+        allowFixtures: true,
+      }),
+    ).toEqual({status: 'not-found'});
+
+    // Production (no permission): an empty live store is a 404, never a fictional brand.
+    expect(
+      await loadBrandPage(empty.storefront, fixture.handle, emptyFilterState()),
     ).toEqual({status: 'not-found'});
 
     // A configured store never falls back to the fictional brands.
@@ -255,12 +278,36 @@ describe('loadBrandPage', () => {
         configured.storefront,
         fixture.handle,
         emptyFilterState(),
+        {allowFixtures: true},
       ),
     ).toEqual({status: 'not-found'});
   });
 });
 
+describe('a failed brand read', () => {
+  it('is a fixed unavailable state, not a thrown error, and logs nothing from the request', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failing = fakeStorefront(() => {
+      throw new Error('token abc123 rejected for acme-sleep');
+    });
+    expect(
+      await loadBrandPage(failing.storefront, 'acme-sleep', emptyFilterState()),
+    ).toEqual({status: 'unavailable'});
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(String(error.mock.calls[0][0])).not.toContain('abc123');
+  });
+});
+
 describe('buildBrandJsonLd', () => {
+  it('leaves url out instead of emitting a relative one when no site origin is configured', () => {
+    const brand = mapBrandNode(ACME);
+    if (!brand) throw new Error('fixture brand');
+    const withoutOrigin = buildBrandJsonLd(brand, null);
+    expect(withoutOrigin).not.toHaveProperty('url');
+    expect(withoutOrigin).toMatchObject({name: 'Acme Sleep'});
+    expect(buildBrandJsonLd(brand, '')).not.toHaveProperty('url');
+  });
+
   it('describes only what the page shows', () => {
     const brand = mapBrandNode(ACME);
     if (!brand) throw new Error('fixture brand');

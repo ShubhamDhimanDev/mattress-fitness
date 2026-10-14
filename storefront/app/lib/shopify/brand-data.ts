@@ -5,8 +5,10 @@
 // ASSUMPTION(V-05): the metaobject handle equals the `slug` field (the definition says so) and the brand name
 // equals the Shopify vendor of its products. Both are checked on the development store.
 //
-// While the store has no `brand` entries at all, fictional fixtures stand in (source 'fixtures'); the pages
-// then say so and are kept out of search engines. A store that has brands never shows fixtures.
+// While a development or mock store has no `brand` entries at all, fictional fixtures stand in (source
+// 'fixtures'; the pages then say so and are kept out of search engines). A store that has brands never shows
+// fixtures, and neither does production: callers pass `allowFixtures` from the build mode, so a live store
+// with no brands yet answers 404 / "not available" instead of publishing fictional brands.
 
 import type {Storefront} from '@shopify/hydrogen';
 import type {
@@ -167,8 +169,12 @@ function summaryOf(brand: BrandPageView): BrandSummary {
   };
 }
 
+/** Fixtures are a development and mock-store aid only; the default is the safe one. */
+export type FixtureOption = {readonly allowFixtures?: boolean};
+
 export function buildBrandsIndex(
   nodes: readonly IndexNode[] | null | undefined,
+  options: FixtureOption = {},
 ): BrandsIndex {
   const seen = new Set<string>();
   const brands: BrandSummary[] = [];
@@ -182,6 +188,7 @@ export function buildBrandsIndex(
     brands.sort((a, b) => a.name.localeCompare(b.name, 'en'));
     return {source: 'shopify', brands};
   }
+  if (options.allowFixtures !== true) return {source: 'shopify', brands: []};
   return {
     source: 'fixtures',
     brands: FIXTURE_BRANDS.map((brand) => summaryOf(brand)),
@@ -190,12 +197,13 @@ export function buildBrandsIndex(
 
 export async function loadBrandsIndex(
   storefront: Storefront,
+  options: FixtureOption = {},
 ): Promise<BrandsIndex> {
   try {
     const {brands} = await storefront.query(BRANDS_INDEX_QUERY, {
       cache: catalogCache(storefront),
     });
-    return buildBrandsIndex(brands.nodes);
+    return buildBrandsIndex(brands.nodes, options);
   } catch {
     // An empty list with a message, never the fictional preview list: the store may well have real brands.
     // Nothing from the request is logged (T-05).
@@ -213,7 +221,9 @@ export type BrandPage =
       readonly pageInfo: PageInfoView;
       readonly filterGroups: readonly FilterGroupView[];
     }
-  | {readonly status: 'not-found'};
+  | {readonly status: 'not-found'}
+  /** The brand read failed; the page shows a fixed message and the shopper can retry (NFR-013). */
+  | {readonly status: 'unavailable'};
 
 const NO_MORE: PageInfoView = {hasNextPage: false, endCursor: null};
 
@@ -259,17 +269,30 @@ function withoutBrandGroup(
   return groups.filter((group) => group.dimension !== 'brand');
 }
 
+function readBrand(storefront: Storefront, handle: string) {
+  return storefront.query(BRAND_PAGE_QUERY, {
+    cache: catalogCache(storefront),
+    variables: {handle},
+  });
+}
+
 export async function loadBrandPage(
   storefront: Storefront,
   handle: string,
   state: FilterState,
+  options: FixtureOption = {},
 ): Promise<BrandPage> {
   if (!isValidHandle(handle)) return {status: 'not-found'};
 
-  const {brand: node, anyBrand} = await storefront.query(BRAND_PAGE_QUERY, {
-    cache: catalogCache(storefront),
-    variables: {handle},
-  });
+  let read: Awaited<ReturnType<typeof readBrand>>;
+  try {
+    read = await readBrand(storefront, handle);
+  } catch {
+    // Degrades like the index: a fixed state, not a 500. Nothing from the request is logged (T-05).
+    console.error('[brands] could not read the brand');
+    return {status: 'unavailable'};
+  }
+  const {brand: node, anyBrand} = read;
 
   const brand = node ? mapBrandNode(node) : null;
   if (brand !== null) {
@@ -284,8 +307,11 @@ export async function loadBrandPage(
     };
   }
 
-  // Not found in Shopify. Fixtures answer only when the store has no brand entries at all.
-  if (anyBrand.nodes.length > 0) return {status: 'not-found'};
+  // Not found in Shopify. Fixtures answer only outside production, and only when the store has no brand
+  // entries at all.
+  if (options.allowFixtures !== true || anyBrand.nodes.length > 0) {
+    return {status: 'not-found'};
+  }
   const fixture = findFixtureBrand(handle);
   if (fixture === null) return {status: 'not-found'};
   return {
@@ -298,16 +324,20 @@ export async function loadBrandPage(
   };
 }
 
-/** Brand structured data from the same fields the page shows (nothing is added that the page does not say). */
+/**
+ * Brand structured data from the same fields the page shows (nothing is added that the page does not say).
+ * `url` needs the site's absolute origin; without one it is left out rather than emitted as a relative path,
+ * which structured-data consumers reject.
+ */
 export function buildBrandJsonLd(
   brand: BrandPageView,
-  origin: string,
+  origin: string | null,
 ): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'Brand',
     name: brand.name,
-    url: `${origin}${brandPath(brand.handle)}`,
+    ...(origin ? {url: `${origin}${brandPath(brand.handle)}`} : {}),
     ...(brand.logo ? {logo: brand.logo.url} : {}),
     ...(brand.about.length > 0
       ? {description: brand.about.join(' ').slice(0, 1000)}

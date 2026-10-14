@@ -134,8 +134,9 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
       await expect(
         header.getByRole('link', {name: 'Chat with us'}),
       ).toBeVisible();
+      // Development shows a labelled placeholder; a real number needs PUBLIC_SUPPORT_PHONE (REQ-CNT-001).
       await expect(
-        header.getByRole('link', {name: /1-800-555-0100/}),
+        header.getByRole('link', {name: /555-0100 \(dev placeholder\)/}),
       ).toBeVisible();
       await expect(
         header.getByRole('link', {name: 'Find a store'}),
@@ -144,21 +145,27 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
     }
   });
 
-  // REQ-CNT-001 / B-15: the comfort and price guarantees are placeholder wording the client has not
-  // supplied, so the strip shows only the delivery item. When the client's pages arrive, drop
-  // `awaitingContent` in lib/navigation.ts and change this test to expect three items.
-  test('the reassurance strip shows only the items the client has supplied', async ({
+  // REQ-CNT-001 / B-15: the delivery promise, the comfort guarantee and the price guarantee are placeholder
+  // wording the client has not supplied, so the strip is not rendered at all. When the client's pages arrive,
+  // drop `awaitingContent` per item in lib/navigation.ts and change this test to expect those items.
+  test('the reassurance strip shows nothing the client has not supplied', async ({
     page,
   }) => {
     await gotoReady(page);
     const header = page.getByRole('banner');
-    const items = header.locator('ul').filter({
-      has: page.getByRole('link', {name: 'In-home delivery & setup'}),
-    });
-    await expect(items.getByRole('link')).toHaveCount(1);
     await expect(
-      header.getByRole('link', {name: /Comfort guarantee|Price guarantee/}),
+      header.getByRole('link', {
+        name: /In-home delivery|Comfort guarantee|Price guarantee/,
+      }),
     ).toHaveCount(0);
+  });
+
+  test('no placeholder promotion text is shown', async ({page}) => {
+    await gotoReady(page);
+    await expect(page.getByText(/Sample promotion text/)).toHaveCount(0);
+    await expect(page.getByRole('link', {name: 'Shop the sale'})).toHaveCount(
+      0,
+    );
   });
 
   test('the footer makes no comfort or price guarantee claim', async ({
@@ -173,6 +180,23 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
     await expect(footer.getByRole('link', {name: 'About us'})).toBeVisible();
     await expect(
       footer.getByRole('link', {name: /Comfort guarantee|Price guarantee/}),
+    ).toHaveCount(0);
+  });
+
+  test('the footer links no financing or warranty page that does not exist yet', async ({
+    page,
+    isMobile,
+  }) => {
+    await gotoReady(page);
+    const footer = page.getByRole('contentinfo');
+    if (isMobile) {
+      await footer
+        .getByRole('button', {name: 'Customer support', exact: true})
+        .click();
+    }
+    await expect(footer.getByRole('link', {name: 'Contact us'})).toBeVisible();
+    await expect(
+      footer.getByRole('link', {name: /Financing|Warranty and returns/}),
     ).toHaveCount(0);
   });
 
@@ -229,14 +253,15 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
       expect(html).not.toContain('alert(1)');
     });
 
-    test('the page is not cacheable by a shared cache', async ({
+    // The document varies by cookie, so it is private; no-cache (not no-store) keeps the back/forward cache.
+    test('the page is private and revalidated, but not no-store', async ({
       page,
       context,
       baseURL,
     }) => {
       await setCookie(context, baseURL, BUFFALO);
       const response = await gotoReady(page);
-      expect(response?.headers()['cache-control']).toBe('private, no-store');
+      expect(response?.headers()['cache-control']).toBe('private, no-cache');
       expect(response?.headers()['vary']).toMatch(/cookie/i);
     });
   });
@@ -345,6 +370,15 @@ test.describe('REQ-NAV-003 delivery ZIP entry', () => {
       page.getByRole('button', {name: /Delivering to 12345/}),
     ).toBeVisible();
     expect(await page.evaluate(() => document.cookie)).not.toContain('12345');
+
+    // First paint: the server-rendered HTML already carries the state, so there is no "Enter delivery ZIP"
+    // flash while a /delivery request is made after hydration.
+    const html = (await (await page.request.get('/')).text()).replace(
+      /<!--.*?-->/g,
+      '',
+    );
+    expect(html).toMatch(/Delivering to\s*<span[^>]*>12345<\/span>/);
+    expect(html).not.toContain('Enter delivery ZIP');
 
     // It can be edited and cleared.
     await page.getByRole('button', {name: /Delivering to 12345/}).click();
@@ -520,7 +554,9 @@ test.describe('REQ-NAV-001 / REQ-NAV-002 desktop navigation (keyboard and pointe
     await pillows.hover();
     await expect(bedding).toHaveAttribute('aria-expanded', 'true');
 
-    await page.getByRole('heading', {level: 1}).hover();
+    // Leave through the empty margin below the panel: with no reassurance strip (REQ-CNT-001) the page
+    // content starts right under the navigation, so the open panel can cover the h1.
+    await page.mouse.move(4, 780);
     await expect(bedding).toHaveAttribute('aria-expanded', 'false');
   });
 
@@ -659,7 +695,7 @@ test.describe('REQ-NAV-001 mobile navigation drawer', () => {
     await expect(drawer.getByRole('link', {name: 'Sale'})).toBeVisible();
     await expect(drawer.getByRole('link', {name: 'Track order'})).toBeVisible();
     await expect(
-      drawer.getByRole('link', {name: /1-800-555-0100/}),
+      drawer.getByRole('link', {name: /555-0100 \(dev placeholder\)/}),
     ).toBeVisible();
   });
 
@@ -753,7 +789,9 @@ test.describe('REQ-NAV-001 footer', () => {
     await expect(page.getByRole('contentinfo')).toBeVisible(); // the shell survives a not-found page
   });
 
-  test('the legal links and the phone number are present', async ({page}) => {
+  test('the legal links and the (development placeholder) phone number are present', async ({
+    page,
+  }) => {
     await gotoReady(page);
     const footer = page.getByRole('contentinfo');
     await expect(
@@ -764,7 +802,7 @@ test.describe('REQ-NAV-001 footer', () => {
       footer.getByRole('link', {name: 'Accessibility'}).last(),
     ).toBeVisible();
     await expect(
-      footer.getByRole('link', {name: /1-800-555-0100/}),
+      footer.getByRole('link', {name: /555-0100 \(dev placeholder\)/}),
     ).toBeVisible();
   });
 });

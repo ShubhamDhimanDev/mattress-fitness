@@ -49,6 +49,7 @@ export function HeaderSearch() {
   // Same key as the form's own fetcher inside SearchFormPredictive, so both see one request and one result.
   const fetcher = useFetcher<PredictiveSearchReturn>({key: 'search'});
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const term = value.trim();
   const ready = term.length >= MIN_PREDICTIVE_TERM_LENGTH;
@@ -79,6 +80,26 @@ export function HeaderSearch() {
     setActiveIndex(-1);
   }, [fetcher.data]);
 
+  // A tap or click on anything outside the field closes the suggestions. Blur alone is not enough: pressing a
+  // non-focusable area (page background, a heading) gives the blur event no related target, so the panel
+  // would stay open over the page. Pointer events cover mouse, touch and pen; the listener exists only while
+  // the panel is open.
+  useEffect(() => {
+    if (!expanded) return;
+    function onPointerDown(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        rootRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setExpanded(false);
+      setActiveIndex(-1);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [expanded]);
+
   // Keep the highlighted option in view inside the scrolling panel.
   useEffect(() => {
     if (!activeOption) return;
@@ -96,7 +117,9 @@ export function HeaderSearch() {
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    switch (event.key) {
+    // A const, so the narrowing by the switch also holds inside the state updaters below.
+    const key = event.key;
+    switch (key) {
       case 'ArrowDown':
       case 'ArrowUp': {
         if (!ready) return;
@@ -105,13 +128,15 @@ export function HeaderSearch() {
           setExpanded(true);
           return;
         }
-        setActiveIndex((current) =>
-          moveActive(
-            current,
-            options.length,
-            event.key as 'ArrowDown' | 'ArrowUp',
-          ),
-        );
+        setActiveIndex((current) => moveActive(current, options.length, key));
+        return;
+      }
+      case 'Home':
+      case 'End': {
+        // Only while an option is highlighted; otherwise the keys move the caret in the text as usual.
+        if (!visible || activeOption === null) return;
+        event.preventDefault();
+        setActiveIndex((current) => moveActive(current, options.length, key));
         return;
       }
       case 'Enter': {
@@ -137,6 +162,7 @@ export function HeaderSearch() {
 
   return (
     <div
+      ref={rootRef}
       className="lg:relative"
       onBlur={(event) => {
         // Only a move of focus to somewhere outside this field closes the panel (not a click on padding).
@@ -175,6 +201,7 @@ export function HeaderSearch() {
               }
               aria-describedby={statusId}
               autoComplete="off"
+              enterKeyHint="search"
               maxLength={100}
               placeholder="Search"
               value={value}
