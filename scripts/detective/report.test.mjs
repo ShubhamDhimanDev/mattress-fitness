@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { EXIT_FAILED, EXIT_OK, EXIT_REFUSED, EXIT_USAGE } from '../lib/cli.mjs';
-import { main, renderReport } from './report.mjs';
+import { EXIT_UNJUDGED, main, renderReport } from './report.mjs';
 import { loadDetectiveLibs } from './ts-loader.mjs';
 
 // P5B-05 / ADR-0006 / E-M3 / REQ-PRE-003 / REQ-PROMO-003: the report judges recent Shopify orders with the storefront's own
@@ -145,7 +145,7 @@ test('an all-clean window exits 0', async () => {
 
 test('an order that cannot be read completely is counted as not judged and the run is not clean', async () => {
   const h = harness([{ nodes: [orderNode(1), orderNode(2, { hasNextPage: true }), { id: 'gid://shopify/Order/3', lineItems: 'garbage' }, 'not an object'] }]);
-  assert.equal(await h.run(base), EXIT_FAILED);
+  assert.equal(await h.run(base), EXIT_UNJUDGED);
   assert.match(h.text(), /0 with violations, 2 not judged/);
   assert.match(h.text(), /order_unreadable=2/);
 });
@@ -163,7 +163,7 @@ test('an order with protection is counted as not judged for price and plan, neve
     ],
   };
   const h = harness([{ nodes: [orderNode(1, { lines: [mattress, cheapCoverage] }), orderNode(2)] }]);
-  assert.equal(await h.run([...base, '--json']), EXIT_FAILED, h.text());
+  assert.equal(await h.run([...base, '--json']), EXIT_UNJUDGED, h.text());
   const { report } = JSON.parse(h.lines.join('\n'));
   assert.equal(report.counts.clean, 1, 'only the order with no protection is clean');
   assert.equal(report.counts.unjudgeable, 1);
@@ -174,6 +174,74 @@ test('an order with protection is counted as not judged for price and plan, neve
   await text.run(base);
   assert.match(text.text(), /not judged: coverage_price_unjudged=1/);
   assert.match(text.text(), /price and plan were NOT compared with Extend/);
+  assert.match(text.text(), /Result: no violation found, but some orders could not be fully judged \(exit 4\)/);
+});
+
+/** A protected order (structurally fine, price never judged) and helpers for the exit-code tests. */
+function protectedLines() {
+  const mattress = { ...lineNode({ id: 1 }), product: { id: 'gid://shopify/Product/501', metafield: { value: 'mattress' } } };
+  const coverage = {
+    ...lineNode({ id: 2, product: 'gid://shopify/Product/900', variant: 'gid://shopify/ProductVariant/900' }),
+    sku: 'Extend-Protection-Plan-79.99',
+    customAttributes: [
+      { key: '_extend_plan_id', value: 'MOCK-MATT-ADH-3Y-C' },
+      { key: '_extend_covered_product_id', value: '501' },
+    ],
+  };
+  return [mattress, coverage];
+}
+
+test('exit codes: 1 is only for a violation, 4 only for "could not judge", and a violation wins over unjudged noise', async () => {
+  // Only unjudged: 4, not 1.
+  const onlyUnjudged = harness([{ nodes: [orderNode(1, { lines: protectedLines() })] }]);
+  assert.equal(await onlyUnjudged.run(base), EXIT_UNJUDGED);
+
+  // A violation (order 3) beside an unjudged order (order 1): 1.
+  const both = harness([{ nodes: [orderNode(1, { lines: protectedLines() }), orderNode(3, { lines: [lineNode(), haul(2, 9)] })] }]);
+  assert.equal(await both.run([...base, '--json']), EXIT_FAILED, both.text());
+  const document = JSON.parse(both.lines.join('\n'));
+  assert.equal(document.outcome, 'violations');
+  assert.equal(document.report.counts.violations, 1);
+  assert.equal(document.report.counts.unjudgeable, 1);
+
+  // A single order with both a violation and the unjudged note: 1.
+  const mixed = harness([{ nodes: [orderNode(4, { lines: [...protectedLines(), haul(3, 9)] })] }]);
+  assert.equal(await mixed.run(base), EXIT_FAILED);
+  assert.match(mixed.text(), /haul-away-over-max/);
+  assert.match(mixed.text(), /Result: VIOLATIONS found \(exit 1\)/);
+});
+
+test('--accept-unjudged coverage_price_unjudged: that reason alone stops raising 4, is echoed and still counted; violations still exit 1', async () => {
+  const flag = [...base, '--accept-unjudged', 'coverage_price_unjudged'];
+  const accepted = harness([{ nodes: [orderNode(1, { lines: protectedLines() }), orderNode(2)] }]);
+  assert.equal(await accepted.run([...flag, '--json']), EXIT_OK, accepted.text());
+  const document = JSON.parse(accepted.lines.join('\n'));
+  assert.deepEqual(document.acceptedUnjudged, ['coverage_price_unjudged']);
+  assert.equal(document.outcome, 'clean');
+  assert.deepEqual(document.report.unjudgedByReason, [{ reason: 'coverage_price_unjudged', orders: 1 }], 'still counted, not hidden');
+
+  const text = harness([{ nodes: [orderNode(1, { lines: protectedLines() })] }]);
+  assert.equal(await text.run(flag), EXIT_OK);
+  assert.match(text.text(), /accepted by --accept-unjudged .*: coverage_price_unjudged/);
+  assert.match(text.text(), /not judged: coverage_price_unjudged=1/);
+
+  // Another unjudged reason is not covered by the acceptance.
+  const other = harness([{ nodes: [orderNode(1, { lines: protectedLines() }), { id: 'gid://shopify/Order/9', lineItems: 'garbage' }] }]);
+  assert.equal(await other.run(flag), EXIT_UNJUDGED);
+
+  // A violation is never accepted away.
+  const violation = harness([{ nodes: [orderNode(1, { lines: protectedLines() }), orderNode(3, { lines: [lineNode(), haul(2, 9)] })] }]);
+  assert.equal(await violation.run(flag), EXIT_FAILED);
+});
+
+test('--accept-unjudged takes only reasons that are limits of the check, never faults', async () => {
+  for (const reason of ['order_unreadable', 'rules_unavailable', 'nonsense']) {
+    const h = harness([]);
+    assert.equal(await h.run([...base, '--accept-unjudged', reason]), EXIT_USAGE, reason);
+    assert.equal(h.requests.length, 0);
+  }
+  const comma = harness([{ nodes: [orderNode(1)] }]);
+  assert.equal(await comma.run([...base, '--accept-unjudged', 'coverage_price_unjudged,coverage_price_unjudged']), EXIT_OK);
 });
 
 test('missing delivery attribute, pickup and an over-limit quantity each get their own code', async () => {

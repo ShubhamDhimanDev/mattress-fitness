@@ -20,7 +20,11 @@ import {
   type AdminConfigResult,
 } from '~/lib/extend/admin-client';
 import {detectWithConfig, unreadableOrderResult} from '~/lib/detective/detect';
-import type {DetectiveConfig, DetectiveResult} from '~/lib/detective/types';
+import type {
+  DetectiveConfig,
+  DetectiveOrder,
+  DetectiveResult,
+} from '~/lib/detective/types';
 import type {ExtendLogger} from '~/lib/extend/log';
 import {createOffersQuoteLookup} from '~/lib/extend/offers';
 import {syncOrder, type RetryPolicy} from '~/lib/extend/sync';
@@ -73,6 +77,18 @@ const DETECTIVE_INTENTS: ReadonlySet<WebhookIntent> = new Set<WebhookIntent>([
 type SyncOutcome = ProcessOutcome | {status: 'skipped'};
 
 /**
+ * What the sync did, and whether it actually compared the order's protection prices with Extend's quotes. That is true
+ * only when the snapshot was built from verified quotes and sent (`synced`): a failed or skipped sync, an open breaker or
+ * Extend being down judged nothing, so the detective must still say the price was not judged.
+ */
+type SyncRun = {outcome: SyncOutcome; priceVerified: boolean};
+
+const notVerified = (outcome: SyncOutcome): SyncRun => ({
+  outcome,
+  priceVerified: false,
+});
+
+/**
  * The detective's own failure, tagged so the handler logs `detective_failed` and not `sync_failed`. The sync's failures
  * stay a plain `{status: 'failed'}`, so nothing about the sync outcome changes.
  */
@@ -84,7 +100,7 @@ const DETECTIVE_FAILED: ProcessOutcome = {
 async function processSync(
   action: WebhookAction,
   deps: ProcessDeps,
-): Promise<SyncOutcome> {
+): Promise<SyncRun> {
   const {log} = deps;
   if (deps.config.status !== 'enabled') {
     log({
@@ -97,7 +113,7 @@ async function processSync(
           : ''
       }`,
     });
-    return {status: 'skipped'};
+    return notVerified({status: 'skipped'});
   }
   const {orderSync} = deps.config.config;
   if (orderSync !== 'self') {
@@ -107,7 +123,7 @@ async function processSync(
       orderId: action.orderId,
       reason: orderSync === 'off' ? 'order_sync_off' : 'order_sync_extend_app',
     });
-    return {status: 'skipped'};
+    return notVerified({status: 'skipped'});
   }
 
   const read = await readOrderForSync(
@@ -121,7 +137,7 @@ async function processSync(
       orderId: action.orderId,
       reason: read.reason,
     });
-    return {status: 'failed'};
+    return notVerified({status: 'failed'});
   }
 
   const result = await syncOrder(read.order, {
@@ -144,7 +160,8 @@ async function processSync(
         ...(deps.breaker === undefined ? {} : {breaker: deps.breaker}),
       })(query),
   });
-  return result.status === 'failed' ? {status: 'failed'} : {status: 'done'};
+  if (result.status === 'failed') return notVerified({status: 'failed'});
+  return {outcome: {status: 'done'}, priceVerified: result.status === 'synced'};
 }
 
 /** Order id, status and codes only: a result has no field that could hold a name, address or ZIP. */
@@ -175,13 +192,28 @@ function logDetectiveResult(result: DetectiveResult, log: ExtendLogger): void {
   }
 }
 
+/**
+ * The detective runs in two steps so it can read the order beside the sync (one background window) yet still learn what
+ * the sync did before it judges: a `finished` stage is already logged and has its outcome; a `read` stage holds the order
+ * waiting for the sync's result (whether coverage prices were verified).
+ */
+type DetectiveStage =
+  | {kind: 'finished'; outcome: ProcessOutcome}
+  | {kind: 'read'; order: DetectiveOrder; config: ReadyDetectiveConfig};
+
+type ReadyDetectiveConfig = Extract<DetectiveConfig, {status: 'ready'}>;
+
 /** Never throws: the check is a side control and must not be able to break the sync that runs beside it. */
-async function runDetective(
+async function readForDetective(
   action: WebhookAction,
   deps: ProcessDeps,
   config: DetectiveConfig,
-): Promise<ProcessOutcome> {
+): Promise<DetectiveStage> {
   const {log} = deps;
+  const finished = (outcome: ProcessOutcome): DetectiveStage => ({
+    kind: 'finished',
+    outcome,
+  });
   try {
     if (config.status !== 'ready') {
       // Without rules a gift, a protector and a haul-away line all look like ordinary lines, so nothing can be judged.
@@ -192,7 +224,7 @@ async function runDetective(
         orderId: action.orderId,
         reason: `rules_unavailable:${config.reason}`,
       });
-      return {status: 'done'};
+      return finished({status: 'done'});
     }
     if (deps.admin.status !== 'ready') {
       log({
@@ -201,7 +233,7 @@ async function runDetective(
         orderId: action.orderId,
         reason: `admin_not_configured:${deps.admin.missing.join(',')}`,
       });
-      return {status: 'done'};
+      return finished({status: 'done'});
     }
     const read = await readOrderForDetective(
       {
@@ -216,7 +248,7 @@ async function runDetective(
       if (read.reason === 'malformed' || read.reason === 'truncated') {
         // Retrying cannot change the answer: record the order as not judged, with the reason it could not be read.
         logDetectiveResult(unreadableOrderResult(action.orderId), log);
-        return {status: 'done'};
+        return finished({status: 'done'});
       }
       log({
         level: 'error',
@@ -224,18 +256,42 @@ async function runDetective(
         orderId: action.orderId,
         reason: read.reason,
       });
-      return DETECTIVE_FAILED;
+      return finished(DETECTIVE_FAILED);
     }
+    return {kind: 'read', order: read.order, config};
+  } catch {
+    log({
+      level: 'error',
+      event: 'detective.read_failed',
+      orderId: action.orderId,
+      reason: 'internal_error',
+    });
+    return finished(DETECTIVE_FAILED);
+  }
+}
+
+/**
+ * Judges the order that was read. `priceVerified` is true only when the sync really compared the protection prices with
+ * Extend's quotes; in every other case (sync off, failed, skipped, breaker open, Extend down) the order says
+ * `coverage_price_unjudged` instead of reading quiet. Never throws.
+ */
+function judgeForDetective(
+  action: WebhookAction,
+  deps: ProcessDeps,
+  stage: DetectiveStage,
+  priceVerified: boolean,
+): ProcessOutcome {
+  if (stage.kind === 'finished') return stage.outcome;
+  try {
     logDetectiveResult(
-      detectWithConfig(read.order, config, {
-        // Only the sync in `self` mode compares each protection line's price and plan with Extend's quote.
-        coveragePriceJudgedElsewhere: syncJudgesCoveragePrice(deps),
+      detectWithConfig(stage.order, stage.config, {
+        coveragePriceJudgedElsewhere: priceVerified,
       }),
-      log,
+      deps.log,
     );
     return {status: 'done'};
   } catch {
-    log({
+    deps.log({
       level: 'error',
       event: 'detective.read_failed',
       orderId: action.orderId,
@@ -245,33 +301,32 @@ async function runDetective(
   }
 }
 
-/** True when this deployment's own sync cross-checks coverage price and plan against Extend. */
-function syncJudgesCoveragePrice(deps: ProcessDeps): boolean {
-  return (
-    deps.config.status === 'enabled' && deps.config.config.orderSync === 'self'
-  );
-}
-
 export async function processOrderAction(
   action: WebhookAction,
   deps: ProcessDeps,
 ): Promise<ProcessOutcome> {
-  const detection =
+  const staging =
     deps.detective !== undefined && DETECTIVE_INTENTS.has(action.intent)
-      ? runDetective(action, deps, deps.detective)
+      ? readForDetective(action, deps, deps.detective)
       : null;
 
-  let sync: SyncOutcome;
+  let run: SyncRun;
   try {
-    sync = await processSync(action, deps);
+    run = await processSync(action, deps);
   } catch (error) {
-    // Let the detective finish its own logging before the crash is reported by the caller.
-    await detection;
+    // Let the detective finish its own logging before the crash is reported by the caller. A crashed sync verified nothing.
+    if (staging !== null) {
+      judgeForDetective(action, deps, await staging, false);
+    }
     throw error;
   }
-  const detected = await detection;
+  const detected =
+    staging === null
+      ? null
+      : judgeForDetective(action, deps, await staging, run.priceVerified);
 
   // The sync's result is what the handler records. The check decides the outcome only when there was no sync to report.
+  const sync = run.outcome;
   if (sync.status === 'failed') return {status: 'failed'};
   if (sync.status === 'done') return {status: 'done'};
   return detected === null ? {status: 'done'} : detected;

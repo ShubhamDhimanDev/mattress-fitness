@@ -349,12 +349,26 @@ describe('P5B-05 REQ-PRE-004 coverage price is not judged unless the Extend sync
     ).toBe(true);
   });
 
-  it('with order sync self the sync judges the price, so the detective does not repeat the note', async () => {
+  it('order sync self is not enough: unless the sync actually verified the price the note stays (m1)', async () => {
+    // The scripted Extend-side read has no protection line, so the sync skips and compares nothing. The case where the
+    // sync verifies and sends is covered against the mock in tests/integration/extend/webhook-detective-price.test.ts.
     const h = harness({detectiveAnswer: protectedOrder});
     await processOrderAction(action(), h.deps);
     expect(h.detectiveLogs().map((e) => `${e.event}:${e.reason}`)).toEqual([
-      'detective.checked:clean',
+      'detective.checked:unjudgeable',
+      'detective.unjudged:coverage_price_unjudged',
     ]);
+  });
+
+  it('a failing sync read leaves the note in place too', async () => {
+    const h = harness({
+      detectiveAnswer: protectedOrder,
+      extendOrderAnswer: () => new Response('', {status: 401}),
+    });
+    await processOrderAction(action(), h.deps);
+    expect(
+      h.detectiveLogs().some((e) => e.reason === 'coverage_price_unjudged'),
+    ).toBe(true);
   });
 });
 
