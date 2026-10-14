@@ -31,16 +31,34 @@ Sale pricing uses the variant's compare-at price. Gift-with-purchase and bundle 
 
 | Definition | Fields (key: type) | Used for |
 |---|---|---|
-| `brand` | name, slug, logo (file), about (rich text), warranty_terms (rich text) | brand pages and product sections |
+| `brand` | name, slug (required; lowercase, hyphenated, must equal the metaobject handle so the product importer can find the brand), logo (file, image), about (rich text), warranty_terms (rich text) | brand pages and product sections |
 | `store` | name, slug, address lines, city, state, postal_code, latitude, longitude, phone, hours (JSON or list), photo, pickup_enabled, location_handle (maps to a Shopify location) | locator, my store, pickup availability |
 | `faq` | question, answer (rich text), scope | collection and product FAQs |
-| `homepage_section` | type (select), heading, body, image, link, order (number), enabled | homepage; editable and orderable (REQ-HOME-001) |
-| `promo_tile` | collection reference, position, image, heading, link, enabled | collection grid tiles (REQ-COL-003) |
+| `homepage_section` | `type` (required; one of the eight values below), heading, body, image, link, `link_label` (optional), order (required whole number), enabled | homepage; editable and orderable (REQ-HOME-001) |
+| `promo_tile` | collection (reference, required), position (required whole number, minimum 1), image, heading (required), link, enabled | collection grid tiles (REQ-COL-003) |
 | `quiz_question` | order, text, help text, multi (boolean), options (list of `quiz_option`) | REQ-QZ-001, REQ-QZ-004 |
 | `quiz_option` | label, scoring rules (list of attribute, value, weight, or filter, exclude flag) | REQ-QZ-003 |
 | `offer_rule` | name, type (comfort_protector, haul_away, matching_protector, pillow, bedding, gift, bundle), trigger (collection or product), products (list of product references: the offered items, gift choices or bundle members), max_quantity (gift quantity or bundle member quantity; **not** the haul-away maximum), price_source, enabled | REQ-CAT-007, REQ-CAT-008, REQ-PRE-002/003 |
 | `site_settings` | promo_bar text and link, **`haul_away_max`** (the single source of the haul-away maximum; the same number is set by hand in the Shopify Flow condition, and a reconciliation report compares them), financing copy, `extend_enabled` mirror (non-secret) | REQ-NAV-001, REQ-PRE-003 |
 | `delivery_zone` | name, `postal_codes` (**text**, comma-and-space or line separated, up to 3,000 characters, the same format as Shopify Local delivery, `*` prefixes allowed), fee text, **`free_over`** (the single source of the free-delivery threshold: delivery quote, cart progress message and the Local delivery price rule), promise text per delivery type. **One entry for now** (owner decision, ADR-0007) | REQ-DEL-001/002, REQ-CART-004, REQ-PRE-003 |
+
+### Homepage sections and promo tiles (as encoded in `scripts/shopify/definitions.json`)
+
+`homepage_section.type` is a single-line text field limited to a fixed list of choices. The storefront code lists the same values (`HOMEPAGE_SECTION_TYPES`) and a test keeps the two in step.
+
+| `type` value | Content it uses | Behaviour |
+|---|---|---|
+| `hero`, `promo-banner`, `financing` | heading, body, image, link and `link_label` | Shows the content entered in admin |
+| `shop-by-size`, `featured`, `brands`, `categories` | heading, order and enabled only | Fills itself from the catalog; body, image and link are not used |
+| `signup` | none yet | Reserved for the email and text-message signup (P7-02); shows nothing until it exists |
+
+- `link_label` is optional text for the button. Left empty, the heading itself becomes the link. It exists so a link never needs generic wording such as "Learn more" (added in P3B-13).
+- `order`: smaller numbers appear first; entries without a whole number go last. A section shows only when `enabled` is on.
+- `link` (here and on `promo_tile`, and `site_settings.promo_bar_link`) is plain text, a relative path or an https URL, because Shopify's `url` type rejects relative paths. The storefront validates it against an allow-list (T-08).
+- `promo_tile.position`: 1 puts the tile first; 4 makes it the fourth cell, counting products and tiles together. A tile whose position is beyond the products shown is held back until "Load more" brings enough products. The tile's heading is shown on the tile and used as the link text; without a valid link the tile is shown but is not clickable.
+- `brand.slug` must equal the metaobject handle (see the table above). `custom.brand` on a product is a reference to a `brand` metaobject, and `vendor` is kept for filters.
+
+Status: these facts are copied from `definitions.json`, which is checked against the Admin GraphQL 2026-10 reference but not yet applied to a development store (V-05).
 
 The exact schema for `quiz_option` scoring and `offer_rule` triggers is finalised in P3A-02 after V-05; keep rules declarative (data), not code.
 
