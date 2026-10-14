@@ -18,6 +18,13 @@ import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PageLayout} from '~/components/layout/PageLayout';
 import {MAIN_CONTENT_ID, SkipLink} from '~/components/layout/SkipLink';
 import {Button} from '~/components/ui/Button';
+import {PRIVATE_NO_STORE_HEADERS} from '~/lib/pages/private-response';
+import {
+  hasMyStoreCookie,
+  summarizeMyStore,
+  type MyStoreSummary,
+} from '~/lib/pages/my-store-summary';
+import {loadStoreIndex} from '~/lib/pages/stores-data';
 
 export type RootLoader = typeof loader;
 
@@ -70,18 +77,46 @@ export function links() {
   ];
 }
 
+/**
+ * The root loader's output depends on cookies (the cart, the signed-in state and the chosen store), so no
+ * shared cache may keep or reuse a page built from it. A route that exports its own `headers` replaces this.
+ */
+export function headers() {
+  return new Headers(PRIVATE_NO_STORE_HEADERS);
+}
+
+/**
+ * The shopper's chosen store, for the header (REQ-LOC-003). Only the name and slug of a store found in our
+ * own list leave the server; an invalid or tampered cookie, a missing list or a failure all mean no store.
+ */
+async function loadMyStore(request: Request): Promise<MyStoreSummary | null> {
+  const cookieHeader = request.headers.get('Cookie');
+  // Most visitors have no cookie: skip the store list entirely.
+  if (!hasMyStoreCookie(cookieHeader)) return null;
+  try {
+    const {index} = await loadStoreIndex();
+    return summarizeMyStore(index, cookieHeader);
+  } catch {
+    // The header falls back to "Select your store"; nothing from the request is logged (T-05).
+    console.error('[root] could not read the chosen store');
+    return null;
+  }
+}
+
 export async function loader(args: Route.LoaderArgs) {
   // Start fetching non-critical data without blocking time to first byte
   const deferredData = loadDeferredData(args);
 
   // Await the critical data required to render initial state of the page
   const criticalData = await loadCriticalData(args);
+  const myStore = await loadMyStore(args.request);
 
   const {storefront, env} = args.context;
 
   return {
     ...deferredData,
     ...criticalData,
+    myStore,
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     shop: getShopAnalytics({
       storefront,
@@ -181,7 +216,11 @@ export default function App() {
       shop={data.shop}
       consent={data.consent}
     >
-      <PageLayout cart={data.cart} isLoggedIn={data.isLoggedIn}>
+      <PageLayout
+        cart={data.cart}
+        isLoggedIn={data.isLoggedIn}
+        myStore={data.myStore}
+      >
         <Outlet />
       </PageLayout>
     </Analytics.Provider>
@@ -270,7 +309,11 @@ export function ErrorBoundary() {
       shop={data.shop}
       consent={data.consent}
     >
-      <PageLayout cart={data.cart} isLoggedIn={data.isLoggedIn}>
+      <PageLayout
+        cart={data.cart}
+        isLoggedIn={data.isLoggedIn}
+        myStore={data.myStore}
+      >
         {content}
       </PageLayout>
     </Analytics.Provider>

@@ -8,10 +8,13 @@ import {MobileMenuContent, SiteHeader} from '~/components/layout/SiteHeader';
 import {SiteFooter} from '~/components/layout/SiteFooter';
 import {Skeleton} from '~/components/ui/Skeleton';
 import {DEFAULT_PROMO} from '~/lib/navigation';
+import type {MyStoreSummary} from '~/lib/pages/my-store-summary';
 
 type PageLayoutProps = {
   cart: Promise<CartApiQueryFragment | null>;
   isLoggedIn: Promise<boolean>;
+  /** The shopper's chosen store from the validated cookie, or null (REQ-LOC-003). */
+  myStore?: MyStoreSummary | null;
   children?: React.ReactNode;
 };
 
@@ -22,12 +25,18 @@ type PageLayoutProps = {
 export function PageLayout({
   cart,
   isLoggedIn,
+  myStore = null,
   children = null,
 }: PageLayoutProps) {
   return (
     <Aside.Provider>
       {/* TODO(P3B-13): the promotion text comes from Shopify admin; this placeholder keeps the bar visible. */}
-      <SiteHeader cart={cart} isLoggedIn={isLoggedIn} promo={DEFAULT_PROMO} />
+      <SiteHeader
+        cart={cart}
+        isLoggedIn={isLoggedIn}
+        promo={DEFAULT_PROMO}
+        storeName={myStore?.name ?? null}
+      />
       <main
         id={MAIN_CONTENT_ID}
         tabIndex={-1}

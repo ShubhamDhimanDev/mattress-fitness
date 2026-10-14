@@ -1,4 +1,10 @@
-import {expect, test, type Locator, type Page} from '@playwright/test';
+import {
+  expect,
+  test,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from '@playwright/test';
 import {
   collectConsoleErrors,
   expectNoSeriousA11yViolations,
@@ -33,7 +39,11 @@ async function openUntilVisible(trigger: Locator, target: Locator) {
  */
 function unexpectedErrors(errors: string[]): string[] {
   return errors.filter(
-    (message) => !message.includes('Shopify Customer Privacy'),
+    (message) =>
+      !message.includes('Shopify Customer Privacy') &&
+      // Shopify's own performance telemetry is refused by our CSP in development, intermittently; not our code
+      // (same exclusion as ourErrors in helpers/catalog.ts).
+      !message.includes('shopifysvc.com'),
   );
 }
 
@@ -94,7 +104,7 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
       header.getByRole('link', {name: 'Select your store'}),
     ).toBeVisible();
     await expect(
-      header.getByRole('searchbox', {name: 'Search products and pages'}),
+      header.getByRole('combobox', {name: 'Search products and pages'}),
     ).toBeVisible();
     await expect(header.getByRole('link', {name: 'Sign in'})).toHaveAttribute(
       'href',
@@ -134,15 +144,101 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
     }
   });
 
-  test('the reassurance strip shows three items', async ({page}) => {
+  // REQ-CNT-001 / B-15: the comfort and price guarantees are placeholder wording the client has not
+  // supplied, so the strip shows only the delivery item. When the client's pages arrive, drop
+  // `awaitingContent` in lib/navigation.ts and change this test to expect three items.
+  test('the reassurance strip shows only the items the client has supplied', async ({
+    page,
+  }) => {
     await gotoReady(page);
-    const items = page
-      .getByRole('banner')
-      .locator('ul')
-      .filter({
-        has: page.getByRole('link', {name: 'Comfort guarantee'}),
-      });
-    await expect(items.getByRole('link')).toHaveCount(3);
+    const header = page.getByRole('banner');
+    const items = header.locator('ul').filter({
+      has: page.getByRole('link', {name: 'In-home delivery & setup'}),
+    });
+    await expect(items.getByRole('link')).toHaveCount(1);
+    await expect(
+      header.getByRole('link', {name: /Comfort guarantee|Price guarantee/}),
+    ).toHaveCount(0);
+  });
+
+  test('the footer makes no comfort or price guarantee claim', async ({
+    page,
+    isMobile,
+  }) => {
+    await gotoReady(page);
+    const footer = page.getByRole('contentinfo');
+    if (isMobile) {
+      await footer.getByRole('button', {name: 'About', exact: true}).click();
+    }
+    await expect(footer.getByRole('link', {name: 'About us'})).toBeVisible();
+    await expect(
+      footer.getByRole('link', {name: /Comfort guarantee|Price guarantee/}),
+    ).toHaveCount(0);
+  });
+
+  // REQ-LOC-003 / P3B-10: the header shows the store from the my_store cookie. The cookie is validated on
+  // the server against the store list; only the store name reaches the page.
+  test.describe('my store in the header', () => {
+    const BUFFALO = 'new-york.buffalo.buffalo-gallery';
+
+    async function setCookie(
+      context: BrowserContext,
+      baseURL: string | undefined,
+      value: string,
+    ) {
+      await context.addCookies([
+        {
+          name: 'my_store',
+          value: encodeURIComponent(value),
+          url: baseURL ?? '',
+        },
+      ]);
+    }
+
+    test('shows My store: <name> for a valid cookie and never prints the cookie value', async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await setCookie(context, baseURL, BUFFALO);
+      const response = await gotoReady(page);
+      await expect(
+        page.getByRole('banner').getByRole('link', {
+          name: 'My store: Wrenfield Sleep Gallery Buffalo',
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('banner').getByRole('link', {name: 'Select your store'}),
+      ).toHaveCount(0);
+      // The page may name the store; the cookie text itself must not be echoed into the HTML.
+      expect(await response?.text()).not.toContain(BUFFALO);
+    });
+
+    test('a tampered cookie selects nothing and is not echoed', async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      const tampered = 'new-york.buffalo.<script>alert(1)</script>';
+      await setCookie(context, baseURL, tampered);
+      const response = await gotoReady(page);
+      await expect(
+        page.getByRole('banner').getByRole('link', {name: 'Select your store'}),
+      ).toBeVisible();
+      const html = (await response?.text()) ?? '';
+      expect(html).not.toContain('alert(1)');
+    });
+
+    test('the page is not cacheable by a shared cache', async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      await setCookie(context, baseURL, BUFFALO);
+      const response = await gotoReady(page);
+      expect(response?.headers()['cache-control']).toBe('private, no-store');
+      expect(response?.headers()['vary']).toMatch(/cookie/i);
+    });
   });
 
   test('the cart button opens the cart drawer, Escape closes it and focus returns', async ({
@@ -168,22 +264,37 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
     await gotoReady(page);
     const search = page
       .getByRole('banner')
-      .getByRole('searchbox', {name: 'Search products and pages'});
+      .getByRole('combobox', {name: 'Search products and pages'});
     await search.fill('queen & firm');
     await search.press('Enter');
     await expect(page).toHaveURL(/\/search\?q=queen\+%26\+firm$/);
   });
 });
 
-test.describe('REQ-NAV-003 delivery ZIP entry (UI only until P3B-11)', () => {
-  test('rejects an invalid ZIP inline, accepts 5 digits and shows it in the header', async ({
+// REQ-NAV-003 / P3B-11: the header ZIP is the server-side one (signed cookie, /delivery), shared with the
+// product-page and cart delivery check. Saving needs a delivery zone in the server configuration
+// (OFFER_CONFIG_JSON, see DEV_DATA.md "Delivery ZIP"); without one the server cannot say anything about a ZIP, so
+// the header shows none. The two tests below cover each case and skip when the server is configured the other way.
+async function zoneIsConfigured(page: Page): Promise<boolean> {
+  const response = await page.request.get('/delivery');
+  return !(await response.text()).includes(
+    'Delivery information is not available right now.',
+  );
+}
+
+async function openZipDialog(page: Page) {
+  await gotoReady(page);
+  const trigger = page.getByRole('button', {name: 'Enter delivery ZIP'});
+  const dialog = page.getByRole('dialog', {name: 'Delivery ZIP code'});
+  await openUntilVisible(trigger, dialog);
+  return dialog;
+}
+
+test.describe('REQ-NAV-003 delivery ZIP entry', () => {
+  test('rejects an invalid ZIP inline with the same wording and check as the server', async ({
     page,
   }) => {
-    await gotoReady(page);
-    const trigger = page.getByRole('button', {name: 'Enter delivery ZIP'});
-    const dialog = page.getByRole('dialog', {name: 'Delivery ZIP code'});
-    await openUntilVisible(trigger, dialog);
-
+    const dialog = await openZipDialog(page);
     const zip = dialog.getByRole('textbox', {name: 'ZIP code'});
     await expect(zip).toBeFocused();
 
@@ -202,24 +313,63 @@ test.describe('REQ-NAV-003 delivery ZIP entry (UI only until P3B-11)', () => {
     await expect(
       dialog.getByText('Enter a 5-digit US ZIP code.'),
     ).toBeVisible();
+    // Nothing was sent: the invalid ZIP never reached the server, so no ZIP is saved.
+    await expect(dialog).toBeVisible();
+  });
 
+  test('with a delivery zone, saves the ZIP on the server, shows it, keeps it across a reload and clears it', async ({
+    page,
+  }) => {
+    test.skip(
+      !(await zoneIsConfigured(page)),
+      'no delivery zone in the server configuration (OFFER_CONFIG_JSON); see DEV_DATA.md',
+    );
+    const dialog = await openZipDialog(page);
+    const zip = dialog.getByRole('textbox', {name: 'ZIP code'});
     await zip.fill('12345');
+    const answered = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname.startsWith('/delivery') &&
+        response.request().method() === 'POST',
+    );
     await zip.press('Enter');
+    expect((await answered).status()).toBe(200);
     await expect(dialog).toBeHidden();
     const saved = page.getByRole('button', {name: /Delivering to 12345/});
     await expect(saved).toBeVisible();
-    await expect(saved).toBeFocused();
+
+    // The server remembers it: a full reload still shows it, and the cookie is not readable by scripts.
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await expect(
+      page.getByRole('button', {name: /Delivering to 12345/}),
+    ).toBeVisible();
+    expect(await page.evaluate(() => document.cookie)).not.toContain('12345');
 
     // It can be edited and cleared.
-    await saved.click();
+    await page.getByRole('button', {name: /Delivering to 12345/}).click();
     await expect(
       page
         .getByRole('dialog', {name: 'Delivery ZIP code'})
-        .getByRole('textbox', {
-          name: 'ZIP code',
-        }),
+        .getByRole('textbox', {name: 'ZIP code'}),
     ).toHaveValue('12345');
     await page.getByRole('button', {name: 'Clear ZIP code'}).click();
+    await expect(
+      page.getByRole('button', {name: 'Enter delivery ZIP'}),
+    ).toBeVisible();
+  });
+
+  test('without a delivery zone, accepts the ZIP but claims nothing about it', async ({
+    page,
+  }) => {
+    test.skip(
+      await zoneIsConfigured(page),
+      'a delivery zone is configured; the test above covers this server',
+    );
+    const dialog = await openZipDialog(page);
+    await dialog.getByRole('textbox', {name: 'ZIP code'}).fill('12345');
+    await dialog.getByRole('button', {name: 'Save ZIP code'}).click();
+    await expect(dialog).toBeHidden();
     await expect(
       page.getByRole('button', {name: 'Enter delivery ZIP'}),
     ).toBeVisible();

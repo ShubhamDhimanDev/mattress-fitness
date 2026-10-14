@@ -10,8 +10,9 @@ type StoreSelectorLinkProps = {
 };
 
 /**
- * "My store" entry point in the utility bar (REQ-LOC-003). Props-driven: the persisted selection and the
- * store records come from Shopify later (P3B-10); until then it always reads "Select your store".
+ * "My store" entry point in the utility bar (REQ-LOC-003). Props-driven: the root loader validates the
+ * my_store cookie against the store list and passes the name (P3B-10); with no valid selection it reads
+ * "Select your store".
  */
 export function StoreSelectorLink({
   storeName,

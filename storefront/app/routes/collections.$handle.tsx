@@ -8,7 +8,8 @@ import {Accordion} from '~/components/ui/Accordion';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {SORT_KEYS, parseFilterParams} from '~/lib/filters';
 import {buildBreadcrumbJsonLd, buildFaqJsonLd} from '~/lib/shopify/jsonld';
-import {loadCollectionPage} from '~/lib/shopify/collection-data';
+import {isValidHandle, loadCollectionPage} from '~/lib/shopify/collection-data';
+import {loadPromoTiles} from '~/lib/shopify/promo-data';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 
 export const meta: Route.MetaFunction = ({data}) => {
@@ -26,11 +27,14 @@ export const meta: Route.MetaFunction = ({data}) => {
 export async function loader({context, params, request}: Route.LoaderArgs) {
   const url = new URL(request.url);
   const state = parseFilterParams(url.searchParams);
-  const page = await loadCollectionPage(
-    context.storefront,
-    params.handle ?? '',
-    state,
-  );
+  const handle = params.handle ?? '';
+  // Tiles are read alongside the products; a failed tile read only means a grid without tiles.
+  const [page, promoTiles] = await Promise.all([
+    loadCollectionPage(context.storefront, handle, state),
+    isValidHandle(handle)
+      ? loadPromoTiles(context.storefront, handle)
+      : Promise.resolve([]),
+  ]);
   if (page.status === 'not-found') {
     throw new Response('Collection not found', {status: 404});
   }
@@ -52,6 +56,7 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   );
   return {
     ...page,
+    promoTiles,
     breadcrumbJsonLd,
     faqJsonLd: buildFaqJsonLd(page.collection.faqs),
   };
@@ -86,6 +91,7 @@ export default function Collection() {
         showFilters
         sortKeys={SORT_KEYS}
         emptyHeading="No products match these filters"
+        promoTiles={data.promoTiles}
       />
 
       {collection.faqs.length > 0 ? (

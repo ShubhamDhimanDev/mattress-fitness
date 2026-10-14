@@ -99,6 +99,18 @@ test('the data model fields that other work packages depend on are present', () 
   assert.equal(postal.validations[0].value, 3000, 'matches the Local delivery limit (F-28)');
 });
 
+test('homepage_section fixes its section types and promo_tile its grid position (P3B-13, P3B-05)', () => {
+  const definition = (/** @type {string} */ type) => spec.metaobjectDefinitions.find((candidate) => candidate.type === type);
+  const field = (/** @type {string} */ type, /** @type {string} */ key) => definition(type).fieldDefinitions.find((candidate) => candidate.key === key);
+  // The storefront lists the same values in HOMEPAGE_SECTION_TYPES (tests/unit/catalog/home-sections.test.ts).
+  assert.deepEqual(field('homepage_section', 'type').validations, [{ name: 'choices', value: ['hero', 'promo-banner', 'shop-by-size', 'featured', 'brands', 'categories', 'financing', 'signup'] }]);
+  assert.deepEqual(definition('homepage_section').fieldDefinitions.map((candidate) => candidate.key), ['type', 'heading', 'body', 'image', 'link', 'link_label', 'order', 'enabled']);
+  assert.equal(field('homepage_section', 'link_label').required, undefined, 'the label is optional: without it the heading is the link');
+  assert.deepEqual(field('promo_tile', 'position').validations, [{ name: 'min', value: 1 }]);
+  assert.equal(field('promo_tile', 'collection').type, 'collection_reference');
+  assert.equal(field('promo_tile', 'collection').required, true);
+});
+
 // ---- spec validation ------------------------------------------------------------------------------------
 
 test('validateSpec catches structural mistakes before any live run', () => {

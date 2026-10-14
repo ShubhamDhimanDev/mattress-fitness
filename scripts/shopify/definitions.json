@@ -83,13 +83,14 @@
       "displayNameKey": "heading",
       "storefrontAccess": "PUBLIC_READ",
       "fieldDefinitions": [
-        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "description": "Section kind. The allowed values are fixed with the homepage design in P3B; none are invented here." },
+        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup"] }], "description": "Section kind. hero, promo-banner and financing show the heading, body, image and link below; shop-by-size, featured, brands and categories fill themselves from the catalog and only take the heading, order and enabled switch; signup is reserved for the email and text-message signup (P7-02) and shows nothing until it exists. The storefront code lists the same values (HOMEPAGE_SECTION_TYPES); a test keeps the two in step." },
         { "key": "heading", "name": "Heading", "type": "single_line_text_field" },
         { "key": "body", "name": "Body", "type": "multi_line_text_field" },
         { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL. Plain text on purpose: Shopify's url type rejects relative paths. The storefront validates it against an allow-list (T-08)." },
-        { "key": "order", "name": "Order", "type": "number_integer", "required": true },
-        { "key": "enabled", "name": "Enabled", "type": "boolean" }
+        { "key": "link_label", "name": "Link label", "type": "single_line_text_field", "description": "Text of the button for the link. Leave empty to make the heading itself the link. Added in P3B-13 so a link never needs generic wording like 'Learn more'." },
+        { "key": "order", "name": "Order", "type": "number_integer", "required": true, "description": "Smaller numbers appear first. Entries without a whole number go last." },
+        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A section shows only when this is on." }
       ]
     },
     {
@@ -100,11 +101,11 @@
       "storefrontAccess": "PUBLIC_READ",
       "fieldDefinitions": [
         { "key": "collection", "name": "Collection", "type": "collection_reference", "required": true },
-        { "key": "position", "name": "Position in grid", "type": "number_integer", "required": true },
+        { "key": "position", "name": "Position in grid", "type": "number_integer", "required": true, "validations": [{ "name": "min", "value": 1 }], "description": "1 puts the tile first, 4 makes it the fourth cell, counting products and tiles together. A tile whose position is beyond the products shown is held back until 'Load more' brings enough products." },
         { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
-        { "key": "heading", "name": "Heading", "type": "single_line_text_field", "required": true },
-        { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL; validated by the storefront (T-08)." },
-        { "key": "enabled", "name": "Enabled", "type": "boolean" }
+        { "key": "heading", "name": "Heading", "type": "single_line_text_field", "required": true, "description": "Shown on the tile and used as the link text." },
+        { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL; validated by the storefront (T-08). Without a valid link the tile is shown but is not clickable." },
+        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A tile shows only when this is on." }
       ]
     },
     {

@@ -2,25 +2,22 @@ import {useRef, useState, type FormEvent, type RefObject} from 'react';
 import {Button} from '~/components/ui/Button';
 import {Dialog} from '~/components/ui/Dialog';
 import {Input} from '~/components/ui/Input';
+import {parseZip} from '~/lib/delivery/zip';
+import {DELIVERY_ERROR_TEXT} from '~/lib/delivery-runtime/response';
 
-// TODO(P3B-11): replace with the shared validator in ~/lib/delivery/zip once the ZIP cookie and the
-// server-side read land. Until then the dialog only checks the shape (5 digits), not that the ZIP exists.
-const ZIP_PATTERN = /^\d{5}$/;
-
-export function isValidZip5(value: string): boolean {
-  return ZIP_PATTERN.test(value.trim());
-}
-
-export const ZIP_ERROR_MESSAGE = 'Enter a 5-digit US ZIP code.';
+// The same validator and wording as the server and the product-page and cart ZIP check (P3B-11).
+export const ZIP_ERROR_MESSAGE = DELIVERY_ERROR_TEXT['invalid-zip'];
 
 type ZipEntryDialogProps = {
   open: boolean;
   onClose: () => void;
   /** The saved ZIP, if any. */
   initialZip?: string | null;
-  /** Called with a ZIP that passed the shape check. The caller stores it (cookie, P3B-11). */
+  /** Called with a ZIP that passed the shared check. The caller saves it on the server (P3B-11). */
   onSubmit: (zip: string) => void;
   onClear: () => void;
+  /** An error the server answered with, shown under the field until the shopper edits it. */
+  serverError?: string;
 };
 
 /** Delivery ZIP entry (REQ-NAV-003). Presentational: it validates the shape and reports; it stores nothing. */
@@ -30,6 +27,7 @@ export function ZipEntryDialog({
   initialZip,
   onSubmit,
   onClear,
+  serverError,
 }: ZipEntryDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -45,6 +43,7 @@ export function ZipEntryDialog({
         initialZip={initialZip ?? ''}
         onSubmit={onSubmit}
         onClear={onClear}
+        serverError={serverError}
       />
     </Dialog>
   );
@@ -56,25 +55,27 @@ function ZipForm({
   initialZip,
   onSubmit,
   onClear,
+  serverError,
 }: {
   inputRef: RefObject<HTMLInputElement>;
   initialZip: string;
   onSubmit: (zip: string) => void;
   onClear: () => void;
+  serverError?: string;
 }) {
   const [value, setValue] = useState(initialZip);
   const [error, setError] = useState<string | undefined>(undefined);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const zip = value.trim();
-    if (!isValidZip5(zip)) {
+    const parsed = parseZip(value);
+    if (!parsed.ok) {
       setError(ZIP_ERROR_MESSAGE);
       inputRef.current?.focus();
       return;
     }
     setError(undefined);
-    onSubmit(zip);
+    onSubmit(parsed.zip);
   }
 
   return (
@@ -87,7 +88,7 @@ function ZipForm({
         autoComplete="postal-code"
         maxLength={5}
         value={value}
-        error={error}
+        error={error ?? serverError}
         hint="For example, 5 digits like 12345."
         onChange={(event) => {
           setValue(event.target.value.replace(/\D/g, ''));

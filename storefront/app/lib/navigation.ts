@@ -24,7 +24,22 @@ export type NavLinkItem = {
   emphasis?: boolean;
 };
 
-export type NavGroupLink = {label: string; to: string};
+export type NavGroupLink = {
+  label: string;
+  to: string;
+  /**
+   * True while the page behind the link and the promise it describes are not supplied by the client. Such a
+   * link is never rendered (REQ-CNT-001, B-15); see `publishedLinks`.
+   */
+  awaitingContent?: boolean;
+};
+
+/** Entries the shopper may see: everything except those still waiting for client content. */
+export function publishedLinks<T extends {awaitingContent?: boolean}>(
+  links: readonly T[],
+): T[] {
+  return links.filter((link) => link.awaitingContent !== true);
+}
 
 export type NavGroup = {
   id: string;
@@ -241,8 +256,13 @@ export type ReassuranceItem = {
   awaitingContent?: boolean;
 };
 
-/** Placeholder wording; the guarantee terms come from the client's content pages (REQ-CNT-001). */
-export const REASSURANCE_ITEMS: readonly ReassuranceItem[] = [
+/**
+ * Every reassurance item the design has room for. The two guarantees are invented placeholder wording: the
+ * client has not supplied them (REQ-CNT-001, B-15), so they stay marked `awaitingContent` and are not shown.
+ * TODO(REQ-CNT-001): drop `awaitingContent` from the comfort and price items once the client's pages and
+ * terms exist.
+ */
+export const REASSURANCE_DRAFT: readonly ReassuranceItem[] = [
   {
     id: 'delivery',
     icon: 'truck',
@@ -265,14 +285,12 @@ export const REASSURANCE_ITEMS: readonly ReassuranceItem[] = [
   },
 ];
 
-/**
- * Reassurance for the home page body: only items whose content exists. The guarantees are hidden until the
- * client's pages and terms arrive.
- * TODO(REQ-CNT-001): drop `awaitingContent` from the comfort and price guarantee items when their pages exist.
- * The header strip still shows all three (layout component, owned by the design shell).
- */
+/** The header strip and the home page body show the same items: only those whose content exists. */
+export const REASSURANCE_ITEMS: readonly ReassuranceItem[] =
+  publishedLinks(REASSURANCE_DRAFT);
+
 export const HOME_ASSURANCE_ITEMS: readonly ReassuranceItem[] =
-  REASSURANCE_ITEMS.filter((item) => item.awaitingContent !== true);
+  REASSURANCE_ITEMS;
 
 export type PromoMessage = {text: string; linkLabel?: string; to?: string};
 
@@ -285,7 +303,8 @@ export const DEFAULT_PROMO: PromoMessage = {
 
 export type FooterGroup = {id: string; heading: string; links: NavGroupLink[]};
 
-export const FOOTER_SUPPORT_GROUPS: readonly FooterGroup[] = [
+/** Footer groups before unpublished links are removed; exported so tests can prove what is held back. */
+export const FOOTER_SUPPORT_GROUPS_DRAFT: readonly FooterGroup[] = [
   {
     id: 'support',
     heading: 'Customer support',
@@ -317,12 +336,27 @@ export const FOOTER_SUPPORT_GROUPS: readonly FooterGroup[] = [
     links: [
       {label: 'About us', to: '/pages/about'},
       {label: 'Find a store', to: STORE_LOCATOR_PATH},
-      {label: 'Comfort guarantee', to: '/pages/comfort-guarantee'},
-      {label: 'Price guarantee', to: '/pages/price-guarantee'},
+      // Invented claims until the client supplies the pages and terms (REQ-CNT-001, B-15).
+      {
+        label: 'Comfort guarantee',
+        to: '/pages/comfort-guarantee',
+        awaitingContent: true,
+      },
+      {
+        label: 'Price guarantee',
+        to: '/pages/price-guarantee',
+        awaitingContent: true,
+      },
       {label: 'Accessibility', to: '/pages/accessibility'},
     ],
   },
 ];
+
+export const FOOTER_SUPPORT_GROUPS: readonly FooterGroup[] =
+  FOOTER_SUPPORT_GROUPS_DRAFT.map((group) => ({
+    ...group,
+    links: publishedLinks(group.links),
+  }));
 
 function shopGroupFromMenu(
   groupId: string,

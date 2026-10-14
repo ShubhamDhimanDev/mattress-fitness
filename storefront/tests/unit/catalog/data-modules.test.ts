@@ -362,7 +362,7 @@ describe('home (REQ-HOME-001)', () => {
     expect(data.brandTiles).toEqual([
       {
         name: 'Acme Sleep',
-        to: '/collections/mattresses?brand=Acme+Sleep',
+        to: '/brands/acme', // a brand with a slug has its own page (REQ-COL-005)
         logo: null,
       },
     ]);

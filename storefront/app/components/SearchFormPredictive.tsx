@@ -77,6 +77,14 @@ export function SearchFormPredictive({
     inputRef?.current?.setAttribute('type', 'search');
   }, []);
 
+  // A request scheduled just before the form unmounts must not fire afterwards.
+  useEffect(
+    () => () => {
+      if (pending.current) clearTimeout(pending.current);
+    },
+    [],
+  );
+
   if (typeof children !== 'function') {
     return null;
   }

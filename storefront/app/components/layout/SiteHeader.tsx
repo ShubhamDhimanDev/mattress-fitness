@@ -1,4 +1,4 @@
-import {Suspense, useState, type ReactNode} from 'react';
+import {Suspense, type ReactNode} from 'react';
 import {Await, Link} from 'react-router';
 import {
   type CartViewPayload,
@@ -7,6 +7,7 @@ import {
 } from '@shopify/hydrogen';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
+import {useDeliveryZip} from '~/components/delivery/useDeliveryZip';
 import {DeliveryZipControl} from '~/components/layout/DeliveryZipControl';
 import {HeaderSearch} from '~/components/layout/HeaderSearch';
 import {MainNav} from '~/components/layout/MainNav';
@@ -24,6 +25,7 @@ import {
   UserIcon,
 } from '~/components/ui/Icons';
 import {IconButton} from '~/components/ui/IconButton';
+import {DELIVERY_ERROR_TEXT} from '~/lib/delivery-runtime/response';
 import {
   MAIN_NAV,
   SITE_NAME,
@@ -40,7 +42,7 @@ type SiteHeaderProps = {
   isLoggedIn: Promise<boolean>;
   promo?: PromoMessage | null;
   topStrip?: ReactNode;
-  /** Name of the shopper's chosen store; comes from the persisted selection later (P3B-10). */
+  /** Name of the shopper's chosen store, read from the validated my_store cookie by the root loader (P3B-10). */
   storeName?: string | null;
 };
 
@@ -56,9 +58,15 @@ export function SiteHeader({
   topStrip,
   storeName = null,
 }: SiteHeaderProps) {
-  // TODO(P3B-11): the ZIP is held in memory only. The cookie and the server-side read replace this state;
-  // this component keeps the same props (zip, onSubmit, onClear) when that lands.
-  const [zip, setZip] = useState<string | null>(null);
+  // The saved ZIP lives in a signed cookie that only the server reads (P3B-11). The hook shares one answer
+  // with the product-page and cart delivery check, so the header and those agree.
+  const {response, pending, save, clear} = useDeliveryZip();
+  const delivery = response?.delivery;
+  // A ZIP shows only when the server resolved it; with no delivery zone configured the header says nothing.
+  const zip =
+    delivery?.status === 'in-zone' || delivery?.status === 'outside-zone'
+      ? delivery.zip
+      : null;
 
   return (
     <header className="relative z-30 bg-surface">
@@ -67,8 +75,12 @@ export function SiteHeader({
       <UtilityBar>
         <DeliveryZipControl
           zip={zip}
-          onSubmit={setZip}
-          onClear={() => setZip(null)}
+          onSubmit={(next) => void save(next)}
+          onClear={() => void clear()}
+          pending={pending}
+          error={
+            response?.error ? DELIVERY_ERROR_TEXT[response.error] : undefined
+          }
         />
         <StoreSelectorLink storeName={storeName} />
       </UtilityBar>

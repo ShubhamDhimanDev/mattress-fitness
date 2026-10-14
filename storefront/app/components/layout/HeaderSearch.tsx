@@ -1,27 +1,139 @@
-import {useEffect, useId, useState} from 'react';
-import {Link, useLocation} from 'react-router';
-import {SearchIcon} from '~/components/ui/Icons';
+import {Image} from '@shopify/hydrogen';
 import {
-  SEARCH_ENDPOINT,
-  SearchFormPredictive,
-} from '~/components/SearchFormPredictive';
-import {SearchResultsPredictive} from '~/components/SearchResultsPredictive';
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
+import {Link, useFetcher, useLocation, useNavigate} from 'react-router';
+import {SearchIcon} from '~/components/ui/Icons';
+import {Price} from '~/components/ui/Price';
+import {SearchFormPredictive} from '~/components/SearchFormPredictive';
+import {
+  buildSuggestionGroups,
+  flattenOptions,
+  moveActive,
+  optionDomId,
+  suggestionAnnouncement,
+  suggestionCount,
+  type SuggestionOption,
+} from '~/components/layout/searchCombobox';
+import {getEmptyPredictiveSearchResult} from '~/lib/search';
+import type {PredictiveSearchReturn} from '~/lib/search';
+import {MIN_PREDICTIVE_TERM_LENGTH} from '~/lib/shopify/config';
+
+const OPTION_CLASSES =
+  'flex min-h-touch items-center gap-3 rounded-choice p-1 text-base text-fg hover:bg-surface-muted aria-selected:bg-surface-muted aria-selected:outline-2 aria-selected:outline-offset-[-2px] aria-selected:outline-primary-700';
 
 /**
- * The header search field with predictive suggestions below it (REQ-NAV-001). One instance serves every
- * breakpoint; the header grid decides where it sits. Submitting goes to the search results page.
+ * The header search field with predictive suggestions (REQ-SRCH-001), built as the WAI-ARIA combobox with a
+ * listbox popup: focus stays in the text field, `aria-activedescendant` names the highlighted option, and
+ * the arrow keys, Enter and Escape drive it. One instance serves every breakpoint; the header grid decides
+ * where it sits. Submitting without a highlighted option goes to the search results page.
+ *
+ * Suggestions are an enhancement: below two characters or after any API failure the panel only offers the
+ * plain "view all results" option, so the field never blocks a search (REQ-SRCH-001, NFR-013).
  */
 export function HeaderSearch() {
   const inputId = useId();
-  const panelId = useId();
-  const queriesDatalistId = useId();
+  const listboxId = useId();
+  const statusId = useId();
+  const optionPrefix = useId();
+  const [value, setValue] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const location = useLocation();
+  const navigate = useNavigate();
+  // Same key as the form's own fetcher inside SearchFormPredictive, so both see one request and one result.
+  const fetcher = useFetcher<PredictiveSearchReturn>({key: 'search'});
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  const term = value.trim();
+  const ready = term.length >= MIN_PREDICTIVE_TERM_LENGTH;
+  const visible = expanded && ready;
+  const loading = fetcher.state !== 'idle';
+
+  const groups = useMemo(() => {
+    const items = (fetcher.data ?? {result: getEmptyPredictiveSearchResult()})
+      .result.items;
+    // Results for a shorter, older term would mislead; below the floor only the "view all" option shows.
+    return buildSuggestionGroups(
+      ready ? items : getEmptyPredictiveSearchResult().items,
+      term,
+    );
+  }, [fetcher.data, ready, term]);
+  const options = useMemo(() => flattenOptions(groups), [groups]);
+  const count = suggestionCount(groups);
+  const activeOption = options[activeIndex] ?? null;
 
   // Navigating anywhere (a suggestion, a menu link) closes the suggestions.
   useEffect(() => {
     setExpanded(false);
+    setActiveIndex(-1);
   }, [location.pathname, location.search]);
+
+  // A new result set starts again from the text field, not from a position in the old list.
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [fetcher.data]);
+
+  // Keep the highlighted option in view inside the scrolling panel.
+  useEffect(() => {
+    if (!activeOption) return;
+    panelRef.current
+      ?.querySelector(`[id="${optionDomId(optionPrefix, activeOption.index)}"]`)
+      ?.scrollIntoView({block: 'nearest'});
+  }, [activeOption, optionPrefix]);
+
+  function choose(option: SuggestionOption) {
+    setExpanded(false);
+    setActiveIndex(-1);
+    // A product or page choice ends the search; "view all" and a suggested query keep the text visible.
+    if (option.kind !== 'all' && option.kind !== 'query') setValue('');
+    else if (option.kind === 'query') setValue(option.label);
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    switch (event.key) {
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        if (!ready) return;
+        event.preventDefault();
+        if (!expanded) {
+          setExpanded(true);
+          return;
+        }
+        setActiveIndex((current) =>
+          moveActive(
+            current,
+            options.length,
+            event.key as 'ArrowDown' | 'ArrowUp',
+          ),
+        );
+        return;
+      }
+      case 'Enter': {
+        if (visible && activeOption) {
+          // Without this the form would submit as well and go to the results page instead.
+          event.preventDefault();
+          choose(activeOption);
+          void navigate(activeOption.href);
+        }
+        return;
+      }
+      case 'Escape': {
+        if (visible) {
+          event.preventDefault();
+          setExpanded(false);
+          setActiveIndex(-1);
+        }
+        return;
+      }
+      default:
+    }
+  }
 
   return (
     <div
@@ -33,6 +145,7 @@ export function HeaderSearch() {
           !event.currentTarget.contains(event.relatedTarget)
         ) {
           setExpanded(false);
+          setActiveIndex(-1);
         }
       }}
     >
@@ -51,10 +164,23 @@ export function HeaderSearch() {
               ref={inputRef}
               name="q"
               type="search"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={visible}
+              aria-controls={visible ? listboxId : undefined}
+              aria-activedescendant={
+                visible && activeOption
+                  ? optionDomId(optionPrefix, activeOption.index)
+                  : undefined
+              }
+              aria-describedby={statusId}
               autoComplete="off"
+              maxLength={100}
               placeholder="Search"
-              list={queriesDatalistId}
+              value={value}
               onChange={(event) => {
+                setValue(event.target.value);
+                setActiveIndex(-1);
                 fetchResults(event);
                 setExpanded(true);
               }}
@@ -62,9 +188,7 @@ export function HeaderSearch() {
                 fetchResults(event);
                 setExpanded(true);
               }}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') setExpanded(false);
-              }}
+              onKeyDown={onKeyDown}
               className="min-h-touch min-w-0 flex-1 rounded-l-pill border-2 border-r-0 border-line-strong bg-surface pl-4 text-base text-fg"
             />
             <button
@@ -79,64 +203,119 @@ export function HeaderSearch() {
         )}
       </SearchFormPredictive>
 
-      {expanded ? (
-        <SearchResultsPredictive>
-          {({items, total, term, state, closeSearch}) => {
-            if (!term.current) return null;
-            const {articles, collections, pages, products, queries} = items;
+      {/* Always in the DOM: a live region that appears together with its text is often not announced. */}
+      <p id={statusId} role="status" aria-live="polite" className="sr-only">
+        {visible ? suggestionAnnouncement({count, loading}) : ''}
+      </p>
 
-            return (
-              <div
-                id={panelId}
-                className="absolute inset-x-0 top-full z-40 mt-1 flex max-h-[70dvh] flex-col gap-4 overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-lg"
-              >
-                <p role="status" className="sr-only">
-                  {state === 'loading' ? 'Searching' : `${total} suggestions`}
-                </p>
-                {state === 'loading' && !total ? (
-                  <p className="text-base text-fg-muted">Searching…</p>
-                ) : !total ? (
-                  <SearchResultsPredictive.Empty term={term} />
-                ) : (
-                  <>
-                    <SearchResultsPredictive.Queries
-                      queries={queries}
-                      queriesDatalistId={queriesDatalistId}
-                    />
-                    <SearchResultsPredictive.Products
-                      products={products}
-                      closeSearch={closeSearch}
-                      term={term}
-                    />
-                    <SearchResultsPredictive.Collections
-                      collections={collections}
-                      closeSearch={closeSearch}
-                      term={term}
-                    />
-                    <SearchResultsPredictive.Pages
-                      pages={pages}
-                      closeSearch={closeSearch}
-                      term={term}
-                    />
-                    <SearchResultsPredictive.Articles
-                      articles={articles}
-                      closeSearch={closeSearch}
-                      term={term}
-                    />
-                    <Link
-                      onClick={closeSearch}
-                      to={`${SEARCH_ENDPOINT}?${new URLSearchParams({q: term.current}).toString()}`}
-                      className="inline-flex min-h-touch items-center font-bold text-primary-700 hover:underline"
+      {visible ? (
+        <div
+          ref={panelRef}
+          role="presentation"
+          className="absolute inset-x-0 top-full z-40 mt-1 max-h-[70dvh] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-lg"
+          // Keep focus in the text field when the panel is pressed (a click would otherwise blur it first).
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          {loading && count === 0 ? (
+            <p aria-hidden="true" className="mb-2 text-base text-fg-muted">
+              Searching…
+            </p>
+          ) : null}
+          {!loading && count === 0 ? (
+            <p aria-hidden="true" className="mb-2 text-base text-fg">
+              No suggestions for <q>{term}</q>
+            </p>
+          ) : null}
+          <div
+            id={listboxId}
+            role="listbox"
+            aria-label="Search suggestions"
+            className="flex flex-col gap-4"
+          >
+            {groups.map((group) => {
+              const headingId = `${optionPrefix}-group-${group.id}`;
+              return (
+                <div
+                  key={group.id}
+                  role="group"
+                  aria-labelledby={group.heading ? headingId : undefined}
+                  aria-label={group.heading ? undefined : 'More results'}
+                >
+                  {group.heading ? (
+                    <p
+                      id={headingId}
+                      className="mb-1 text-xs font-bold tracking-wide text-fg-muted uppercase"
                     >
-                      View all results for “{term.current}”
-                    </Link>
-                  </>
-                )}
-              </div>
-            );
-          }}
-        </SearchResultsPredictive>
+                      {group.heading}
+                    </p>
+                  ) : null}
+                  {group.options.map((option) => (
+                    <Option
+                      key={option.index}
+                      option={option}
+                      id={optionDomId(optionPrefix, option.index)}
+                      selected={option.index === activeIndex}
+                      onChoose={() => choose(option)}
+                    />
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ) : null}
     </div>
+  );
+}
+
+function Option({
+  option,
+  id,
+  selected,
+  onChoose,
+}: {
+  option: SuggestionOption;
+  id: string;
+  selected: boolean;
+  onChoose: () => void;
+}) {
+  const isAll = option.kind === 'all';
+  return (
+    // The option is the link itself, so a click, a tap and a middle-click all behave like any link.
+    <Link
+      id={id}
+      role="option"
+      aria-selected={selected}
+      tabIndex={-1}
+      to={option.href}
+      onClick={onChoose}
+      className={
+        isAll ? `${OPTION_CLASSES} font-bold text-primary-700` : OPTION_CLASSES
+      }
+    >
+      {option.image ? (
+        <Image
+          alt=""
+          src={option.image.url}
+          width={50}
+          height={50}
+          className="size-12 shrink-0 rounded-choice object-cover"
+        />
+      ) : null}
+      <span className="min-w-0">
+        <span
+          className={
+            option.kind === 'product'
+              ? 'block truncate font-bold'
+              : 'block truncate'
+          }
+        >
+          {option.label}
+        </span>
+        {option.price ? (
+          <Price price={option.price} size="sm" className="text-fg-muted" />
+        ) : null}
+      </span>
+    </Link>
   );
 }

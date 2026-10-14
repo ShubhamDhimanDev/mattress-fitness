@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useLocation, useNavigate, useSearchParams} from 'react-router';
 import {ActiveFilters, FilterPanel} from '~/components/collection/FilterPanel';
+import {PromoTileCard} from '~/components/collection/PromoTileCard';
 import {useLoadMore} from '~/components/collection/useLoadMore';
 import {ProductItem} from '~/components/ProductItem';
 import {Button} from '~/components/ui/Button';
@@ -19,6 +20,10 @@ import {
   nextPageState,
   type FilterGroupView,
 } from '~/lib/shopify/listing';
+import {
+  placePromoTiles,
+  type PromoTileView,
+} from '~/lib/shopify/promo-placement';
 import type {PageInfoView, ProductCardView} from '~/lib/shopify/types';
 
 type ProductListingProps = {
@@ -29,6 +34,8 @@ type ProductListingProps = {
   showFilters: boolean;
   sortKeys: readonly SortKey[];
   emptyHeading: string;
+  /** Promotional tiles for this listing (collections only), placed by their grid position (REQ-COL-003). */
+  promoTiles?: readonly PromoTileView[];
 };
 
 /**
@@ -43,6 +50,7 @@ export function ProductListing({
   showFilters,
   sortKeys,
   emptyHeading,
+  promoTiles = [],
 }: ProductListingProps) {
   const {pathname} = useLocation();
   const [searchParams] = useSearchParams();
@@ -141,15 +149,21 @@ export function ProductListing({
           <>
             <h2 className="sr-only">Products</h2>
             <ul className="mt-4 grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 xl:grid-cols-4">
-              {list.products.map((product, index) => (
-                <li key={product.id}>
-                  <ProductItem
-                    product={product}
-                    index={index}
-                    loading={index < 4 ? 'eager' : 'lazy'}
-                  />
-                </li>
-              ))}
+              {placePromoTiles(list.products, promoTiles).map((item) =>
+                item.kind === 'tile' ? (
+                  <li key={`tile-${item.tile.id}`}>
+                    <PromoTileCard tile={item.tile} />
+                  </li>
+                ) : (
+                  <li key={item.product.id}>
+                    <ProductItem
+                      product={item.product}
+                      index={item.productIndex}
+                      loading={item.productIndex < 4 ? 'eager' : 'lazy'}
+                    />
+                  </li>
+                ),
+              )}
             </ul>
             {list.hasMore && list.nextHref ? (
               <div className="mt-8 flex justify-center">

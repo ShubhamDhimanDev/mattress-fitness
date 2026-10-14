@@ -3,7 +3,10 @@
 // (`buildHomeData`) so it is tested against recorded responses; `loadHome` only runs the query.
 
 import type {Storefront} from '@shopify/hydrogen';
-import type {CatalogHomeQuery} from 'storefrontapi.generated';
+import type {
+  CatalogHomeQuery,
+  CatalogHomeSectionsQuery,
+} from 'storefrontapi.generated';
 import {SIZES, matchCanonical, type Size} from '~/lib/catalog/attributes';
 import {cleanText} from '~/lib/catalog/text';
 import {
@@ -11,10 +14,16 @@ import {
   serializeFilterParams,
   toggleSelection,
 } from '~/lib/filters';
-import {pricedCache} from '~/lib/shopify/cache';
+import {catalogCache, pricedCache} from '~/lib/shopify/cache';
 import {mapProductCards} from '~/lib/shopify/card';
+import {brandPath, normalizeBrandSlug} from '~/lib/shopify/brand-data';
 import {fieldRecord, mapImage} from '~/lib/shopify/common';
 import {BRAND_FIELDS, PRIMARY_COLLECTION_HANDLE} from '~/lib/shopify/config';
+import {
+  PLACEHOLDER_HOME_SECTIONS,
+  mapHomeSections,
+  type HomeSection,
+} from '~/lib/shopify/home-sections';
 import {HOME_QUERY} from '~/lib/shopify/queries';
 import type {ImageView, ProductCardView} from '~/lib/shopify/types';
 
@@ -37,6 +46,35 @@ export type CollectionTile = {
   readonly image: ImageView | null;
 };
 
+/**
+ * The homepage_section entries (REQ-HOME-001). No price or availability is read here, so unlike the product
+ * cards it uses the long cache; the client's edits show after the cache window.
+ */
+export const HOME_SECTIONS_QUERY = `#graphql
+  query CatalogHomeSections($country: CountryCode, $language: LanguageCode)
+  @inContext(country: $country, language: $language) {
+    sections: metaobjects(type: "homepage_section", first: 30) {
+      nodes {
+        id
+        fields {
+          key
+          value
+          reference {
+            ... on MediaImage {
+              image {
+                url
+                altText
+                width
+                height
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+` as const;
+
 export type HomeData = {
   readonly featured: {
     readonly title: string;
@@ -46,6 +84,9 @@ export type HomeData = {
   readonly sizeTiles: readonly SizeTile[];
   readonly brandTiles: readonly BrandTile[];
   readonly collectionTiles: readonly CollectionTile[];
+  /** Blocks in display order: from admin when it has usable entries, else the placeholder layout. */
+  readonly sections: readonly HomeSection[];
+  readonly sectionsSource: 'admin' | 'placeholder';
 };
 
 /** `/collections/<handle>?size=queen`: a link the collection page understands through the filter codec. */
@@ -100,9 +141,11 @@ function brandTilesFrom(
       (field) => field.key === BRAND_FIELDS.logo,
     );
     const reference = logoField?.reference;
+    // A brand with a usable slug has its own page (REQ-COL-005); without one the tile filters a collection.
+    const slug = normalizeBrandSlug(fields[BRAND_FIELDS.slug]);
     tiles.push({
       name,
-      to: brandHref(collectionHandle, name),
+      to: slug ? brandPath(slug) : brandHref(collectionHandle, name),
       logo:
         reference && 'image' in reference ? mapImage(reference.image) : null,
     });
@@ -122,7 +165,11 @@ function brandTilesFrom(
   }));
 }
 
-export function buildHomeData(home: CatalogHomeQuery): HomeData {
+export function buildHomeData(
+  home: CatalogHomeQuery,
+  sectionNodes: CatalogHomeSectionsQuery['sections']['nodes'] = [],
+): HomeData {
+  const adminSections = mapHomeSections(sectionNodes);
   const primary = home.primary;
   const usedFallback = primary === null || primary === undefined;
   const products = mapProductCards(
@@ -156,14 +203,36 @@ export function buildHomeData(home: CatalogHomeQuery): HomeData {
         to: `/collections/${collection.handle}`,
         image: mapImage(collection.image),
       })),
+    sections:
+      adminSections.length > 0 ? adminSections : PLACEHOLDER_HOME_SECTIONS,
+    sectionsSource: adminSections.length > 0 ? 'admin' : 'placeholder',
   };
 }
 
 export async function loadHome(storefront: Storefront): Promise<HomeData> {
-  const home = await storefront.query(HOME_QUERY, {
-    // Product cards carry price and availability, so this is the 60 s strategy, not the long one (DEC-024).
-    cache: pricedCache(storefront),
-    variables: {primaryHandle: PRIMARY_COLLECTION_HANDLE},
-  });
-  return buildHomeData(home);
+  const [home, sections] = await Promise.all([
+    storefront.query(HOME_QUERY, {
+      // Product cards carry price and availability, so this is the 60 s strategy, not the long one (DEC-024).
+      cache: pricedCache(storefront),
+      variables: {primaryHandle: PRIMARY_COLLECTION_HANDLE},
+    }),
+    loadHomeSections(storefront),
+  ]);
+  return buildHomeData(home, sections);
+}
+
+/** A failed sections read must not take the home page down: the placeholder layout is used instead (NFR-013). */
+async function loadHomeSections(
+  storefront: Storefront,
+): Promise<CatalogHomeSectionsQuery['sections']['nodes']> {
+  try {
+    const {sections} = await storefront.query(HOME_SECTIONS_QUERY, {
+      cache: catalogCache(storefront),
+    });
+    return sections.nodes;
+  } catch {
+    // No error text is logged: it can quote the request (T-05).
+    console.error('[home] could not read the homepage sections');
+    return [];
+  }
 }
