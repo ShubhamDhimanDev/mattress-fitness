@@ -178,6 +178,18 @@ test('--resend is refused for the production host, and the mock source for any n
   });
 });
 
+test('--resend to the demo host needs the explicit acknowledgement that customer data leaves the machine', async () => {
+  await withMock(async (mock) => {
+    const demo = harness(mock, [orderNode()], { EXTEND_API_HOST: 'https://api-demo.helloextend.com' });
+    assert.equal(await demo.run([...base, '--resend', '--live']), EXIT_REFUSED);
+    assert.match(demo.text(), /sends customer data/);
+    assert.match(demo.text(), /i-know-this-sends-order-data-to-the-demo-host/);
+    assert.equal(demo.adminCalls.length, 0);
+    // The loopback mock keeps the data on this machine and needs no acknowledgement.
+    assert.equal(await harness(mock, [orderNode()]).run([...base, '--resend', '--live']), EXIT_FAILED);
+  });
+});
+
 test('the file source reads an export from Extend, and rejects a malformed one', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'extend-reconcile-'));
   try {

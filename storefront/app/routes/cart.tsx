@@ -18,6 +18,7 @@ import {
   swapLineSize,
   type CartMutationResult,
 } from '~/lib/offers-runtime/server';
+import {readSmallForm} from '~/lib/delivery-runtime/form';
 import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
 
 export const meta: Route.MetaFunction = () => [
@@ -52,13 +53,22 @@ function rejected(message: string, status = 400) {
  * orphaned gift, an over-limit service line or a protector without its mattress never survives a request,
  * whatever the browser sent. What was repaired comes back as notices in `warnings`.
  */
+const CART_FORM_MAX_BYTES = 32 * 1024;
+
 export async function action({request, context}: Route.ActionArgs) {
   if (!isSameOriginRequest(request)) {
     return rejected('That request could not be verified.', 403);
   }
   const {cart} = context;
   const runtime = await offerRuntimeOf(context, request);
-  const formData = await request.formData();
+  // A cart post carries a few lines and short properties; refuse anything bigger before buffering it (T-13).
+  const body = await readSmallForm(request, CART_FORM_MAX_BYTES);
+  if (body.status !== 'ok') {
+    return body.status === 'too-large'
+      ? rejected('That request was too large.', 413)
+      : rejected('That request could not be read.');
+  }
+  const formData = body.form;
 
   let parsed: ReturnType<typeof CartForm.getFormInput>;
   try {

@@ -6,12 +6,15 @@ import type {FetchInit, FetchLike} from '~/lib/extend/types';
 const TOKEN = 'tok_fixture_http_0001';
 
 function config(host = 'https://api-demo.helloextend.com'): ExtendConfig {
-  const result = parseExtendConfig({
-    PUBLIC_EXTEND_ENABLED: 'true',
-    EXTEND_API_HOST: host,
-    EXTEND_STORE_ID: 'store-fixture-1',
-    EXTEND_ACCESS_TOKEN: TOKEN,
-  });
+  const result = parseExtendConfig(
+    {
+      PUBLIC_EXTEND_ENABLED: 'true',
+      EXTEND_API_HOST: host,
+      EXTEND_STORE_ID: 'store-fixture-1',
+      EXTEND_ACCESS_TOKEN: TOKEN,
+    },
+    {production: false},
+  );
   if (result.status !== 'enabled') throw new Error('fixture config invalid');
   return result.config;
 }

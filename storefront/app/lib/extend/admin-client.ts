@@ -10,13 +10,14 @@ import {
   EXTEND_ORDER_BY_ID_QUERY,
   parseAdminOrder,
 } from '~/lib/extend/admin-order';
+import {readCappedBody} from '~/lib/extend/capped-body';
 import {readEnvString} from '~/lib/extend/env';
 import {normalizeShopifyId} from '~/lib/extend/ids';
 import type {ShopifyOrderLike} from '~/lib/extend/orders';
 import type {FetchLike, SleepFn} from '~/lib/extend/types';
 
 const SHOP_DOMAIN = /^[a-z0-9][a-z0-9-]{0,60}[a-z0-9]\.myshopify\.com$/;
-const MAX_RESPONSE_CHARS = 2_000_000;
+const MAX_RESPONSE_BYTES = 2_000_000;
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_ATTEMPTS = 3;
 
@@ -137,12 +138,16 @@ async function exchange(
         retriable: response.status >= 500 || response.status === 408,
       };
     }
-    const raw = await response.text();
-    if (raw.length > MAX_RESPONSE_CHARS) {
+    // Capped while reading, so an oversized or endless body is never held in memory (the abort timer still applies).
+    const read = await readCappedBody(response, MAX_RESPONSE_BYTES);
+    if (read.status !== 'ok') {
       return {kind: 'failed', reason: 'malformed', retriable: false};
     }
     try {
-      return {kind: 'body', body: JSON.parse(raw)};
+      return {
+        kind: 'body',
+        body: JSON.parse(new TextDecoder().decode(read.bytes)),
+      };
     } catch {
       return {kind: 'failed', reason: 'malformed', retriable: false};
     }
@@ -153,6 +158,15 @@ async function exchange(
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** extensions.code of a GraphQL error, or null when the error has no object-shaped extensions. */
+function errorCode(entry: unknown): unknown {
+  if (typeof entry !== 'object' || entry === null) return null;
+  const extensions: unknown = Reflect.get(entry, 'extensions');
+  return typeof extensions === 'object' && extensions !== null
+    ? Reflect.get(extensions, 'code')
+    : null;
 }
 
 function interpret(body: unknown): ReadOrderResult {
@@ -166,8 +180,7 @@ function interpret(body: unknown): ReadOrderResult {
       (entry: unknown) =>
         typeof entry === 'object' &&
         entry !== null &&
-        Reflect.get(Reflect.get(entry, 'extensions') ?? {}, 'code') ===
-          'THROTTLED',
+        errorCode(entry) === 'THROTTLED',
     );
     return {
       status: 'error',

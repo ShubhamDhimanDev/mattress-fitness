@@ -141,12 +141,15 @@ function fact(over: Partial<VariantFact> = {}): VariantFact {
 
 function endpoint(over: Partial<OffersEndpointDeps> = {}): OffersEndpointDeps {
   return {
-    config: parseExtendConfig({
-      PUBLIC_EXTEND_ENABLED: 'true',
-      EXTEND_API_HOST: 'https://api-demo.helloextend.com',
-      EXTEND_STORE_ID: 'store-1',
-      EXTEND_ACCESS_TOKEN: 'fixture-token-not-real',
-    }),
+    config: parseExtendConfig(
+      {
+        PUBLIC_EXTEND_ENABLED: 'true',
+        EXTEND_API_HOST: 'https://api-demo.helloextend.com',
+        EXTEND_STORE_ID: 'store-1',
+        EXTEND_ACCESS_TOKEN: 'fixture-token-not-real',
+      },
+      {production: false},
+    ),
     loadCatalog: () => Promise.resolve(catalog),
     loadFacts: () =>
       Promise.resolve({status: 'ok', facts: new Map([[V1, fact()]])}),
@@ -185,7 +188,10 @@ describe('answerOffers', () => {
 
   it('makes no Shopify or Extend call when Extend is off', async () => {
     const loadCatalog = vi.fn(endpoint().loadCatalog);
-    const off = parseExtendConfig({PUBLIC_EXTEND_ENABLED: 'false'});
+    const off = parseExtendConfig(
+      {PUBLIC_EXTEND_ENABLED: 'false'},
+      {production: false},
+    );
     expect(
       await answerOffers(
         [{variantId: V1, quantity: 1}],

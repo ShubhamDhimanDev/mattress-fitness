@@ -13,6 +13,7 @@
 // The webhook is only a trigger: the order is read again from the Admin API and the sync is an idempotent full snapshot.
 // A replayed or reordered event therefore cannot invent an order; the coalescer bounds how often one order is re-read.
 
+import {readCappedBody} from '~/lib/extend/capped-body';
 import type {ExtendLogger} from '~/lib/extend/log';
 import {noopLogger} from '~/lib/extend/log';
 import type {OrderCoalescer} from '~/lib/extend/order-coalescer';
@@ -45,7 +46,21 @@ export type WebhookHandlerDeps = {
   now: NowFn;
   log?: ExtendLogger;
   maxAgeMs?: number;
+  /**
+   * This store's `<shop>.myshopify.com` domain (PUBLIC_STORE_DOMAIN). When both it and `X-Shopify-Shop-Domain` are present
+   * and differ, the event is logged and ignored with a 200 (security review E-L2): a signed body from another store that
+   * shares the secret must not make us read an order id that belongs to somebody else's shop.
+   */
+  expectedShopDomain?: string | null;
 };
+
+function normaliseShop(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^https:\/\//, '')
+    .replace(/\/+$/, '');
+}
 
 function reply(status: number, extra?: HeadersInit): Response {
   const headers = new Headers(extra);
@@ -53,46 +68,9 @@ function reply(status: number, extra?: HeadersInit): Response {
   return new Response(null, {status, headers});
 }
 
-type BodyRead =
-  | {status: 'ok'; bytes: Uint8Array<ArrayBuffer>}
-  | {status: 'too_large'}
-  | {status: 'unreadable'};
-
-/** Reads the body but never more than the cap, and refuses a declared length over the cap without reading anything. */
-export async function readCappedBody(
-  request: Request,
-  maxBytes: number = MAX_WEBHOOK_BODY_BYTES,
-): Promise<BodyRead> {
-  const declared = request.headers.get('content-length');
-  if (declared !== null) {
-    if (!/^\d{1,12}$/.test(declared)) return {status: 'unreadable'};
-    if (Number(declared) > maxBytes) return {status: 'too_large'};
-  }
-  if (request.body === null) return {status: 'ok', bytes: new Uint8Array(0)};
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  try {
-    for (;;) {
-      const {done, value} = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > maxBytes) {
-        await reader.cancel();
-        return {status: 'too_large'};
-      }
-      chunks.push(value);
-    }
-  } catch {
-    return {status: 'unreadable'};
-  }
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return {status: 'ok', bytes};
+/** Webhook bodies are capped at the library limit; see capped-body.ts. */
+export function readWebhookBody(request: Request) {
+  return readCappedBody(request, MAX_WEBHOOK_BODY_BYTES);
 }
 
 export async function handleShopifyWebhook(
@@ -112,7 +90,7 @@ export async function handleShopifyWebhook(
       return reply(503);
     }
 
-    const body = await readCappedBody(request);
+    const body = await readWebhookBody(request);
     if (body.status === 'too_large') {
       log({
         level: 'warn',
@@ -143,6 +121,19 @@ export async function handleShopifyWebhook(
     if (decision.status === 'ignored') return reply(decision.httpStatus);
 
     const {action, webhookId} = decision;
+    const shopHeader = request.headers.get('x-shopify-shop-domain');
+    if (
+      deps.expectedShopDomain &&
+      shopHeader !== null &&
+      normaliseShop(shopHeader) !== normaliseShop(deps.expectedShopDomain)
+    ) {
+      log({
+        level: 'warn',
+        event: 'webhook.ignored',
+        reason: 'shop_domain_mismatch',
+      });
+      return reply(200);
+    }
     log({
       level: 'info',
       event: 'webhook.accepted',

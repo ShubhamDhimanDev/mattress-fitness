@@ -75,6 +75,7 @@ export function evaluateOffers(
     quantitiesAfter(prepared, independent),
     context.protectionEligibleLineIds,
     declined['accident-protection'],
+    context.coveragePlanPricesByLineId,
   );
 
   return {

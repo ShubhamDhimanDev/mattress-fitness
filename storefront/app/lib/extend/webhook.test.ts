@@ -215,7 +215,7 @@ describe('topic router (REQ-EXT-003)', () => {
     ['orders/paid', {id: 1.5}],
     ['orders/paid', {id: '1; DROP'}],
     ['orders/paid', {id: {nested: 1}}],
-    ['orders/paid', {order_id: 7001}], // wrong field for this topic
+    ['orders/paid', {id: 5, order_id: '1; DROP'}], // order_id wins by shape, and it is invalid
     ['refunds/create', {id: 7001}], // wrong field for this topic
     ['fulfillments/create', {order_id: null}],
   ])('rejects a malformed payload for %s: %j', (topic, payload) => {
@@ -414,7 +414,6 @@ describe('receiveShopifyWebhook (REQ-EXT-003, T-03)', () => {
     });
 
     it.each([
-      ['missing', undefined],
       ['garbage', 'yesterday-ish'],
       ['far in the future', new Date(NOW + 60 * 60 * 1000).toISOString()],
     ])(
@@ -430,6 +429,16 @@ describe('receiveShopifyWebhook (REQ-EXT-003, T-03)', () => {
         });
       },
     );
+
+    it('treats a missing timestamp as absent: the signature is still verified and the event is processed', async () => {
+      const result = await receiveShopifyWebhook(
+        request({
+          maxAgeMs: day,
+          headers: {'x-shopify-triggered-at': undefined},
+        }),
+      );
+      expect(result.status).toBe('accepted');
+    });
 
     it('tolerates small clock skew', async () => {
       const result = await receiveShopifyWebhook(

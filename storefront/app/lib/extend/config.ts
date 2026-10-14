@@ -58,10 +58,12 @@ export type ParseConfigOptions = {
    */
   requireFlag?: boolean;
   /**
-   * True when running as a production build. The loopback mock host is then refused: a production environment
-   * pointing at http://127.0.0.1 would report orders to nothing and send the token in clear.
+   * REQUIRED, with no default: true when running as a production build. The loopback mock host is then refused: a
+   * production environment pointing at http://127.0.0.1 would report orders to nothing and send the token in clear.
+   * Anything but an explicit `false` is treated as production, so a caller that forgets it (or passes undefined from
+   * untyped code) fails closed (security review E-L7).
    */
-  production?: boolean;
+  production: boolean;
 };
 
 function readString(env: ExtendEnvInput, key: string): string | null {
@@ -100,7 +102,7 @@ export function parseExtendHost(
 
 export function parseExtendConfig(
   env: ExtendEnvInput,
-  options: ParseConfigOptions = {},
+  options: ParseConfigOptions,
 ): ExtendConfigResult {
   const requireFlag = options.requireFlag ?? true;
   const disabled = (
@@ -126,7 +128,7 @@ export function parseExtendConfig(
   }
 
   const apiHost = parseExtendHost(host, {
-    allowLoopback: options.production !== true,
+    allowLoopback: options.production === false,
   });
   if (apiHost === null) return disabled('invalid_host');
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(storeId)) {

@@ -16,7 +16,7 @@ function env(overrides: Record<string, unknown> = {}) {
 
 describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
   it('is enabled with the flag exactly "true" and all credentials', () => {
-    const result = parseExtendConfig(env());
+    const result = parseExtendConfig(env(), {production: false});
     expect(result.status).toBe('enabled');
     if (result.status !== 'enabled') return;
     expect(result.config.apiHost).toBe('https://api-demo.helloextend.com');
@@ -37,7 +37,11 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
     [true],
     [1],
   ])('is disabled when PUBLIC_EXTEND_ENABLED is %j', (flag) => {
-    expect(parseExtendConfig(env({PUBLIC_EXTEND_ENABLED: flag}))).toEqual({
+    expect(
+      parseExtendConfig(env({PUBLIC_EXTEND_ENABLED: flag}), {
+        production: false,
+      }),
+    ).toEqual({
       status: 'disabled',
       reason: 'flag_off',
       missing: [],
@@ -48,7 +52,9 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
     'is disabled and names %s when it is missing',
     (name) => {
       for (const blank of [undefined, '', '   ', 42]) {
-        const result = parseExtendConfig(env({[name]: blank}));
+        const result = parseExtendConfig(env({[name]: blank}), {
+          production: false,
+        });
         expect(result).toEqual({
           status: 'disabled',
           reason: 'missing_credentials',
@@ -59,7 +65,10 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
   );
 
   it('lists every missing credential, names only', () => {
-    const result = parseExtendConfig({PUBLIC_EXTEND_ENABLED: 'true'});
+    const result = parseExtendConfig(
+      {PUBLIC_EXTEND_ENABLED: 'true'},
+      {production: false},
+    );
     expect(result).toEqual({
       status: 'disabled',
       reason: 'missing_credentials',
@@ -69,6 +78,7 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
 
   it('can ignore the UI flag so order sync keeps running when offers are hidden', () => {
     const result = parseExtendConfig(env({PUBLIC_EXTEND_ENABLED: 'false'}), {
+      production: false,
       requireFlag: false,
     });
     expect(result.status).toBe('enabled');
@@ -107,7 +117,9 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
       [''],
     ])('rejects %j', (raw) => {
       expect(parseExtendHost(raw)).toBeNull();
-      expect(parseExtendConfig(env({EXTEND_API_HOST: raw}))).toMatchObject({
+      expect(
+        parseExtendConfig(env({EXTEND_API_HOST: raw}), {production: false}),
+      ).toMatchObject({
         status: 'disabled',
       });
     });
@@ -125,7 +137,9 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
     ['token with space', 'EXTEND_ACCESS_TOKEN', 'abc def', 'invalid_token'],
     ['token with unicode', 'EXTEND_ACCESS_TOKEN', 'tökën', 'invalid_token'],
   ])('rejects a malformed value: %s', (_label, name, value, reason) => {
-    expect(parseExtendConfig(env({[name]: value}))).toMatchObject({
+    expect(
+      parseExtendConfig(env({[name]: value}), {production: false}),
+    ).toMatchObject({
       status: 'disabled',
       reason,
     });
@@ -140,7 +154,9 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
       ['extend-app', 'extend-app'],
       ['off', 'off'],
     ])('%j -> %s', (raw, expected) => {
-      const result = parseExtendConfig(env({EXTEND_ORDER_SYNC: raw}));
+      const result = parseExtendConfig(env({EXTEND_ORDER_SYNC: raw}), {
+        production: false,
+      });
       expect(result.status).toBe('enabled');
       if (result.status === 'enabled')
         expect(result.config.orderSync).toBe(expected);
@@ -149,7 +165,9 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
     it.each([['SELF'], ['both'], ['true'], ['extend_app'], ['0']])(
       'fails closed on %j instead of guessing (a wrong guess double-reports or drops orders)',
       (raw) => {
-        expect(parseExtendConfig(env({EXTEND_ORDER_SYNC: raw}))).toMatchObject({
+        expect(
+          parseExtendConfig(env({EXTEND_ORDER_SYNC: raw}), {production: false}),
+        ).toMatchObject({
           status: 'disabled',
           reason: 'invalid_order_sync',
         });
@@ -159,9 +177,10 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
 
   describe('the access token never leaks', () => {
     it('is absent from JSON, string and inspect output of the config and of a disabled result', () => {
-      const enabled = parseExtendConfig(env());
+      const enabled = parseExtendConfig(env(), {production: false});
       const disabled = parseExtendConfig(
         env({EXTEND_API_HOST: 'https://evil.example.com'}),
+        {production: false},
       );
       for (const result of [enabled, disabled]) {
         expect(JSON.stringify(result)).not.toContain(SECRET_TOKEN);
@@ -171,7 +190,7 @@ describe('Extend config (REQ-EXT-001, NFR-013, T-04)', () => {
     });
 
     it('is reachable only through the documented request headers', () => {
-      const result = parseExtendConfig(env());
+      const result = parseExtendConfig(env(), {production: false});
       if (result.status !== 'enabled') throw new Error('expected enabled');
       expect(Object.keys(result.config).sort()).toEqual([
         'apiHost',

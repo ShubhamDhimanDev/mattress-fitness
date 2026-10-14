@@ -24,6 +24,8 @@ import {extendEnvOf, readEnvString} from '~/lib/extend/env';
 import type {ExtendLogger} from '~/lib/extend/log';
 import {
   answerOffers,
+  createDistinctVariantLimiter,
+  type DistinctVariantLimiter,
   type OffersRequestItem,
   type OffersResponseBody,
 } from '~/lib/extend/offers-endpoint';
@@ -76,9 +78,15 @@ export type ExtendShared = {
   readonly offersMemo: OffersMemo;
   readonly coalescer: OrderCoalescer<ProcessOutcome>;
   readonly replay: WebhookReplayStore;
+  readonly offersLimiter: DistinctVariantLimiter;
 };
 
 let shared: ExtendShared | undefined;
+
+/** Test hook: forget the per-process breaker, offers memory, limiter, coalescer and replay marks. */
+export function resetExtendSharedForTests(): void {
+  shared = undefined;
+}
 
 export function getExtendShared(): ExtendShared {
   shared ??= {
@@ -89,6 +97,7 @@ export function getExtendShared(): ExtendShared {
       sleep: realSleep,
     }),
     replay: createReplayStore({now: realNow, storage: platformCaches()}),
+    offersLimiter: createDistinctVariantLimiter({now: realNow}),
   };
   return shared;
 }
@@ -125,6 +134,7 @@ export function webhookDepsFor(
   const admin = adminConfigFromEnv(input.env);
   return {
     secret: readEnvString(input.env, 'SHOPIFY_APP_CLIENT_SECRET'),
+    expectedShopDomain: readEnvString(input.env, 'PUBLIC_STORE_DOMAIN'),
     replay: state.replay,
     coalescer: state.coalescer,
     process: (action) =>
@@ -164,6 +174,7 @@ export function answerOffersFor(
   const config = offersConfigOf(input);
   return answerOffers(items, {
     config,
+    allow: state.offersLimiter.allow,
     loadCatalog: () => loadCoverageCatalog(input.storefront),
     loadFacts: (variantIds) => loadVariantFacts(input.storefront, variantIds),
     quote: (covered, index) =>

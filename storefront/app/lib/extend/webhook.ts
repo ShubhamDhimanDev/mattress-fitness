@@ -180,10 +180,18 @@ export function routeShopifyTopic(
   ) {
     return {status: 'error', reason: 'malformed_payload'};
   }
-  const field = normalised.startsWith('orders/') ? 'id' : 'order_id';
-  const raw: unknown = Object.entries(payload).find(
-    ([key]) => key === field,
-  )?.[1];
+  // The id is read from the SIGNED body by its shape, not by the unsigned Topic header (security review E-L2): a refund or
+  // fulfilment payload carries `order_id`, and that wins whatever the header claims, so a relabelled body can never make
+  // the refund's own id be read as an order id. Only a body with no `order_id` is read as an order, and only for an
+  // orders/* topic.
+  const fields = Object.fromEntries(Object.entries(payload));
+  const orderRef: unknown = fields['order_id'];
+  const raw: unknown =
+    orderRef !== undefined
+      ? orderRef
+      : normalised.startsWith('orders/')
+        ? fields['id']
+        : undefined;
   const orderId =
     typeof raw === 'string' || typeof raw === 'number'
       ? normalizeShopifyId(raw)
@@ -282,10 +290,12 @@ export async function receiveShopifyWebhook(
   }
   if (await input.replay.seen(webhookId)) return ignore('replayed');
 
-  if (input.maxAgeMs !== undefined) {
-    const triggeredAt = Date.parse(
-      input.headers.get('x-shopify-triggered-at') ?? '',
-    );
+  // The header is unsigned and an absent one is not an attack signal (Shopify documents it, but a missing header must
+  // not make us drop real orders): without it the window is skipped and the HMAC, the webhook id store and the
+  // per-order coalescer carry the replay control. A PRESENT header is still checked.
+  const triggeredHeader = input.headers.get('x-shopify-triggered-at');
+  if (input.maxAgeMs !== undefined && triggeredHeader !== null) {
+    const triggeredAt = Date.parse(triggeredHeader);
     if (!Number.isFinite(triggeredAt)) return reject('invalid_timestamp', 400);
     const age = input.now() - triggeredAt;
     if (age < -(input.maxFutureSkewMs ?? DEFAULT_FUTURE_SKEW_MS)) {

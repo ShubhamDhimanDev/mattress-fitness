@@ -319,7 +319,12 @@ describe('Extend off: safe defaults and no network (NFR-013)', () => {
         fake.snapshot(),
         spy,
       );
-      expect(outcome).toEqual({status: 'disabled', inputs: NO_EXTEND_INPUTS});
+      // Recognition by name needs no network; there are no eligible lines while Extend is off (E-M1).
+      expect(outcome).toMatchObject({
+        status: 'disabled',
+        inputs: {protectionEligibleLineIds: []},
+      });
+      expect(outcome.inputs.coveragePlanPricesByLineId.size).toBe(0);
       expect(spy.loadCatalog).not.toHaveBeenCalled();
       expect(spy.loadCategories).not.toHaveBeenCalled();
       expect(spy.quote).not.toHaveBeenCalled();

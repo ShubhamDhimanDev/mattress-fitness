@@ -19,13 +19,16 @@ const STORE = 'store-fixture-1';
 function configResult(
   overrides: Record<string, unknown> = {},
 ): ExtendConfigResult {
-  return parseExtendConfig({
-    PUBLIC_EXTEND_ENABLED: 'true',
-    EXTEND_API_HOST: 'https://api-demo.helloextend.com',
-    EXTEND_STORE_ID: STORE,
-    EXTEND_ACCESS_TOKEN: TOKEN,
-    ...overrides,
-  });
+  return parseExtendConfig(
+    {
+      PUBLIC_EXTEND_ENABLED: 'true',
+      EXTEND_API_HOST: 'https://api-demo.helloextend.com',
+      EXTEND_STORE_ID: STORE,
+      EXTEND_ACCESS_TOKEN: TOKEN,
+      ...overrides,
+    },
+    {production: false},
+  );
 }
 
 const item: OfferItem = {

@@ -38,13 +38,16 @@ export function configFor(
   mock: ExtendMock,
   overrides: Record<string, unknown> = {},
 ): ExtendConfigResult {
-  return parseExtendConfig({
-    PUBLIC_EXTEND_ENABLED: 'true',
-    EXTEND_API_HOST: mock.url,
-    EXTEND_STORE_ID: STORE_ID,
-    EXTEND_ACCESS_TOKEN: TOKEN,
-    ...overrides,
-  });
+  return parseExtendConfig(
+    {
+      PUBLIC_EXTEND_ENABLED: 'true',
+      EXTEND_API_HOST: mock.url,
+      EXTEND_STORE_ID: STORE_ID,
+      EXTEND_ACCESS_TOKEN: TOKEN,
+      ...overrides,
+    },
+    {production: false},
+  );
 }
 
 export type Clock = {t: number};

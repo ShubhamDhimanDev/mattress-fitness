@@ -539,7 +539,7 @@ describe('order sync modes (ADR-0009: EXTEND_ORDER_SYNC)', () => {
         EXTEND_STORE_ID: STORE_ID,
         EXTEND_ACCESS_TOKEN: TOKEN,
       },
-      {requireFlag: false},
+      {production: false, requireFlag: false},
     );
     expect(await syncOrder(makeOrder(), {...h.deps, config})).toMatchObject({
       status: 'synced',

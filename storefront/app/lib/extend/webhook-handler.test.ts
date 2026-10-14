@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import type {ExtendLogEvent} from '~/lib/extend/log';
+import {readCappedBody} from '~/lib/extend/capped-body';
 import {createOrderCoalescer} from '~/lib/extend/order-coalescer';
 import {
   WEBHOOK_SECRET,
@@ -10,7 +11,6 @@ import {
 import {
   WEBHOOK_MAX_AGE_MS,
   handleShopifyWebhook,
-  readCappedBody,
   type ProcessOutcome,
   type WebhookHandlerDeps,
 } from '~/lib/extend/webhook-handler';
@@ -237,9 +237,25 @@ describe('REQ-EXT-003 webhook receiver: freshness window (review L-1)', () => {
     expect(h.logs.map((e) => e.event)).toContain('webhook.ignored');
   });
 
-  it('rejects a missing, malformed or future timestamp after the signature is proven', async () => {
+  it('a missing timestamp header is treated as absent: still authenticated, still processed', async () => {
     const h = harness();
-    expect((await send(h, {triggeredAt: null})).status).toBe(400);
+    expect((await send(h, {triggeredAt: null})).status).toBe(200);
+    await h.drain();
+    expect(h.actions).toHaveLength(1);
+    // The signature is still required without the header.
+    expect(
+      (
+        await send(h, {
+          triggeredAt: null,
+          signature: null,
+          webhookId: 'wh-nots-0001',
+        })
+      ).status,
+    ).toBe(401);
+  });
+
+  it('rejects a malformed or future timestamp after the signature is proven', async () => {
+    const h = harness();
     expect((await send(h, {triggeredAt: 'yesterday'})).status).toBe(400);
     expect((await send(h, {triggeredAt: hoursAgo(-2)})).status).toBe(400);
     expect(h.actions).toEqual([]);

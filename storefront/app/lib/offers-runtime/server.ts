@@ -43,7 +43,14 @@ import {
   OFFERS_UNAVAILABLE_REASON,
   type DeliveryStepFailure,
 } from './messages';
-import {applyServerRoles, loadExtendCartInputs} from './extend-seam';
+import {
+  applyServerRoles,
+  extendMakesCartUnverifiable,
+  loadExtendCartInputs,
+  unitPricesByLineId,
+  withUnitPrices,
+  type ExtendInputsOutcome,
+} from './extend-seam';
 import {
   revalidateCart,
   type CartCheck,
@@ -95,10 +102,18 @@ export type OfferRuntime = {
   readonly zip?: string | null;
 };
 
+/** What the Extend adapter reported for this check, without the inputs themselves (for logs and diagnostics). */
+export type ExtendSummary = {
+  readonly status: ExtendInputsOutcome['status'];
+  readonly degraded: readonly string[];
+};
+
 export type OffersResult = {
   readonly cart: CartApiQueryFragment | null;
   readonly check: CartCheck<CartApiQueryFragment> | null;
   readonly view: CartOffersView | null;
+  /** Present when Extend is on; `degraded` names what could not be read (never values). */
+  readonly extend?: ExtendSummary;
 };
 
 export function failed(result: CartMutationResult): boolean {
@@ -190,8 +205,9 @@ type Prepared =
       readonly facts: ProductFacts;
       readonly rules: OfferRules;
       readonly zone: DeliveryZone | null;
+      readonly extend: ExtendSummary;
     }
-  | {readonly status: 'unverified'};
+  | {readonly status: 'unverified'; readonly extend?: ExtendSummary};
 
 async function prepareRuntime(
   runtime: OfferRuntime,
@@ -215,20 +231,41 @@ async function prepareRuntime(
   const facts = loadedFacts.facts;
   // Which variants are Extend coverage and which lines can be covered (P5A-06, review O-M2). Read once per pass set from
   // the cart as Shopify returned it; it never blocks the cart (a failure degrades to the outage rule inside the seam).
-  const extend = (await loadExtendCartInputs(runtime, cart)).inputs;
+  const outcome = await loadExtendCartInputs(runtime, cart);
+  const summary: ExtendSummary = {
+    status: outcome.status,
+    degraded: outcome.status === 'degraded' ? outcome.degraded : [],
+  };
+  // Without the coverage catalog (or with no price point while the cart holds coverage) coverage lines cannot be told
+  // from ordinary ones, and a coverage-only cart would reach checkout. Pause it, like a missing offer configuration.
+  if (extendMakesCartUnverifiable(outcome)) {
+    console.error(
+      'Extend coverage inputs unavailable:',
+      summary.degraded.join(','),
+    );
+    return {status: 'unverified', extend: summary};
+  }
+  const extend = outcome.inputs;
+  // Shopify's own unit prices from the cart just read; a coverage line is judged against the plans quoted for its parent.
+  const prices = unitPricesByLineId(cart);
   const deps: RevalidationDeps = {
     rules,
     // The server adds what only it knows; roles on the incoming cart are never believed.
     prepare: async (mapped) =>
-      applyServerRoles(withCollections(mapped, facts), extend),
-    contextFor: (mapped) =>
-      buildOfferContext(mapped, {
+      applyServerRoles(
+        withUnitPrices(withCollections(mapped, facts), prices),
+        extend,
+      ),
+    contextFor: (mapped) => ({
+      ...buildOfferContext(mapped, {
         zip: runtime.zip ?? null,
         zone,
         protectionEligibleLineIds: extend.protectionEligibleLineIds,
       }),
+      coveragePlanPricesByLineId: extend.coveragePlanPricesByLineId,
+    }),
   };
-  return {status: 'ready', deps, facts, rules, zone};
+  return {status: 'ready', deps, facts, rules, zone, extend: summary};
 }
 
 function approvedText(value: string | undefined): string | null {
@@ -300,12 +337,13 @@ export async function revalidateCartOffers(
         current.updatedAt ?? null,
         OFFERS_UNAVAILABLE_REASON,
       ),
+      ...(prepared.extend ? {extend: prepared.extend} : {}),
     };
   }
   const {deps} = prepared;
   const check = await revalidateCart(current, portFor(runtime), deps);
   const view = await viewOf(runtime, check, prepared);
-  return {cart: check.cart, check, view};
+  return {cart: check.cart, check, view, extend: prepared.extend};
 }
 
 export type StepFailure =

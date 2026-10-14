@@ -7,6 +7,10 @@
 //   node scripts/extend/reconcile.mjs --store shop.myshopify.com --extend-source file --extend-file extend-orders.json
 //   ... --resend --live      re-send the orders that are missing or out of step (otherwise a dry run only reports)
 //
+// PII: the re-sent snapshot includes the customer block Extend's Orders API requires. It goes to the local mock (stays on this
+// machine) or, with --i-know-this-sends-order-data-to-the-demo-host, to the demo host from a development or test store.
+// Reports and logs never carry it.
+//
 // Safety: read-only by default; contact with a store needs SHOPIFY_ALLOWED_STORES; --resend needs --live AND an Extend host
 // that is the local mock or the demo host (production is refused: it needs the owner's written authorisation, so it is
 // not offered here). Output holds order, line and plan ids and short reasons only, never names, emails or addresses.
@@ -28,8 +32,12 @@ const DEFAULT_DAYS = 14;
 const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
 const RESEND_KINDS = new Set(['missing_sync', 'status_mismatch', 'contract_missing', 'quantity_mismatch', 'price_mismatch']);
 
+const DEMO_ACK_FLAG = 'i-know-this-sends-order-data-to-the-demo-host';
+
 const USAGE = `Usage: node scripts/extend/reconcile.mjs --store <shop>.myshopify.com [--since YYYY-MM-DD] [--limit ${DEFAULT_LIMIT}]
-         --extend-source mock|file [--extend-file <export.json>] [--json] [--resend --live]
+         --extend-source mock|file [--extend-file <export.json>] [--json] [--resend --live [--${DEMO_ACK_FLAG}]]
+  --resend to the DEMO host sends real customer data from the Shopify store (names, emails, phones, addresses) to Extend's
+  demo environment; it needs --${DEMO_ACK_FLAG} and a store that is a development or test store, never the live shop.
 Environment: SHOPIFY_ADMIN_API_ACCESS_TOKEN, SHOPIFY_ALLOWED_STORES, EXTEND_API_HOST, EXTEND_STORE_ID, EXTEND_ACCESS_TOKEN.`;
 
 /** @param {number} days @param {() => number} now */
@@ -218,6 +226,7 @@ export async function main(argv, io = {}) {
     json: { type: 'boolean' },
     resend: { type: 'boolean' },
     live: { type: 'boolean' },
+    [DEMO_ACK_FLAG]: { type: 'boolean' },
     help: { type: 'boolean' },
   });
   if (!flags.ok) {
@@ -258,13 +267,20 @@ export async function main(argv, io = {}) {
   }
 
   const libs = await loadExtendLibs();
-  const config = libs.parseExtendConfig(env, { requireFlag: false });
+  const config = libs.parseExtendConfig(env, { requireFlag: false, production: false });
   if (config.status !== 'enabled') {
     err(`Extend is not configured (${config.reason}${config.missing.length ? `: ${config.missing.join(', ')}` : ''}).`);
     return EXIT_USAGE;
   }
   if (v.resend && !LOOPBACK.has(new URL(config.config.apiHost).hostname) && config.config.apiHost !== 'https://api-demo.helloextend.com') {
     err('--resend is limited to the local mock and the demo host. Production needs the owner\'s written authorisation and is not offered by this script.');
+    return EXIT_REFUSED;
+  }
+  // The order snapshot carries the customer block (name, email, phone, billing and shipping address) because Extend's
+  // Orders API needs it. To a loopback mock that stays on this machine; to the demo host it leaves it, so the operator must
+  // say so, and the store must be an allow-listed development or test store (P5A-14, T-05).
+  if (v.resend && !LOOPBACK.has(new URL(config.config.apiHost).hostname) && v[DEMO_ACK_FLAG] !== true) {
+    err(`--resend sends customer data from ${guard.store} to the Extend demo host. Add --${DEMO_ACK_FLAG} to confirm that this is a development or test store.`);
     return EXIT_REFUSED;
   }
 

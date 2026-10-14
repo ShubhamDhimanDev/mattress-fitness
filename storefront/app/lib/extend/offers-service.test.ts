@@ -16,13 +16,16 @@ const STORE = 'store-fixture-1';
 const clock = {t: 0};
 
 function config(over: Record<string, unknown> = {}): ExtendConfigResult {
-  return parseExtendConfig({
-    PUBLIC_EXTEND_ENABLED: 'true',
-    EXTEND_API_HOST: 'https://api-demo.helloextend.com',
-    EXTEND_STORE_ID: STORE,
-    EXTEND_ACCESS_TOKEN: 'fixture-token-not-real',
-    ...over,
-  });
+  return parseExtendConfig(
+    {
+      PUBLIC_EXTEND_ENABLED: 'true',
+      EXTEND_API_HOST: 'https://api-demo.helloextend.com',
+      EXTEND_STORE_ID: STORE,
+      EXTEND_ACCESS_TOKEN: 'fixture-token-not-real',
+      ...over,
+    },
+    {production: false},
+  );
 }
 
 const index = buildPricePointIndex([
@@ -139,17 +142,64 @@ describe('REQ-EXT-002 quoteCoverage', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('quotes the first line of a product and gives later lines of the same product no offer', async () => {
-    const {fetchFn, calls} = offersFetch([offer('501', [plan('P-79', 7999)])]);
+  it('quotes two lines of the same product at their OWN prices, one request per price (Twin XL and Queen)', async () => {
+    const calls: string[] = [];
+    const fetchFn: FetchLike = (_url, init) => {
+      calls.push(init.body ?? '');
+      const price = init.body?.includes('"purchasePrice":159900')
+        ? 159_900
+        : 129_900;
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            offerCartId: 'c',
+            storeId: STORE,
+            offers: [
+              offer('501', [
+                price > 150_000 ? plan('P-HI', 7999) : plan('P-LO', 1499),
+              ]),
+            ],
+          }),
+        ),
+      );
+    };
     const result = await quoteCoverage(deps(fetchFn), [
-      item('queen', '501'),
+      item('queen', '501', {unitPriceCents: 129_900}),
       item('king', '501', {unitPriceCents: 159_900}),
     ]);
-    expect(JSON.parse(calls[0]?.body ?? '{}')).toMatchObject({
-      items: [{productId: '501'}],
-    });
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toContain('"purchasePrice":129900');
+    expect(calls[1]).toContain('"purchasePrice":159900');
     if (result.status !== 'ok') throw new Error('expected ok');
-    expect([...result.plansByKey.keys()]).toEqual(['queen']);
+    expect(result.plansByKey.get('queen')?.map((p) => p.planId)).toEqual([
+      'P-LO',
+    ]);
+    expect(result.plansByKey.get('king')?.map((p) => p.planId)).toEqual([
+      'P-HI',
+    ]);
+  });
+
+  it('lines that share product, price and quantity are one question', async () => {
+    const {fetchFn, calls} = offersFetch([offer('501', [plan('P-79', 7999)])]);
+    const result = await quoteCoverage(deps(fetchFn), [
+      item('a', '501'),
+      item('b', '501'),
+    ]);
+    expect(calls).toHaveLength(1);
+    if (result.status !== 'ok') throw new Error('expected ok');
+    expect([...result.plansByKey.keys()]).toEqual(['a', 'b']);
+  });
+
+  it('does not judge a cart with more distinct sizes of one product than it can ask about: unavailable, so the outage rule applies', async () => {
+    const {fetchFn, calls} = offersFetch([]);
+    const result = await quoteCoverage(
+      deps(fetchFn),
+      [1, 2, 3, 4].map((n) =>
+        item(`l${n}`, '501', {unitPriceCents: 100_000 + n}),
+      ),
+    );
+    expect(result).toEqual({status: 'unavailable', reason: 'unjudged_lines'});
+    expect(calls).toHaveLength(0);
   });
 
   it('ignores Extend plans for a product nobody asked about', async () => {

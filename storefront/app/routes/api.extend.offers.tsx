@@ -8,6 +8,7 @@
 import type {Route} from './+types/api.extend.offers';
 import {isSameOriginRequest, noStoreHeaders} from '~/lib/cart/http';
 import {
+  isSameSiteFetch,
   parseOffersBody,
   parseOffersQuery,
   type ParsedOffersRequest,
@@ -36,6 +37,8 @@ async function respond(
 }
 
 export function loader({request, context}: Route.LoaderArgs) {
+  // A browser that says the request is cross-site is refused (E-M2); no header means curl or an old client and passes.
+  if (!isSameSiteFetch(request.headers)) return json({status: 'invalid'}, 403);
   return respond(parseOffersQuery(new URL(request.url)), context);
 }
 
@@ -43,7 +46,11 @@ export async function action({request, context}: Route.ActionArgs) {
   if (request.method !== 'POST') {
     return json({status: 'invalid'}, 405, {Allow: 'GET, POST'});
   }
-  // Same-site only: the answer is private, and this keeps other sites from spending our Extend and Shopify quota.
-  if (!isSameOriginRequest(request)) return json({status: 'invalid'}, 403);
+  // Refuses a POST whose Origin header names another host (cart/http.ts). A request with no Origin (curl, old clients)
+  // still passes, so this is a courtesy guard against other sites using a visitor's browser, not authentication or rate
+  // limiting; the memo, the circuit breaker and the item cap are the cost controls (T-13).
+  if (!isSameOriginRequest(request) || !isSameSiteFetch(request.headers)) {
+    return json({status: 'invalid'}, 403);
+  }
   return respond(await parseOffersBody(request), context);
 }

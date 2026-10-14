@@ -50,15 +50,18 @@ function harness(
     );
   };
 
-  const config = parseExtendConfig({
-    PUBLIC_EXTEND_ENABLED: 'true',
-    EXTEND_API_HOST: 'https://api-demo.helloextend.com',
-    EXTEND_STORE_ID: 'store-fixture-1',
-    EXTEND_ACCESS_TOKEN: TOKEN,
-    ...(options.orderSync === undefined
-      ? {}
-      : {EXTEND_ORDER_SYNC: options.orderSync}),
-  });
+  const config = parseExtendConfig(
+    {
+      PUBLIC_EXTEND_ENABLED: 'true',
+      EXTEND_API_HOST: 'https://api-demo.helloextend.com',
+      EXTEND_STORE_ID: 'store-fixture-1',
+      EXTEND_ACCESS_TOKEN: TOKEN,
+      ...(options.orderSync === undefined
+        ? {}
+        : {EXTEND_ORDER_SYNC: options.orderSync}),
+    },
+    {production: false},
+  );
   const lookups: unknown[] = [];
   const defaultLookup: QuoteLookup = (query) => {
     lookups.push(query);
@@ -188,7 +191,10 @@ describe('syncOrder: modes (ADR-0009: EXTEND_ORDER_SYNC guards against double re
 
   it('skips when Extend is disabled or unconfigured', async () => {
     const h = harness();
-    const disabled = {...h.deps, config: parseExtendConfig({})};
+    const disabled = {
+      ...h.deps,
+      config: parseExtendConfig({}, {production: false}),
+    };
     expect(await syncOrder(makeOrder(), disabled)).toMatchObject({
       status: 'skipped',
       reason: 'disabled',

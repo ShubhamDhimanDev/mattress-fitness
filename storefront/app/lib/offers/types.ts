@@ -44,6 +44,11 @@ export type CartLineLike = {
   readonly size: string | null;
   /** Nested cart line parent (F-26), or a parent mapped from a line-attribute pair if V-02 rules nesting out. */
   readonly parentLineId: string | null;
+  /**
+   * Shopify's unit price of the variant in cents, set by the server from the cart it just read (never by the browser).
+   * Only coverage lines need it: their price must be one of the plans quoted for the item they hang off.
+   */
+  readonly unitPriceCents?: number;
   /** Collections of the line's product, for gift rules that qualify by collection. */
   readonly collectionIds?: readonly string[];
 };
@@ -151,6 +156,13 @@ export type OfferContext = {
   readonly zone: DeliveryZone | null;
   /** Cart lines the Extend adapter says can be covered; empty when Extend is off or unavailable. */
   readonly protectionEligibleLineIds: readonly string[];
+  /**
+   * Eligible line id -> the plan prices (cents) Extend quoted for it. A coverage line under that parent whose own price is
+   * not in the list is removed: the price-point SKU must equal a quoted plan (ADR-0009 decision 1), and a cart built
+   * through our own endpoints could otherwise pair a cheap SKU with an expensive item. A parent with no entry (Extend
+   * unavailable, or not judged) is not price-checked here; the order sync cross-checks it later.
+   */
+  readonly coveragePlanPricesByLineId?: ReadonlyMap<string, readonly number[]>;
 };
 
 // ---------------------------------------------------------------------------------------------------
@@ -239,7 +251,8 @@ export type RemoveReason =
   | 'haul-away-disabled'
   | 'haul-away-over-max'
   | 'orphan-coverage'
-  | 'coverage-exceeds-item';
+  | 'coverage-exceeds-item'
+  | 'coverage-price-mismatch';
 
 export type SetQuantityReason =
   | 'gift-over-limit'

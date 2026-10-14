@@ -37,6 +37,7 @@ export function evaluateAccidentProtection(
   effectiveQuantities: ReadonlyMap<string, number>,
   eligibleLineIds: readonly string[],
   declined: boolean,
+  planPrices?: ReadonlyMap<string, readonly number[]>,
 ): AccidentProtectionResult {
   const corrections: Correction[] = [];
   const eligibleSet = new Set(eligibleLineIds);
@@ -71,6 +72,22 @@ export function evaluateAccidentProtection(
         type: 'remove-line',
         lineId: line.id,
         reason: 'orphan-coverage',
+      });
+      continue;
+    }
+
+    // The price-point SKU must be one of the plans quoted for THIS parent. A line with no readable price cannot be
+    // verified, so it goes too. Parents with no quote on record (Extend unavailable) are not judged here.
+    const allowed = planPrices?.get(parentId);
+    if (
+      allowed !== undefined &&
+      (line.unitPriceCents === undefined ||
+        !allowed.includes(line.unitPriceCents))
+    ) {
+      corrections.push({
+        type: 'remove-line',
+        lineId: line.id,
+        reason: 'coverage-price-mismatch',
       });
       continue;
     }

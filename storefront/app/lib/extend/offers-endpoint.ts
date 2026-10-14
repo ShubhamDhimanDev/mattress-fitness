@@ -4,6 +4,7 @@
 // needs to be shown and later accepted: plan id, title, price, term, terms link and image. Everything fails to
 // `{status: 'unavailable'}`, which hides the offer; the page never waits on, or breaks because of, Extend.
 
+import {readCappedBody} from '~/lib/extend/capped-body';
 import type {ExtendConfigResult} from '~/lib/extend/config';
 import type {CoverageCatalogResult} from '~/lib/extend/coverage-catalog';
 import type {FactsResult, VariantFact} from '~/lib/extend/coverage-facts';
@@ -18,7 +19,7 @@ import type {PricePointIndex} from '~/lib/extend/price-points';
 
 export const MAX_ENDPOINT_ITEMS = 10;
 export const MAX_ENDPOINT_QUANTITY = 99;
-export const MAX_ENDPOINT_BODY_CHARS = 4096;
+export const MAX_ENDPOINT_BODY_BYTES = 4096;
 
 const VARIANT_GID = /^gid:\/\/shopify\/ProductVariant\/\d{1,20}$/;
 
@@ -78,20 +79,14 @@ export function parseOffersQuery(url: URL): ParsedOffersRequest {
 export async function parseOffersBody(
   request: Request,
 ): Promise<ParsedOffersRequest> {
-  const declared = request.headers.get('content-length');
-  if (declared !== null && Number(declared) > MAX_ENDPOINT_BODY_CHARS * 4) {
-    return {status: 'invalid'};
-  }
-  let text: string;
-  try {
-    text = await request.text();
-  } catch {
-    return {status: 'invalid'};
-  }
-  if (text.length > MAX_ENDPOINT_BODY_CHARS) return {status: 'invalid'};
+  // Never buffer more than the cap: a declared length over it is refused unread, a longer stream is cut off.
+  const body = await readCappedBody(request, MAX_ENDPOINT_BODY_BYTES);
+  if (body.status !== 'ok') return {status: 'invalid'};
   let json: unknown;
   try {
-    json = JSON.parse(text);
+    json = JSON.parse(
+      new TextDecoder('utf-8', {fatal: true}).decode(body.bytes),
+    );
   } catch {
     return {status: 'invalid'};
   }
@@ -115,8 +110,59 @@ export type OffersResponseBody =
     }
   | {status: 'unavailable'};
 
+/**
+ * Fetch Metadata guard (security review E-M2): when the browser says a request came from another site (or from a
+ * cross-site subresource) it is refused. A request WITHOUT the header (curl, old clients) passes, so this is a guard
+ * against other sites using a visitor's browser to spend our Storefront and Extend quota, not rate limiting.
+ */
+export function isSameSiteFetch(headers: {
+  get: (name: string) => string | null;
+}): boolean {
+  const site = headers.get('Sec-Fetch-Site');
+  return (
+    site === null ||
+    site === 'same-origin' ||
+    site === 'same-site' ||
+    site === 'none'
+  );
+}
+
+export type DistinctVariantLimiter = {
+  /** True when every id is already in the window or fits under the cap; the new ones are then recorded. */
+  allow: (variantIds: readonly string[]) => boolean;
+};
+
+/**
+ * Stopgap against someone walking the catalog through this route to run up Storefront and Extend calls (T-13): at most
+ * `perWindow` DISTINCT variants per window per isolate. Per isolate is weak by design; real rate limiting is a host
+ * feature and waits for the hosting answer (Q-003).
+ */
+export function createDistinctVariantLimiter(options: {
+  now: () => number;
+  perWindow?: number;
+  windowMs?: number;
+}): DistinctVariantLimiter {
+  const perWindow = options.perWindow ?? 60;
+  const windowMs = options.windowMs ?? 60_000;
+  const seen = new Map<string, number>();
+  return {
+    allow(variantIds) {
+      const now = options.now();
+      for (const [id, expiresAt] of seen) {
+        if (expiresAt <= now) seen.delete(id);
+      }
+      const fresh = variantIds.filter((id) => !seen.has(id));
+      if (seen.size + fresh.length > perWindow) return false;
+      for (const id of fresh) seen.set(id, now + windowMs);
+      return true;
+    },
+  };
+}
+
 export type OffersEndpointDeps = {
   config: ExtendConfigResult;
+  /** Optional stopgap limit (see createDistinctVariantLimiter); a denial answers "unavailable" with no calls. */
+  allow?: (variantIds: readonly string[]) => boolean;
   loadCatalog: () => Promise<CoverageCatalogResult>;
   loadFacts: (
     variantIds: readonly string[],
@@ -139,6 +185,15 @@ export async function answerOffers(
   };
   // Flag off, or not configured: no Shopify or Extend traffic at all.
   if (deps.config.status !== 'enabled') return {status: 'unavailable'};
+
+  if (deps.allow && !deps.allow(request.map((item) => item.variantId))) {
+    log({
+      level: 'warn',
+      event: 'offers.route_rejected',
+      reason: 'distinct_variant_cap',
+    });
+    return {status: 'unavailable'};
+  }
 
   const catalog = await deps.loadCatalog();
   if (catalog.status !== 'ok') return unavailable('catalog_unavailable');

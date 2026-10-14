@@ -214,8 +214,8 @@ Rehearse deploy **and rollback** on staging before the first production release 
 | Piece | State |
 |---|---|
 | Config parser, offers, price points, linking, snapshot builder, sync orchestration, webhook verifier and router, reconciliation comparison (`storefront/app/lib/extend/*`) | Written, with unit tests in the repository (not re-run for this draft) |
-| Webhook route `app/routes/webhooks.shopify.tsx` | `PLANNED` (P5A-08). No such route exists in `storefront/app/routes/` on 2026-10-12 |
-| Reconciliation script `scripts/reconcile-extend.mjs` | `PLANNED` (P5A-10). Only the comparison function `reconcile()` exists |
+| Webhook route `app/routes/webhooks.shopify.tsx` | Built (P5A-08), mock-green only; no subscription exists until a development store and the Dev Dashboard app are connected (IR-04, IR-11). Answers 200 at once and syncs in `waitUntil` (about 30 seconds after the response on Workers runtimes; a sync cut short is NOT retried by Shopify, so the reconcile script below is the safety net) |
+| Reconciliation script `scripts/extend/reconcile.mjs` | Built (P5A-14). **Who and when:** the developer on duty (the client's technical contact after handover) runs it as a dry run daily once Extend is live, and after any outage of Extend, any webhook delivery failure reported by Shopify, or a deploy that touched the sync. Extend documents no order read-back, so it compares against an export from Extend's Merchant Portal (`--extend-file`); against the mock it reads the mock. `--resend --live` re-sends what is missing; to the demo host it needs `--i-know-this-sends-order-data-to-the-demo-host` (customer data leaves the machine) and never targets production without the owner's written authorisation |
 | Structured failure logging and its destination | `PLANNED` (P5A-10, NFR-010) |
 | Extend itself | Mock only. Production needs an approved account and Extend's written answers (Q-005, CLR-006, P5A-12) |
 
