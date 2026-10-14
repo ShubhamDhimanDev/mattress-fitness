@@ -1,0 +1,50 @@
+{
+  "_notice": "MOCK FIXTURE. Stand-in for the Shopify price-point coverage variants (names follow the documented Extend-Protection-Plan-<price> pattern). Variant ids are invented. The real table comes from Extend (Q-005). The unlisted fixture plan (17777) deliberately has no variant here.",
+  "variants": [
+    {
+      "variantId": "gid://shopify/ProductVariant/9100000001",
+      "name": "Extend-Protection-Plan-14.99",
+      "priceCents": 1499
+    },
+    {
+      "variantId": "gid://shopify/ProductVariant/9100000002",
+      "name": "Extend-Protection-Plan-24.99",
+      "priceCents": 2499
+    },
+    {
+      "variantId": "gid://shopify/ProductVariant/9100000003",
+      "name": "Extend-Protection-Plan-29.99",
+      "priceCents": 2999
+    },
+    {
+      "variantId": "gid://shopify/ProductVariant/9100000004",
+      "name": "Extend-Protection-Plan-49.99",
+      "priceCents": 4999
+    },
+    {
+      "variantId": "gid://shopify/ProductVariant/9100000005",
+      "name": "Extend-Protection-Plan-59.99",
+      "priceCents": 5999
+    },
+    {
+      "variantId": "gid://shopify/ProductVariant/9100000006",
+      "name": "Extend-Protection-Plan-79.99",
+      "priceCents": 7999
+    },
+    {
+      "variantId": "gid://shopify/ProductVariant/9100000007",
+      "name": "Extend-Protection-Plan-99.99",
+      "priceCents": 9999
+    },
+    {
+      "variantId": "gid://shopify/ProductVariant/9100000008",
+      "name": "Extend-Protection-Plan-129.99",
+      "priceCents": 12999
+    },
+    {
+      "variantId": "gid://shopify/ProductVariant/9100000009",
+      "name": "Extend-Protection-Plan-149.99",
+      "priceCents": 14999
+    }
+  ]
+}

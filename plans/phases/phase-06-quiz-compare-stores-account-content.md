@@ -42,6 +42,8 @@ REQ-CMP-001, REQ-QZ-001, REQ-QZ-002, REQ-QZ-003, REQ-QZ-004, REQ-QZ-005, REQ-QZ-
 | P6-09 | Content page layouts and loading of client text (15 pages), blog listing and article | technical-writer | CLR-016 | routes and `docs/handover` notes |
 | P6-10 | Quiz event hooks via `track()` (start, complete, result click) | shopify-hydrogen-developer | P6-03 | events documented |
 | P6-11 | E2E and accessibility for quiz, compare, stores, account, content | qa-engineer | P6-03 to P6-09 | `storefront/tests/e2e/{quiz,compare,stores,account,content}.spec.ts` |
+| P6-13 | Friendlier quiz scoring model in Shopify admin: `quiz_scoring_rule` metaobjects (attribute, value, weight, boost or exclude) referenced from each option, replacing the raw JSON field, so non-developers can edit mappings (NFR-005, REQ-QZ-004); keep the JSON loader as a fallback | solution-architect | P6-01 | `scripts/shopify/definitions.json`, `app/lib/quiz/config.ts` |
+| P6-14 | Shared rate limiter for guest order tracking (the in-memory limiter is per runtime instance): Cache API key, edge rule or Shopify-side control, decided with security-engineer (R-27) | security-engineer | P6-08 | `app/lib/orders/guest-lookup.ts` integration, review note |
 | P6-12 | Phase gate review | project-manager | all | gate record |
 
 ## Dependencies and blockers

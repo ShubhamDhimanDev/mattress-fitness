@@ -20,7 +20,7 @@ The SOW offers white-glove in-home delivery only inside the client's zip list, w
 
 ## Consequences
 
-Easier: no Function, native fee rules, single list for the client to maintain. Harder: two places hold the list (metaobject and Local delivery) until Shopify offers a read API; the 3,000 character limit caps the list (about 400 five-digit codes with separators, fewer with `*` prefixes helping); mixing parcel and in-home items needs a decision (Q-008 pack question).
+Easier: no Function, native fee rules, single list for the client to maintain. Harder: two places hold the list (metaobject and Local delivery) until Shopify offers a read API; the 3,000 character limit caps the list (about 430 five-digit codes with separators; `*` prefixes such as `606*` cover many codes in one entry); mixing parcel and in-home items needs a decision (Q-008 pack question).
 
 ## Alternatives considered
 

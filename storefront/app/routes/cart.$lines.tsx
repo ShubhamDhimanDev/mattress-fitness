@@ -1,68 +1,53 @@
-import {redirect} from 'react-router';
+import {redirect, type HeadersFunction} from 'react-router';
 import type {Route} from './+types/cart.$lines';
+import {CHECKOUT_STEPS_PATH} from '~/lib/cart/checkout';
+import {mayCreateCartFromLink, noStoreHeaders} from '~/lib/cart/http';
+import {parseCartPermalink, parseDiscountCode} from '~/lib/cart/input';
+
+// The cart cookie is set here: no shared cache may keep this response (P-L3).
+export const headers: HeadersFunction = ({loaderHeaders, errorHeaders}) =>
+  noStoreHeaders(errorHeaders ?? loaderHeaders);
+
+function refuse(message: string, status: number): never {
+  throw new Response(message, {status, headers: noStoreHeaders()});
+}
 
 /**
- * Automatically creates a new cart based on the URL and redirects straight to checkout.
- * Expected URL structure:
- * ```js
- * /cart/<variant_id>:<quantity>
- *
- * ```
- *
- * More than one `<variant_id>:<quantity>` separated by a comma, can be supplied in the URL, for
- * carts with more than one product variant.
- *
- * @example
- * Example path creating a cart with two product variants, different quantities, and a discount code in the querystring:
- * ```js
- * /cart/41007289663544:1,41007289696312:2?discount=HYDROBOARD
- *
- * ```
+ * Permalink that builds a cart and continues to checkout: `/cart/<variant number>:<quantity>,...`.
+ * Every variant number and quantity is validated first (T-01) and a request that is not a top-level
+ * navigation is refused, so bad or embedded requests never create a Shopify cart (P-L4). Rate limiting
+ * proper needs the hosting decision (Q-003). Only variant ids and quantities are accepted: prices,
+ * discounts and offers are Shopify's. The cart is not sent straight to Shopify: it goes through the
+ * server gate (`/checkout-steps`), which revalidates it with the offer engine like any other cart
+ * (REQ-PRE-006), so a crafted permalink cannot carry a gift or service line past the rules.
  */
 export async function loader({request, context, params}: Route.LoaderArgs) {
   const {cart} = context;
-  const {lines} = params;
-  if (!lines) return redirect('/cart');
-  const linesMap = lines.split(',').map((line) => {
-    const lineDetails = line.split(':');
-    const variantId = lineDetails[0];
-    const quantity = parseInt(lineDetails[1], 10);
+  const permalink = parseCartPermalink(params.lines);
+  if (permalink.status === 'invalid') {
+    return refuse('This cart link is not valid.', 400);
+  }
+  if (!mayCreateCartFromLink(request.headers)) {
+    return refuse('This cart link must be opened directly.', 400);
+  }
 
-    return {
-      merchandiseId: `gid://shopify/ProductVariant/${variantId}`,
-      quantity,
-    };
-  });
+  const discount = parseDiscountCode(
+    new URL(request.url).searchParams.get('discount'),
+  );
 
-  const url = new URL(request.url);
-  const searchParams = new URLSearchParams(url.search);
-
-  const discount = searchParams.get('discount');
-  const discountArray = discount ? [discount] : [];
-
-  // create a cart
   const result = await cart.create({
-    lines: linesMap,
-    discountCodes: discountArray,
+    lines: [...permalink.lines],
+    discountCodes: discount ? [discount] : [],
   });
 
-  const cartResult = result.cart;
-
-  if (result.errors?.length || !cartResult) {
-    throw new Response('Link may be expired. Try checking the URL.', {
-      status: 410,
-    });
+  const created = result.cart;
+  if (result.errors?.length || !created) {
+    return refuse('This cart link may have expired.', 410);
   }
 
-  // Update cart id in cookie
-  const headers = cart.setCartId(cartResult.id);
-
-  // redirect to checkout
-  if (cartResult.checkoutUrl) {
-    return redirect(cartResult.checkoutUrl, {headers});
-  } else {
-    throw new Error('No checkout URL found');
-  }
+  return redirect(CHECKOUT_STEPS_PATH, {
+    headers: noStoreHeaders(cart.setCartId(created.id)),
+  });
 }
 
 export default function Component() {

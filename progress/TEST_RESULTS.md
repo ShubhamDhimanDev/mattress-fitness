@@ -1,6 +1,6 @@
 # Test and verification results
 
-Every entry records the command, the date, what it ran against and the **actual** result. Failures are recorded as failures. Link traces, screenshots and order IDs here; the traceability matrix ([TRACEABILITY](../docs/requirements/TRACEABILITY.md)) points to this file as evidence. Application tests do not exist yet (no storefront code); this log currently holds framework and environment verification from Stage A.
+Every entry records the command, the date, what it ran against and the **actual** result. Failures are recorded as failures. Link traces, screenshots and order IDs here; the traceability matrix ([TRACEABILITY](../docs/requirements/TRACEABILITY.md)) points to this file as evidence. This log holds framework and environment verification (Stage A, 2026-10-11 and 2026-10-12) and application check results (from 2026-10-13); none of the application results come from a real Shopify store yet.
 
 ## Framework and environment verification, 2026-10-11
 
@@ -59,3 +59,64 @@ No application tests exist: there is no storefront code yet (Phase 1 is blocked 
 | V-D5 | Negative test of the new checks | Scratch copy with one non-existent SD, CR, V, F, R, T and ADR reference each, an engines mismatch and a nested `.git`: **exit 1, 9 errors, every injected defect reported** |
 | V-D6 | Final clean run | `node scripts/validate-framework.mjs`: `framework check: OK` |
 | V-D7 | Not changed, on purpose | The reviewer suggested `**/.env` forms for the deny rules; the Claude Code permissions page we read says bare filenames already match at any depth. Ask and deny rules still cover the Bash tool only; PowerShell equivalents were not added and have not been tested, so the project owner should prefer Git Bash for agent commands. `storefront/AGENTS.md` keeps the template's toolkit-install line; `storefront/CLAUDE.md` warns against following it |
+
+## Application checks after commits 392f52f, 8c533e2 and 46e64a2, 2026-10-13
+
+Run on branch `feat/foundation-libs-and-shell` (Node 22 via fnm, Git Bash). Results are as reported to the project manager by the orchestrator and the build agents; the project manager has no shell and did not re-run them. All run against fixtures, mocks and mock.shop. **No check ran against a real Shopify development store.**
+
+| # | What | Command | Result |
+|---|---|---|---|
+| V-E1 | Type check | `npm run typecheck` in `storefront/` | Clean |
+| V-E2 | Lint | `npm run lint` in `storefront/` | Clean |
+| V-E3 | Format check | `npm run format:check` in `storefront/` | Clean |
+| V-E4 | Unit and integration tests | Vitest (`npm test` in `storefront/`) | **60 files, 2470 tests pass** |
+| V-E5 | Script tests | `node --test` over `scripts/` | **205 pass** |
+| V-E6 | Production build | `npm run build` in `storefront/` | OK |
+| V-E7 | End-to-end (Playwright Test, desktop and mobile Chromium) | `npm run e2e` in `storefront/`, reported by the agents | **246 pass, 31 skipped, 1 fail.** The failure is `quiz.spec` in the full run: a console CSP telemetry error. Being fixed; not yet re-run. The 31 skips are not itemised here |
+| V-E8 | Framework validator | `node scripts/validate-framework.mjs` after the record updates of this date | **Pass.** `framework check: OK` (10 agents, 15 skills, 6 rules, 104 requirements, 146 phase tasks), run by the orchestrator |
+
+**Not run, and so not claimed:** any check against a development store or the client store (filters V-04, metafields V-05, nested cart lines V-02, cart total equals checkout total, REQ-CHK-001 totals), Lighthouse or any performance budget (NFR-002), JSON-LD validation, a screen-reader pass, WebKit and Firefox projects, a real Extend call (the Extend library runs against the local mock only), and the CI workflow on a remote. Independent code and security reviews of 8c533e2 and 46e64a2 were still running when this was written; the security review of the earlier foundation commit is [REVIEW-2026-10-12-foundation](../docs/security/REVIEW-2026-10-12-foundation.md).
+
+## Application checks after commit aa1a23e (2026-10-13, round 2)
+
+Commit `aa1a23e`: offers engine wired into the cart and checkout hand-off, plus fixes from the page review. Run on branch `feat/foundation-libs-and-shell` (Node 22 via fnm, Git Bash). V-E9 to V-E14 and V-E16 were run and reported by the orchestrator; V-E15 is agent-reported. The project manager has no shell and did not re-run any of them. All ran against fixtures, mocks and mock.shop: **no check ran against a real Shopify development store.**
+
+| # | What | Command | Result |
+|---|---|---|---|
+| V-E9 | Type check | `npm run typecheck` in `storefront/` | Clean |
+| V-E10 | Lint | `npm run lint` in `storefront/` | Clean |
+| V-E11 | Format check | `npm run format:check` in `storefront/` | Clean |
+| V-E12 | Unit and integration tests | Vitest (`npm test` in `storefront/`) | **71 files, 2587 tests pass** |
+| V-E13 | Script tests | `node --test` over `scripts/` | **205 pass** |
+| V-E14 | Production build | `npm run build` in `storefront/` | OK |
+| V-E15 | End-to-end (Playwright Test), agent-reported | `npm run e2e` in `storefront/`, by spec group | Cart, quiz and shell specs: **110 pass, 31 skipped, 1 fail then fixed** (telemetry console filter; the fix is described by the agents, a re-run result is not recorded here). Page specs: **116 pass**. The e2e no longer skips on store data. The 31 skips are not itemised |
+| V-E16 | Framework validator | `node scripts/validate-framework.mjs` | `framework check: OK`, re-run by the orchestrator after the record updates of this round |
+
+**Not verifiable without a development store, so not claimed:** nested cart lines (V-02); `cartLinesUpdate` with a new `merchandiseId` (V-16: whether child lines are kept, whether duplicate lines merge); `cartAttributesUpdate` replace versus merge; cart total equals checkout total; the offers UI live (mock.shop returns empty for `node` and `nodes`). Also not run: Lighthouse, a screen-reader pass, WebKit and Firefox, a real Extend call.
+
+**Known gaps in what was tested:** the delivery ZIP has no server-side store, so haul-away fails closed and any haul-away line blocks checkout (P3B-11, P5B-04); the Extend seam returns empty inputs (P5A-06, P5A-07); the add-on, bundle and gift pickers are placeholders (P4-04 to P4-06); only the comfort-guarantee step exists (P4-09).
+
+**Security review:** [REVIEW-2026-10-13-pages](../docs/security/REVIEW-2026-10-13-pages.md) found no new High. P-M1 and P-L1 to P-L4 are addressed in aa1a23e and P-M2 is addressed by the revalidation wiring; re-verification by the running security review of aa1a23e is pending. Deferred: P-L5 and P-L6 (P7-07), P-L7 (privacy notes), P-L8 (P6-07); rate limiting needs the hosting answer (Q-003).
+
+## Application checks after commit d068db6 (2026-10-14, build rounds 1173d79, 6f34eaf, 17e0f0e, d068db6)
+
+Four local commits on branch `feat/foundation-libs-and-shell`: Extend webhook route, offers route, coverage seam and reconcile script plus delivery ZIP and haul-away steps (1173d79); search combobox, header my-store and ZIP, homepage sections, brand pages, promo tiles (6f34eaf); delivery fixes (17e0f0e); Extend and code-review fixes (d068db6). V-E17 to V-E22 and V-E26 were run by the orchestrator after d068db6; V-E23 to V-E25 are agent-reported. The project manager has no shell and re-ran nothing. All ran against fixtures, mocks, fakes and mock.shop: **no check ran against a real Shopify development store, a real Shopify webhook delivery, or Extend's demo host.**
+
+| # | What | Command | Result | Run by |
+|---|---|---|---|---|
+| V-E17 | Type check | `npm run typecheck` in `storefront/` | Clean | orchestrator |
+| V-E18 | Lint | `npm run lint` in `storefront/` | Clean | orchestrator |
+| V-E19 | Format check | `npm run format:check` in `storefront/` (Prettier) | Clean | orchestrator |
+| V-E20 | Unit and integration tests | Vitest (`npm test` in `storefront/`) | **102 files, 3126 tests pass** | orchestrator |
+| V-E21 | Script tests | `node --test` over `scripts/` | **218 pass** | orchestrator |
+| V-E22 | Production build | `npm run build` in `storefront/` | OK | orchestrator |
+| V-E23 | End-to-end: layout, search, home, brands, catalog specs | `npm run e2e` in `storefront/`, by spec group | **147 pass, 31 skipped, 0 failed** (skips not itemised) | agent-reported |
+| V-E24 | End-to-end: delivery spec | `npm run e2e` (`delivery.spec`) | **28 pass, 2 skipped.** Desktop 10 of 10 after the final fixes; **mobile not re-run** after those fixes | agent-reported |
+| V-E25 | Independent code review of 1173d79 | `code-reviewer` | **CHANGES REQUESTED**: three Majors, fixed in d068db6. The fixes themselves have no independent re-review yet | reviewer |
+| V-E26 | Framework validator | `node scripts/validate-framework.mjs` | `framework check: OK` after d068db6. Re-run by the orchestrator after this record update: `framework check: OK` | orchestrator |
+
+**Security review of 1173d79:** [REVIEW-2026-10-14-extend-delivery](../docs/security/REVIEW-2026-10-14-extend-delivery.md), **PASS WITH CONDITIONS**, no High. The reviewer's own run: 60 Vitest files (2,483 tests) pass; hostile requests against a dev server on bedding.mock.shop with throwaway secrets (webhook signature, replay, stale and future timestamps, oversize bodies, forged cookies, offers route inputs, step forgery); 34 hostile hosts probed against the Extend host parser; fresh build with 0 secret or server-symbol hits in `dist/client` (92 JS files); `npm audit --omit=dev` 7 findings (2 high: react-router, lodash), the same set as ADR-0008. Fixed in d068db6 and not yet re-verified by the reviewer: E-M1 (coverage recognised regardless of the flag), E-L1 (separate cookie secret, 17e0f0e), E-L2 and E-L3 (webhook headers), E-L4 (capped form reads, 17e0f0e and d068db6), E-L5 (reconcile live demo flag), E-L6 (decline only when the step applies, 17e0f0e), E-L7 (explicit production boolean). Still open: E-M2 (memo key includes quantity; real rate limiting needs Q-003), E-M3 (haul-away rests on a shopper-typed ZIP; needs P5B-05, a Shopify checkout zone restriction and the owner's written acceptance at the 5B gate), E-L8 (separate read-only Admin token, production configuration), E-L9 (smaller items), O-M3 (owner acceptance of the ADR-0006 detective-only limit), H-1 (ADR-0008).
+
+**Not verifiable without a development store or live access, so not claimed:** the delivery-choice and haul-away steps' success path (mock.shop cannot answer `nodes()`; tested only against fakes in `delivery-steps.test.ts` and `delivery-routes.test.ts`); a real Shopify webhook delivery and the Admin API order read (V-20); Extend's demo host and a contract issued in demo; nested cart lines (V-02, V-16); `cartAttributesUpdate` replace versus merge; cart total equals checkout total; admin editing and reordering of homepage sections, promo tiles and brands; Lighthouse; a screen-reader pass on the new combobox; WebKit and Firefox projects.
+
+**Known gaps in what was tested:** no browser action adds the Extend coverage line (P5A-05 PDP slot, P5A-07 step); the detective shipping-ZIP check (P5B-05) is not built; the cart drawer's `/cart` fetch is not refreshed after a ZIP change; the promo bar text is placeholder; brand pages are not in the sitemap and the PDP brand section does not link to them; `SearchResultsPredictive.tsx` is unused template code; `SHOPIFY_DATA_MODEL.md` and `scripts/shopify/README.md` lack `link_label` and the homepage section types.

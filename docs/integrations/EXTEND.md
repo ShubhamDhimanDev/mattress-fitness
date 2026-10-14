@@ -85,3 +85,113 @@ Unit: request builder, price-point matching, link model, snapshot builder for cr
 ## 6. Readiness
 
 Tracked in [READINESS_CHECKLIST](READINESS_CHECKLIST.md). Phase plan: [phase-05a](../../plans/phases/phase-05a-extend-protection.md). Questions for Extend (to send through the client, exact wording to be drafted by `integration-engineer`): items 1 to 5 of section 3.
+
+## 7. Implementation notes (2026-10-12, work package A, ADR-0009)
+
+Status: library, mock and tests are built; **nothing here has run against real Extend**. Every result below is mock-green only. No route, UI or Shopify GraphQL call exists yet; the orchestrator wires those.
+
+### 7.1 Module map
+
+All under `storefront/app/lib/extend/`. Server-only modules must never be imported by code that reaches the browser (`price-points.ts`, `linking.ts` and `ids.ts` are pure and safe on both sides). Web-standard APIs only (fetch, Web Crypto, URL, AbortSignal): runs on Oxygen and Node.
+
+| Module | Responsibility | Requirement |
+|---|---|---|
+| `config.ts` | Parses env into `enabled` or `disabled` (reason, names of missing variables, never values). The flag must be exactly `true`. Host allow-list: the two Extend hosts over HTTPS, or loopback for the mock. The token lives in a closure, so it cannot leak through `JSON.stringify`, `inspect` or logs. `requireFlag: false` lets order sync keep running when the UI flag is off | REQ-EXT-001, NFR-013 |
+| `http.ts`, `circuit-breaker.ts` | One bounded call (timeout, `redirect: 'error'`, size cap, typed result, never throws) and an in-memory breaker with an injected clock | NFR-013, T-13 |
+| `offers.ts` | Request builder, eligible-category filter, defensive response parser, `fetchOffers` (breaker, logging), `quotesFromOffers`, `createOffersQuoteLookup` (the `QuoteLookup` the sync needs) | REQ-EXT-001, REQ-EXT-005 |
+| `price-points.ts` | Parses `Extend-Protection-Plan-<price>`, indexes variants, returns only plans whose price equals a variant price | REQ-EXT-002 |
+| `linking.ts` | Pure cart rules: operations (`setQuantity`, `remove`) plus flags that make a cart valid; keys `_extend_plan_id`, `_extend_covered_product_id`, `_extend_term` | REQ-EXT-002, T-06 |
+| `orders.ts` | Shopify order to full-snapshot `PUT /orders` body (Category Orders), the ADR-0009 item 7 cross-check, `listQuoteQueries` | REQ-EXT-003 |
+| `sync.ts` | `syncOrder`: lookup, cross-check, PUT with bounded exponential backoff, `EXTEND_ORDER_SYNC` modes, typed results, PII-free log events | REQ-EXT-003, NFR-006 |
+| `webhook.ts` | `verifyShopifyWebhook` (HMAC-SHA256 over the raw bytes, constant-time compare, fails closed), `receiveShopifyWebhook` (size cap, signature first, topic, webhook id, optional timestamp window, replay store), `routeShopifyTopic` | T-03 |
+| `reconcile.ts` | Pure comparison of Shopify orders against Extend's copy: `missing_sync`, `orphan_coverage`, `price_mismatch`, `quantity_mismatch`, `status_mismatch`, `contract_missing`, `flagged_coverage`, `unexpected_extend_order`, `invalid_order` | REQ-EXT-003, T-06 |
+| `log.ts`, `ids.ts`, `types.ts` | Closed log-event shape (no field can carry personal data); GID and number normalisation; shared types | T-05 |
+
+Mock and tests: `scripts/mocks/extend-mock.mjs` (+ `extend-mock.d.mts`), fixtures in `scripts/mocks/fixtures/extend/` (`offers.json`, `price-points.json`); unit tests beside each module; integration tests in `storefront/tests/integration/extend/` (`mock.test.ts`, `lifecycle.test.ts`, `resilience.test.ts`, helper `support.ts`).
+
+### 7.2 Environment variables
+
+Names are in `.env.example`. Values never go in a file, log or test.
+
+| Variable | Meaning |
+|---|---|
+| `PUBLIC_EXTEND_ENABLED` | Must be exactly `true` for offers. Anything else (`TRUE`, `1`, unset) leaves Extend off |
+| `EXTEND_API_HOST` | Origin only: `https://api-demo.helloextend.com`, `https://api.helloextend.com`, or the mock (`http://127.0.0.1:<port>`). Any other host is refused |
+| `EXTEND_STORE_ID` | Store ID from the Merchant Portal |
+| `EXTEND_ACCESS_TOKEN` | Server-only token (exchanged from the API Integration, section 2) |
+| `EXTEND_ORDER_SYNC` | `self` (default when unset), `extend-app` or `off`. An unrecognised value disables Extend instead of guessing, because a wrong guess double-reports or drops orders |
+
+The Shopify webhook secret is passed to `receiveShopifyWebhook` by the route. Shopify signs with the app's client secret (shopify.dev, "Deliver webhooks through HTTPS"), so the route uses `SHOPIFY_APP_CLIENT_SECRET`; there is no separate webhook secret (ADR-0009 addendum).
+
+### 7.3 Running the mock
+
+```
+node scripts/mocks/extend-mock.mjs --port 4010
+```
+
+It prints the values to use (`EXTEND_API_HOST=http://127.0.0.1:4010`, `EXTEND_STORE_ID=mock-store-id`; the token is `mock-access-token` unless `EXTEND_MOCK_ACCESS_TOKEN` and `EXTEND_MOCK_STORE_ID` are set; these are values of the mock itself, not credentials for anything real). It binds to 127.0.0.1 only and every response carries `X-Extend-Mock: true`. From tests: `startMock({port = 0, accessToken, storeId, fixtures})` returns `{url, close, state, setFault, clearFault}`; `state.requests`, `state.eventTypes()`, `state.contracts(id)` and `state.storedOrders()` support assertions, and `storedOrders()` feeds `reconcile` directly. Tests: `npx vitest run app/lib/extend tests/integration/extend` (from `storefront/`).
+
+### 7.4 Facts read from provider documentation on 2026-10-12 that section 2 did not record
+
+Extend Offers guide: `plans.adh` and `plans.base` are **arrays** of plan objects, `plans.recommended` is the **string** `adh` or `base`; `contract` has `category`, `coverageIncludes`, `coverageStarts` (strings), `deductible` and `termLength` (integers, months per the example); each covered product has `productId`, `quantity`, `purchasePrice`. Extend Orders guide: dates (`transactionDate`, `purchaseDate`) are epoch milliseconds; the Category Orders contract line has `quantity` 1 and starts at `fulfilledQuantity` 0; the contract line's `fulfilledQuantity` is set to 1 once its first covered product is fulfilled; customer fields shown are `name`, `email`, `phone`, `billingAddress`, `shippingAddress` with `address1`, `address2`, `city`, `countryCode`, `postalCode`, `province`; the guide marks only `coveredProducts` as required. (Both Extend pages were read through a summarising fetch tool, so exact JSON examples were paraphrased, not copied; re-check the raw pages when Extend access exists.)
+
+Shopify (shopify.dev, "Deliver webhooks through HTTPS"; the full header list comes from a search summary of the delivery-structure page, not from reading that page): header `X-Shopify-Hmac-Sha256` is the base64 HMAC-SHA256 of the raw body keyed with the app's client secret; `X-Shopify-Webhook-Id` identifies a delivery and is the deduplication key; `X-Shopify-Topic` and `X-Shopify-Triggered-At` exist (the timestamp's precision differs between pages: milliseconds, microseconds or nanoseconds, all parsed); a failed delivery is retried 8 times over 4 hours and a subscription created through the Admin API is deleted after 8 consecutive failures; the endpoint must answer `200` within 5 seconds (1 second to connect); delivery order is **not guaranteed**.
+
+### 7.5 ASSUMPTION(V-11) and ASSUMPTION(V-20) items to confirm against the demo host and the dev store
+
+Each is tagged in code with the same label. A mock-green result proves none of them.
+
+1. **Cancelled orders** are reported as `status: "refunded"` (Extend documents no cancelled status). `orders.ts`.
+2. **`plan.purchasePrice`** on a contract line is the quoted unit price times the covered quantity (the guide calls it the "total cost of the category plan"). `orders.ts`.
+3. **Category Orders** (not Product Protection) is used, one `category_contract` line per coverage line, each covering one product line; the contract line id is `<Shopify line id>-contract` (Extend only requires unique and immutable). The **category value** sent is whatever the Shopify read layer resolves; the value Extend wants for mattresses is open (section 3, item 3). `orders.ts`.
+4. **Nested-line parent on the order**: the sync uses the parent line id when Shopify preserves it on the order and otherwise falls back to the covered product id, refusing to guess when two lines share a product (flag `covered_product_ambiguous`). Whether the order exposes the parent relationship and our `_extend_*` line properties is unverified (V-16, V-20, section 3, item 6). `orders.ts`, `linking.ts`.
+5. **Quote lookup** re-asks the Offers API for the covered item at its current list price. If Extend quotes by price band and the price changed after the sale, a legitimate plan may be flagged for staff (the safe direction). `offers.ts`.
+6. **Error semantics and limits**: 401 and 403 mean bad credentials, 429 rate limiting, 5xx an outage, 4xx otherwise "our request is wrong" (not retried). Extend documents no error statuses or rate limits. Timeouts (3 s offers, 10 s orders, 4 attempts, 30 s budget) are our choices. The `PUT /orders` response body is undocumented and is ignored. `circuit-breaker.ts`, `sync.ts`, `http.ts`.
+7. **Reconciliation read-back**: Extend documents no way to read orders and contracts back; `reconcile` takes whatever the caller can obtain (today the mock's state). `reconcile.ts`.
+8. **Webhook payload fields** (V-20): `id` for `orders/*` and `order_id` for `refunds/create` and `fulfillments/create`. Whether a retried delivery keeps its `X-Shopify-Webhook-Id` and its original `X-Shopify-Triggered-At` is not stated; the replay store is therefore written to mark an id only **after** a successful sync. `webhook.ts`.
+9. **Customer block**: only fields Shopify has are sent, empty ones omitted; which fields Extend actually requires is undocumented.
+10. **Line-property keys** `_extend_plan_id`, `_extend_covered_product_id`, `_extend_term` are ours; the price-point name must equal the variant's real price or the variant is rejected (a catalog error must never become a wrong charge). `linking.ts`, `price-points.ts`.
+11. **Mock-only behaviours** (not Extend's): it requires the `Accept` version header, answers 401 for a bad token, validates a stricter or looser field set than Extend may, answers `{"mock": true}` to `PUT /orders`, and invents contract states (`active`, `cancelled`, `refunded`, with refunded terminal). Contract creation on a 0 to positive `fulfilledQuantity`, idempotent full snapshots, refund by status or by reduced `coveredProducts`, and removal by omission follow the documented rules. See the header of `scripts/mocks/extend-mock.mjs`.
+
+### 7.6 For the route and UI that wire this (not built here)
+
+- Decided and built (ADR-0009 addendum): the route answers 200 at once and syncs in `waitUntil`, with the reconcile script as the safety net; the webhook id is marked seen only after a successful sync.
+- Read the order through the Admin API by id; never build the order from the webhook body. Map it to `ShopifyOrderLike`, resolving each product's Extend category in the read layer.
+- Use `computeLinkOperations` after every cart mutation and before hand-off, passing `quotes` from a fresh `fetchOffers` when Extend is healthy; apply `remove` and `setQuantity` through the cart handler.
+- The browser sends variant ids and quantities only; plan ids and prices are re-derived server-side.
+- Replay protection, as built: the signature check, the freshness window (only when `X-Shopify-Triggered-At` is present), webhook-id marks in memory plus the Cache API where the platform has one (best effort, per data centre, `replay-store.ts`), the per-order coalescer (one sync per order per 10 s, `order-coalescer.ts`) and the idempotent full-snapshot PUT. The coalescer and the idempotent PUT are the real bound; a durable store (KV) is optional hardening and is NOT required (ADR-0009 addendum, NFR-006). `createMemoryReplayStore` alone is for tests.
+
+## 8. Status notes (2026-10-14, P5A-04, P5A-06 seam, P5A-08, P5A-14)
+
+Everything below is built against the local MOCK and is mock-green only; nothing has run against Extend's demo host or a real Shopify webhook delivery (IR-09, IR-11, V-12, V-20).
+
+| Piece | Where | State |
+|---|---|---|
+| Webhook route `POST /webhooks/shopify` | `app/routes/webhooks.shopify.tsx`, `app/lib/extend/webhook-handler.ts`, `webhook-processor.ts`, `order-coalescer.ts`, `replay-store.ts` | Built. HMAC on the raw bytes with `SHOPIFY_APP_CLIENT_SECRET`; bad or missing signature is 401 with no body; missing secret is 503; Content-Length over 5 MiB is 413 before buffering; freshness window 6 h (review L-1); answers 200 then syncs in `waitUntil` (a plain background promise where the platform has none); a webhook id is marked seen only after a successful sync; per-order coalescer (one sync per order per 10 s, merged events get one trailing run); only when `EXTEND_ORDER_SYNC=self` (other modes make no Admin or Extend call) |
+| Order read | `admin-order.ts`, `admin-client.ts` | Read-only Admin GraphQL `order(id)`, host `<PUBLIC_STORE_DOMAIN>` must be `*.myshopify.com`, token `SHOPIFY_ADMIN_API_ACCESS_TOKEN`, API version 2026-10, 3 attempts with backoff, orders with more than 100 lines refused (never a partial snapshot) |
+| Cross-check (ADR-0009 item 7) | `orders.ts` through `sync.ts` | Wired: price versus quoted plan, covered product on the order; mismatches are logged by line id and reason and never sent |
+| Offers route `GET/POST /api/extend/offers` | `app/routes/api.extend.offers.tsx`, `offers-endpoint.ts`, `offers-service.ts` | Built. Input: variant GID and quantity only (max 10 items); price, product and category read from Shopify; answer holds plan id, title, price, term, terms link, image, recommended and `poweredBy: "Extend"`; `private, no-store`; a POST is refused when its `Origin` names another host (a courtesy guard, not authentication); short memory of answers (5 min) and of failures (30 s) plus the circuit breaker; any failure answers `{"status":"unavailable"}` |
+| Cart gate inputs | `app/lib/offers-runtime/extend-seam.ts` (`loadExtendCartInputs`), called from `offers-runtime/server.ts` `prepareRuntime` | Built, wired and tested through the real `revalidateCartOffers` (`tests/unit/offers-runtime/extend-wiring.test.ts`: swapping the seam out fails five tests). See section 9 for the price check, the fail-closed rule and recognition with the flag off |
+| Reconcile | `scripts/extend/reconcile.mjs` | Built (dry run by default; `--resend --live` only for the mock or the demo host; production refused) |
+
+**Conventions of ours, not Extend's (confirm on the development store):** coverage products carry the Shopify product tag `extend-coverage` (ASSUMPTION V-16/V-20: the Storefront `products(query:)` returns them although they are hidden from search); the Extend category is the product metafield `custom.extend_category` and a product without it is not eligible; fulfilled quantity is read as `currentQuantity - unfulfilledQuantity`; Shopify documents no parent-line field on an order line item, so the nested-line parent is not read and the sync uses the covered product id (flag `covered_product_ambiguous` when two lines share a product).
+
+**Deliberately not built:** the haul-away shipping-ZIP versus zone note (review M-4) is `TODO(P5B-05)`: it must run whether or not Extend sync is on and needs the offer configuration; Extend documents no order read-back, so reconcile reads the mock's invented `GET /__mock/orders` or a JSON export (`--extend-file`); the browser accept action that adds a coverage line (server re-derives the variant from the plan id) is not built.
+
+## 9. Review follow-ups (2026-10-14: cart-gate review MAJOR 1 to 3, security review E-M1, E-M2, E-L2, E-L7 to E-L9)
+
+**Coverage price against its parent (MAJOR 1).** The Offers quote gives, per eligible cart line, the plan prices Extend offered. A coverage line whose Shopify price is not one of them is removed (`coverage-price-mismatch`, with a shopper notice) by the same gate that handles orphan coverage. After a size swap the item's price changes, the new quote differs, and the old coverage is removed the same way (a coverage plan that is still a quoted price for the new size stays). A parent with no quote on record (Extend unavailable) is not price-judged; the order sync and reconcile cross-check it later. The coverage line's price is Shopify's variant price from the cart the server just read, never a browser value.
+
+**Several lines of one product (MAJOR 2).** Lines are quoted per distinct product, price and quantity, one Offers request per price band (up to 3 requests); a cart with more distinct sizes of one product than that is not judged and falls back to the outage rule (coverage kept on regular parents). The memo key keeps the quantity because Extend does not document whether plans depend on it.
+
+**Fail closed (MAJOR 3).** With the flag on, a coverage catalog that cannot be read at all, or an empty price-point list while the cart holds a coverage line, makes the cart unverified: checkout is paused with the existing "we cannot confirm the offers" message and nothing is repaired. A cart without coverage lines and a healthy catalog is never held back by Extend problems; an Extend outage alone never blocks. `revalidateCartOffers` returns `extend: {status, degraded}` and logs the reasons (names only).
+
+**Recognition does not depend on the flag (E-M1).** Coverage lines are recognised by their `Extend-Protection-Plan-<price>` name in the cart data whether or not Extend is on, with no network call. With Extend off or misconfigured there are no eligible lines, so the outage rule applies: coverage on an ordinary item is kept, coverage alone or under a gift or service is removed. A flag-on configuration that is incomplete is logged once per process (`config:<reason>`), as is coverage found while the flag is off. The product tag `extend-coverage` is not in the cart data, so it is used only by the catalog read.
+
+**Offers route (E-M2).** Memo key keeps quantity (above). A GET or POST whose `Sec-Fetch-Site` is present and is not `same-origin`, `same-site` or `none` is refused (403); a request without it passes. A stopgap allows at most 60 distinct variants per minute per isolate (`createDistinctVariantLimiter`), then answers "unavailable" without calls. The POST `Origin` check only refuses an Origin naming another host. Real rate limiting is a host feature and waits for the hosting answer (Q-003).
+
+**Webhook (E-L2, review item 9).** The order id is read from the signed body by shape (`order_id` for refund and fulfilment payloads wins whatever the Topic header says; `id` only for an orders/* topic). A present `X-Shopify-Shop-Domain` that differs from `PUBLIC_STORE_DOMAIN` is logged and ignored with a 200. A missing `X-Shopify-Triggered-At` is treated as absent (signature still required; the freshness window is skipped); a present one is checked. **Subscription risk:** with `SHOPIFY_APP_CLIENT_SECRET` unset the route answers 503, and Shopify deletes a subscription created through the Admin API after 8 consecutive failures (about 4 hours), so a missing secret silently kills order sync. Set the secret before subscribing and watch for the `webhook.rejected` log line naming it.
+
+**Configuration (E-L7, E-L8).** `parseExtendConfig` takes a required `production` boolean with no default; anything but an explicit `false` refuses the loopback mock host. `SHOPIFY_ADMIN_API_ACCESS_TOKEN` as read by the storefront webhook route must be a SEPARATE token with the order read scope only (`read_orders`; `read_all_orders` only if orders older than 60 days must be reconciled); never reuse the catalog import token, which can write.
+
+**Reconcile (item 10).** `--resend --live` to the demo host additionally needs `--i-know-this-sends-order-data-to-the-demo-host` and an allow-listed development or test store: the re-sent snapshot carries customer name, email, phone and addresses to Extend. To the loopback mock the data stays on the machine. Reports and logs carry ids only.

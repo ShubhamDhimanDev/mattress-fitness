@@ -1,0 +1,10 @@
+{
+  "$comment": "Synthetic example of the delivery_zone metaobject exported from Shopify (fields as the Admin API returns them). The ZIP prefixes are made up.",
+  "type": "delivery_zone",
+  "handle": "primary-zone",
+  "fields": [
+    { "key": "name", "value": "Example zone" },
+    { "key": "postal_codes", "value": "300*, 30901, 30902\n31*" },
+    { "key": "fee_text", "value": "Free over the threshold, flat fee below" }
+  ]
+}

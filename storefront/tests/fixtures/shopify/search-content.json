@@ -1,0 +1,32 @@
+{
+  "pages": {
+    "nodes": []
+  },
+  "articles": {
+    "nodes": []
+  },
+  "collections": {
+    "nodes": [
+      {
+        "id": "gid://shopify/Collection/457",
+        "handle": "sun-drenched-morning-bedding",
+        "title": "Sun-Drenched Morning Bedding"
+      },
+      {
+        "id": "gid://shopify/Collection/458",
+        "handle": "tactile-comfort-accents",
+        "title": "Tactile Comfort Accents"
+      },
+      {
+        "id": "gid://shopify/Collection/459",
+        "handle": "sanctuary-bath-rituals",
+        "title": "Sanctuary Bath Rituals"
+      },
+      {
+        "id": "gid://shopify/Collection/460",
+        "handle": "refined-slumber-enclaves",
+        "title": "Refined Slumber Enclaves"
+      }
+    ]
+  }
+}

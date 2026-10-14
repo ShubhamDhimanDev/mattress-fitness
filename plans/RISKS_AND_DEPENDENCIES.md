@@ -32,6 +32,7 @@ Updated 2026-10-11. Likelihood (L) and impact (I): H, M, L. Review at every phas
 | R-24 | **Haul-away and eligibility rules cannot be enforced inside checkout on Basic**: a shopper who calls the public Storefront API directly can bypass server rules (SD-01) | M | L | Private-token cart writes, revalidation, Flow or webhook detective control, client acknowledgement; low money impact because pricing stays Shopify's | security-engineer | OPEN: accepted by owner, client pending |
 | R-25 | **Admin API access on the client store** (legacy custom apps cannot be created since 2026-01-01; client-credentials works only within one organisation) may need a one-time merchant approval and Partner access | M | M | Dev Dashboard app with custom distribution and authorization-code grant (V-20); collaborator request early (V-21, SD-10) | integration-engineer | OPEN |
 | R-26 | **Nested cart lines on Basic are unverified in practice** (child quantity behaviour, webhook representation); Extend linking depends on them (V-16) | M | M | Verify on a dev store first; fall back to an attribute pair checked by our server and reconciliation | integration-engineer | OPEN |
+| R-27 | **Guest order tracking rate limiter is per runtime instance** (Oxygen isolates do not share memory), so it slows guessing but is not a hard limit (T-09) | M | M | Shared store (for example a Cache API key or an edge or Shopify rule) before go-live; generic failure message and the 60-day window already limit what a guess reveals (P6-14) | security-engineer | OPEN |
 
 ## External dependencies
 

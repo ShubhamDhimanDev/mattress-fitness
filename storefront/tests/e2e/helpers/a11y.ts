@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import {AxeBuilder} from '@axe-core/playwright';
 import {expect, type Page} from '@playwright/test';
 
 /**
@@ -33,11 +33,23 @@ export async function expectNoSeriousA11yViolations(
   ).toEqual([]);
 }
 
-/** Collects console errors so a spec can assert the page is quiet. */
+/**
+ * Console errors that come from mock.shop, not from our code: it has no consent-management API, so Shopify's consent
+ * script logs one error. They disappear when the development store is connected (P3A-01); remove the entries then.
+ * Any other console error still fails the spec.
+ */
+export const KNOWN_MOCK_SHOP_ERRORS: readonly string[] = [
+  'Shopify Customer Privacy',
+];
+
+/** Collects console errors so a spec can assert the page is quiet (known mock.shop noise is excluded). */
 export function collectConsoleErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push(msg.text());
+    if (msg.type() !== 'error') return;
+    const text = msg.text();
+    if (KNOWN_MOCK_SHOP_ERRORS.some((known) => text.includes(known))) return;
+    errors.push(text);
   });
   page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
   return errors;

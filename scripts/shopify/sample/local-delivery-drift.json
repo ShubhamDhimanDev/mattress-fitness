@@ -1,0 +1,7 @@
+{
+  "$comment": "Synthetic example with drift: 30902 is missing and 32000 was added only on the Local delivery side.",
+  "location": "Example warehouse",
+  "zones": [
+    { "name": "Example zone", "postal_codes": "31*,30901,300*,32000", "price": "0.00" }
+  ]
+}

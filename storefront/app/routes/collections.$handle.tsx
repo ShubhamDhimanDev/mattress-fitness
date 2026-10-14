@@ -1,161 +1,125 @@
-import {redirect, useLoaderData} from 'react-router';
+import {Analytics} from '@shopify/hydrogen';
+import {keyedText} from '~/lib/shopify/keys';
+import {useLoaderData} from 'react-router';
 import type {Route} from './+types/collections.$handle';
-import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
-import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
-import {redirectIfHandleIsLocalized} from '~/lib/redirect';
-import {ProductItem} from '~/components/ProductItem';
-import type {ProductItemFragment} from 'storefrontapi.generated';
+import {ProductListing} from '~/components/collection/ProductListing';
+import {formatPageTitle} from '~/components/layout/documentTitle';
+import {Accordion} from '~/components/ui/Accordion';
+import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {SORT_KEYS, parseFilterParams} from '~/lib/filters';
+import {buildBreadcrumbJsonLd, buildFaqJsonLd} from '~/lib/shopify/jsonld';
+import {isValidHandle, loadCollectionPage} from '~/lib/shopify/collection-data';
+import {loadPromoTiles} from '~/lib/shopify/promo-data';
+import {resolveSiteOrigin} from '~/lib/site-origin';
 
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: `Hydrogen | ${data?.collection.title ?? ''} Collection`}];
+  if (!data) return [{title: formatPageTitle('Collection not found')}];
+  return [
+    {title: formatPageTitle(data.collection.seoTitle ?? data.collection.title)},
+    ...(data.collection.seoDescription
+      ? [{name: 'description', content: data.collection.seoDescription}]
+      : []),
+    {'script:ld+json': data.breadcrumbJsonLd},
+    ...(data.faqJsonLd ? [{'script:ld+json': data.faqJsonLd}] : []),
+  ];
 };
 
-export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
-
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
-  return {...deferredData, ...criticalData};
-}
-
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
-  const {handle} = params;
-  const {storefront} = context;
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 8,
-  });
-
-  if (!handle) {
-    throw redirect('/collections');
-  }
-
-  const [{collection}] = await Promise.all([
-    storefront.query(COLLECTION_QUERY, {
-      variables: {handle, ...paginationVariables},
-      // Add other queries here, so that they are loaded in parallel
-    }),
+export async function loader({context, params, request}: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const state = parseFilterParams(url.searchParams);
+  const handle = params.handle ?? '';
+  // Tiles are read alongside the products; a failed tile read only means a grid without tiles.
+  const [page, promoTiles] = await Promise.all([
+    loadCollectionPage(context.storefront, handle, state),
+    isValidHandle(handle)
+      ? loadPromoTiles(context.storefront, handle)
+      : Promise.resolve([]),
   ]);
-
-  if (!collection) {
-    throw new Response(`Collection ${handle} not found`, {
-      status: 404,
-    });
+  if (page.status === 'not-found') {
+    throw new Response('Collection not found', {status: 404});
   }
-
-  // The API handle might be localized, so redirect to the localized handle
-  redirectIfHandleIsLocalized(request, {handle, data: collection});
-
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(
+    [
+      {name: 'Home', path: '/'},
+      {name: 'Collections', path: '/collections'},
+      {
+        name: page.collection.title,
+        path: `/collections/${page.collection.handle}`,
+      },
+    ],
+    // Never the request's Host (P-L2); relative URLs when no site origin is configured.
+    resolveSiteOrigin({
+      env: context.env,
+      requestUrl: request.url,
+      isDev: import.meta.env.DEV,
+    }) ?? '',
+  );
   return {
-    collection,
+    ...page,
+    promoTiles,
+    breadcrumbJsonLd,
+    faqJsonLd: buildFaqJsonLd(page.collection.faqs),
   };
 }
 
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({context}: Route.LoaderArgs) {
-  return {};
-}
-
 export default function Collection() {
-  const {collection} = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
+  const {collection} = data;
 
   return (
-    <div className="collection">
-      <h1>{collection.title}</h1>
-      <p className="collection-description">{collection.description}</p>
-      <PaginatedResourceSection<ProductItemFragment>
-        connection={collection.products}
-        resourcesClassName="products-grid"
-      >
-        {({node: product, index}) => (
-          <ProductItem
-            key={product.id}
-            product={product}
-            loading={index < 8 ? 'eager' : undefined}
+    <div className="py-4">
+      <Breadcrumb
+        items={[
+          {label: 'Home', to: '/'},
+          {label: 'Collections', to: '/collections'},
+          {label: collection.title},
+        ]}
+      />
+      <h1 className="mt-2 text-3xl font-bold">{collection.title}</h1>
+      {collection.description.length > 0 ? (
+        <div className="mt-2 max-w-prose text-base text-fg-muted">
+          {keyedText(collection.description).map((paragraph) => (
+            <p key={paragraph.key}>{paragraph.text}</p>
+          ))}
+        </div>
+      ) : null}
+
+      <ProductListing
+        products={data.products}
+        pageInfo={data.pageInfo}
+        filterGroups={data.filterGroups}
+        showFilters
+        sortKeys={SORT_KEYS}
+        emptyHeading="No products match these filters"
+        promoTiles={data.promoTiles}
+      />
+
+      {collection.faqs.length > 0 ? (
+        <section aria-labelledby="collection-faq-heading" className="mt-12">
+          <h2 id="collection-faq-heading" className="mb-3 text-2xl font-bold">
+            Frequently asked questions
+          </h2>
+          <Accordion
+            type="multiple"
+            headingLevel={3}
+            items={collection.faqs.map((faq) => ({
+              id: faq.id,
+              title: faq.question,
+              content: (
+                <div className="flex max-w-prose flex-col gap-2">
+                  {keyedText(faq.answer).map((paragraph) => (
+                    <p key={paragraph.key}>{paragraph.text}</p>
+                  ))}
+                </div>
+              ),
+            }))}
           />
-        )}
-      </PaginatedResourceSection>
+        </section>
+      ) : null}
+
       <Analytics.CollectionView
-        data={{
-          collection: {
-            id: collection.id,
-            handle: collection.handle,
-          },
-        }}
+        data={{collection: {id: collection.id, handle: collection.handle}}}
       />
     </div>
   );
 }
-
-const PRODUCT_ITEM_FRAGMENT = `#graphql
-  fragment MoneyProductItem on MoneyV2 {
-    amount
-    currencyCode
-  }
-  fragment ProductItem on Product {
-    id
-    handle
-    title
-    featuredImage {
-      id
-      altText
-      url
-      width
-      height
-    }
-    priceRange {
-      minVariantPrice {
-        ...MoneyProductItem
-      }
-      maxVariantPrice {
-        ...MoneyProductItem
-      }
-    }
-  }
-` as const;
-
-// NOTE: https://shopify.dev/docs/api/storefront/2022-04/objects/collection
-const COLLECTION_QUERY = `#graphql
-  ${PRODUCT_ITEM_FRAGMENT}
-  query Collection(
-    $handle: String!
-    $country: CountryCode
-    $language: LanguageCode
-    $first: Int
-    $last: Int
-    $startCursor: String
-    $endCursor: String
-  ) @inContext(country: $country, language: $language) {
-    collection(handle: $handle) {
-      id
-      handle
-      title
-      description
-      products(
-        first: $first,
-        last: $last,
-        before: $startCursor,
-        after: $endCursor
-      ) {
-        nodes {
-          ...ProductItem
-        }
-        pageInfo {
-          hasPreviousPage
-          hasNextPage
-          endCursor
-          startCursor
-        }
-      }
-    }
-  }
-` as const;

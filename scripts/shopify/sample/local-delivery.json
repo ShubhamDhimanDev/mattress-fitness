@@ -1,0 +1,7 @@
+{
+  "$comment": "Synthetic example of a Shopify Local delivery export (typed by hand from Settings > Shipping and delivery > Local delivery until V-06c shows whether the Admin API can read it). Same coverage as delivery-zone.json, written in a different order.",
+  "location": "Example warehouse",
+  "zones": [
+    { "name": "Example zone", "postal_codes": "31*,30902,30901,300*", "price": "0.00" }
+  ]
+}

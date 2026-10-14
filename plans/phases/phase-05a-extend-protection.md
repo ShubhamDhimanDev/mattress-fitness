@@ -44,6 +44,7 @@ Contract and sequences: [EXTEND](../../docs/integrations/EXTEND.md); decisions: 
 | P5A-10 | Reconciliation report (Shopify coverage lines versus Extend orders and contracts) and structured failure logging with retry | integration-engineer | P5A-09 | `scripts/reconcile-extend.mjs` |
 | P5A-11 | Resilience tests: Extend slow, down, malformed; shopping and checkout hand-off still work | qa-engineer | P5A-04 to P5A-07 | `storefront/tests/e2e/resilience.spec.ts` |
 | P5A-12 | Run the full lifecycle against the Extend demo host and submit for Extend's review when an account exists (REQ-EXT-004) | integration-engineer | CLR-006, P5A-09 | evidence and approval on file |
+| P5A-14 | Reconciliation script on top of the pure `reconcile()` (Shopify orders versus Extend orders; reports and optionally re-sends missing syncs) | integration-engineer | P5A-09 | `scripts/reconcile-extend.mjs` |
 | P5A-13 | Phase gate review | project-manager | all buildable tasks | gate record; REQ-EXT-004 stays open until Extend approves |
 
 ## Dependencies and blockers

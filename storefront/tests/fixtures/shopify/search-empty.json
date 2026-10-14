@@ -1,0 +1,11 @@
+{
+  "products": {
+    "totalCount": 0,
+    "nodes": [],
+    "productFilters": [],
+    "pageInfo": {
+      "hasNextPage": false,
+      "endCursor": null
+    }
+  }
+}

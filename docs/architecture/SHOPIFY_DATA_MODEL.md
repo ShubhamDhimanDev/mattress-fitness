@@ -13,7 +13,7 @@ Principles: one product per mattress model with one variant per size (SOW §8); 
 | Comfort level | product metafield `custom.comfort_level` | single value from a list | filter, quiz, comparison, badges |
 | Mattress type | `custom.mattress_type` | single value from a list | filter, quiz, comparison |
 | Sleep positions | `custom.sleep_positions` | list of values | filter, quiz |
-| Benefits | `custom.benefits` | list of values (cooling, pressure relief, back support, motion isolation ...) | filter, quiz, comparison |
+| Benefits | `custom.benefits` | list of values (cooling, pressure relief, back support, motion separation ...) | filter, quiz, comparison |
 | Product line | `custom.product_line` | single value | filter |
 | Height (inches) | `custom.height_inches` | number | comparison |
 | Delivery type | `custom.delivery_type` | white-glove, parcel, both | delivery rules, haul-away eligibility |
@@ -38,9 +38,9 @@ Sale pricing uses the variant's compare-at price. Gift-with-purchase and bundle 
 | `promo_tile` | collection reference, position, image, heading, link, enabled | collection grid tiles (REQ-COL-003) |
 | `quiz_question` | order, text, help text, multi (boolean), options (list of `quiz_option`) | REQ-QZ-001, REQ-QZ-004 |
 | `quiz_option` | label, scoring rules (list of attribute, value, weight, or filter, exclude flag) | REQ-QZ-003 |
-| `offer_rule` | type (comfort_protector, haul_away, matching_protector, pillow, bedding), trigger (collection or product), product references, max_quantity, price source, enabled | REQ-CAT-007, REQ-PRE-002/003 |
-| `site_settings` | promo_bar text and link, free_delivery_threshold, `haul_away_max` (the same number is set by hand in the Shopify Flow condition), financing copy, `extend_enabled` mirror (non-secret) | REQ-NAV-001, REQ-CART-004, REQ-PRE-003 |
-| `delivery_zone` | name, postal_codes (list; mirrors the Shopify Local delivery postal codes), fee text, free_over amount, promise text per delivery type. **One entry for now** (owner decision, ADR-0007) | REQ-DEL-001/002, REQ-PRE-003 |
+| `offer_rule` | name, type (comfort_protector, haul_away, matching_protector, pillow, bedding, gift, bundle), trigger (collection or product), products (list of product references: the offered items, gift choices or bundle members), max_quantity (gift quantity or bundle member quantity; **not** the haul-away maximum), price_source, enabled | REQ-CAT-007, REQ-CAT-008, REQ-PRE-002/003 |
+| `site_settings` | promo_bar text and link, **`haul_away_max`** (the single source of the haul-away maximum; the same number is set by hand in the Shopify Flow condition, and a reconciliation report compares them), financing copy, `extend_enabled` mirror (non-secret) | REQ-NAV-001, REQ-PRE-003 |
+| `delivery_zone` | name, `postal_codes` (**text**, comma-and-space or line separated, up to 3,000 characters, the same format as Shopify Local delivery, `*` prefixes allowed), fee text, **`free_over`** (the single source of the free-delivery threshold: delivery quote, cart progress message and the Local delivery price rule), promise text per delivery type. **One entry for now** (owner decision, ADR-0007) | REQ-DEL-001/002, REQ-CART-004, REQ-PRE-003 |
 
 The exact schema for `quiz_option` scoring and `offer_rule` triggers is finalised in P3A-02 after V-05; keep rules declarative (data), not code.
 

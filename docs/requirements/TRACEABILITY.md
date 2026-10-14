@@ -10,79 +10,79 @@ The spec names below are planned file stems, not existing files. `scripts/valida
 
 | ID | Phase | Unit and integration | E2E, accessibility | Other | State |
 |---|---|---|---|---|---|
-| REQ-NAV-001 | 2 | U: nav model | E+A: `shell.spec` (3 viewports, keyboard) | M: device pass | NOT_STARTED |
+| REQ-NAV-001 | 2 | U: nav model | E+A: `shell.spec` (3 viewports, keyboard) | M: device pass | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
 | REQ-NAV-002 | 3B | U: menu mapper; I: menu query | E+A: `shell.spec` mega menu | M: admin edit reflected | NOT_STARTED |
-| REQ-NAV-003 | 3B | U: ZIP validator | E: `delivery-zip.spec` | S: no ZIP to third parties | NOT_STARTED |
-| REQ-HOME-001 | 3B | U: section mapper; I: homepage query | E+A: `home.spec` | M: admin reorder | NOT_STARTED |
-| REQ-COL-001 | 3B | U: price and badge logic; I: collection query | E+A: `collection.spec` | P: LCP on listing | NOT_STARTED |
-| REQ-COL-002 | 3B | U: filter-URL codec; I: filters query | E+A: `collection.spec` filters | M: counts vs admin | NOT_STARTED |
-| REQ-COL-003 | 3B | U: tile placement | E: `collection.spec` tiles | | NOT_STARTED |
-| REQ-COL-004 | 3B | U: FAQ mapper | E+A: `collection.spec` FAQ | D: JSON-LD validation | NOT_STARTED |
-| REQ-COL-005 | 3B | I: brand query | E: `brand.spec` | M: admin edit reflected | NOT_STARTED |
-| REQ-SRCH-001 | 3B | U: debounce and guard | E+A: `search.spec` predictive | | NOT_STARTED |
-| REQ-SRCH-002 | 3B | I: search query | E: `search.spec` results | | NOT_STARTED |
-| REQ-PDP-001 | 3B | U: variant selection | E+A: `pdp.spec` size, gallery | P: LCP on PDP | NOT_STARTED |
-| REQ-PDP-002 | 3B | U: section visibility | E: `pdp.spec` sections | D: Product JSON-LD | NOT_STARTED |
+| REQ-NAV-003 | 3B | U: ZIP validator | E: `delivery-zip.spec` | S: no ZIP to third parties | IN_PROGRESS (header ZIP entry with server-side read, signed HttpOnly `delivery_zip` cookie and `/delivery` route built in 1173d79 and 6f34eaf; separate cookie secret in 17e0f0e; `delivery.spec` 28 pass, 2 skipped, agent-reported (built as `delivery.spec`, not `delivery-zip.spec`); security review of 1173d79 passed with conditions (no ZIP in logs or the client bundle); cart drawer fetch not refreshed after a ZIP change; no dev-store evidence) |
+| REQ-HOME-001 | 3B | U: section mapper; I: homepage query | E+A: `home.spec` | M: admin reorder | IN_PROGRESS (6f34eaf: sections built from admin-ordered `homepage_section` entries, 8 section types with fallbacks; `home.spec` passes locally on mock.shop; hero fallback copy and promo bar text still placeholders (`TODO(P3B-13)`); signup section renders nothing until P7-02; admin reorder and live data not verified; review pending) |
+| REQ-COL-001 | 3B | U: price and badge logic; I: collection query | E+A: `collection.spec` (built as `catalog.spec`) | P: LCP on listing | IN_PROGRESS (built; unit and e2e pass locally on mock.shop; ratings need P3B-12, gift badge needs P4-06; Lighthouse not run; review pending) |
+| REQ-COL-002 | 3B | U: filter-URL codec; I: filters query | E+A: `collection.spec` filters (built as `catalog.spec`) | M: counts vs admin | IN_PROGRESS (filter UI and URL codec built; unit and e2e pass locally; filter ids and counts unverified, V-04; review pending) |
+| REQ-COL-003 | 3B | U: tile placement | E: `collection.spec` tiles | | IN_PROGRESS (promo tiles in the collection grid built in 6f34eaf; local checks only; admin-driven tile content not verified on a dev store; review pending) |
+| REQ-COL-004 | 3B | U: FAQ mapper | E+A: `collection.spec` FAQ | D: JSON-LD validation | IN_PROGRESS (FAQ accordion and FAQPage JSON-LD built; unit tests pass; JSON-LD validation not run; review pending) |
+| REQ-COL-005 | 3B | I: brand query | E: `brand.spec` | M: admin edit reflected | IN_PROGRESS (`/brands` and `/brands/:handle` built in 6f34eaf on fixtures, `noindex`; `brands.spec` passes locally, agent-reported (built as `brands.spec`); not in the sitemap, PDP brand section not linked; admin edit and live data not verified; review pending) |
+| REQ-SRCH-001 | 3B | U: debounce and guard | E+A: `search.spec` predictive | | IN_PROGRESS (6f34eaf: suggestions are now an ARIA combobox with listbox keyboard handling; `search.spec` passes locally, agent-reported; screen-reader pass not run; `SearchResultsPredictive.tsx` is unused template code; review pending) |
+| REQ-SRCH-002 | 3B | I: search query | E: `search.spec` results | | IN_PROGRESS (results page built, filtered zero-results keeps a reset control (aa1a23e), `search.spec` passes locally on mock.shop; filters unverified on a dev store, V-04; review pending) |
+| REQ-PDP-001 | 3B | U: variant selection | E+A: `pdp.spec` size, gallery (built as `catalog.spec`) | P: LCP on PDP | IN_PROGRESS (built; unit and e2e pass locally on mock.shop; variant dimensions and nested lines unverified on a dev store, V-02; Lighthouse not run; review pending) |
+| REQ-PDP-002 | 3B | U: section visibility | E: `pdp.spec` sections (built as `catalog.spec`) | D: Product JSON-LD | IN_PROGRESS (sections built; brand section waits on P3B-06; metafields unverified, V-05; JSON-LD validation not run; review pending) |
 | REQ-PDP-003 | 3B | I: availability query | E: `pdp.spec` pickup | M: against real location stock | NOT_STARTED |
-| REQ-PDP-004 | 3B | | E: `pdp.spec` try-in-store link | | NOT_STARTED |
+| REQ-PDP-004 | 3B | | E: `pdp.spec` try-in-store link | | IN_PROGRESS (link built in part; depends on the my-store selection, whose header display was added in 6f34eaf; no dev-store evidence; review pending) |
 | REQ-PDP-005 | 3B | U: review adapter contract | E: `pdp.spec` reviews and failure | M: Judge.me proxy with a test key | NOT_STARTED |
-| REQ-ADD-001 | 4 | U: size matching | E: `addons.spec` | | NOT_STARTED |
-| REQ-ADD-002 | 4 | U: bundle pricing; I: batch add | E: `addons.spec` Add all | | NOT_STARTED |
-| REQ-ADD-003 | 5A | U: offer mapping | E: `protection.spec` PDP | | NOT_STARTED |
-| REQ-CMP-001 | 6 | U: attribute rows | E+A: `compare.spec` | | NOT_STARTED |
-| REQ-QZ-001 | 6 | U: quiz state machine | E+A: `quiz.spec` flow | M: client approves wording | NOT_STARTED |
-| REQ-QZ-002 | 6 | U: result assembly | E: `quiz.spec` results | | NOT_STARTED |
-| REQ-QZ-003 | 6 | U: scoring (table-driven, golden cases) | | | NOT_STARTED |
-| REQ-QZ-004 | 6 | U: config parser (invalid mapping); I: metaobject query | | M: admin edit reflected | NOT_STARTED |
-| REQ-QZ-005 | 6 | U: storage; I: account persistence | E: `quiz.spec` return visit | | NOT_STARTED |
-| REQ-QZ-006 | 6 | U: event builder | E: `analytics.spec` quiz events | | NOT_STARTED |
-| REQ-QZ-007 | 6 | | E: `quiz.spec` entry points | | NOT_STARTED |
-| REQ-LOC-001 | 6 | U: route and hours formatting | E+A: `stores.spec` | D: JSON-LD | NOT_STARTED |
-| REQ-LOC-002 | 3A | I: store query | | M: import count and admin edit | NOT_STARTED |
-| REQ-LOC-003 | 3B | U: store cookie | E: `stores.spec` my store | | NOT_STARTED |
-| REQ-DEL-001 | 5B | U: eligibility (ZIP fixtures, boundaries); I: parity script between the metaobject list and Local delivery postal codes | E: `delivery.spec` | M: test order in zone and out of zone | NOT_STARTED |
-| REQ-DEL-002 | 5B | U: promise rules | E: `delivery.spec` PDP | | NOT_STARTED |
+| REQ-ADD-001 | 4 | U: size matching | E: `addons.spec` | | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-ADD-002 | 4 | U: bundle pricing; I: batch add | E: `addons.spec` Add all | | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-ADD-003 | 5A | U: offer mapping | E: `protection.spec` PDP | | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-CMP-001 | 6 | U: attribute rows | E+A: `compare.spec` | | IN_PROGRESS (page built on fixture data, Add-to-compare control added in aa1a23e; resolves fixture handles only; unit and `compare.spec` pass locally; no compare link in the navigation yet; rating row omitted until P3B-12; review pending) |
+| REQ-QZ-001 | 6 | U: quiz state machine | E+A: `quiz.spec` flow | M: client approves wording | IN_PROGRESS (quiz UI built on fixture data; unit tests pass; `quiz.spec` has 1 failing full-run test (console CSP telemetry error), fix under way; wording not client-approved, CLR-012; review pending) |
+| REQ-QZ-002 | 6 | U: result assembly | E: `quiz.spec` results | | IN_PROGRESS (results UI built on fixture data; unit tests pass; covered by the `quiz.spec` full run that currently fails; review pending) |
+| REQ-QZ-003 | 6 | U: scoring (table-driven, golden cases) | | | IN_PROGRESS (scoring engine in use by the quiz page; unit tests pass; golden cases not client-approved; review pending) |
+| REQ-QZ-004 | 6 | U: config parser (invalid mapping); I: metaobject query | | M: admin edit reflected | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-QZ-005 | 6 | U: storage; I: account persistence | E: `quiz.spec` return visit | | IN_PROGRESS (device-only storage built and passes locally; saving to the customer account is not built, needs P6-07; criterion not met) |
+| REQ-QZ-006 | 6 | U: event builder | E: `analytics.spec` quiz events | | IN_PROGRESS (event hooks built; unit tests pass; consent gating and GA delivery not built or verified, REQ-ANL-001; review pending) |
+| REQ-QZ-007 | 6 | | E: `quiz.spec` entry points | | IN_PROGRESS (entry points and guidance note built; each listed surface to be confirmed by QA; review pending) |
+| REQ-LOC-001 | 6 | U: route and hours formatting | E+A: `stores.spec` | D: JSON-LD | IN_PROGRESS (state, city and store pages built on fixture stores; unit and `stores.spec` pass locally; store hours need `time_zone`, P3B-16; map tiles and JSON-LD validation not verified; review pending) |
+| REQ-LOC-002 | 3A | I: store query | | M: import count and admin edit | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-LOC-003 | 3B | U: store cookie | E: `stores.spec` my store | | IN_PROGRESS (cookie, "Set as my store" and, since 6f34eaf, the header my-store display built; `stores.spec` passes locally; pickup availability not built (REQ-PDP-003); no dev-store evidence; review pending) |
+| REQ-DEL-001 | 5B | U: eligibility (ZIP fixtures, boundaries); I: parity script between the metaobject list and Local delivery postal codes | E: `delivery.spec` | M: test order in zone and out of zone | IN_PROGRESS (eligibility logic, server-side ZIP and `/delivery` route built; `delivery.spec` 28 pass, 2 skipped, agent-reported, desktop 10 of 10, mobile not re-run; parity script `scripts/shopify/check-delivery-parity.mjs` (P5B-02) exists with script tests but has never run against a store; no test order, no live-store evidence) |
+| REQ-DEL-002 | 5B | U: promise rules | E: `delivery.spec` PDP | | IN_PROGRESS (PDP promise built in 1173d79, limited to in-zone yes/no; no fee, free-delivery or date promise; wording not client-approved; no live-store evidence) |
 | REQ-ACC-001 | 6 | I: auth round trip (test store) | E: `account.spec` login | S: session handling | NOT_STARTED |
 | REQ-ACC-002 | 6 | I: order queries | E: `account.spec` orders | S: cross-customer test | NOT_STARTED |
-| REQ-ACC-003 | 6 | U: matcher and 60-day window; I: lookup route | E: `account.spec` guest | S: enumeration, rate limit | NOT_STARTED |
-| REQ-CNT-001 | 6 | | E+A: `content.spec` (15 pages) | M: client text loaded | NOT_STARTED |
+| REQ-ACC-003 | 6 | U: matcher and 60-day window; I: lookup route | E: `account.spec` guest | S: enumeration, rate limit | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-CNT-001 | 6 | | E+A: `content.spec` (15 pages) | M: client text loaded | NOT_STARTED (note: the unsupplied comfort and price guarantee claims in the header strip and footer About links are hidden through `awaitingContent` (6f34eaf) until the client supplies content; the promo bar text and homepage hero fallback copy are still placeholders) |
 | REQ-CNT-002 | 6 | I: blog query | E: `content.spec` blog | | NOT_STARTED |
-| REQ-CART-001 | 4 | U: cart reducer; I: cart mutations | E+A: `cart.spec` | | NOT_STARTED |
-| REQ-CART-002 | 4 | U: gift eligibility | E: `gifts.spec` | | NOT_STARTED |
-| REQ-CART-003 | 4 | U: add-on rules | E: `addons.spec` cart | | NOT_STARTED |
-| REQ-CART-004 | 4 | U: threshold math | E: `cart.spec` free-delivery | | NOT_STARTED |
+| REQ-CART-001 | 4 | U: cart reducer; I: cart mutations | E+A: `cart.spec` | | IN_PROGRESS (cart drawer and page built, size swap on lines added in aa1a23e; unit and `cart.spec` (including hostile input, T-01/T-08) pass locally on mock.shop; not run against a dev store; `cartLinesUpdate` with a new `merchandiseId` (V-16) and nested lines (V-02) unverified; review pending) |
+| REQ-CART-002 | 4 | U: gift eligibility | E: `gifts.spec` | | IN_PROGRESS (logic and unit tests; evaluated on each cart pass since aa1a23e; the gift picker is a placeholder; no live-store evidence) |
+| REQ-CART-003 | 4 | U: add-on rules | E: `addons.spec` cart | | IN_PROGRESS (rules run on every cart pass since aa1a23e; the add-on picker UI is a placeholder; not seen live; no live-store evidence) |
+| REQ-CART-004 | 4 | U: threshold math | E: `cart.spec` free-delivery | | IN_PROGRESS (free-delivery progress message built in aa1a23e on the threshold math; threshold from server-only config, not client-confirmed; no live-store evidence) |
 | REQ-CART-005 | 4 | U: message selection | E: `cart.spec` financing | D: wording approval | NOT_STARTED |
-| REQ-PRE-001 | 4 | U: step planner | E+A: `precheckout.spec` | | NOT_STARTED |
-| REQ-PRE-002 | 4 | U: protector matching | E: `precheckout.spec` comfort | | NOT_STARTED |
-| REQ-PRE-003 | 5B | U: haul-away limits | E: `haulaway.spec` | S: server cap; M: Flow flags an over-limit test order | NOT_STARTED |
-| REQ-PRE-004 | 5A | U: coverage selection | E: `protection.spec` step | | NOT_STARTED |
-| REQ-PRE-005 | 4 | U: decline attributes | E: `precheckout.spec` + M: order in admin | | NOT_STARTED |
-| REQ-PRE-006 | 4 | U: `evaluateOffers` (tampered carts); I: action | E: `precheckout.spec` tamper | S: price tampering | NOT_STARTED |
-| REQ-PROMO-001 | 4 | U: gift rules | E: `gifts.spec` | M: cart equals checkout | NOT_STARTED |
-| REQ-PROMO-002 | 4 | U: bundle rules | E: `addons.spec` bundle | M: cart equals checkout | NOT_STARTED |
-| REQ-PROMO-003 | 5B | U: cap and revalidation logic; I: webhook or Flow-equivalent check | E: `haulaway.spec` direct-API over-limit cart | S: tamper test; M: Flow tags and emails on the dev store | NOT_STARTED |
+| REQ-PRE-001 | 4 | U: step planner | E+A: `precheckout.spec` | | IN_PROGRESS (`/checkout-steps` route built in aa1a23e with the step planner; comfort-guarantee step, and since 1173d79 the delivery-choice and haul-away steps; the protection step (P5A-07) is not built; delivery steps tested only against fakes; no live-store evidence) |
+| REQ-PRE-002 | 4 | U: protector matching | E: `precheckout.spec` comfort | | IN_PROGRESS (comfort-guarantee step reachable through `?step=`; wording is placeholder pending client approval; no live-store evidence) |
+| REQ-PRE-003 | 5B | U: haul-away limits | E: `haulaway.spec` | S: server cap; M: Flow flags an over-limit test order | IN_PROGRESS (logic and unit tests; the cart gate enforces it server-side; haul-away and delivery-choice steps at `/checkout-steps` built in 1173d79 and fixed in 17e0f0e (pickup removes haul-away lines, decline refused while a service line exists or when the step does not apply, cap from the rules); success paths tested only against fakes, not driven live; security finding E-M3 open: eligibility rests on a ZIP the shopper typed, the detective check P5B-05 is not built and needs the owner's written acceptance at the 5B gate; no live-store evidence) |
+| REQ-PRE-004 | 5A | U: coverage selection | E: `protection.spec` step | | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-PRE-005 | 4 | U: decline attributes | E: `precheckout.spec` + M: order in admin | | IN_PROGRESS (logic and unit tests; `cartAttributesUpdate` replace versus merge and a test order in admin unverified; no live-store evidence) |
+| REQ-PRE-006 | 4 | U: `evaluateOffers` (tampered carts); I: action | E: `precheckout.spec` tamper | S: price tampering | IN_PROGRESS (d068db6: coverage price is checked against the parent quote (`coverage-price-mismatch` correction), and a catalog read failure with the Extend flag on pauses checkout; revalidation wired in aa1a23e: each cart mutation and the `/checkout-steps` gate evaluate, repair and re-evaluate the cart read back from Shopify (max 3 passes), uncorrectable violations block the storefront path (our cart, drawer and `/checkout-steps` gate); direct Storefront API carts are detective only (ADR-0006), roles never from the browser; unit and e2e pass locally on mock.shop; security re-verification of aa1a23e pending; no live-store evidence) |
+| REQ-PROMO-001 | 4 | U: gift rules | E: `gifts.spec` | M: cart equals checkout | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-PROMO-002 | 4 | U: bundle rules | E: `addons.spec` bundle | M: cart equals checkout | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-PROMO-003 | 5B | U: cap and revalidation logic; I: webhook or Flow-equivalent check | E: `haulaway.spec` direct-API over-limit cart | S: tamper test; M: Flow tags and emails on the dev store | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
 | REQ-POST-001 | 5B | | | D: client decision (app or drop); M: dev-store test if an app is installed | NOT_STARTED |
 | REQ-POST-002 | 5B | | | D: client decision (app or drop); M: dev-store test if an app is installed | NOT_STARTED |
-| REQ-EXT-001 | 5A | U: request builder; I: Offers client against the local mock, then the Extend demo host | E: `protection.spec` | S: server-only credentials | NOT_STARTED |
-| REQ-EXT-002 | 5A | U: link model and price-point matching | E: `protection.spec` qty, size, remove | S: orphan line; M: V-16 nested-line behaviour on the dev store | NOT_STARTED |
-| REQ-EXT-003 | 5A | U: order snapshot builder; I: sync against the local mock (create, fulfil, refund, cancel, replay), then the Extend demo host | | S: HMAC; M: contract issued in demo | NOT_STARTED |
+| REQ-EXT-001 | 5A | U: request builder; I: Offers client against the local mock, then the Extend demo host | E: `protection.spec` | S: server-only credentials | IN_PROGRESS (client plus `/api/extend/offers` route built (1173d79, d068db6: same-site guard, 60 distinct variants per minute cap, quotes per price band); mock only, behind `PUBLIC_EXTEND_ENABLED`; no PDP offer UI (P5A-05); security E-M2 open (memo key includes quantity; real rate limiting needs Q-003); nothing run against Extend's demo host) |
+| REQ-EXT-002 | 5A | U: link model and price-point matching | E: `protection.spec` qty, size, remove | S: orphan line; M: V-16 nested-line behaviour on the dev store | IN_PROGRESS (coverage seam `loadExtendCartInputs` wired into the cart gate (1173d79); coverage price checked against the parent quote and coverage recognised by plan name even with the flag off (d068db6); no browser action adds a coverage line yet (P5A-05/07); V-02 and V-16 unverified; unit tests on fakes and the mock only) |
+| REQ-EXT-003 | 5A | U: order snapshot builder; I: sync against the local mock (create, fulfil, refund, cancel, replay), then the Extend demo host | | S: HMAC; M: contract issued in demo | IN_PROGRESS (`/webhooks/shopify` route built in 1173d79: HMAC on raw bytes, 6-hour freshness window, per-order coalescer, background sync only when `EXTEND_ORDER_SYNC=self`; reviewed, three Majors fixed in d068db6; `scripts/extend/reconcile.mjs` dry-run default; tested against the mock and fakes only; no real Shopify delivery (V-20), no Extend demo run) |
 | REQ-EXT-004 | 5A | | E: `protection.spec` branding and terms | D: Extend approval | NOT_STARTED |
-| REQ-EXT-005 | 5A | U: category filter | E: `protection.spec` ineligible | | NOT_STARTED |
-| REQ-CHK-001 | 4 | I: cart-to-checkout hand-off | E: `checkout-handoff.spec` (stops at Shopify checkout) | M: totals compared | NOT_STARTED |
+| REQ-EXT-005 | 5A | U: category filter | E: `protection.spec` ineligible | | IN_PROGRESS (category eligibility applied in the offers route (1173d79); unit tests on fakes and the mock only; no UI or live-store evidence) |
+| REQ-CHK-001 | 4 | I: cart-to-checkout hand-off | E: `checkout-handoff.spec` (stops at Shopify checkout) | M: totals compared | IN_PROGRESS (hand-off now goes through the `/checkout-steps` gate with server revalidation (P4-09, P4-11, aa1a23e); permalink `/cart/:lines` redirects to the gate; only the comfort step exists; haul-away lines block checkout until P3B-11; checkout total equality not checked; no `checkout-handoff.spec` yet) |
 | REQ-CHK-002 | 5B | | | M: checkout branding review | NOT_STARTED |
 | REQ-CHK-003 | 5B | | E: `checkout-handoff.spec` methods | M: test orders per method | NOT_STARTED |
 | REQ-CHK-004 | 5B | | | M: test payment per option | NOT_STARTED |
 | REQ-CHK-005 | 5B | | | M: test order | NOT_STARTED |
 | REQ-CHK-006 | 5B | | | M: emails to test inbox | NOT_STARTED |
-| REQ-CAT-001 | 3A | U: validator rules | | D: validation report | NOT_STARTED |
-| REQ-CAT-002 | 3A | U: mapper; I: idempotent import (dev store) | | M: sampled comparison | NOT_STARTED |
-| REQ-CAT-003 | 3A | U: image matching | | M: sample review | NOT_STARTED |
+| REQ-CAT-001 | 3A | U: validator rules | | D: validation report | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-CAT-002 | 3A | U: mapper; I: idempotent import (dev store) | | M: sampled comparison | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-CAT-003 | 3A | U: image matching | | M: sample review | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
 | REQ-CAT-004 | 3A | | | D: approval log | NOT_STARTED |
 | REQ-CAT-005 | 3A | I: new product lands in rules | | M: admin check | NOT_STARTED |
 | REQ-CAT-006 | 3A | I: brand query | | M: sample review | NOT_STARTED |
-| REQ-CAT-007 | 4 | I: rule query | E: `precheckout.spec` | M: rule change without deploy | NOT_STARTED |
-| REQ-CAT-008 | 4 | | E: `gifts.spec`, `addons.spec` | M: launch rules verified | NOT_STARTED |
-| REQ-CAT-009 | 3A | I: re-run updates only | | D: admin guide section | NOT_STARTED |
+| REQ-CAT-007 | 4 | I: rule query | E: `precheckout.spec` | M: rule change without deploy | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-CAT-008 | 4 | | E: `gifts.spec`, `addons.spec` | M: launch rules verified | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| REQ-CAT-009 | 3A | I: re-run updates only | | D: admin guide section | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
 | REQ-ANL-001 | 7 | U: event builders | E: `analytics.spec` consent | M: GA4 DebugView | NOT_STARTED |
 | REQ-ANL-002 | 7 | U: event builders | E: `analytics.spec` | M: Meta test events | NOT_STARTED |
 | REQ-ANL-003 | 7 | I: signup route | E: `signup.spec` | M: profile in Klaviyo | NOT_STARTED |
@@ -101,16 +101,16 @@ The spec names below are planned file stems, not existing files. `scripts/valida
 | REQ-ACPT-002 | 8 | | | D: test-order evidence per combination | NOT_STARTED |
 | REQ-ACPT-003 | 8 | | | D: defect log, signed deferrals | NOT_STARTED |
 | REQ-GOV-001 | 0 | | | D: TECH_FEASIBILITY review | NOT_STARTED |
-| NFR-001 | 2 | | E: `shell.spec` and every page spec at 4 viewports | M: device pass | NOT_STARTED |
+| NFR-001 | 2 | | E: `shell.spec` and every page spec at 4 viewports | M: device pass | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
 | NFR-002 | 7 | | | P: Lighthouse CI budgets | NOT_STARTED |
 | NFR-003 | 7 | | A: axe in every spec | M: screen-reader pass | NOT_STARTED |
 | NFR-004 | 7 | I: webhook signature | | S: threat-model verification, dependency audit | NOT_STARTED |
 | NFR-005 | 6 | | | M: non-developer edits each content type | NOT_STARTED |
 | NFR-006 | 1 | | | D: architecture review (no database) | NOT_STARTED |
 | NFR-007 | 8 | | | D: asset provenance and copy review | NOT_STARTED |
-| NFR-008 | 2 | U: price formatting | | D: no i18n or currency libraries | NOT_STARTED |
+| NFR-008 | 2 | U: price formatting | | D: no i18n or currency libraries | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
 | NFR-009 | 8 | | E: browser projects in the Playwright config | M: device matrix | NOT_STARTED |
 | NFR-010 | 7 | U: logger redaction | | D: alert test | NOT_STARTED |
 | NFR-011 | 7 | | E: `analytics.spec` consent gating | D: consent behaviour approved | NOT_STARTED |
-| NFR-012 | 1 | | | D: CI run showing a failing check blocks merge | NOT_STARTED |
-| NFR-013 | 5A | I: timeouts and failures | E: `resilience.spec` | | NOT_STARTED |
+| NFR-012 | 1 | | | D: CI run showing a failing check blocks merge | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |
+| NFR-013 | 5A | I: timeouts and failures | E: `resilience.spec` | | IN_PROGRESS (logic and unit tests only; no UI or live-store evidence yet) |

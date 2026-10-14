@@ -45,6 +45,7 @@ REQ-NAV-002, REQ-NAV-003, REQ-HOME-001, REQ-COL-001, REQ-COL-002, REQ-COL-003, R
 | P3B-12 | Reviews adapter interface and the chosen provider (blocked until Q-011); ratings on collections and product pages | integration-engineer | Q-011 | `app/lib/reviews/*` |
 | P3B-13 | Homepage sections from Shopify, reorderable in admin | shopify-hydrogen-developer | P3B-01 | `app/routes/_index.tsx`, section components |
 | P3B-14 | E2E journeys (home to collection to filter to product to size change), accessibility scans, performance baseline | qa-engineer | P3B-03 to P3B-13 | `storefront/tests/e2e/*.spec.ts` |
+| P3B-16 | Add the optional `time_zone` field to the `store` metaobject definition (store hours need it) and to the importer | solution-architect | P3A-02 | `scripts/shopify/definitions.json`, `docs/architecture/SHOPIFY_DATA_MODEL.md` |
 | P3B-15 | Phase gate review | project-manager | all | gate record |
 
 ## Dependencies and blockers

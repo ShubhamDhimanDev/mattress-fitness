@@ -1,135 +1,125 @@
-import {redirect, useLoaderData} from 'react-router';
-import type {Route} from './+types/products.$handle';
+import {Analytics} from '@shopify/hydrogen';
 import {
-  getSelectedProductOptions,
-  Analytics,
-  useOptimisticVariant,
-  getProductOptions,
-  getAdjacentAndFirstAvailableVariants,
-  useSelectedOptionInUrlParam,
-} from '@shopify/hydrogen';
-import {ProductPrice} from '~/components/ProductPrice';
-import {ProductImage} from '~/components/ProductImage';
-import {ProductForm} from '~/components/ProductForm';
-import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+  useLoaderData,
+  useSearchParams,
+  type ShouldRevalidateFunction,
+} from 'react-router';
+import type {Route} from './+types/products.$handle';
+import {formatPageTitle} from '~/components/layout/documentTitle';
+import {ProductBuyBox} from '~/components/product/ProductBuyBox';
+import {ProductGallery} from '~/components/product/ProductGallery';
+import {ProductSections} from '~/components/product/ProductSections';
+import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {buildBreadcrumbJsonLd, buildProductJsonLd} from '~/lib/shopify/jsonld';
+import {loadProductPage} from '~/lib/shopify/product-data';
+import {resolveSiteOrigin} from '~/lib/site-origin';
+import {
+  parseSelectedOptions,
+  selectVariant,
+} from '~/lib/shopify/variant-selection';
 
 export const meta: Route.MetaFunction = ({data}) => {
+  if (!data) return [{title: formatPageTitle('Product not found')}];
+  const {product} = data;
   return [
-    {title: `Hydrogen | ${data?.product.title ?? ''}`},
-    {
-      rel: 'canonical',
-      href: `/products/${data?.product.handle}`,
-    },
+    {title: formatPageTitle(product.seoTitle ?? product.title)},
+    ...(product.seoDescription
+      ? [{name: 'description', content: product.seoDescription}]
+      : []),
+    ...(data.canonical
+      ? [{tagName: 'link', rel: 'canonical', href: data.canonical}]
+      : []),
+    {'script:ld+json': data.productJsonLd},
+    {'script:ld+json': data.breadcrumbJsonLd},
   ];
 };
 
-export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
-
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
-  return {...deferredData, ...criticalData};
-}
-
 /**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
+ * Changing the size only changes the search string; every variant is already on the page, so there is
+ * nothing to refetch. Mutations (add to cart) still revalidate as usual.
  */
-async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
-  const {handle} = params;
-  const {storefront} = context;
+export const shouldRevalidate: ShouldRevalidateFunction = ({
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}) => {
+  if (formMethod && formMethod !== 'GET') return defaultShouldRevalidate;
+  if (currentUrl.pathname === nextUrl.pathname) return false;
+  return defaultShouldRevalidate;
+};
 
-  if (!handle) {
-    throw new Error('Expected product handle to be defined');
+export async function loader({context, params, request}: Route.LoaderArgs) {
+  const result = await loadProductPage(context.storefront, params.handle ?? '');
+  if (result.status === 'not-found') {
+    throw new Response('Product not found', {status: 404});
   }
-
-  const [{product}] = await Promise.all([
-    storefront.query(PRODUCT_QUERY, {
-      variables: {handle, selectedOptions: getSelectedProductOptions(request)},
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
-
-  if (!product?.id) {
-    throw new Response(null, {status: 404});
-  }
-
-  // The API handle might be localized, so redirect to the localized handle
-  redirectIfHandleIsLocalized(request, {handle, data: product});
-
+  const {product} = result;
+  // Never the request's Host (P-L2); null outside development without PUBLIC_SITE_URL, so URLs stay relative.
+  const siteOrigin = resolveSiteOrigin({
+    env: context.env,
+    requestUrl: request.url,
+    isDev: import.meta.env.DEV,
+  });
+  const origin = siteOrigin ?? '';
   return {
     product,
+    canonical: siteOrigin ? `${siteOrigin}/products/${product.handle}` : null,
+    productJsonLd: buildProductJsonLd(product, origin),
+    breadcrumbJsonLd: buildBreadcrumbJsonLd(
+      [
+        {name: 'Home', path: '/'},
+        {name: 'Collections', path: '/collections'},
+        {name: product.title, path: `/products/${product.handle}`},
+      ],
+      origin,
+    ),
   };
-}
-
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({context, params}: Route.LoaderArgs) {
-  // Put any API calls that is not critical to be available on first page render
-  // For example: product reviews, product recommendations, social feeds.
-
-  return {};
 }
 
 export default function Product() {
   const {product} = useLoaderData<typeof loader>();
+  const [searchParams] = useSearchParams();
 
-  // Optimistically selects a variant with given available variant information
-  const selectedVariant = useOptimisticVariant(
-    product.selectedOrFirstAvailableVariant,
-    getAdjacentAndFirstAvailableVariants(product),
+  // The same pure functions the server used, so the first render and later switches always agree.
+  const variant = selectVariant(
+    product.variants,
+    parseSelectedOptions(searchParams, product.options),
   );
-
-  // Sets the search param to the selected variant without navigation
-  // only when no search params are set in the url
-  useSelectedOptionInUrlParam(selectedVariant.selectedOptions);
-
-  // Get the product options array
-  const productOptions = getProductOptions({
-    ...product,
-    selectedOrFirstAvailableVariant: selectedVariant,
-  });
-
-  const {title, descriptionHtml} = product;
+  if (!variant) return null;
+  const variantImageIndex = variant.image
+    ? product.images.findIndex((image) => image.url === variant.image?.url)
+    : -1;
 
   return (
-    <div className="product">
-      <ProductImage image={selectedVariant?.image} />
-      <div className="product-main">
-        <h1>{title}</h1>
-        <ProductPrice
-          price={selectedVariant?.price}
-          compareAtPrice={selectedVariant?.compareAtPrice}
+    <div className="py-4">
+      <Breadcrumb
+        items={[
+          {label: 'Home', to: '/'},
+          {label: 'Collections', to: '/collections'},
+          {label: product.title},
+        ]}
+      />
+      <div className="mt-4 grid gap-8 lg:grid-cols-2">
+        <ProductGallery
+          key={variant.image?.url ?? 'default'}
+          images={product.images}
+          title={product.title}
+          initialIndex={Math.max(variantImageIndex, 0)}
         />
-        <br />
-        <ProductForm
-          productOptions={productOptions}
-          selectedVariant={selectedVariant}
-        />
-        <br />
-        <br />
-        <p>
-          <strong>Description</strong>
-        </p>
-        <br />
-        <div dangerouslySetInnerHTML={{__html: descriptionHtml}} />
-        <br />
+        <ProductBuyBox product={product} variant={variant} />
       </div>
+      <ProductSections product={product} />
       <Analytics.ProductView
         data={{
           products: [
             {
               id: product.id,
               title: product.title,
-              price: selectedVariant?.price.amount || '0',
+              price: variant.price.amount,
               vendor: product.vendor,
-              variantId: selectedVariant?.id || '',
-              variantTitle: selectedVariant?.title || '',
+              variantId: variant.id,
+              variantTitle: variant.title,
               quantity: 1,
             },
           ],
@@ -138,95 +128,3 @@ export default function Product() {
     </div>
   );
 }
-
-const PRODUCT_VARIANT_FRAGMENT = `#graphql
-  fragment ProductVariant on ProductVariant {
-    availableForSale
-    compareAtPrice {
-      amount
-      currencyCode
-    }
-    id
-    image {
-      __typename
-      id
-      url
-      altText
-      width
-      height
-    }
-    price {
-      amount
-      currencyCode
-    }
-    product {
-      title
-      handle
-    }
-    selectedOptions {
-      name
-      value
-    }
-    sku
-    title
-    unitPrice {
-      amount
-      currencyCode
-    }
-  }
-` as const;
-
-const PRODUCT_FRAGMENT = `#graphql
-  fragment Product on Product {
-    id
-    title
-    vendor
-    handle
-    descriptionHtml
-    description
-    encodedVariantExistence
-    encodedVariantAvailability
-    options {
-      name
-      optionValues {
-        name
-        firstSelectableVariant {
-          ...ProductVariant
-        }
-        swatch {
-          color
-          image {
-            previewImage {
-              url
-            }
-          }
-        }
-      }
-    }
-    selectedOrFirstAvailableVariant(selectedOptions: $selectedOptions, ignoreUnknownOptions: true, caseInsensitiveMatch: true) {
-      ...ProductVariant
-    }
-    adjacentVariants (selectedOptions: $selectedOptions) {
-      ...ProductVariant
-    }
-    seo {
-      description
-      title
-    }
-  }
-  ${PRODUCT_VARIANT_FRAGMENT}
-` as const;
-
-const PRODUCT_QUERY = `#graphql
-  query Product(
-    $country: CountryCode
-    $handle: String!
-    $language: LanguageCode
-    $selectedOptions: [SelectedOptionInput!]!
-  ) @inContext(country: $country, language: $language) {
-    product(handle: $handle) {
-      ...Product
-    }
-  }
-  ${PRODUCT_FRAGMENT}
-` as const;

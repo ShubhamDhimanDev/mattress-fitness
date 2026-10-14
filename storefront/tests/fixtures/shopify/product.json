@@ -1,0 +1,434 @@
+{
+  "product": {
+    "id": "gid://shopify/Product/3208",
+    "handle": "linen-pillowcase-pair-in-warm-clay",
+    "title": "Linen Pillowcase Pair in Warm Clay",
+    "vendor": "CloudHaven Linens",
+    "productType": "Sun-Drenched Morning Bedding",
+    "description": "A pair of linen pillowcases in a warm clay hue, showcasing the natural drape and texture of the fabric. These pillowcases are designed to add a touch of understated elegance to any bedroom.",
+    "seo": {
+      "title": "Linen Pillowcase Pair in Warm Clay",
+      "description": "A pair of linen pillowcases in a warm clay hue, showcasing the natural drape and texture of the fabric. These pillowcases are designed to add a touch of..."
+    },
+    "featuredImage": {
+      "id": "gid://shopify/ProductImage/7658",
+      "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+      "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+      "width": 768,
+      "height": 1344
+    },
+    "images": {
+      "nodes": [
+        {
+          "id": "gid://shopify/ProductImage/7658",
+          "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+          "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+          "width": 768,
+          "height": 1344
+        },
+        {
+          "id": "gid://shopify/ProductImage/7659",
+          "url": "https://cdn.shopify.com/mock-shop-production-media/bedding/f0d1dbdc-f64c-4083-bbd1-2b9334fd8af8.png",
+          "altText": "Linen Pillowcase Pair in Warm Clay in a new setting",
+          "width": 768,
+          "height": 1344
+        },
+        {
+          "id": "gid://shopify/ProductImage/7660",
+          "url": "https://cdn.shopify.com/mock-shop-production-media/bedding/9785639f-5298-4866-b9e9-711327f41732.png",
+          "altText": "Linen Pillowcase Pair in Warm Clay in use",
+          "width": 768,
+          "height": 1344
+        }
+      ]
+    },
+    "options": [
+      {
+        "name": "Size",
+        "optionValues": [
+          {
+            "name": "Twin"
+          },
+          {
+            "name": "Full"
+          },
+          {
+            "name": "Queen"
+          },
+          {
+            "name": "King"
+          }
+        ]
+      },
+      {
+        "name": "Color",
+        "optionValues": [
+          {
+            "name": "Sand"
+          },
+          {
+            "name": "Stone"
+          },
+          {
+            "name": "Cloud"
+          }
+        ]
+      }
+    ],
+    "variants": {
+      "nodes": [
+        {
+          "id": "gid://shopify/ProductVariant/17581",
+          "title": "Twin / Sand",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-1",
+          "availableForSale": true,
+          "price": {
+            "amount": "75.0",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "Twin"
+            },
+            {
+              "name": "Color",
+              "value": "Sand"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17582",
+          "title": "Twin / Stone",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-2",
+          "availableForSale": true,
+          "price": {
+            "amount": "75.0",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "Twin"
+            },
+            {
+              "name": "Color",
+              "value": "Stone"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17583",
+          "title": "Twin / Cloud",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-3",
+          "availableForSale": true,
+          "price": {
+            "amount": "75.0",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "Twin"
+            },
+            {
+              "name": "Color",
+              "value": "Cloud"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17584",
+          "title": "Full / Sand",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-4",
+          "availableForSale": true,
+          "price": {
+            "amount": "78.75",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "Full"
+            },
+            {
+              "name": "Color",
+              "value": "Sand"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17585",
+          "title": "Full / Stone",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-5",
+          "availableForSale": true,
+          "price": {
+            "amount": "78.75",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "Full"
+            },
+            {
+              "name": "Color",
+              "value": "Stone"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17586",
+          "title": "Full / Cloud",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-6",
+          "availableForSale": true,
+          "price": {
+            "amount": "78.75",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "Full"
+            },
+            {
+              "name": "Color",
+              "value": "Cloud"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17587",
+          "title": "Queen / Sand",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-7",
+          "availableForSale": true,
+          "price": {
+            "amount": "82.5",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "Queen"
+            },
+            {
+              "name": "Color",
+              "value": "Sand"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17588",
+          "title": "Queen / Stone",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-8",
+          "availableForSale": true,
+          "price": {
+            "amount": "82.5",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "Queen"
+            },
+            {
+              "name": "Color",
+              "value": "Stone"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17589",
+          "title": "Queen / Cloud",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-9",
+          "availableForSale": true,
+          "price": {
+            "amount": "82.5",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "Queen"
+            },
+            {
+              "name": "Color",
+              "value": "Cloud"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17590",
+          "title": "King / Sand",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-10",
+          "availableForSale": true,
+          "price": {
+            "amount": "86.25",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "King"
+            },
+            {
+              "name": "Color",
+              "value": "Sand"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17591",
+          "title": "King / Stone",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-11",
+          "availableForSale": true,
+          "price": {
+            "amount": "86.25",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "King"
+            },
+            {
+              "name": "Color",
+              "value": "Stone"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        },
+        {
+          "id": "gid://shopify/ProductVariant/17592",
+          "title": "King / Cloud",
+          "sku": "LINEN-PILLOWCASE-PAIR-IN-WARM-CLAY-12",
+          "availableForSale": true,
+          "price": {
+            "amount": "86.25",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Size",
+              "value": "King"
+            },
+            {
+              "name": "Color",
+              "value": "Cloud"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/ProductImage/7658",
+            "url": "https://cdn.shopify.com/s/files/1/0926/4031/3366/files/fe21ad8a129eaab12fc1121724c49bad.png?v=13712014",
+            "altText": "Linen pillowcases pair in Warm Clay, Single product on made bed at three-quarter angle—captures linen’s drape and texture....",
+            "width": 768,
+            "height": 1344
+          },
+          "dimensions": null
+        }
+      ]
+    },
+    "metafields": [null, null, null, null, null, null, null, null],
+    "brand": null,
+    "faqs": null
+  }
+}

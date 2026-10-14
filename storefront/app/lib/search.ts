@@ -1,7 +1,4 @@
-import type {
-  PredictiveSearchQuery,
-  RegularSearchQuery,
-} from 'storefrontapi.generated';
+import type {PredictiveSearchQuery} from 'storefrontapi.generated';
 
 type ResultWithItems<Type extends 'predictive' | 'regular', Items> = {
   type: Type;
@@ -10,10 +7,6 @@ type ResultWithItems<Type extends 'predictive' | 'regular', Items> = {
   result: {total: number; items: Items};
 };
 
-export type RegularSearchReturn = ResultWithItems<
-  'regular',
-  RegularSearchQuery
->;
 export type PredictiveSearchReturn = ResultWithItems<
   'predictive',
   NonNullable<PredictiveSearchQuery['predictiveSearch']>
