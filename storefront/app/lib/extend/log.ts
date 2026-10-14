@@ -23,7 +23,13 @@ export type ExtendLogEventName =
   | 'offers.route_unavailable'
   | 'coverage.catalog_unavailable'
   | 'coverage.catalog_incomplete'
-  | 'coverage.inputs_degraded';
+  | 'coverage.inputs_degraded'
+  // The detective order check (P5B-05). `reason` is a violation code or an unjudged reason, never an order value.
+  | 'detective.checked'
+  | 'detective.violation'
+  | 'detective.unjudged'
+  | 'detective.skipped'
+  | 'detective.read_failed';
 
 export type ExtendLogEvent = {
   level: 'info' | 'warn' | 'error';
