@@ -49,6 +49,12 @@ describe('P5B-05 detective documents', () => {
     }
   });
 
+  it('page the orders newest first, so a limit drops the oldest and never the newest', () => {
+    expect(DETECTIVE_ORDERS_PAGE_QUERY).toMatch(
+      /orders\([^)]*sortKey: CREATED_AT, reverse: true\)/,
+    );
+  });
+
   it('keep the requested size bounded and leave the Extend document alone', () => {
     expect(DETECTIVE_LINE_PAGE_SIZE).toBe(50);
     expect(DETECTIVE_ORDERS_PAGE_SIZE).toBe(2);

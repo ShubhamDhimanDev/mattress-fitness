@@ -71,7 +71,8 @@ export async function readRules(options, libs) {
 }
 
 /**
- * Pages through orders created since the date, up to the limit, and judges each one. An order that cannot be read
+ * Pages through orders created since the date, NEWEST FIRST (the query sets reverse: true), up to the limit, and judges
+ * each one. When the limit cuts the read short it is the oldest orders in the window that are left unchecked. An order that cannot be read
  * completely is recorded as not judged, never skipped and never clean. If Shopify refuses the page because its requested
  * query cost is over the limit, the page size drops to one order and the same page is asked again (V-20: the cost figures
  * are estimates until a real response shows extensions.cost).
@@ -120,7 +121,7 @@ export async function judgeRecentOrders(client, libs, config, { since, limit }) 
   return { ok: true, results, truncated };
 }
 
-/** @param {import('../../storefront/app/lib/detective/report').DetectiveReport} report @param {{ truncated: boolean, warnings: readonly string[] }} extra */
+/** @param {import('../../storefront/app/lib/detective/report').DetectiveReport} report @param {{ truncated: boolean, warnings: readonly string[], limit: number, since: string }} extra */
 export function renderReport(report, extra) {
   const { counts } = report;
   const lines = [
@@ -146,7 +147,18 @@ export function renderReport(report, extra) {
       ),
     );
   }
-  if (extra.truncated) lines.push('', 'The order limit was reached: older orders in the window were not checked.');
+  if (report.unjudgedByReason.some((entry) => entry.reason === 'coverage_price_unjudged')) {
+    lines.push(
+      '',
+      'coverage_price_unjudged: these orders have protection lines. Only their structure was checked (valid plan id, covered item on the order, one per item, quantity). Their price and plan were NOT compared with Extend, so a wrong price is not caught here. They are counted as not judged, never clean.',
+    );
+  }
+  if (extra.truncated) {
+    lines.push(
+      '',
+      `The limit of ${extra.limit} orders was reached. The ${report.checkedOrders} newest orders created since ${extra.since} were checked; the older orders in that window were NOT checked. Raise --limit (up to ${MAX_LIMIT}) or narrow --since to cover them.`,
+    );
+  }
   for (const warning of extra.warnings) lines.push(`offer rules: ${warning}`);
   lines.push('', 'Judged against the current offer rules and delivery zone. Delivery method is read from the order attribute delivery_choice (a shopper-writable claim).');
   return lines.join('\n');
@@ -220,8 +232,9 @@ export async function main(argv, io = {}) {
   }
 
   const report = libs.summarizeResults(judged.results);
-  const extra = { truncated: judged.truncated, warnings: rules.warnings };
-  const document = { generatedAt: new Date(now()).toISOString(), store: guard.store, since, truncated: judged.truncated, report };
+  const extra = { truncated: judged.truncated, warnings: rules.warnings, limit, since };
+  // order: orders are read newest first, so a truncated run holds the newest `limit` orders and skipped the OLDER ones.
+  const document = { generatedAt: new Date(now()).toISOString(), store: guard.store, since, limit, order: 'newest_first', truncated: judged.truncated, report };
   if (typeof v.out === 'string') {
     try {
       // 'wx': never overwrite an earlier report.

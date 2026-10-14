@@ -56,10 +56,25 @@ export const UNJUDGED_REASONS = [
   'mattress_size_unreadable',
   /** Shopify did not keep the nested-line parent, and two lines share the covered product. */
   'coverage_link_ambiguous',
+  /**
+   * The order holds a standing protection line, and nothing in this run judged its price or plan. The detective is offline
+   * and Extend's quote needs the network and credentials, so a $5 price point on a $2,000 mattress passes every
+   * structural check. Reported whenever no other check (the Extend order sync in `self` mode) is judging the price.
+   */
+  'coverage_price_unjudged',
   /** A check returned something it cannot return for an order. A defect, not an order problem. */
   'internal_error',
 ] as const;
 export type UnjudgedReason = (typeof UNJUDGED_REASONS)[number];
+
+/** Who else looks at what the detective cannot. The safe default (nothing set) is "nobody", which is reported. */
+export type DetectOptions = {
+  /**
+   * True only when the Extend order sync (EXTEND_ORDER_SYNC=self) judges each coverage line's plan and price against
+   * Extend's quote for the same order. Without it every order with protection says `coverage_price_unjudged`.
+   */
+  readonly coveragePriceJudgedElsewhere?: boolean;
+};
 
 export type OrderViolation = {
   readonly code: ViolationCode;

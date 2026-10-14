@@ -72,6 +72,15 @@ const DETECTIVE_INTENTS: ReadonlySet<WebhookIntent> = new Set<WebhookIntent>([
 
 type SyncOutcome = ProcessOutcome | {status: 'skipped'};
 
+/**
+ * The detective's own failure, tagged so the handler logs `detective_failed` and not `sync_failed`. The sync's failures
+ * stay a plain `{status: 'failed'}`, so nothing about the sync outcome changes.
+ */
+const DETECTIVE_FAILED: ProcessOutcome = {
+  status: 'failed',
+  source: 'detective',
+};
+
 async function processSync(
   action: WebhookAction,
   deps: ProcessDeps,
@@ -215,9 +224,15 @@ async function runDetective(
         orderId: action.orderId,
         reason: read.reason,
       });
-      return {status: 'failed'};
+      return DETECTIVE_FAILED;
     }
-    logDetectiveResult(detectWithConfig(read.order, config), log);
+    logDetectiveResult(
+      detectWithConfig(read.order, config, {
+        // Only the sync in `self` mode compares each protection line's price and plan with Extend's quote.
+        coveragePriceJudgedElsewhere: syncJudgesCoveragePrice(deps),
+      }),
+      log,
+    );
     return {status: 'done'};
   } catch {
     log({
@@ -226,8 +241,15 @@ async function runDetective(
       orderId: action.orderId,
       reason: 'internal_error',
     });
-    return {status: 'failed'};
+    return DETECTIVE_FAILED;
   }
+}
+
+/** True when this deployment's own sync cross-checks coverage price and plan against Extend. */
+function syncJudgesCoveragePrice(deps: ProcessDeps): boolean {
+  return (
+    deps.config.status === 'enabled' && deps.config.config.orderSync === 'self'
+  );
 }
 
 export async function processOrderAction(

@@ -1,7 +1,9 @@
 import {describe, expect, it} from 'vitest';
 import {
+  P,
   RULES,
   SYNTHETIC_PII,
+  V,
   ZONE,
   adminDetectiveHaulNode,
   adminDetectiveLineNode,
@@ -270,14 +272,89 @@ describe('P5B-05 the Extend sync behaves exactly as before (REQ-EXT-003)', () =>
     ]);
   });
 
-  it('when only the detective ran and its read failed, the outcome is failed so the id is not marked seen', async () => {
+  it('when only the detective ran and its read failed, the outcome is failed so the id is not marked seen, and it says the detective failed', async () => {
     const h = harness({
       extend: extendConfig('off'),
       detectiveAnswer: () => new Response('', {status: 401}),
     });
     expect(await processOrderAction(action(), h.deps)).toEqual({
       status: 'failed',
+      source: 'detective',
     });
+  });
+
+  it('a failing sync stays a plain failed outcome, with no detective source, even when the detective failed too', async () => {
+    const h = harness({
+      extendOrderAnswer: () => new Response('', {status: 401}),
+      detectiveAnswer: () => new Response('', {status: 401}),
+    });
+    const outcome = await processOrderAction(action(), h.deps);
+    expect(outcome).toEqual({status: 'failed'});
+    expect(outcome).not.toHaveProperty('source');
+  });
+
+  it('a skipped sync with a detective that read fine is done, as before', async () => {
+    const h = harness({extend: extendConfig('extend-app')});
+    expect(await processOrderAction(action(), h.deps)).toEqual({
+      status: 'done',
+    });
+  });
+});
+
+describe('P5B-05 REQ-PRE-004 coverage price is not judged unless the Extend sync judges it', () => {
+  const protectedOrder = () =>
+    json({
+      data: {
+        order: adminDetectiveOrderNode([
+          adminDetectiveLineNode(),
+          adminDetectiveLineNode({
+            id: 'gid://shopify/LineItem/2',
+            title: 'Extend Protection Plan',
+            variantTitle: 'Extend-Protection-Plan-5.00',
+            sku: 'Extend-Protection-Plan-5.00',
+            customAttributes: [
+              {key: '_extend_plan_id', value: 'MOCK-MATT-ADH-3Y-C'},
+              {key: '_extend_covered_product_id', value: '501'},
+            ],
+            product: {id: P.coverage, metafield: null},
+            variant: {id: V.coverage, selectedOptions: []},
+          }),
+        ]),
+      },
+    });
+
+  it.each(['off', 'extend-app'])(
+    'with order sync %s an order with protection is logged as not judged, never as clean',
+    async (mode) => {
+      const h = harness({
+        extend: extendConfig(mode),
+        detectiveAnswer: protectedOrder,
+      });
+      await processOrderAction(action(), h.deps);
+      expect(h.detectiveLogs().map((e) => `${e.event}:${e.reason}`)).toEqual([
+        'detective.checked:unjudgeable',
+        'detective.unjudged:coverage_price_unjudged',
+      ]);
+    },
+  );
+
+  it('when Extend is not configured it is also logged as not judged', async () => {
+    const h = harness({
+      extend: parseExtendConfig({}, {requireFlag: false, production: false}),
+      detectiveAnswer: protectedOrder,
+    });
+    await processOrderAction(action(), h.deps);
+    expect(
+      h.detectiveLogs().some((e) => e.reason === 'coverage_price_unjudged'),
+    ).toBe(true);
+  });
+
+  it('with order sync self the sync judges the price, so the detective does not repeat the note', async () => {
+    const h = harness({detectiveAnswer: protectedOrder});
+    await processOrderAction(action(), h.deps);
+    expect(h.detectiveLogs().map((e) => `${e.event}:${e.reason}`)).toEqual([
+      'detective.checked:clean',
+    ]);
   });
 });
 
@@ -352,6 +429,7 @@ describe('P5B-05 when the check cannot run it says so', () => {
     });
     expect(await processOrderAction(action(), h.deps)).toEqual({
       status: 'failed',
+      source: 'detective',
     });
     expect(h.operations()).toHaveLength(2);
     expect(h.detectiveLogs()[0]).toMatchObject({

@@ -23,18 +23,27 @@ import {
   orderLine,
   protector,
 } from '~/lib/detective/test-fixtures';
-import type {DetectiveOrder, DetectiveResult} from '~/lib/detective/types';
+import type {
+  DetectOptions,
+  DetectiveOrder,
+  DetectiveResult,
+} from '~/lib/detective/types';
 import {EMPTY_OFFER_RULES, type OfferRules} from '~/lib/offers/types';
 
 // P5B-05 / ADR-0006 decision 3 / REQ-PRE-003 / REQ-PRE-006 / REQ-PROMO-003 / security review E-M3 (T-01, T-02, T-06):
 // an order placed through a cart our gate never saw is judged after the fact, by the same offer engine the gate uses.
 
+/**
+ * Most tests are about rules other than coverage price, so by default the price is "judged elsewhere" (the Extend sync).
+ * The tests that prove what happens when nothing judges it pass `{}` explicitly.
+ */
 function judge(
   order: DetectiveOrder,
   rules: OfferRules = RULES,
   zone: typeof ZONE | null = ZONE,
+  options: DetectOptions = {coveragePriceJudgedElsewhere: true},
 ): DetectiveResult {
-  return detectOrderViolations(deepFreeze(order), rules, zone);
+  return detectOrderViolations(deepFreeze(order), rules, zone, options);
 }
 
 function codes(result: DetectiveResult): string[] {
@@ -412,10 +421,101 @@ describe('P5B-05 REQ-PRE-004 protection without its covered item (reuses the Ext
     expect(judge(detectiveOrder([sneaky])).status).toBe('clean');
   });
 
-  it('price and plan validity are the Extend sync job and are not judged here', () => {
-    // The Extend price point on the line (79.99) is whatever the order says; no quote is needed for the structural check.
+  it('price and plan validity are the Extend sync job: with the sync judging them the structural check alone is clean', () => {
     const cheap = coverage(2, {quantity: 1});
     expect(judge(detectiveOrder([mattress(1), cheap])).status).toBe('clean');
+  });
+});
+
+describe('P5B-05 REQ-PRE-004 coverage price and plan are not judged by the detective (T-06)', () => {
+  const protectedOrder = () => detectiveOrder([mattress(1), coverage(2)]);
+
+  it('with nothing else judging them, an order with protection is "not judged", never clean', () => {
+    const result = judge(protectedOrder(), RULES, ZONE, {});
+    expect(result).toEqual({
+      status: 'unjudgeable',
+      orderId: '7001',
+      violations: [],
+      unjudged: ['coverage_price_unjudged'],
+    });
+  });
+
+  it('is the default: no options at all reads the same, so a caller cannot forget it', () => {
+    expect(detectOrderViolations(protectedOrder(), RULES, ZONE)).toEqual(
+      judge(protectedOrder(), RULES, ZONE, {}),
+    );
+    expect(
+      detectWithConfig(protectedOrder(), {
+        status: 'ready',
+        rules: RULES,
+        zone: ZONE,
+      }).unjudged,
+    ).toEqual(['coverage_price_unjudged']);
+  });
+
+  it('a $5 price point on a $2,000 mattress is reported as not judged, not clean', () => {
+    const order = detectiveOrder([
+      {...mattress(1), unitPriceCents: 200_000, paidUnitPriceCents: 200_000},
+      {
+        ...coverage(2, {
+          sku: 'Extend-Protection-Plan-5.00',
+          variantTitle: 'Extend-Protection-Plan-5.00',
+        }),
+        unitPriceCents: 500,
+        paidUnitPriceCents: 500,
+      },
+    ]);
+    const result = judge(order, RULES, ZONE, {});
+    expect(result.status).toBe('unjudgeable');
+    expect(result.unjudged).toEqual(['coverage_price_unjudged']);
+  });
+
+  it('a violation elsewhere still shows, with the unjudged part beside it', () => {
+    const result = judge(
+      detectiveOrder([mattress(1), coverage(2), haulAway(3, 9)]),
+      RULES,
+      ZONE,
+      {},
+    );
+    expect(result.status).toBe('violations');
+    expect(codes(result)).toContain('haul-away-over-max');
+    expect(result.unjudged).toEqual(['coverage_price_unjudged']);
+  });
+
+  it('is not said for an order with no protection, or when the sync judges the price', () => {
+    expect(judge(detectiveOrder([mattress(1)]), RULES, ZONE, {}).status).toBe(
+      'clean',
+    );
+    expect(
+      judge(protectedOrder(), RULES, ZONE, {
+        coveragePriceJudgedElsewhere: true,
+      }).status,
+    ).toBe('clean');
+  });
+
+  it('is not said when the protection was fully refunded, or the order cancelled or refunded in full', () => {
+    const refunded = coverage(2, {refunded: 1});
+    expect(
+      judge(detectiveOrder([mattress(1), refunded]), RULES, ZONE, {}).unjudged,
+    ).not.toContain('coverage_price_unjudged');
+    expect(
+      judge(
+        detectiveOrder([mattress(1), coverage(2)], {refundState: 'full'}),
+        RULES,
+        ZONE,
+        {},
+      ).unjudged,
+    ).not.toContain('coverage_price_unjudged');
+    expect(
+      judge(
+        detectiveOrder([mattress(1), coverage(2)], {
+          cancelledAt: '2026-10-11T00:00:00Z',
+        }),
+        RULES,
+        ZONE,
+        {},
+      ).unjudged,
+    ).not.toContain('coverage_price_unjudged');
   });
 });
 

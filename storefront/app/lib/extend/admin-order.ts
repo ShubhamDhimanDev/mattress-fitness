@@ -334,8 +334,11 @@ export const DETECTIVE_ORDER_BY_ID_QUERY = `query DetectiveOrderById($id: ID!) {
 }
 ${DETECTIVE_FRAGMENT}`;
 
+// reverse: true is load-bearing. The report stops at --limit, and Shopify's default direction is oldest first, so without
+// it a truncated run would drop the NEWEST orders, the ones most likely to still be actionable. With it the run keeps the
+// newest `limit` orders and drops the oldest.
 export const DETECTIVE_ORDERS_PAGE_QUERY = `query DetectiveOrdersPage($first: Int!, $after: String, $query: String) {
-  orders(first: $first, after: $after, query: $query, sortKey: CREATED_AT) {
+  orders(first: $first, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
     pageInfo { hasNextPage endCursor }
     nodes { ...DetectiveOrderFields }
   }

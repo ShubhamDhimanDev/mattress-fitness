@@ -10,6 +10,7 @@
 
 import type {DeliveryZone} from '~/lib/delivery/zone';
 import type {
+  DetectOptions,
   DetectiveConfig,
   DetectiveOrder,
   DetectiveResult,
@@ -408,7 +409,10 @@ function coverageCode(reason: FlagReason): Mapped {
  * That check also verifies plan id and price against a quote from Extend, which needs the network and Extend's
  * credentials; the detective runs offline, so each line is handed a quote equal to itself. What remains is the
  * structural part only: a valid plan id and covered product id, the covered product on the same order and eligible, one
- * coverage per item, and coverage quantity not above the item's.
+ * coverage per item, and coverage quantity not above the item's. Price and plan are NOT judged, which
+ * `noteCoveragePriceScope` reports as `coverage_price_unjudged` unless the Extend sync is judging them.
+ * No price table here can replace Extend's quote: a price point is only a catalog SKU, and the right plan price depends
+ * on the covered product's price and category, which only Extend answers.
  */
 function judgeCoverage(input: DetectiveOrder, findings: Findings): void {
   const {order} = input;
@@ -442,10 +446,40 @@ function judgeCoverage(input: DetectiveOrder, findings: Findings): void {
   }
 }
 
+/** True when the order still holds protection that nobody refunded or cancelled. */
+function hasStandingCoverage(input: DetectiveOrder): boolean {
+  // A cancelled or fully refunded order issued no protection, so its price is moot.
+  if (isTerminal(input)) return false;
+  return input.order.lineItems.some(
+    (line) =>
+      isCoverageOrderLine(line) &&
+      isCount(line.quantity) &&
+      isCount(line.refundedQuantity) &&
+      line.quantity - line.refundedQuantity >= 1,
+  );
+}
+
+/**
+ * The structural check above cannot tell a $5 price point on a $2,000 mattress from the real plan, because the price of
+ * the right plan comes only from Extend. Say so on the order instead of letting it read as clean (T-06); it is not a
+ * violation, because the line may well be right.
+ */
+function noteCoveragePriceScope(
+  input: DetectiveOrder,
+  options: DetectOptions,
+  findings: Findings,
+): void {
+  if (options.coveragePriceJudgedElsewhere === true) return;
+  if (hasStandingCoverage(input)) {
+    findings.unjudged.add('coverage_price_unjudged');
+  }
+}
+
 function judge(
   input: DetectiveOrder,
   rules: OfferRules,
   zone: DeliveryZone | null,
+  options: DetectOptions,
 ): DetectiveResult {
   const orderId = normalizeShopifyId(input.order.id);
   if (
@@ -461,6 +495,7 @@ function judge(
   judgeHaulAway(input, cart, rules, findings);
   judgeWithEngine(input, cart, rules, zone, findings);
   judgeCoverage(input, findings);
+  noteCoveragePriceScope(input, options, findings);
   return assemble(orderId, findings);
 }
 
@@ -484,9 +519,10 @@ export function detectOrderViolations(
   input: DetectiveOrder,
   rules: OfferRules,
   zone: DeliveryZone | null,
+  options: DetectOptions = {},
 ): DetectiveResult {
   try {
-    return judge(input, rules, zone);
+    return judge(input, rules, zone, options);
   } catch {
     const id = safeOrderId(input);
     return unjudgeableWith(id, 'internal_error');
@@ -509,9 +545,10 @@ function safeOrderId(input: DetectiveOrder): string {
 export function detectWithConfig(
   input: DetectiveOrder,
   config: DetectiveConfig,
+  options: DetectOptions = {},
 ): DetectiveResult {
   if (config.status !== 'ready') {
     return unjudgeableWith(safeOrderId(input), 'rules_unavailable');
   }
-  return detectOrderViolations(input, config.rules, config.zone);
+  return detectOrderViolations(input, config.rules, config.zone, options);
 }

@@ -51,11 +51,11 @@ function lineNode({ id = 1, product = 'gid://shopify/Product/501', variant = 'gi
 
 const haul = (id, quantity) => lineNode({ id, product: 'gid://shopify/Product/520', variant: 'gid://shopify/ProductVariant/621', quantity });
 
-function orderNode(id, { lines = [lineNode()], zip = '60645', attributes = [{ key: 'delivery_choice', value: 'in-home' }], hasNextPage = false } = {}) {
+function orderNode(id, { lines = [lineNode()], zip = '60645', attributes = [{ key: 'delivery_choice', value: 'in-home' }], hasNextPage = false, createdAt = '2026-10-10T12:00:00Z' } = {}) {
   return {
     id: `gid://shopify/Order/${id}`,
     name: `#${id}`,
-    createdAt: '2026-10-10T12:00:00Z',
+    createdAt,
     cancelledAt: null,
     currencyCode: 'USD',
     displayFinancialStatus: 'PAID',
@@ -86,6 +86,45 @@ function harness(pages, overrides = {}) {
   return { run, lines, errors, requests, text: () => [...lines, ...errors].join('\n') };
 }
 
+/**
+ * A Shopify Admin that actually orders and pages its orders, so a test can tell WHICH orders a limited run read.
+ * Shopify's default direction is oldest first; only `reverse: true` in the query document flips it. Page size and cursor
+ * follow the request variables. Order ids are checked by createdAt, not by position in the array.
+ */
+function orderedShopify(allOrders, overrides = {}) {
+  const requests = [];
+  const fetchFn = (url, init) => {
+    assert.ok(String(url).startsWith(`https://${STORE}/`), 'only the shop host is called');
+    const body = JSON.parse(init.body);
+    requests.push(body);
+    const reverse = /\breverse:\s*true\b/.test(body.query);
+    const sorted = [...allOrders].sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+    if (reverse) sorted.reverse();
+    const start = body.variables.after === null ? 0 : Number(body.variables.after);
+    const nodes = sorted.slice(start, start + body.variables.first);
+    const end = start + nodes.length;
+    const page = { pageInfo: { hasNextPage: end < sorted.length, endCursor: String(end) }, nodes };
+    return Promise.resolve(new Response(JSON.stringify({ data: { orders: page } })));
+  };
+  const lines = [];
+  const errors = [];
+  const env = { SHOPIFY_ADMIN_API_ACCESS_TOKEN: ADMIN_TOKEN, SHOPIFY_ALLOWED_STORES: STORE, OFFER_CONFIG_JSON: OFFER_CONFIG, ...overrides };
+  const run = (argv) => main(argv, { env, fetch: fetchFn, out: (t) => lines.push(t), err: (t) => errors.push(t), logWrite: () => {}, now: () => Date.parse('2026-10-14T00:00:00Z'), clock: NO_WAIT });
+  return { run, lines, errors, requests, text: () => [...lines, ...errors].join('\n') };
+}
+
+/** Five orders, order N placed on October N; the lone violation is on the NEWEST (5) and the OLDEST (1) is clean. */
+function fiveDatedOrders() {
+  const placed = (id, options = {}) => orderNode(id, { createdAt: `2026-10-0${id}T12:00:00Z`, ...options });
+  return [
+    placed(3),
+    placed(1),
+    placed(5, { lines: [lineNode(), haul(2, 9)] }),
+    placed(2),
+    placed(4),
+  ];
+}
+
 const base = ['--store', STORE, '--since', '2026-10-01'];
 
 test('reports a haul-away order delivered outside the zone, by id and code, with no customer data', async () => {
@@ -109,6 +148,32 @@ test('an order that cannot be read completely is counted as not judged and the r
   assert.equal(await h.run(base), EXIT_FAILED);
   assert.match(h.text(), /0 with violations, 2 not judged/);
   assert.match(h.text(), /order_unreadable=2/);
+});
+
+test('an order with protection is counted as not judged for price and plan, never clean, and the report says what was not checked', async () => {
+  const mattress = { ...lineNode({ id: 1 }), product: { id: 'gid://shopify/Product/501', metafield: { value: 'mattress' } }, originalUnitPriceSet: money('2000.00') };
+  // A $5 price point on a $2,000 mattress passes every structural check; only Extend's quote would catch it.
+  const cheapCoverage = {
+    ...lineNode({ id: 2, product: 'gid://shopify/Product/900', variant: 'gid://shopify/ProductVariant/900' }),
+    sku: 'Extend-Protection-Plan-5.00',
+    originalUnitPriceSet: money('5.00'),
+    customAttributes: [
+      { key: '_extend_plan_id', value: 'MOCK-MATT-ADH-3Y-C' },
+      { key: '_extend_covered_product_id', value: '501' },
+    ],
+  };
+  const h = harness([{ nodes: [orderNode(1, { lines: [mattress, cheapCoverage] }), orderNode(2)] }]);
+  assert.equal(await h.run([...base, '--json']), EXIT_FAILED, h.text());
+  const { report } = JSON.parse(h.lines.join('\n'));
+  assert.equal(report.counts.clean, 1, 'only the order with no protection is clean');
+  assert.equal(report.counts.unjudgeable, 1);
+  assert.deepEqual(report.unjudgedByReason, [{ reason: 'coverage_price_unjudged', orders: 1 }]);
+  assert.deepEqual(report.findings.map((f) => [f.orderId, f.unjudged]), [['1', ['coverage_price_unjudged']]]);
+
+  const text = harness([{ nodes: [orderNode(1, { lines: [mattress, cheapCoverage] })] }]);
+  await text.run(base);
+  assert.match(text.text(), /not judged: coverage_price_unjudged=1/);
+  assert.match(text.text(), /price and plan were NOT compared with Extend/);
 });
 
 test('missing delivery attribute, pickup and an over-limit quantity each get their own code', async () => {
@@ -150,8 +215,41 @@ test('the limit stops the read and says older orders were not checked', async ()
   const h = harness([{ cursor: 'c1', nodes: [orderNode(1), orderNode(2)] }, { nodes: [orderNode(3)] }]);
   assert.equal(await h.run([...base, '--limit', '1']), EXIT_OK);
   assert.match(h.text(), /Checked 1 Shopify orders/);
-  assert.match(h.text(), /order limit was reached/);
+  assert.match(h.text(), /The limit of 1 orders was reached\. The 1 newest orders created since 2026-10-01 were checked; the older orders in that window were NOT checked/);
   assert.equal(h.requests.length, 1);
+});
+
+test('when the limit cuts the read short, the NEWEST orders are the ones checked and the oldest are dropped', async () => {
+  // Order 5 (newest) holds the only violation. Read oldest-first with limit 2, the run would check orders 1 and 2, report
+  // "clean", and say older orders were skipped when the opposite was true.
+  const h = orderedShopify(fiveDatedOrders());
+  assert.equal(await h.run([...base, '--limit', '2', '--json']), EXIT_FAILED, h.text());
+  const document = JSON.parse(h.lines.join('\n'));
+  assert.equal(document.truncated, true);
+  assert.equal(document.limit, 2);
+  assert.equal(document.order, 'newest_first');
+  assert.equal(document.report.checkedOrders, 2);
+  assert.deepEqual(document.report.findings.map((f) => f.orderId), ['5'], 'the newest order must be judged');
+  assert.deepEqual(document.report.findings[0].violations.map((v) => v.code), ['haul-away-over-max']);
+  for (const request of h.requests) assert.match(request.query, /sortKey: CREATED_AT, reverse: true/);
+});
+
+test('the truncation message names which orders were skipped (the older ones) and how many were checked', async () => {
+  const h = orderedShopify(fiveDatedOrders());
+  await h.run([...base, '--limit', '3']);
+  assert.match(h.text(), /Checked 3 Shopify orders/);
+  assert.match(h.text(), /The 3 newest orders created since 2026-10-01 were checked; the older orders in that window were NOT checked\./);
+  assert.ok(!/newer orders/.test(h.text()));
+});
+
+test('a limit that covers the whole window is not truncated and checks every order, the oldest included', async () => {
+  const h = orderedShopify(fiveDatedOrders());
+  assert.equal(await h.run([...base, '--limit', '5', '--json']), EXIT_FAILED);
+  const document = JSON.parse(h.lines.join('\n'));
+  assert.equal(document.truncated, false);
+  assert.equal(document.report.checkedOrders, 5);
+  assert.deepEqual(document.report.findings.map((f) => f.orderId), ['5']);
+  assert.ok(!/NOT checked/.test(h.text()));
 });
 
 test('if Shopify rejects the query cost, the page size drops to one order and the same page is asked again', async () => {
@@ -233,7 +331,7 @@ test('guards: unknown store, empty allow-list, missing token, bad limit, bad dat
 });
 
 test('renderReport lists a clean window and the caveat about what the delivery method means', () => {
-  const text = renderReport({ checkedOrders: 0, counts: { clean: 0, violations: 0, unjudgeable: 0 }, byCode: [], unjudgedByReason: [], findings: [], clean: true }, { truncated: false, warnings: ['zone: ignored, invalid'] });
+  const text = renderReport({ checkedOrders: 0, counts: { clean: 0, violations: 0, unjudgeable: 0 }, byCode: [], unjudgedByReason: [], findings: [], clean: true }, { truncated: false, warnings: ['zone: ignored, invalid'], limit: 200, since: '2026-10-01' });
   assert.match(text, /Checked 0 Shopify orders/);
   assert.match(text, /offer rules: zone: ignored, invalid/);
   assert.match(text, /shopper-writable claim/);

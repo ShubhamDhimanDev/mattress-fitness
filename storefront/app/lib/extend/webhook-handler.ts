@@ -32,8 +32,19 @@ import {
  */
 export const WEBHOOK_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
-/** `done`: synced or intentionally skipped (nothing to retry). `failed`: the sync did not complete. */
-export type ProcessOutcome = {status: 'done'} | {status: 'failed'};
+/**
+ * `done`: synced or intentionally skipped (nothing to retry). `failed`: the sync did not complete, or, when `source` is
+ * `detective`, there was no sync to run and the detective order read failed (logged as `detective_failed`).
+ */
+export type ProcessOutcome =
+  {status: 'done'} | {status: 'failed'; source?: 'detective'};
+
+function failureReason(outcome: ProcessOutcome | 'crashed'): string {
+  if (outcome === 'crashed') return 'crashed';
+  return outcome.status === 'failed' && outcome.source === 'detective'
+    ? 'detective_failed'
+    : 'sync_failed';
+}
 
 export type WebhookHandlerDeps = {
   /** SHOPIFY_APP_CLIENT_SECRET (Shopify signs app webhooks with the app's client secret, ADR-0009 addendum). */
@@ -177,7 +188,7 @@ export async function handleShopifyWebhook(
           level: 'error',
           event: 'webhook.background_failed',
           orderId: action.orderId,
-          reason: outcome === 'crashed' ? 'crashed' : 'sync_failed',
+          reason: failureReason(outcome),
         });
       }),
     );
