@@ -18,7 +18,7 @@ const OUT_OF_STOCK = 'https://schema.org/OutOfStock';
 function offerFor(
   product: ProductPageView,
   variant: VariantView,
-  origin: string,
+  origin: string | null,
 ): JsonLd | null {
   const cents = centsOf(variant.price);
   if (cents === null) return null;
@@ -26,16 +26,25 @@ function offerFor(
   return {
     '@type': 'Offer',
     ...(variant.sku ? {sku: variant.sku} : {}),
-    url: `${origin}/products/${product.handle}${search ? `?${search}` : ''}`,
+    // `url` is optional on an Offer; a relative one is invalid, so without an origin it is left out.
+    ...(origin
+      ? {
+          url: `${origin}/products/${product.handle}${search ? `?${search}` : ''}`,
+        }
+      : {}),
     price: fromCents(cents),
     priceCurrency: 'USD',
     availability: variant.available ? IN_STOCK : OUT_OF_STOCK,
   };
 }
 
+/**
+ * `origin` is the configured site origin; null (or empty) when none is configured, in which case the absolute
+ * `url` fields are left out rather than emitted as relative paths (P-L2).
+ */
 export function buildProductJsonLd(
   product: ProductPageView,
-  origin: string,
+  origin: string | null,
 ): JsonLd {
   const offers = product.variants.flatMap((variant) => {
     const offer = offerFor(product, variant, origin);
@@ -54,7 +63,7 @@ export function buildProductJsonLd(
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.title,
-    url: `${origin}/products/${product.handle}`,
+    ...(origin ? {url: `${origin}/products/${product.handle}`} : {}),
     ...(description ? {description} : {}),
     ...(product.images.length > 0
       ? {image: product.images.map((image) => image.url)}
@@ -79,10 +88,15 @@ export function buildProductJsonLd(
 
 export type BreadcrumbEntry = {readonly name: string; readonly path: string};
 
+/**
+ * BreadcrumbList markup, or null without a site origin: Google requires absolute item URLs, and a relative one
+ * is invalid markup, so no script is emitted then (the visible breadcrumb is unaffected).
+ */
 export function buildBreadcrumbJsonLd(
   entries: readonly BreadcrumbEntry[],
-  origin: string,
-): JsonLd {
+  origin: string | null,
+): JsonLd | null {
+  if (!origin) return null;
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',

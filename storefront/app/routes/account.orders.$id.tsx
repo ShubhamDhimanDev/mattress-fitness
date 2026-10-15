@@ -1,4 +1,4 @@
-import {redirect, useLoaderData} from 'react-router';
+import {data as routeData, redirect, useLoaderData} from 'react-router';
 import type {Route} from './+types/account.orders.$id';
 import {Money, Image} from '@shopify/hydrogen';
 import type {
@@ -6,6 +6,21 @@ import type {
   OrderQuery,
 } from 'customer-accountapi.generated';
 import {CUSTOMER_ORDER_QUERY} from '~/graphql/customer-account/CustomerOrderQuery';
+import {
+  accountFailure,
+  accountNoStoreHeaders,
+  decodeOrderRouteId,
+  requireAccountSession,
+  withAccountNoStoreIfResponse,
+} from '~/lib/account/results';
+import {errorFields, logError} from '~/lib/logging/logger';
+
+function notFound() {
+  return routeData(
+    {status: 'error', message: 'We could not find that order.'},
+    {status: 404, headers: accountNoStoreHeaders()},
+  );
+}
 
 export const meta: Route.MetaFunction = ({data}) => {
   return [{title: `Order ${data?.order?.name}`}];
@@ -13,21 +28,46 @@ export const meta: Route.MetaFunction = ({data}) => {
 
 export async function loader({params, context}: Route.LoaderArgs) {
   const {customerAccount} = context;
+  await requireAccountSession(customerAccount);
+
   if (!params.id) {
-    return redirect('/account/orders');
+    return redirect('/account/orders', {headers: accountNoStoreHeaders()});
   }
 
-  const orderId = atob(params.id);
-  const {data, errors}: {data: OrderQuery; errors?: Array<{message: string}>} =
-    await customerAccount.query(CUSTOMER_ORDER_QUERY, {
+  // The same answer for a malformed id, an order that does not exist and an order that belongs to someone
+  // else: Shopify returns no order for a token that does not own it, and this route never says which case
+  // it was (T-11).
+  const orderId = decodeOrderRouteId(params.id);
+  if (orderId === null) throw notFound();
+
+  let result: {data: OrderQuery | null | undefined; errors?: unknown[]};
+  try {
+    result = await customerAccount.query(CUSTOMER_ORDER_QUERY, {
       variables: {
         orderId,
         language: customerAccount.i18n.language,
       },
     });
+  } catch (error: unknown) {
+    if (error instanceof Response) throw withAccountNoStoreIfResponse(error);
+    logError('account.order_read_failed', errorFields(error));
+    throw routeData(accountFailure('failed'), {
+      status: 500,
+      headers: accountNoStoreHeaders(),
+    });
+  }
 
-  if (errors?.length || !data?.order) {
-    throw new Error('Order not found');
+  const {data, errors} = result;
+  if (!data?.order) {
+    // A read that failed is not a missing order: only the absence of an order without errors is a 404.
+    if (errors?.length) {
+      logError('account.order_read_failed', {reason: 'graphql_errors'});
+      throw routeData(accountFailure('failed'), {
+        status: 500,
+        headers: accountNoStoreHeaders(),
+      });
+    }
+    throw notFound();
   }
 
   const {order} = data;

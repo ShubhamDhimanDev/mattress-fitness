@@ -9,45 +9,74 @@ import {
   useOutletContext,
 } from 'react-router';
 import type {Route} from './+types/account.profile';
+import {isSameOriginRequest} from '~/lib/cart/http';
+import {readSmallForm} from '~/lib/delivery-runtime/form';
+import {
+  accountErrorStatus,
+  accountFailure,
+  accountNoStoreHeaders,
+  hasOversizedField,
+  requireAccountSession,
+  type AccountErrorCode,
+  type AccountFailure,
+} from '~/lib/account/results';
+import {errorFields, logError, logWarn} from '~/lib/logging/logger';
 
-export type ActionResponse = {
-  error: string | null;
-  customer: CustomerFragment | null;
-};
+/** What the page needs after a save: the two names, nothing else leaves the server (T-05). */
+export type ActionResponse =
+  | {
+      readonly status: 'ok';
+      readonly customer: Pick<CustomerFragment, 'firstName' | 'lastName'>;
+    }
+  | AccountFailure;
 
 export const meta: Route.MetaFunction = () => {
   return [{title: 'Profile'}];
 };
 
 export async function loader({context}: Route.LoaderArgs) {
-  await context.customerAccount.handleAuthStatus();
+  await requireAccountSession(context.customerAccount);
 
   return {};
+}
+
+const VALID_INPUT_KEYS = ['firstName', 'lastName'] as const;
+
+function respond(body: ActionResponse) {
+  const status = body.status === 'ok' ? 200 : accountErrorStatus(body.code);
+  return data(body, {status, headers: accountNoStoreHeaders()});
+}
+
+function fail(code: AccountErrorCode) {
+  return respond(accountFailure(code));
 }
 
 export async function action({request, context}: Route.ActionArgs) {
   const {customerAccount} = context;
 
-  if (request.method !== 'PUT') {
-    return data({error: 'Method not allowed'}, {status: 405});
+  if (request.method !== 'PUT') return fail('method-not-allowed');
+  if (!isSameOriginRequest(request)) return fail('forbidden');
+
+  const read = await readSmallForm(request);
+  if (read.status !== 'ok') return fail('invalid-request');
+  const {form} = read;
+  if (hasOversizedField(form, VALID_INPUT_KEYS)) {
+    return fail('invalid-request');
   }
 
-  const form = await request.formData();
+  // This ensures a login redirect never happens for a mutation (it is a fetch, not a navigation).
+  if (!(await customerAccount.isLoggedIn())) return fail('signed-out');
+
+  const customer: CustomerUpdateInput = {};
+  for (const key of VALID_INPUT_KEYS) {
+    const value = form.get(key);
+    if (typeof value === 'string' && value.length) {
+      customer[key] = value;
+    }
+  }
 
   try {
-    const customer: CustomerUpdateInput = {};
-    const validInputKeys = ['firstName', 'lastName'] as const;
-    for (const [key, value] of form.entries()) {
-      if (!validInputKeys.includes(key as any)) {
-        continue;
-      }
-      if (typeof value === 'string' && value.length) {
-        customer[key as (typeof validInputKeys)[number]] = value;
-      }
-    }
-
-    // update customer and possibly password
-    const {data, errors} = await customerAccount.mutate(
+    const {data: result, errors} = await customerAccount.mutate(
       CUSTOMER_UPDATE_MUTATION,
       {
         variables: {
@@ -57,25 +86,30 @@ export async function action({request, context}: Route.ActionArgs) {
       },
     );
 
+    // Messages from Shopify are not read: they can quote input (P-L8). Only their presence is.
     if (errors?.length) {
-      throw new Error(errors[0].message);
+      logError('account.profile_failed', {reason: 'graphql_errors'});
+      return fail('failed');
+    }
+    if (result?.customerUpdate?.userErrors?.length) {
+      logWarn('account.profile_rejected');
+      return fail('rejected');
+    }
+    const updated = result?.customerUpdate?.customer;
+    if (!updated) {
+      logError('account.profile_failed', {reason: 'no_result'});
+      return fail('failed');
     }
 
-    if (!data?.customerUpdate?.customer) {
-      throw new Error('Customer profile update failed.');
-    }
-
-    return {
-      error: null,
-      customer: data?.customerUpdate?.customer,
-    };
-  } catch (error: any) {
-    return data(
-      {error: error.message, customer: null},
-      {
-        status: 400,
-      },
-    );
+    return respond({
+      status: 'ok',
+      customer: {firstName: updated.firstName, lastName: updated.lastName},
+    });
+  } catch (error: unknown) {
+    // The client throws a redirect Response when the session ended during the call.
+    if (error instanceof Response) return fail('signed-out');
+    logError('account.profile_failed', errorFields(error));
+    return fail('failed');
   }
 }
 
@@ -83,7 +117,8 @@ export default function AccountProfile() {
   const account = useOutletContext<{customer: CustomerFragment}>();
   const {state} = useNavigation();
   const action = useActionData<ActionResponse>();
-  const customer = action?.customer ?? account?.customer;
+  const customer =
+    action?.status === 'ok' ? action.customer : account?.customer;
 
   return (
     <div className="account-profile">
@@ -115,10 +150,10 @@ export default function AccountProfile() {
             minLength={2}
           />
         </fieldset>
-        {action?.error ? (
-          <p>
+        {action?.status === 'error' ? (
+          <p role="alert">
             <mark>
-              <small>{action.error}</small>
+              <small>{action.message}</small>
             </mark>
           </p>
         ) : (

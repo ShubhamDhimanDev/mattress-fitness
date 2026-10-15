@@ -314,10 +314,17 @@ export const HOME_ASSURANCE_ITEMS: readonly ReassuranceItem[] =
   REASSURANCE_ITEMS;
 
 /**
- * The promotion bar message. It comes from `site_settings.promo_bar_text` and `promo_bar_link` in Shopify
- * admin (P3B-13); until a typed read of that entry exists the bar is not rendered (no invented text, B-15).
+ * The promotion bar message, from `site_settings.promo_bar_text` and `promo_bar_link` in Shopify admin (read by
+ * `lib/shopify/site-settings.ts`). Without text the bar is not rendered (no invented text, B-15). `to` is an
+ * allow-listed site path or https URL (`parseAdminLink`); `external` marks the https case. With a link and no
+ * `linkLabel` the message text itself is the link.
  */
-export type PromoMessage = {text: string; linkLabel?: string; to?: string};
+export type PromoMessage = {
+  text: string;
+  linkLabel?: string;
+  to?: string;
+  external?: boolean;
+};
 
 export type FooterGroup = {id: string; heading: string; links: NavGroupLink[]};
 

@@ -69,6 +69,10 @@ Headless Chrome screenshots of the home, a collection and a product page at desk
 - Long brand and product-line filter lists need a searchable or collapsible pattern on mobile.
 - Collapsed information sections hide important content from users and crawlers if implemented badly; ours render real content server-side.
 
+## How the build used these notes (checked 2026-10-15)
+
+Built from these patterns, in our own structure and wording: header with delivery ZIP and my-store entry, search combobox, main navigation, home sections (eight admin-ordered types), collection with filters, promo tiles and "Load more", product page with size selector and buy box, cart drawer and page, quiz, compare, store locator and brand pages. Deliberately **not shown until the client supplies content** (REQ-CNT-001, B-15): the reassurance strip, guarantee claims, Financing and Warranty links, the promo bar text and the support phone link. Not built yet: the reviews slot, pickup choice, "you might also need" cards on the product page (the cart pickers exist), the sticky mobile add-to-cart bar (not confirmed either way), the text-message signup, social links and the floating chat. No text, image or markup from the reference site is used.
+
 ## Use
 
 These notes inform information architecture only. Final layouts are decided with the client from the brand kit and reviewed on staging (EXC-09: no static mockups). Any deviation or addition is logged in `docs/design/DEVIATIONS.md` when Phase 2 starts.

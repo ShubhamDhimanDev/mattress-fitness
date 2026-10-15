@@ -29,14 +29,23 @@ export function mayCreateCartFromLink(headers: HeaderSource): boolean {
  * Same-site check for cart and checkout-step POSTs (phase 4 security considerations, T-01). The cookie is
  * SameSite=Lax, which already stops cross-site POSTs; this refuses a request whose Origin names another host.
  * Hosts are compared, not protocols: behind a TLS-terminating proxy the app can see http while the browser
- * sent https. A request without an Origin header (older clients, curl) is allowed; Lax still covers it.
+ * sent https.
+ *
+ * A request without an Origin header (older clients, curl, some same-origin navigations) is allowed on purpose:
+ * refusing it would break legitimate clients, and the SameSite=Lax cookie already stops a browser from attaching
+ * the session or cart cookie to a cross-site POST, so a forged request would carry no identity. Where the browser
+ * does send Fetch Metadata, a request it labels `cross-site` is refused even without an Origin (cheap second
+ * layer); `same-origin`, `same-site`, `none` and an absent header pass.
  */
 export function isSameOriginRequest(request: {
   readonly url: string;
   readonly headers: HeaderSource;
 }): boolean {
   const origin = request.headers.get('Origin');
-  if (origin === null || origin === 'null') return origin === null;
+  if (origin === null) {
+    return request.headers.get('Sec-Fetch-Site') !== 'cross-site';
+  }
+  if (origin === 'null') return false;
   try {
     return new URL(origin).host === new URL(request.url).host;
   } catch {

@@ -28,3 +28,7 @@ A headless library (Radix, React Aria, Headless UI): robust, but adds dependenci
 ## Verification
 
 `npx vitest run tests/unit/ui`; `npm run e2e` shell and gallery specs (desktop and mobile Chromium) with zero serious or critical axe violations; WebKit and Firefox in CI.
+
+## Implementation note (2026-10-15, as built)
+
+The primitives exist under `app/components/ui/` (Overlay, Drawer, Dialog, Accordion, Tabs plus Button, Field, Select and others) with no headless-library dependency in `package.json`. Known shortcut 4 has moved: the ZIP is no longer held in memory but in a signed server cookie (P3B-11, `app/lib/delivery-runtime/zip-cookie.ts`); the gallery is still the `_dev.components.tsx` route (the state of the navigation links was not re-checked here). Whether WebKit and Firefox specs run in CI is for the devops-engineer's record; this note makes no claim about it.

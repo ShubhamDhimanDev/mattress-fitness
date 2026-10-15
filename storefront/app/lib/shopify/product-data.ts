@@ -3,10 +3,6 @@
 // query's own values are used instead.
 
 import type {Storefront} from '@shopify/hydrogen';
-import {
-  loadProductCategories,
-  type FactsStorefront,
-} from '~/lib/extend/coverage-facts';
 import {availabilityCache, catalogCache} from '~/lib/shopify/cache';
 import {isValidHandle} from '~/lib/shopify/collection-data';
 import {mapProductPage} from '~/lib/shopify/product';
@@ -51,17 +47,4 @@ export async function loadProductPage(
   return product.variants.length === 0
     ? {status: 'not-found'}
     : {status: 'ok', product};
-}
-
-/**
- * Whether the product has an Extend category (the same metafield and the same read the offers route uses, so the page's
- * hint and the server's answer cannot disagree). Null when the read failed: the page then gives the panel no reserved
- * space instead of guessing. Never throws; the page does not depend on it.
- */
-export async function loadExtendEligibility(
-  storefront: FactsStorefront,
-  productId: string,
-): Promise<boolean | null> {
-  const result = await loadProductCategories(storefront, [productId]);
-  return result.status === 'ok' ? result.facts.has(productId) : null;
 }

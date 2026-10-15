@@ -354,8 +354,9 @@ describe('BreadcrumbList JSON-LD (REQ-COL-004, REQ-SEO-001)', () => {
       ],
       ORIGIN,
     );
-    expect(breadcrumbProblems(ld)).toEqual([]);
-    const items = ld.itemListElement as Json[];
+    expect(ld).not.toBeNull();
+    expect(breadcrumbProblems(ld ?? {})).toEqual([]);
+    const items = (ld?.itemListElement ?? []) as Json[];
     expect(items.map((item) => item.item)).toEqual([
       `${ORIGIN}/`,
       `${ORIGIN}/collections`,
@@ -363,9 +364,44 @@ describe('BreadcrumbList JSON-LD (REQ-COL-004, REQ-SEO-001)', () => {
     ]);
   });
 
-  it('would carry relative URLs without an origin, which is why callers omit it then', () => {
-    const ld = buildBreadcrumbJsonLd([{name: 'Home', path: '/'}], '');
-    expect(breadcrumbProblems(ld)).toContain('item 0 url');
+  it('is omitted without a site origin, because its item URLs must be absolute', () => {
+    const entries = [
+      {name: 'Home', path: '/'},
+      {name: 'Mattress', path: '/products/mattress'},
+    ];
+    expect(buildBreadcrumbJsonLd(entries, null)).toBeNull();
+    expect(buildBreadcrumbJsonLd(entries, '')).toBeNull();
+  });
+});
+
+describe('Product JSON-LD without a site origin (REQ-SEO-001, P-L2)', () => {
+  it.each([null, ''])(
+    'leaves out the product and offer urls for origin %j instead of emitting relative ones',
+    (origin) => {
+      const ld = buildProductJsonLd(product(), origin);
+      expect(ld).not.toHaveProperty('url');
+      const json = JSON.stringify(ld);
+      // Every url left in the markup (images) is absolute.
+      expect(json).not.toMatch(/"url":"(?!https:)/);
+      const offers = (ld.offers as {offers: Json[]}).offers;
+      expect(offers.length).toBeGreaterThan(1);
+      for (const offer of offers) expect(offer).not.toHaveProperty('url');
+      // What a rich result needs is still there.
+      expect(offers.every((offer) => price(offer.price))).toBe(true);
+      expect(ld.name).toBeTruthy();
+    },
+  );
+
+  it('keeps the same offers, prices and availability with and without an origin', () => {
+    const strip = (ld: Json) =>
+      JSON.parse(
+        JSON.stringify(ld, (key, value: unknown) =>
+          key === 'url' ? undefined : value,
+        ),
+      ) as Json;
+    expect(strip(buildProductJsonLd(product(), null))).toEqual(
+      strip(buildProductJsonLd(product(), ORIGIN)),
+    );
   });
 });
 

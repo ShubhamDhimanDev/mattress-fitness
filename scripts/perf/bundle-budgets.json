@@ -1,0 +1,17 @@
+{
+  "status": "PROPOSED, pending client approval (Q-012, NFR-002). A regression guard set about 7 to 10 percent above the 2026-10-15 local baseline; tighten after the P7-06 fixes. See docs/testing/PERFORMANCE.md.",
+  "unit": "kB of gzip (level 9) JavaScript needed to start the route on a cold load, entry and root included",
+  "groups": [
+    { "name": "home", "routes": ["routes/_index"], "maxGzipKb": 150 },
+    { "name": "collection", "routes": ["routes/collections.$handle", "routes/collections.all"], "maxGzipKb": 155 },
+    { "name": "product", "routes": ["routes/products.$handle"], "maxGzipKb": 155 },
+    { "name": "cart", "routes": ["routes/cart", "routes/checkout-steps"], "maxGzipKb": 145 },
+    { "name": "search", "routes": ["routes/search"], "maxGzipKb": 155 },
+    { "name": "quiz", "routes": ["routes/quiz._index"], "maxGzipKb": 155 },
+    { "name": "compare", "routes": ["routes/compare"], "maxGzipKb": 150 },
+    { "name": "brand", "routes": ["routes/brands.$handle", "routes/brands._index"], "maxGzipKb": 155 },
+    { "name": "stores", "routes": ["routes/stores._index", "routes/stores.$state.$city.$slug"], "maxGzipKb": 150 },
+    { "name": "account", "routes": ["routes/account", "routes/account.orders._index"], "maxGzipKb": 145 },
+    { "name": "content", "routes": ["routes/pages.$handle", "routes/policies.$handle"], "maxGzipKb": 145 }
+  ]
+}

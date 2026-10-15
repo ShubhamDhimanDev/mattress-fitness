@@ -33,8 +33,21 @@ test('definitions.json is valid and declares the ten metaobject types of the dat
   const checked = validateSpec(spec);
   assert.deepEqual(checked.ok ? [] : checked.errors, []);
   assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'site_settings', 'store']);
-  assert.equal(spec.metafieldDefinitions.length, 17, '16 product metafields and the variant dimensions field');
-  assert.equal(TOTAL, 27);
+  assert.equal(spec.metafieldDefinitions.length, 18, '16 product metafields, the variant dimensions field and the collection FAQs');
+  assert.equal(TOTAL, 28);
+});
+
+test('custom.faqs is defined for products and for collections with the same shape (REQ-COL-004)', () => {
+  const faqs = spec.metafieldDefinitions.filter((definition) => definition.namespace === 'custom' && definition.key === 'faqs');
+  assert.deepEqual(faqs.map((definition) => definition.ownerType).sort(), ['COLLECTION', 'PRODUCT']);
+  const [first, second] = faqs;
+  for (const definition of faqs) {
+    assert.equal(definition.type, 'list.metaobject_reference');
+    assert.deepEqual(definition.validations, [{ name: 'metaobject_definition_type', value: 'faq' }]);
+    assert.equal(definition.storefrontAccess, 'PUBLIC_READ');
+    assert.ok(definition.description && definition.description.length > 10, 'has a description');
+  }
+  assert.equal(first.name, second.name);
 });
 
 test('every definition the storefront reads has Storefront API access enabled (PUBLIC_READ)', () => {
@@ -91,7 +104,13 @@ test('the data model fields that other work packages depend on are present', () 
   assert.deepEqual(fields('brand'), ['name', 'slug', 'logo', 'about', 'warranty_terms']);
   assert.ok(['pickup_enabled', 'location_handle', 'latitude', 'longitude', 'hours', 'photo'].every((key) => fields('store').includes(key)));
   assert.ok(['postal_codes', 'free_over', 'fee_text'].every((key) => fields('delivery_zone').includes(key)));
-  assert.ok(['haul_away_max', 'extend_enabled', 'promo_bar_text'].every((key) => fields('site_settings').includes(key)));
+  assert.ok(['haul_away_max', 'extend_enabled', 'promo_bar_text', 'promo_bar_link', 'support_phone'].every((key) => fields('site_settings').includes(key)));
+  // The storefront reads these three as plain text (site-settings.ts); a different type would change what the read returns.
+  const settings = spec.metaobjectDefinitions.find((definition) => definition.type === 'site_settings');
+  for (const key of ['promo_bar_text', 'promo_bar_link', 'support_phone']) {
+    assert.equal(settings.fieldDefinitions.find((field) => field.key === key).type, 'single_line_text_field', key);
+  }
+  assert.equal(settings.storefrontAccess, 'PUBLIC_READ');
   assert.ok(!fields('site_settings').includes('free_delivery_threshold'), 'free-delivery threshold has one source: delivery_zone.free_over');
   const offerType = spec.metaobjectDefinitions.find((definition) => definition.type === 'offer_rule').fieldDefinitions.find((field) => field.key === 'type');
   assert.deepEqual(offerType.validations[0].value, ['comfort_protector', 'haul_away', 'matching_protector', 'pillow', 'bedding', 'gift', 'bundle']);
@@ -240,17 +259,98 @@ test('differences are reported with specifics and never changed; the exit code i
   assert.equal((await run(['--live'], { fake })).code, 0);
   fake.state.metafieldDefinitions.get('PRODUCT:custom.comfort_level').access.storefront = 'NONE';
   fake.state.metafieldDefinitions.get('PRODUCT:custom.mattress_type').validations = [{ name: 'choices', value: '["Hybrid","Foam"]' }];
-  fake.state.metaobjectDefinitions.get('store').fieldDefinitions.pop();
   fake.state.metaobjectDefinitions.get('brand').fieldDefinitions.push({ key: 'extra_field', name: 'Extra', description: null, required: false, type: { name: 'single_line_text_field' }, validations: [] });
   fake.reset();
   const result = await run(['--live'], { fake });
   assert.equal(result.code, 1);
   assert.match(result.out, /DIFF product custom\.comfort_level: Storefront API access is NONE in Shopify, PUBLIC_READ in the spec/);
   assert.match(result.out, /DIFF product custom\.mattress_type: validations: validation choices differs/);
-  assert.match(result.out, /DIFF store: field location_handle is missing in Shopify/);
   assert.match(result.out, /DIFF brand: Shopify has an extra field extra_field/);
-  assert.match(result.out, /4 differ \(reported, never changed by this tool\)/);
+  assert.match(result.out, /3 differ \(reported, never changed by this tool\)/);
   assert.equal(fake.mutations().length, 0, 'existing definitions are never modified');
+});
+
+/** Removes one field from the fake store's copy of a definition, as if it had been created from an older spec. */
+function dropField(fake, type, key) {
+  const definition = fake.state.metaobjectDefinitions.get(type);
+  const index = definition.fieldDefinitions.findIndex((field) => field.key === key);
+  assert.ok(index >= 0, `${type}.${key} exists in the fake store`);
+  return definition.fieldDefinitions.splice(index, 1)[0];
+}
+
+test('an existing definition that only lacks a spec field is extended in a live run, never in a dry run (site_settings.support_phone)', async () => {
+  const fake = createFakeShopify();
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  dropField(fake, 'site_settings', 'support_phone');
+  const before = structuredClone(fake.state.metaobjectDefinitions.get('site_settings'));
+  fake.reset();
+
+  const dry = await run([], { fake });
+  assert.equal(dry.code, 0, dry.err);
+  assert.match(dry.out, /ADD site_settings: field support_phone \(single_line_text_field\) is missing in Shopify and would be added/);
+  assert.match(dry.out, /1 missing field\(s\) in 1 existing metaobject definition\(s\) would be added/);
+  assert.doesNotMatch(dry.out, /DIFF site_settings/);
+  assert.equal(fake.mutations().length, 0, 'a dry run writes nothing');
+
+  fake.reset();
+  const live = await run(['--live'], { fake });
+  assert.equal(live.code, 0, live.err);
+  assert.match(live.out, /Added missing fields to 1 existing definition\(s\)\./);
+  assert.deepEqual(fake.mutations().map((call) => call.operationName), ['AddMetaobjectDefinitionFields']);
+  const sent = fake.mutations()[0].variables;
+  assert.equal(sent.id, before.id);
+  assert.deepEqual(Object.keys(sent.definition), ['fieldDefinitions'], 'only fields are sent: no name, access, display name or order change');
+  assert.deepEqual(sent.definition.fieldDefinitions.map((operation) => Object.keys(operation)), [['create']]);
+  assert.equal(sent.definition.fieldDefinitions[0].create.key, 'support_phone');
+
+  const after = fake.state.metaobjectDefinitions.get('site_settings');
+  assert.deepEqual(after.fieldDefinitions.slice(0, -1), before.fieldDefinitions, 'existing fields are untouched and keep their order');
+  assert.equal(after.fieldDefinitions.at(-1).key, 'support_phone');
+
+  fake.reset();
+  const again = await run(['--live'], { fake });
+  assert.equal(again.code, 0, again.err);
+  assert.equal(fake.mutations().length, 0, 'the second run finds it in sync');
+});
+
+test('missing fields are still added when something else also differs, but the other difference is only reported and the run fails', async () => {
+  const fake = createFakeShopify();
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  dropField(fake, 'store', 'location_handle');
+  fake.state.metaobjectDefinitions.get('store').name = 'Renamed in admin';
+  fake.reset();
+  const result = await run(['--live'], { fake });
+  assert.equal(result.code, 1);
+  assert.match(result.out, /DIFF store: name is "Renamed in admin"/);
+  assert.match(result.out, /ADD store: field location_handle/);
+  assert.deepEqual(fake.mutations().map((call) => call.operationName), ['AddMetaobjectDefinitionFields']);
+  assert.equal(fake.state.metaobjectDefinitions.get('store').name, 'Renamed in admin', 'the name is never changed');
+});
+
+test('a definition id that is not a metaobject definition gid is never sent back; the missing field is reported as a difference', async () => {
+  const fake = createFakeShopify();
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  dropField(fake, 'site_settings', 'support_phone');
+  fake.state.metaobjectDefinitions.get('site_settings').id = 'gid://shopify/Product/1';
+  fake.reset();
+  const result = await run(['--live'], { fake });
+  assert.equal(result.code, 1);
+  assert.match(result.out, /DIFF site_settings: field support_phone is missing in Shopify/);
+  assert.equal(fake.mutations().length, 0);
+});
+
+test('a rejected field addition is listed as failed and the exit code is non-zero', async () => {
+  const fake = createFakeShopify({
+    intercept: ({ operationName }) => (operationName === 'AddMetaobjectDefinitionFields'
+      ? new Response(JSON.stringify({ data: { metaobjectDefinitionUpdate: { metaobjectDefinition: null, userErrors: [{ field: ['definition'], message: 'Cannot add field', code: 'INVALID' }] } } }), { status: 200 })
+      : null),
+  });
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  dropField(fake, 'site_settings', 'support_phone');
+  fake.reset();
+  const result = await run(['--live'], { fake });
+  assert.equal(result.code, 1);
+  assert.match(result.err, /FAILED site_settings: metaobjectDefinitionUpdate rejected: definition: Cannot add field \[INVALID\]/);
 });
 
 test('diff helpers ignore validation order and treat id and type references as equivalent', () => {

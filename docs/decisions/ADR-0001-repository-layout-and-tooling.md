@@ -28,3 +28,7 @@ Scaffold at the root with `--force`: rejected, destroys files. Scaffold elsewher
 ## Verification
 
 P1-03 scaffolds into `storefront/` and the governance files are unchanged afterwards; `node scripts/validate-framework.mjs` still passes; CI runs from `storefront/`.
+
+## Implementation note (2026-10-15, as built)
+
+The layout was followed: governance at the root, the app in `storefront/` with its own `package-lock.json` and npm, Vitest and Playwright Test inside `storefront/` (no root `tests/`), `shopify-app/` not created (ADR-0006). Differences from the text: `scripts/` also holds `extend/`, `detective/`, `mocks/`, `lib/` and `spikes/` (the Option B Node spike), and each script directory carries its own zero-dependency Node tests next to the code. The status stays **Proposed** (DEC-002): the P1-09 acceptance task has not run (BACKLOG P1-09 is TODO), so it needs the owner's or orchestrator's acceptance recorded; no divergence requires a new ADR.

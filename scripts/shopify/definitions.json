@@ -134,6 +134,7 @@
       "fieldDefinitions": [
         { "key": "promo_bar_text", "name": "Promo bar text", "type": "single_line_text_field" },
         { "key": "promo_bar_link", "name": "Promo bar link", "type": "single_line_text_field", "description": "Relative path or https URL; validated by the storefront (T-08)." },
+        { "key": "support_phone", "name": "Support phone", "type": "single_line_text_field", "description": "US number shown in the site header, footer and menu, for example (312) 555-0100. Anything that is not a valid US number is ignored; the deployment setting PUBLIC_SUPPORT_PHONE overrides it when set." },
         { "key": "haul_away_max", "name": "Haul-away maximum pieces", "type": "number_integer", "validations": [{ "name": "min", "value": 0 }], "description": "The same number is set by hand in the Shopify Flow condition; change both together." },
         { "key": "financing_copy", "name": "Financing copy", "type": "multi_line_text_field" },
         { "key": "extend_enabled", "name": "Extend enabled (mirror)", "type": "boolean", "description": "Non-secret mirror of the feature flag." }
@@ -172,6 +173,7 @@
     { "ownerType": "PRODUCT", "namespace": "custom", "key": "compare_group", "name": "Compare group", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Products with the same value are offered as similar products." },
     { "ownerType": "PRODUCT", "namespace": "custom", "key": "extend_category", "name": "Extend category", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Extend protection category (REQ-EXT-005). Shape confirmed by Q-005." },
     { "ownerType": "PRODUCT", "namespace": "custom", "key": "faqs", "name": "FAQs", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "faq" }], "storefrontAccess": "PUBLIC_READ", "description": "Product page FAQs." },
+    { "ownerType": "COLLECTION", "namespace": "custom", "key": "faqs", "name": "FAQs", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "faq" }], "storefrontAccess": "PUBLIC_READ", "description": "Collection page FAQs (REQ-COL-004). Same shape as the product metafield; the collection page shows them and emits FAQ structured data from the same entries." },
     { "ownerType": "PRODUCTVARIANT", "namespace": "custom", "key": "dimensions", "name": "Dimensions", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Size selector and comparison." }
   ]
 }

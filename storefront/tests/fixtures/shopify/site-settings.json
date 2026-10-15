@@ -1,0 +1,20 @@
+{
+  "settings": {
+    "nodes": [
+      {
+        "id": "gid://shopify/Metaobject/9001",
+        "fields": [
+          {
+            "key": "promo_bar_text",
+            "value": "Free in-home delivery on every queen and king mattress"
+          },
+          {"key": "promo_bar_link", "value": "/collections/mattresses"},
+          {"key": "support_phone", "value": "(312) 555-0142"},
+          {"key": "haul_away_max", "value": "2"},
+          {"key": "financing_copy", "value": null},
+          {"key": "extend_enabled", "value": "false"}
+        ]
+      }
+    ]
+  }
+}

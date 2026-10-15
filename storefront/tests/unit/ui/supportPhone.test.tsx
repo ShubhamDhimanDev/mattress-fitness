@@ -69,4 +69,75 @@ describe('the promotion bar', () => {
     expect(container).toBeEmptyDOMElement();
     expect(container.textContent).not.toMatch(/sample promotion/i);
   });
+
+  it('renders nothing for a message with no text', () => {
+    const {container} = render(<PromoBar message={{text: '   '}} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows the admin text as plain text, escaped, when there is no link', () => {
+    const {container} = render(
+      <PromoBar message={{text: '<img src=x onerror=alert(1)> Sale'}} />,
+    );
+    expect(container.querySelector('img')).toBeNull();
+    expect(container).toHaveTextContent('<img src=x onerror=alert(1)> Sale');
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('makes the whole message the link when a link has no label (site_settings has no label field)', async () => {
+    renderIn(
+      <PromoBar
+        message={{text: 'Spring sale', to: '/collections/mattresses'}}
+      />,
+    );
+    const link = await screen.findByRole('link', {name: 'Spring sale'});
+    expect(link).toHaveAttribute('href', '/collections/mattresses');
+    expect(link).not.toHaveAttribute('rel');
+  });
+
+  it('opens another site as a plain anchor with noopener noreferrer', async () => {
+    renderIn(
+      <PromoBar
+        message={{
+          text: 'Partner offer',
+          to: 'https://example.com/offer',
+          external: true,
+        }}
+      />,
+    );
+    const link = await screen.findByRole('link', {name: 'Partner offer'});
+    expect(link).toHaveAttribute('href', 'https://example.com/offer');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    // Same tab: a new-tab link would need a visible cue, so none is opened.
+    expect(link).not.toHaveAttribute('target');
+  });
+
+  it('is the same height with and without a link (44 px touch target either way)', async () => {
+    const {container, unmount} = render(<PromoBar message={{text: 'Sale'}} />);
+    const textOnly = container.querySelector('p > *');
+    expect(textOnly).toHaveClass('min-h-touch', 'items-center');
+    unmount();
+    renderIn(<PromoBar message={{text: 'Sale', to: '/collections'}} />);
+    expect(await screen.findByRole('link', {name: 'Sale'})).toHaveClass(
+      'min-h-touch',
+      'items-center',
+    );
+  });
+
+  it('keeps the text and a separate labelled link when both are given', async () => {
+    renderIn(
+      <PromoBar
+        message={{
+          text: 'Spring sale',
+          linkLabel: 'Shop now',
+          to: '/collections',
+        }}
+      />,
+    );
+    expect(await screen.findByRole('link', {name: 'Shop now'})).toHaveAttribute(
+      'href',
+      '/collections',
+    );
+    expect(screen.getByText('Spring sale').closest('a')).toBeNull();
+  });
 });

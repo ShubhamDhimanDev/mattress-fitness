@@ -37,3 +37,7 @@ Force react-router 7.18.4 with `legacy-peer-deps`: works today, hides conflicts,
 ## Verification
 
 P1-12 completes with a green CI on the migrated stack and `npm audit --omit=dev` showing no high or critical runtime finding; until then the gate G5 records the exception.
+
+## Implementation note (2026-10-15, as built)
+
+The pins are held: `storefront/package.json` has `@shopify/hydrogen` 2026.4.7 and `react-router`, `react-router-dom`, `@react-router/dev`, `@react-router/fs-routes` at 7.16.0, and a large amount of feature code now sits on that template, so the migration cost the decision warned about (point 3: do it before Phase 3B feature code) has grown; P1-12 is not done. The code uses Storefront API behaviour of the 2026.4 line; the storefront's Admin API client uses version 2026-10 (`ADMIN_API_VERSION` in `app/lib/extend/admin-order.ts`). The interim mitigations that exist in code: no user-controlled redirect targets (`safeRedirectPath`), exact framework pins, security headers. `npm audit` handling and the initial-commit point are not re-verified here. Status stays **Proposed**; it remains a launch blocker until the owner accepts the exception in writing or P1-12 completes (DEC-027).
