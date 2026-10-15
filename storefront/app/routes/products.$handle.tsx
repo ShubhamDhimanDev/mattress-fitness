@@ -11,10 +11,8 @@ import {ProductGallery} from '~/components/product/ProductGallery';
 import {ProductSections} from '~/components/product/ProductSections';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {buildBreadcrumbJsonLd, buildProductJsonLd} from '~/lib/shopify/jsonld';
-import {
-  loadExtendEligibility,
-  loadProductPage,
-} from '~/lib/shopify/product-data';
+import {loadProductPage} from '~/lib/shopify/product-data';
+import {loadExtendEligibilityByHandle} from '~/lib/shopify/protection-load';
 import {
   hasDevEligibleCookie,
   protectionModeFor,
@@ -41,7 +39,10 @@ export const meta: Route.MetaFunction = ({data}) => {
       ? [{tagName: 'link', rel: 'canonical', href: data.canonical}]
       : []),
     {'script:ld+json': data.productJsonLd},
-    {'script:ld+json': data.breadcrumbJsonLd},
+    // Breadcrumb items must be absolute URLs, so without a site origin there is no breadcrumb markup.
+    ...(data.breadcrumbJsonLd
+      ? [{'script:ld+json': data.breadcrumbJsonLd}]
+      : []),
   ];
 };
 
@@ -67,7 +68,7 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
 async function protectionModeOf(
   context: Route.LoaderArgs['context'],
   request: Request,
-  productId: string,
+  handle: string,
 ) {
   const enabled =
     offersConfigOf({env: context.env, production: import.meta.env.PROD})
@@ -78,27 +79,30 @@ async function protectionModeOf(
     hasDevEligibleCookie(request.headers.get('Cookie') ?? '');
   const eligible = assumed
     ? true
-    : await loadExtendEligibility(context.storefront, productId);
+    : await loadExtendEligibilityByHandle(context.storefront, handle);
   return protectionModeFor({enabled, eligible});
 }
 
 export async function loader({context, params, request}: Route.LoaderArgs) {
-  const result = await loadProductPage(context.storefront, params.handle ?? '');
+  const handle = params.handle ?? '';
+  // All three reads depend on the handle only, so they start together instead of one after the other (review m7).
+  // The two side reads never reject (they answer null / an empty set on failure), so a failed product read cannot
+  // leave one of them as an unhandled rejection.
+  const [result, protection, offerOnlyHandles] = await Promise.all([
+    loadProductPage(context.storefront, handle),
+    protectionModeOf(context, request, handle),
+    loadOfferOnlyHandles(context.storefront),
+  ]);
   if (result.status === 'not-found') {
     throw new Response('Product not found', {status: 404});
   }
   const {product} = result;
-  // Never the request's Host (P-L2); null outside development without PUBLIC_SITE_URL, so URLs stay relative.
+  // Never the request's Host (P-L2); null outside development without PUBLIC_SITE_URL: no absolute URL is then emitted.
   const siteOrigin = resolveSiteOrigin({
     env: context.env,
     requestUrl: request.url,
     isDev: import.meta.env.DEV,
   });
-  const origin = siteOrigin ?? '';
-  const [protection, offerOnlyHandles] = await Promise.all([
-    protectionModeOf(context, request, product.id),
-    loadOfferOnlyHandles(context.storefront),
-  ]);
   return {
     product,
     offerOnly: offerOnlyHandles.has(product.handle),
@@ -106,14 +110,14 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     // cache key. 'off' costs the page no request and no reserved space (NFR-002).
     protection,
     canonical: siteOrigin ? `${siteOrigin}/products/${product.handle}` : null,
-    productJsonLd: buildProductJsonLd(product, origin),
+    productJsonLd: buildProductJsonLd(product, siteOrigin),
     breadcrumbJsonLd: buildBreadcrumbJsonLd(
       [
         {name: 'Home', path: '/'},
         {name: 'Collections', path: '/collections'},
         {name: product.title, path: `/products/${product.handle}`},
       ],
-      origin,
+      siteOrigin,
     ),
   };
 }

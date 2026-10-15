@@ -1,0 +1,119 @@
+{
+  "ci": {
+    "collect": {
+      "numberOfRuns": 3,
+      "settings": {
+        "formFactor": "mobile",
+        "chromeFlags": "--no-sandbox"
+      }
+    },
+    "assert": {
+      "assertMatrix": [
+        {
+          "matchingUrlPattern": "^https?://[^/]+/?$",
+          "assertions": {
+            "categories:performance": [
+              "error",
+              {"minScore": 0.85, "aggregationMethod": "median-run"}
+            ],
+            "largest-contentful-paint": [
+              "error",
+              {"maxNumericValue": 2500, "aggregationMethod": "median-run"}
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              {"maxNumericValue": 0.1, "aggregationMethod": "median-run"}
+            ],
+            "total-blocking-time": [
+              "warn",
+              {"maxNumericValue": 200, "aggregationMethod": "median-run"}
+            ],
+            "resource-summary:script:size": [
+              "warn",
+              {"maxNumericValue": 200000, "aggregationMethod": "median-run"}
+            ]
+          }
+        },
+        {
+          "matchingUrlPattern": "^https?://[^/]+/collections/[^/?#]+/?$",
+          "assertions": {
+            "categories:performance": [
+              "error",
+              {"minScore": 0.85, "aggregationMethod": "median-run"}
+            ],
+            "largest-contentful-paint": [
+              "error",
+              {"maxNumericValue": 2500, "aggregationMethod": "median-run"}
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              {"maxNumericValue": 0.1, "aggregationMethod": "median-run"}
+            ],
+            "total-blocking-time": [
+              "warn",
+              {"maxNumericValue": 200, "aggregationMethod": "median-run"}
+            ],
+            "resource-summary:script:size": [
+              "warn",
+              {"maxNumericValue": 200000, "aggregationMethod": "median-run"}
+            ]
+          }
+        },
+        {
+          "matchingUrlPattern": "^https?://[^/]+/products/[^/?#]+/?$",
+          "assertions": {
+            "categories:performance": [
+              "error",
+              {"minScore": 0.85, "aggregationMethod": "median-run"}
+            ],
+            "largest-contentful-paint": [
+              "error",
+              {"maxNumericValue": 2500, "aggregationMethod": "median-run"}
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              {"maxNumericValue": 0.1, "aggregationMethod": "median-run"}
+            ],
+            "total-blocking-time": [
+              "warn",
+              {"maxNumericValue": 200, "aggregationMethod": "median-run"}
+            ],
+            "resource-summary:script:size": [
+              "warn",
+              {"maxNumericValue": 200000, "aggregationMethod": "median-run"}
+            ]
+          }
+        },
+        {
+          "matchingUrlPattern": "^https?://[^/]+/(cart|quiz|search|compare)/?(\\?.*)?$",
+          "assertions": {
+            "categories:performance": [
+              "error",
+              {"minScore": 0.85, "aggregationMethod": "median-run"}
+            ],
+            "largest-contentful-paint": [
+              "error",
+              {"maxNumericValue": 2500, "aggregationMethod": "median-run"}
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              {"maxNumericValue": 0.1, "aggregationMethod": "median-run"}
+            ],
+            "total-blocking-time": [
+              "warn",
+              {"maxNumericValue": 200, "aggregationMethod": "median-run"}
+            ],
+            "resource-summary:script:size": [
+              "warn",
+              {"maxNumericValue": 200000, "aggregationMethod": "median-run"}
+            ]
+          }
+        }
+      ]
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "test-results/lighthouse"
+    }
+  }
+}

@@ -32,11 +32,10 @@ export const meta: Route.MetaFunction = ({data}) => {
     ...(description && data.source === 'shopify'
       ? [{name: 'description', content: description}]
       : []),
-    ...(data.jsonLd
-      ? [
-          {'script:ld+json': data.jsonLd},
-          {'script:ld+json': data.breadcrumbJsonLd},
-        ]
+    ...(data.jsonLd ? [{'script:ld+json': data.jsonLd}] : []),
+    // Absolute URLs only: no site origin, no breadcrumb markup.
+    ...(data.jsonLd && data.breadcrumbJsonLd
+      ? [{'script:ld+json': data.breadcrumbJsonLd}]
       : []),
   ];
 };
@@ -64,7 +63,6 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     requestUrl: request.url,
     isDev: import.meta.env.DEV,
   });
-  const origin = siteOrigin ?? '';
   // Sample brands are fictional and noindex: no structured data for them.
   const real = page.source === 'shopify';
   return {
@@ -76,7 +74,7 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
         {name: 'Brands', path: '/brands'},
         {name: page.brand.name, path: `/brands/${page.brand.handle}`},
       ],
-      origin,
+      siteOrigin,
     ),
   };
 }

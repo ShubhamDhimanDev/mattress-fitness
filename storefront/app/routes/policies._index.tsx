@@ -11,7 +11,6 @@ export async function loader({context}: Route.LoaderArgs) {
     shopPolicies?.shippingPolicy,
     shopPolicies?.termsOfService,
     shopPolicies?.refundPolicy,
-    shopPolicies?.subscriptionPolicy,
   ].filter((policy): policy is PolicyItemFragment => policy != null);
 
   if (!policies.length) {
@@ -58,11 +57,6 @@ const POLICIES_QUERY = `#graphql
       }
       refundPolicy {
         ...PolicyItem
-      }
-      subscriptionPolicy {
-        id
-        title
-        handle
       }
     }
   }

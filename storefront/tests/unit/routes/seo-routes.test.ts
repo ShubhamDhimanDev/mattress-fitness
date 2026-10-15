@@ -259,6 +259,47 @@ describe('extra sitemap route: brands and stores only when real', () => {
       expect(xml).toContain(`<loc>${SITE}/collections</loc>`);
     }
   });
+
+  it('lists the shop policies that exist, under the routed handles, and none that do not', async () => {
+    const {storefront} = fakeStorefront((call) =>
+      call.query.includes('query ShopPolicyHandles')
+        ? {
+            shop: {
+              privacyPolicy: {handle: 'privacy-policy'},
+              shippingPolicy: null,
+              termsOfService: null,
+              refundPolicy: {handle: 'refund-policy'},
+            },
+          }
+        : {brands: {nodes: []}},
+    );
+    const xml = await bodyOf(
+      await extrasLoader(
+        args(`${SITE}/sitemap/extras.xml`, {storefront, env: envOf()}),
+      ),
+    );
+    expect(xml).toContain(`<loc>${SITE}/policies/privacy-policy</loc>`);
+    expect(xml).toContain(`<loc>${SITE}/policies/refund-policy</loc>`);
+    expect(xml).not.toContain('shipping-policy');
+    expect(xml).not.toContain('terms-of-service');
+  });
+
+  it('lists no policy when that read fails, and the rest of the sitemap is unaffected', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const {storefront} = fakeStorefront((call) => {
+      if (call.query.includes('query ShopPolicyHandles')) {
+        throw new Error('down');
+      }
+      return {brands: {nodes: []}};
+    });
+    const xml = await bodyOf(
+      await extrasLoader(
+        args(`${SITE}/sitemap/extras.xml`, {storefront, env: envOf()}),
+      ),
+    );
+    expect(xml).not.toContain('/policies');
+    expect(xml).toContain(`<loc>${SITE}/collections</loc>`);
+  });
 });
 
 describe('sitemap hardening (security review K-L3, K-L9)', () => {
