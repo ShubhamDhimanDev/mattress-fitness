@@ -3,7 +3,7 @@
 // the Extend link attributes use that convention so they never clutter the cart.
 
 import {cleanText} from '~/lib/catalog/text';
-import {formatMoney} from '~/lib/money';
+import {formatCents, toCents} from '~/lib/money';
 
 export type LineProperty = {readonly label: string; readonly value: string};
 
@@ -54,22 +54,23 @@ type AllocationSource = {
 export function linePromotions(
   allocations: readonly AllocationSource[] | null | undefined,
 ): LinePromotion[] {
-  const promotions: LinePromotion[] = [];
+  // One entry per title (the amounts of equal titles are added), so the title is a unique list key.
+  const centsByTitle = new Map<string, number>();
   for (const allocation of allocations ?? []) {
     if (allocation.targetType !== 'LINE_ITEM') continue;
     const title = cleanText(allocation.title ?? '').slice(0, 120);
     const amount = allocation.discountedAmount?.amount;
     if (title === '' || amount === undefined) continue;
     try {
-      // An amount that is not a positive USD figure is dropped, not shown wrong (the money helper rejects it).
-      if (!/[1-9]/.test(amount)) continue;
-      promotions.push({
-        title,
-        amount: formatMoney({amount, currencyCode: 'USD'}),
-      });
+      const cents = toCents(amount);
+      if (cents > 0)
+        centsByTitle.set(title, (centsByTitle.get(title) ?? 0) + cents);
     } catch {
+      // An amount that is not a plain USD figure is dropped, not shown wrong.
       continue;
     }
   }
-  return promotions.slice(0, 5);
+  return [...centsByTitle]
+    .slice(0, 5)
+    .map(([title, cents]) => ({title, amount: formatCents(cents)}));
 }

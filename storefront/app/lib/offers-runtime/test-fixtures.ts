@@ -87,6 +87,16 @@ type LineSpec = {
   totalCents?: number;
   /** A line-level discount allocation Shopify reports on the line (a bundle or promotion saving). */
   discountCents?: number;
+  /** Title of the automatic discount behind `discountCents` (default 'Test promotion'). */
+  discountTitle?: string;
+  /** A code discount carries a code, not a title (default: automatic). */
+  discountKind?: 'automatic' | 'code';
+  /** More allocations on the same line (a code on top of an automatic discount, for example). */
+  alsoDiscounts?: Array<{
+    cents: number;
+    kind?: 'automatic' | 'code';
+    title?: string;
+  }>;
 };
 
 const money = (cents: number) => ({
@@ -97,6 +107,19 @@ const money = (cents: number) => ({
 /** Variants the fixtures treat as gifts: Shopify's discount prices them at 0 unless a test switches it off. */
 function isGiftVariant(variantId: string): boolean {
   return variantId === GID.gift || variantId === GID.giftAlt;
+}
+
+function allocationOf(
+  spec: LineSpec,
+  discountedAmount: ReturnType<typeof money>,
+) {
+  const common = {targetType: 'LINE_ITEM' as const, discountedAmount};
+  return spec.discountKind === 'code'
+    ? {...common, code: 'SAVE10'}
+    : {
+        ...common,
+        title: spec.discountTitle ?? 'Test promotion',
+      };
 }
 
 export function lineNode(spec: LineSpec) {
@@ -119,11 +142,17 @@ export function lineNode(spec: LineSpec) {
       spec.discountCents === undefined
         ? []
         : [
-            {
-              targetType: 'LINE_ITEM' as const,
-              discountedAmount: money(spec.discountCents),
-              title: 'Test promotion',
-            },
+            allocationOf(spec, money(spec.discountCents)),
+            ...(spec.alsoDiscounts ?? []).map((extra) =>
+              allocationOf(
+                {
+                  ...spec,
+                  discountKind: extra.kind,
+                  discountTitle: extra.title,
+                },
+                money(extra.cents),
+              ),
+            ),
           ],
     merchandise: {
       id: spec.variantId,

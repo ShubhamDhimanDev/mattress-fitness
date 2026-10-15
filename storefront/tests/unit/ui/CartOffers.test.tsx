@@ -76,7 +76,11 @@ function cartAction(answer: {errors?: string[]; warnings?: string[]}) {
   };
 }
 
-function mount(view: CartOffersView, answer = {}) {
+function mount(
+  view: CartOffersView,
+  answer: {errors?: string[]; warnings?: string[]} = {},
+  onAdded?: () => void,
+) {
   posted.length = 0;
   const router = createMemoryRouter(
     [
@@ -85,7 +89,7 @@ function mount(view: CartOffersView, answer = {}) {
         element: (
           <div>
             <CartMessages />
-            <CartOffers view={view} />
+            <CartOffers view={view} onAdded={onAdded} />
           </div>
         ),
       },
@@ -295,5 +299,66 @@ describe('bundle offer (REQ-ADD-002, REQ-PROMO-002)', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       PICKER_STEP_FAILURE_TEXT['bundle-partial'],
     );
+  });
+});
+
+describe('focus after an add and wording (m8, m9)', () => {
+  it('asks the cart to move focus once an add succeeded, and not when it was refused', async () => {
+    let added = 0;
+    mount(GIFT_VIEW, {}, () => (added += 1));
+    fireEvent.click(screen.getByRole('button', {name: /Add gift to cart/}));
+    await expect.poll(() => added).toBe(1);
+
+    cleanup();
+    resetCartResultsForTests();
+    let refusedAdded = 0;
+    mount(
+      GIFT_VIEW,
+      {errors: [PICKER_STEP_FAILURE_TEXT['gift-not-offered']]},
+      () => (refusedAdded += 1),
+    );
+    fireEvent.click(screen.getByRole('button', {name: /Add gift to cart/}));
+    await screen.findByRole('alert');
+    await expect
+      .poll(() => screen.getByRole('alert').textContent)
+      .toContain(PICKER_STEP_FAILURE_TEXT['gift-not-offered']);
+    expect(refusedAdded).toBe(0);
+  });
+
+  it('labels a unit price "each" when the row asks for more than one', () => {
+    mount(
+      viewWith({
+        bundles: [
+          {
+            bundleId: 'b',
+            name: 'Sleep set',
+            anchorLineId: 'gid://shopify/CartLine/m',
+            anchorTitle: 'Mattress',
+            status: 'incomplete',
+            missing: [
+              {
+                variant: variant(51, 'Cloud pillow', null, '49.00'),
+                quantity: 2,
+              },
+              {
+                variant: variant(71, 'Foundation', 'Queen', '199.00'),
+                quantity: 1,
+              },
+            ],
+            savings: null,
+          },
+        ],
+      }),
+    );
+    const rows = screen.getAllByRole('listitem');
+    expect(rows[0]).toHaveTextContent('2 x Cloud pillow$49.00each');
+    expect(rows[1]).not.toHaveTextContent('each');
+  });
+
+  it('says "the store" and not "Shopify" where it describes how the promotion is applied', () => {
+    mount(GIFT_VIEW);
+    expect(
+      screen.getByRole('group', {name: /Pillow gift/}).textContent ?? '',
+    ).not.toMatch(/shopify/i);
   });
 });

@@ -41,6 +41,7 @@ const GIFT_RULE = {
 const BUNDLE_RULE = {
   id: 'sleep-set',
   name: 'Sleep set',
+  discountTitle: 'Sleep set saving',
   anchorProductId: GID.mattress,
   members: [
     {
@@ -85,7 +86,11 @@ const RULES = {
     ],
   },
 };
-const ENV = {OFFER_CONFIG_JSON: JSON.stringify({...CONFIG, rules: RULES})};
+const ENV = {
+  OFFER_CONFIG_JSON: JSON.stringify({...CONFIG, rules: RULES}),
+  // The gift picker is off by default until V-03 (m2); these tests exercise it switched on.
+  PUBLIC_GIFT_PICKER_ENABLED: 'true',
+};
 
 function runtime(
   fake: FakeCart,
@@ -530,22 +535,129 @@ describe('bundles in the cart view (REQ-ADD-002, REQ-PROMO-002)', () => {
     expect(gate.view?.bundles).toEqual([]);
   });
 
-  it('shows the saving Shopify reports on a complete bundle, summed from its lines, and nothing else', async () => {
-    const fake = new FakeCart([
-      {...MATTRESS_LINE, discountCents: 5000},
-      {...FOUNDATION_LINE, discountCents: 2500},
-      {...PILLOW_LINE, discountCents: 1000},
-      // A discount on an unrelated line is not this bundle's saving.
-      {...OTHER_LINE, discountCents: 9900},
-    ]);
+  const COMPLETE = [FOUNDATION_LINE, PILLOW_LINE];
+  const savingsOf = async (
+    lines: ConstructorParameters<typeof FakeCart>[0],
+  ) => {
+    const fake = new FakeCart(lines);
     const gate = await revalidateCartGate(runtime(fake), fake.snapshot());
-    expect(gate.view?.bundles).toEqual([
+    return gate.view?.bundles ?? [];
+  };
+
+  it('shows the saving of the own automatic discount of the bundle, summed from its lines, and nothing else', async () => {
+    const bundles = await savingsOf([
+      {
+        ...MATTRESS_LINE,
+        discountCents: 5000,
+        discountTitle: 'Sleep set saving',
+      },
+      {
+        ...FOUNDATION_LINE,
+        discountCents: 2500,
+        discountTitle: '  sleep SET saving ',
+      },
+      {...PILLOW_LINE, discountCents: 1000, discountTitle: 'Sleep set saving'},
+      // A discount on an unrelated line is not this bundle's saving.
+      {...OTHER_LINE, discountCents: 9900, discountTitle: 'Sleep set saving'},
+    ]);
+    expect(bundles).toEqual([
       expect.objectContaining({
         status: 'complete',
         missing: [],
         savings: {amount: '85.00', currencyCode: 'USD'},
       }),
     ]);
+  });
+
+  it('M1: a code discount on the bundle lines is not the bundle saving', async () => {
+    expect(
+      await savingsOf([
+        {...MATTRESS_LINE, discountCents: 5000, discountKind: 'code'},
+        ...COMPLETE,
+      ]),
+    ).toEqual([]);
+  });
+
+  it('M1: an unrelated automatic sale on the bundle lines is not the bundle saving', async () => {
+    expect(
+      await savingsOf([
+        {...MATTRESS_LINE, discountCents: 5000, discountTitle: 'Summer sale'},
+        ...COMPLETE,
+      ]),
+    ).toEqual([]);
+  });
+
+  it('M1: only the named discount counts when a code and a sale sit on the same line', async () => {
+    const bundles = await savingsOf([
+      {
+        ...MATTRESS_LINE,
+        discountCents: 5000,
+        discountTitle: 'Sleep set saving',
+        alsoDiscounts: [
+          {cents: 7000, kind: 'code'},
+          {cents: 3000, title: 'Summer sale'},
+        ],
+      },
+      ...COMPLETE,
+    ]);
+    expect(bundles[0]?.savings).toEqual({amount: '50.00', currencyCode: 'USD'});
+  });
+
+  it('M1: a rule without a discount title shows no figure, whatever Shopify reports', async () => {
+    const env = {
+      ...ENV,
+      OFFER_CONFIG_JSON: JSON.stringify({
+        ...CONFIG,
+        rules: {
+          ...RULES,
+          bundles: [{...BUNDLE_RULE, discountTitle: undefined}],
+        },
+      }),
+    };
+    const fake = new FakeCart([
+      {
+        ...MATTRESS_LINE,
+        discountCents: 5000,
+        discountTitle: 'Sleep set saving',
+      },
+      ...COMPLETE,
+    ]);
+    const gate = await revalidateCartGate(
+      runtime(fake, {env}),
+      fake.snapshot(),
+    );
+    expect(gate.view?.bundles).toEqual([]);
+  });
+
+  it('M1: a companion line shared by two anchors is counted once', async () => {
+    const bundles = await savingsOf([
+      {
+        ...MATTRESS_LINE,
+        id: 'q1',
+        discountCents: 5000,
+        discountTitle: 'Sleep set saving',
+      },
+      {
+        ...MATTRESS_LINE,
+        id: 'q2',
+        discountCents: 5000,
+        discountTitle: 'Sleep set saving',
+      },
+      {
+        ...FOUNDATION_LINE,
+        quantity: 2,
+        discountCents: 2000,
+        discountTitle: 'Sleep set saving',
+      },
+      {
+        ...PILLOW_LINE,
+        quantity: 4,
+        discountCents: 1000,
+        discountTitle: 'Sleep set saving',
+      },
+    ]);
+    // 130.00 in all (anchors 2 x 50, foundation 20, pillows 10): the shared companion lines are credited to the first anchor only.
+    expect(bundles.map((b) => b.savings?.amount)).toEqual(['80.00', '50.00']);
   });
 
   it('shows nothing for a complete bundle when Shopify reports no saving (no number is invented)', async () => {
@@ -676,5 +788,125 @@ describe('addBundle (REQ-ADD-002)', () => {
         lines: [{merchandiseId: GID.pillowVariant, quantity: 2}],
       },
     ]);
+  });
+});
+
+describe('the gift picker waits for V-03 (flag PUBLIC_GIFT_PICKER_ENABLED)', () => {
+  const without = (extra: object = {}) => ({
+    OFFER_CONFIG_JSON: ENV.OFFER_CONFIG_JSON,
+    ...extra,
+  });
+
+  it.each([
+    ['unset', without()],
+    ['false', without({PUBLIC_GIFT_PICKER_ENABLED: 'false'})],
+    ['not exactly "true"', without({PUBLIC_GIFT_PICKER_ENABLED: 'yes'})],
+  ])(
+    'with the flag %s no gift is offered and none can be added',
+    async (_n, env) => {
+      const fake = new FakeCart([MATTRESS_LINE]);
+      const gate = await revalidateCartGate(
+        runtime(fake, {env}),
+        fake.snapshot(),
+      );
+      expect(gate.view?.gifts).toEqual([]);
+      const result = await addGift(runtime(fake, {env}), fake.snapshot(), {
+        ruleId: GIFT_RULE.id,
+        variantId: GID.gift,
+      });
+      expect(rejectedCode(result)).toBe('gift-not-offered');
+      expect(addCalls(fake)).toEqual([]);
+    },
+  );
+
+  it('add-ons and bundles are unaffected by the flag', async () => {
+    const fake = new FakeCart([MATTRESS_LINE]);
+    const gate = await revalidateCartGate(
+      runtime(fake, {env: without()}),
+      fake.snapshot(),
+    );
+    expect(gate.view?.addOns.length).toBeGreaterThan(0);
+    expect(gate.view?.bundles).toHaveLength(1);
+  });
+
+  it('a gift already in the cart is still price-checked with the flag off (K-M1)', async () => {
+    const fake = new FakeCart([MATTRESS_LINE]);
+    fake.giftDiscountLive = false;
+    await fake.addLines([{merchandiseId: GID.gift, quantity: 1}]);
+    const gate = await revalidateCartGate(
+      runtime(fake, {env: without()}),
+      fake.snapshot(),
+    );
+    expect(gate.view?.blocked.map((r) => r.code)).toContain('gift-not-free');
+  });
+});
+
+/** A cart that another tab changes after this request judged it: the first read after the judgement sees the change. */
+class RacingCart extends FakeCart {
+  private raced = false;
+  constructor(
+    lines: ConstructorParameters<typeof FakeCart>[0],
+    private readonly rival: CartLineAddInput,
+  ) {
+    super(lines);
+  }
+  override get() {
+    if (!this.raced) {
+      this.raced = true;
+      void super.addLines([this.rival]);
+    }
+    return super.get();
+  }
+}
+
+describe('two tabs posting at once add nothing twice (K-L5)', () => {
+  it('an add-on is not added when the cart changed after it was judged', async () => {
+    const fake = new RacingCart([MATTRESS_LINE], {
+      merchandiseId: GID.pillowVariant,
+      quantity: 1,
+    });
+    const result = await addAddOn(runtime(fake), fake.snapshot(), {
+      variantId: GID.pillowVariant,
+    });
+    expect(rejectedCode(result)).toBe('cart-changed');
+    // Only the other tab's line is there: one pillow, not two.
+    expect(
+      fake.allSpecs().filter((spec) => spec.variantId === GID.pillowVariant),
+    ).toEqual([expect.objectContaining({quantity: 1})]);
+    expect(addCalls(fake)).toHaveLength(1);
+  });
+
+  it('a bundle is not added when the cart changed after it was judged', async () => {
+    const fake = new RacingCart([MATTRESS_LINE], {
+      merchandiseId: GID.foundationQueen,
+      quantity: 1,
+    });
+    const result = await addBundle(runtime(fake), fake.snapshot(), {
+      bundleId: 'sleep-set',
+      anchorLineId: MATTRESS_LINE.id,
+    });
+    expect(rejectedCode(result)).toBe('cart-changed');
+    expect(addCalls(fake)).toHaveLength(1);
+  });
+
+  it('a gift is not added when the cart changed after it was judged', async () => {
+    const fake = new RacingCart([MATTRESS_LINE], {
+      merchandiseId: GID.pillowVariant,
+      quantity: 1,
+    });
+    const result = await addGift(runtime(fake), fake.snapshot(), {
+      ruleId: GIFT_RULE.id,
+      variantId: GID.gift,
+    });
+    expect(rejectedCode(result)).toBe('cart-changed');
+    expect(addCalls(fake)).toHaveLength(1);
+  });
+
+  it('adds normally when nothing changed', async () => {
+    const fake = new FakeCart([MATTRESS_LINE]);
+    const result = await addAddOn(runtime(fake), fake.snapshot(), {
+      variantId: GID.pillowVariant,
+    });
+    expect(result.status).toBe('ok');
   });
 });

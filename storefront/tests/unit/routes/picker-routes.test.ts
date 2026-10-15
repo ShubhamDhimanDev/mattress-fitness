@@ -74,7 +74,10 @@ const RULES = {
     ],
   },
 };
-const ENV = {OFFER_CONFIG_JSON: JSON.stringify({...CONFIG, rules: RULES})};
+const ENV = {
+  OFFER_CONFIG_JSON: JSON.stringify({...CONFIG, rules: RULES}),
+  PUBLIC_GIFT_PICKER_ENABLED: 'true',
+};
 
 class PartialCart extends FakeCart {
   override addLines(lines: CartLineAddInput[]) {

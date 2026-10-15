@@ -185,6 +185,7 @@ export type PickerStepFailure =
   | 'gift-not-offered'
   | 'gift-choice-invalid'
   | 'addon-not-offered'
+  | 'cart-changed'
   | 'bundle-not-offered'
   | 'bundle-partial'
   | 'bundle-add-failed';
@@ -192,6 +193,8 @@ export type PickerStepFailure =
 export const PICKER_STEP_FAILURE_TEXT: Record<PickerStepFailure, string> = {
   'gift-not-offered': 'That gift is not available on your cart right now.',
   'gift-choice-invalid': 'Choose one of the gifts shown.',
+  'cart-changed':
+    'Your cart changed while you were choosing, for example in another tab. Nothing was added. Please check your cart and try again.',
   'addon-not-offered': 'That item is not offered for your cart right now.',
   'bundle-not-offered': 'That set is not available on your cart right now.',
   'bundle-partial':
@@ -210,7 +213,7 @@ export const PICKER_COPY = {
   gift: {
     badge: 'Gift offer',
     legend: 'Choose your gift',
-    help: 'Choose one. Shopify applies the promotion and shows the final price on the cart line.',
+    help: 'Choose one. The store applies the promotion and shows the final price on the cart line.',
     add: 'Add gift to cart',
     adding: 'Adding',
   },
@@ -227,7 +230,7 @@ export const PICKER_COPY = {
   },
   bundle: {
     heading: 'Complete your set',
-    help: 'Any saving is applied by Shopify and shown on your cart lines.',
+    help: 'Any saving is applied by the store and shown on your cart lines.',
     add: 'Add missing items',
     adding: 'Adding',
     completeHeading: 'Set complete',

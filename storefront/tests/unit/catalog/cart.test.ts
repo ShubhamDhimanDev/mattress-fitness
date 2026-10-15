@@ -205,6 +205,17 @@ describe('linePromotions', () => {
     expect(linePromotions([allocation])).toEqual([]);
   });
 
+  it('adds the amounts of two allocations with the same title, so the title is a unique key', () => {
+    const same = {
+      targetType: 'LINE_ITEM',
+      title: 'Sleep set saving',
+      discountedAmount: {amount: '10.50'},
+    };
+    expect(linePromotions([same, same])).toEqual([
+      {title: 'Sleep set saving', amount: '$21.00'},
+    ]);
+  });
+
   it('shows nothing for a line without allocations (an optimistic line)', () => {
     expect(linePromotions(undefined)).toEqual([]);
     expect(linePromotions(null)).toEqual([]);

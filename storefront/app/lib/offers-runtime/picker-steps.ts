@@ -20,7 +20,11 @@ import {
 } from '~/lib/offers/bundles';
 import {giftSizeOptions} from '~/lib/offers/gifts';
 import {toCartLike} from '~/lib/shopify/cart-mapper';
-import {revalidateCartGate, type GateResult} from './cart-gate';
+import {
+  revalidateCartGate,
+  type GateOptions,
+  type GateResult,
+} from './cart-gate';
 import {PICKER_STEP_FAILURE_TEXT, type PickerStepFailure} from './messages';
 import {
   failed,
@@ -82,14 +86,29 @@ type Judged = {
 async function judge(
   runtime: OfferRuntime,
   current: CartApiQueryFragment | null,
+  options: GateOptions = {},
 ): Promise<Judged | Rejected> {
-  const gate = await revalidateCartGate(runtime, current);
+  const gate = await revalidateCartGate(runtime, current, options);
   const {cart, view} = gate;
   if (!cart || cart.lines.nodes.length === 0) return rejection('cart-gone');
   if (!view || view.blocked.some((reason) => reason.code === 'unverified')) {
     return rejection('unverified');
   }
   return {status: 'ok', gate, cart, view};
+}
+
+/**
+ * Two tabs can post at once, and both judged the same cart. The cart is read again right before the add and the add is
+ * abandoned if Shopify's version of it moved on, so a paid add-on or bundle is not added twice (K-L5). A request that
+ * lands in the few milliseconds between this read and the add is still possible; the cart gate repairs what it can and
+ * the shopper sees the lines.
+ */
+async function cartUnchanged(
+  runtime: OfferRuntime,
+  judged: CartApiQueryFragment,
+): Promise<boolean> {
+  const fresh = await runtime.cart.get();
+  return fresh !== null && fresh.updatedAt === judged.updatedAt;
 }
 
 export type AddGiftInput = {
@@ -102,7 +121,7 @@ export async function addGift(
   current: CartApiQueryFragment | null,
   input: AddGiftInput,
 ): Promise<PickerResult> {
-  const judged = await judge(runtime, current);
+  const judged = await judge(runtime, current, {bundles: false});
   if (judged.status === 'rejected') return judged;
   const {gate, view} = judged;
 
@@ -117,6 +136,9 @@ export async function addGift(
     (size) => size.variant.variantId === input.variantId,
   );
   if (!inRule || !inView) return rejection('gift-choice-invalid');
+  if (!(await cartUnchanged(runtime, judged.cart))) {
+    return rejection('cart-changed');
+  }
 
   const added = await runtime.cart.addLines([
     {merchandiseId: input.variantId, quantity: 1},
@@ -133,12 +155,15 @@ export async function addAddOn(
   current: CartApiQueryFragment | null,
   input: AddAddOnInput,
 ): Promise<PickerResult> {
-  const judged = await judge(runtime, current);
+  const judged = await judge(runtime, current, {bundles: false});
   if (judged.status === 'rejected') return judged;
   const offered = judged.view.addOns.some(
     (addOn) => addOn.variant.variantId === input.variantId,
   );
   if (!offered) return rejection('addon-not-offered');
+  if (!(await cartUnchanged(runtime, judged.cart))) {
+    return rejection('cart-changed');
+  }
 
   const added = await runtime.cart.addLines([
     {merchandiseId: input.variantId, quantity: 1},
@@ -189,6 +214,7 @@ export async function addBundle(
   if (!offered || !completion || completion.state !== 'incomplete') {
     return rejection('bundle-not-offered');
   }
+  if (!(await cartUnchanged(runtime, cart))) return rejection('cart-changed');
 
   const requested: readonly BundleLine[] = completion.missing;
   const result = await runtime.cart.addLines(

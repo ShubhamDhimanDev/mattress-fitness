@@ -1,4 +1,4 @@
-import {useId, useState} from 'react';
+import {useEffect, useId, useRef, useState} from 'react';
 import {CartActionForm} from '~/components/cart/CartActionForm';
 import {useCartSubmit} from '~/components/cart/useCartSubmit';
 import {
@@ -17,6 +17,7 @@ import {
   ADD_GIFT_ACTION,
   ADD_PROTECTION_ACTION,
 } from '~/lib/cart/custom-actions';
+import {readCartMessages, isCartActionResult} from '~/lib/cart/messages';
 import {formatMoney} from '~/lib/money';
 import {PICKER_COPY} from '~/lib/offers-runtime/messages';
 import type {
@@ -37,7 +38,14 @@ import type {
  * Shopify's discount and is shown only as Shopify returns it on the cart line. Wording is placeholder copy until the
  * client approves it (CLR-010, CLR-011).
  */
-export function CartOffers({view}: {view: CartOffersView}) {
+export function CartOffers({
+  view,
+  onAdded,
+}: {
+  view: CartOffersView;
+  /** Called once an add succeeded: the picker that held focus is gone by then, so the cart moves focus somewhere that exists. */
+  onAdded?: () => void;
+}) {
   const protection = view.accidentProtection?.lines ?? [];
   if (
     view.gifts.length === 0 &&
@@ -54,15 +62,18 @@ export function CartOffers({view}: {view: CartOffersView}) {
       className="mt-6 flex flex-col gap-6 border-t border-line pt-6"
     >
       {view.gifts.map((gift) => (
-        <GiftPicker key={gift.ruleId} gift={gift} />
+        <GiftPicker key={gift.ruleId} gift={gift} onAdded={onAdded} />
       ))}
       {view.bundles.map((bundle) => (
         <BundleOffer
           key={`${bundle.bundleId}:${bundle.anchorLineId}`}
           bundle={bundle}
+          onAdded={onAdded}
         />
       ))}
-      {view.addOns.length > 0 ? <AddOnList addOns={view.addOns} /> : null}
+      {view.addOns.length > 0 ? (
+        <AddOnList addOns={view.addOns} onAdded={onAdded} />
+      ) : null}
       {protection.length > 0 ? <ProtectionOffers lines={protection} /> : null}
     </section>
   );
@@ -72,7 +83,7 @@ export function CartOffers({view}: {view: CartOffersView}) {
  * Choose-one gift control (P4-04): a radio group when there is a real choice, plain text when there is one gift. The
  * form posts the rule id and the chosen variant id; the server adds exactly one.
  */
-function GiftPicker({gift}: {gift: GiftView}) {
+function GiftPicker({gift, onAdded}: {gift: GiftView; onAdded?: () => void}) {
   const headingId = useId();
   const groupName = useId();
   const [chosen, setChosen] = useState(gift.sizes[0]?.variant.variantId ?? '');
@@ -105,6 +116,7 @@ function GiftPicker({gift}: {gift: GiftView}) {
       >
         {(fetcher) => (
           <div className="flex flex-col gap-3">
+            <AddedFocus data={fetcher.data} onAdded={onAdded} />
             {gift.sizes.length > 1 ? (
               <fieldset className="flex flex-col">
                 <legend className="mb-1 text-sm font-bold">
@@ -133,7 +145,7 @@ function GiftPicker({gift}: {gift: GiftView}) {
               className="self-start"
               loading={fetcher.state !== 'idle'}
               loadingLabel={PICKER_COPY.gift.adding}
-              aria-label={`${PICKER_COPY.gift.add}: ${label(selected)}`}
+              aria-label={`${PICKER_COPY.gift.add}: ${label(selected)}${fetcher.state !== 'idle' ? ', adding' : ''}`}
             >
               {PICKER_COPY.gift.add}
             </Button>
@@ -144,7 +156,13 @@ function GiftPicker({gift}: {gift: GiftView}) {
   );
 }
 
-function AddOnList({addOns}: {addOns: readonly AddOnView[]}) {
+function AddOnList({
+  addOns,
+  onAdded,
+}: {
+  addOns: readonly AddOnView[];
+  onAdded?: () => void;
+}) {
   const headingId = useId();
   return (
     <div className="flex flex-col gap-3">
@@ -156,6 +174,7 @@ function AddOnList({addOns}: {addOns: readonly AddOnView[]}) {
           <AddOnRow
             key={`${addOn.category}:${addOn.variant.variantId}`}
             addOn={addOn}
+            onAdded={onAdded}
           />
         ))}
       </ul>
@@ -163,7 +182,7 @@ function AddOnList({addOns}: {addOns: readonly AddOnView[]}) {
   );
 }
 
-function AddOnRow({addOn}: {addOn: AddOnView}) {
+function AddOnRow({addOn, onAdded}: {addOn: AddOnView; onAdded?: () => void}) {
   const {variant} = addOn;
   return (
     <li className="rounded-card border border-line p-3">
@@ -174,6 +193,7 @@ function AddOnRow({addOn}: {addOn: AddOnView}) {
       >
         {(fetcher) => (
           <div className="flex items-center justify-between gap-3">
+            <AddedFocus data={fetcher.data} onAdded={onAdded} />
             <span className="flex min-w-0 flex-col">
               <span className="text-xs font-bold uppercase text-fg-muted">
                 {PICKER_COPY.addOns.categories[addOn.category]}
@@ -193,7 +213,7 @@ function AddOnRow({addOn}: {addOn: AddOnView}) {
               size="sm"
               loading={fetcher.state !== 'idle'}
               loadingLabel={PICKER_COPY.addOns.adding}
-              aria-label={`Add ${variant.productTitle} to cart`}
+              aria-label={`Add ${variant.productTitle} to cart${fetcher.state !== 'idle' ? ', adding' : ''}`}
             >
               {PICKER_COPY.addOns.add}
             </Button>
@@ -208,7 +228,13 @@ function AddOnRow({addOn}: {addOn: AddOnView}) {
  * A bundle the cart is part of (P4-06). Incomplete: what is missing and one button that adds it all. Complete: only
  * shown when Shopify reported a saving on the lines, and the number is Shopify's, never ours.
  */
-function BundleOffer({bundle}: {bundle: BundleOfferView}) {
+function BundleOffer({
+  bundle,
+  onAdded,
+}: {
+  bundle: BundleOfferView;
+  onAdded?: () => void;
+}) {
   const headingId = useId();
   const savings = bundle.savings;
   return (
@@ -244,7 +270,10 @@ function BundleOffer({bundle}: {bundle: BundleOfferView}) {
                   {variant.productTitle}
                   {variant.variantTitle ? `, ${variant.variantTitle}` : ''}
                 </span>
-                <Price price={variant.price} size="sm" />
+                <span className="flex items-baseline gap-1">
+                  <Price price={variant.price} size="sm" />
+                  {quantity > 1 ? <span>each</span> : null}
+                </span>
               </li>
             ))}
           </ul>
@@ -257,16 +286,19 @@ function BundleOffer({bundle}: {bundle: BundleOfferView}) {
             }}
           >
             {(fetcher) => (
-              <Button
-                type="submit"
-                variant="secondary"
-                size="sm"
-                loading={fetcher.state !== 'idle'}
-                loadingLabel={PICKER_COPY.bundle.adding}
-                aria-label={`${PICKER_COPY.bundle.add} to complete ${bundle.name}`}
-              >
-                {PICKER_COPY.bundle.add}
-              </Button>
+              <>
+                <AddedFocus data={fetcher.data} onAdded={onAdded} />
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  size="sm"
+                  loading={fetcher.state !== 'idle'}
+                  loadingLabel={PICKER_COPY.bundle.adding}
+                  aria-label={`${PICKER_COPY.bundle.add} to complete ${bundle.name}${fetcher.state !== 'idle' ? ', adding' : ''}`}
+                >
+                  {PICKER_COPY.bundle.add}
+                </Button>
+              </>
             )}
           </CartActionForm>
         </>
@@ -352,4 +384,23 @@ function ProtectionPlanRow({
       </span>
     </li>
   );
+}
+
+/**
+ * Reports a successful add to the cart. The form that was just used unmounts when the offer is used up, which would drop
+ * focus to the page body; the cart moves it to its item list instead (WCAG 2.4.3). Refused adds keep focus on the button,
+ * where the error is announced next to it.
+ */
+function AddedFocus({data, onAdded}: {data: unknown; onAdded?: () => void}) {
+  const handled = useRef<unknown>(null);
+  useEffect(() => {
+    if (!onAdded || !isCartActionResult(data) || handled.current === data) {
+      return;
+    }
+    handled.current = data;
+    if (readCartMessages(data).every((message) => message.kind !== 'error')) {
+      onAdded();
+    }
+  }, [data, onAdded]);
+  return null;
 }

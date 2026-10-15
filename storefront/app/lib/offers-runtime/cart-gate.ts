@@ -13,7 +13,7 @@ import {bundleCompletions} from '~/lib/offers/bundles';
 import {giftLinesNotFree, type LineTotals} from '~/lib/offers/gift-price';
 import type {CartLike, OfferRules} from '~/lib/offers/types';
 import {toCartLike} from '~/lib/shopify/cart-mapper';
-import {offerRulesOf} from './config';
+import {giftPickerEnabled, offerRulesOf} from './config';
 import {loadOfferedVariants} from './facts';
 import {giftNotFreeReason} from './messages';
 import {
@@ -47,11 +47,27 @@ export function lineTotalsOf(cart: CartApiQueryFragment): LineTotals {
   return totals;
 }
 
-/** Line-level discount Shopify reports per line, in cents (shipping allocations are not savings on a line). */
-function lineSavingsOf(node: CartNode): number {
+function sameTitle(a: string, b: string): boolean {
+  const normal = (text: string) =>
+    text.trim().replace(/\s+/g, ' ').toLowerCase();
+  return normal(a) === normal(b);
+}
+
+/**
+ * What Shopify's AUTOMATIC discount with this title took off one line. A code discount and an automatic discount with
+ * another title are somebody else's saving (a sitewide sale, a code the shopper typed) and never count as the bundle's.
+ */
+function lineSavingsOf(node: CartNode, discountTitle: string): number {
   let total = 0;
   for (const allocation of node.discountAllocations ?? []) {
-    if (allocation.targetType !== 'LINE_ITEM') continue;
+    // Only an automatic discount carries a title; a code allocation carries a code and is never the bundle's.
+    if (
+      !('title' in allocation) ||
+      allocation.targetType !== 'LINE_ITEM' ||
+      !sameTitle(allocation.title, discountTitle)
+    ) {
+      continue;
+    }
     const cents = centsOf(allocation.discountedAmount.amount);
     if (cents !== null) total += cents;
   }
@@ -59,22 +75,28 @@ function lineSavingsOf(node: CartNode): number {
 }
 
 /**
- * Shopify's saving on the lines of one bundle: the anchor line and every line holding a companion variant. It is the
- * sum of the allocations Shopify returned; a code or promotion that also hits those lines is counted too, which is why
- * the wording says "savings on these items" and not "bundle discount" (the allocation does not name our rule).
+ * Shopify's saving on the lines of one bundle (REQ-PROMO-002): the anchor line and every line holding a companion
+ * variant, counting only the automatic discount the rule names (`discountTitle`). No title, no figure. A line already
+ * in `counted` (a companion shared by two anchors of the same bundle) is not counted again; the caller passes one set
+ * per bundle rule.
  */
 export function bundleSavingsCents(
   cart: CartApiQueryFragment,
   anchorLineId: string,
   memberVariantIds: readonly string[],
+  discountTitle: string | undefined,
+  counted: Set<string>,
 ): number {
+  if (discountTitle === undefined) return 0;
   const members = new Set(memberVariantIds);
   let total = 0;
   for (const node of cart.lines.nodes) {
     const variantId = node.merchandise?.id;
-    if (node.id === anchorLineId || (variantId && members.has(variantId))) {
-      total += lineSavingsOf(node);
-    }
+    const inBundle =
+      node.id === anchorLineId || (variantId && members.has(variantId));
+    if (!inBundle || counted.has(node.id)) continue;
+    counted.add(node.id);
+    total += lineSavingsOf(node, discountTitle);
   }
   return total;
 }
@@ -101,6 +123,7 @@ async function bundleViews(
   const variants = await loadOfferedVariants(runtime.storefront, missingIds);
 
   const views: BundleOfferView[] = [];
+  const countedByBundle = new Map<string, Set<string>>();
   for (const completion of completions) {
     const bundle = rules.bundles.find(({id}) => id === completion.bundleId);
     const anchor = cart.lines.nodes.find(
@@ -123,10 +146,14 @@ async function bundleViews(
         views.push({...base, status: 'incomplete', missing, savings: null});
       }
     } else if (completion.state === 'complete') {
+      const counted = countedByBundle.get(bundle.id) ?? new Set<string>();
+      countedByBundle.set(bundle.id, counted);
       const cents = bundleSavingsCents(
         cart,
         completion.anchorLineId,
         completion.memberVariantIds,
+        bundle.discountTitle,
+        counted,
       );
       if (cents > 0) {
         views.push({
@@ -141,9 +168,18 @@ async function bundleViews(
   return views;
 }
 
+export type GateOptions = {
+  /**
+   * False skips the bundle offers and their extra Storefront lookup. The gift and add-on accept actions judge the cart
+   * first and have no use for bundles (K-L8: fewer reads per POST).
+   */
+  readonly bundles?: boolean;
+};
+
 export async function revalidateCartGate(
   runtime: OfferRuntime,
   current: CartApiQueryFragment | null,
+  options: GateOptions = {},
 ): Promise<GateResult> {
   const offers = await revalidateCartOffers(runtime, current);
   const rules = offerRulesOf(runtime.env);
@@ -157,11 +193,17 @@ export async function revalidateCartGate(
     notFree.length > 0
       ? [...check.blocked, giftNotFreeReason(notFree)]
       : check.blocked;
-  const bundles = await bundleViews(runtime, cart, mapped, rules);
+  const bundles =
+    options.bundles === false
+      ? []
+      : await bundleViews(runtime, cart, mapped, rules);
+  // The gift picker waits for V-03 (config.ts giftPickerEnabled). The price check above still judges any gift line that
+  // is already in the cart, so a gift added some other way is never waved through.
+  const gifts = giftPickerEnabled(runtime.env) ? view.gifts : [];
   return {
     ...offers,
     rules,
     check: notFree.length > 0 ? {...check, status: 'blocked', blocked} : check,
-    view: {...view, blocked, bundles},
+    view: {...view, blocked, bundles, gifts},
   };
 }

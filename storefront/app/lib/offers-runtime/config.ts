@@ -177,7 +177,14 @@ function parseBundle(value: unknown): BundleRule | null {
   ) {
     return null;
   }
-  return {id, name: label, anchorProductId, members};
+  const discountTitle = name(value.discountTitle);
+  return {
+    id,
+    name: label,
+    anchorProductId,
+    members,
+    ...(discountTitle === null ? {} : {discountTitle}),
+  };
 }
 
 function parseComfort(value: unknown): ComfortGuaranteeRules | null {
@@ -388,8 +395,29 @@ export function rulesNeedCollections(rules: OfferRules): boolean {
  * The offer rules for a cart the gate has already judged (server.ts `loadConfig` decided "off", "required" and
  * "unverified" before this is called): "offers off" and a missing or unreadable setting both read as no rules. Never
  * use it to decide whether a cart may be judged at all; that is the gate's decision, not this one's.
+ * The parsed rules are kept for as long as the setting text is the same: the gate asks several times per request and the
+ * rules are immutable, so parsing the JSON each time is wasted work.
  */
 export function offerRulesOf(env: object): OfferRules {
   if (Reflect.get(env, 'OFFERS_ENABLED') === 'false') return EMPTY_OFFER_RULES;
-  return readOfferConfig(env).config.rules;
+  const text: unknown = Reflect.get(env, 'OFFER_CONFIG_JSON');
+  if (typeof text === 'string' && cachedRules?.text === text) {
+    return cachedRules.rules;
+  }
+  const rules = readOfferConfig(env).config.rules;
+  if (typeof text === 'string') cachedRules = {text, rules};
+  return rules;
+}
+
+let cachedRules: {readonly text: string; readonly rules: OfferRules} | null =
+  null;
+
+/**
+ * The gift picker is off until the gift discount is verified on a development store (V-03, P4-12). ASSUMPTION it waits
+ * on: a gift is priced at 0 by a LINE-LEVEL automatic discount (buy X get Y at 100% off) that Shopify applies when our
+ * server adds the gift line; if Shopify prices it any other way the cart gate flags the line and pauses checkout.
+ * Bundles and add-ons are not affected. Set PUBLIC_GIFT_PICKER_ENABLED=true to turn it on.
+ */
+export function giftPickerEnabled(env: object): boolean {
+  return Reflect.get(env, 'PUBLIC_GIFT_PICKER_ENABLED') === 'true';
 }
