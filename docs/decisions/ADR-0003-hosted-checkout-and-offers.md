@@ -29,3 +29,7 @@ Custom checkout or checkout extensions for upsells: excluded by the SOW and gate
 ## Verification
 
 Phase 4 e2e compares cart and checkout totals for sampled baskets; tamper tests prove the server revalidation; the threat model T-01, T-02 and T-06 mitigations are verified in Phase 7.
+
+## Implementation note (2026-10-15, as built)
+
+Built as decided: no replacement checkout; the hand-off is a redirect to the cart's https `checkoutUrl` from `/checkout-steps` after the server gate (`app/lib/cart/checkout.ts`). `evaluateOffers` is one pure function (`app/lib/offers/evaluate.ts`) used for the view and, through `revalidateCartGate`, for the repair passes (max 3) after every cart action, on `/cart` and on `/checkout-steps` (DEC-029). The browser sends ids, quantities, codes and plan keys only. Declines are cart attributes (`offer_declined_comfort_guarantee`, `offer_declined_haul_away`, `offer_declined_protection`) plus `delivery_choice`. Gift price: a gift line not priced at 0 pauses checkout and the picker ships off (`PUBLIC_GIFT_PICKER_ENABLED`, DEC-047); a bundle saving is shown only from a titled automatic discount allocation (DEC-046). "Use Shopify Functions only where eligibility is verified" resolved to none (ADR-0006). The cart-versus-checkout total comparison in the verification section has not run (no store); the unit, mock-store e2e and tamper tests in `storefront/tests/` cover the server side only. No divergence.

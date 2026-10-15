@@ -29,3 +29,7 @@ Next.js with the Storefront API: rejected by the brief and unnecessary. Remix-ba
 ## Verification
 
 P1-03 records the scaffold's resolved versions in [ARCHITECTURE](../architecture/ARCHITECTURE.md); P1-08 proves a Node build; CI proves the lockfile installs cleanly.
+
+## Implementation note (2026-10-15, as built)
+
+`storefront/package.json` matches the resolved versions above: `@shopify/hydrogen` 2026.4.7, `react-router` and `@react-router/dev` 7.16.0 (exact), React 18.3.1, Vite `^8.0.1`, Tailwind `^4.1.6`, TypeScript `^5.9.2`, `engines.node` `^22 || ^24`. Nothing was upgraded outside the template's pins. The recorded "versions in ARCHITECTURE" task is covered by this note and by ADR-0008; ARCHITECTURE.md itself does not list versions.

@@ -32,3 +32,7 @@ Choose Option A silently: risks rework if the client needs Option B. Build both:
 ## Verification
 
 P1-08 spike result recorded; a grep check in code review confirms no runtime-specific globals outside the adapter.
+
+## Implementation note (2026-10-15, as built; one divergence)
+
+Followed: business code reads configuration from the request-context `env` (never `process.env`; the seams `OFFER_CONFIG_JSON`, Extend and the Admin client take `env: object`), the Extend sync core is a pure library behind one route, and a plain-Node build was proved by the P1-08 spike (F-44, `docs/deployment/OPTION_B_NODE.md`). **Divergence:** the file `app/lib/platform.ts` was never created. The platform-specific code sits in four places instead: `server.ts` (module-format fetch handler, `process.env.NODE_ENV`), `app/lib/context.ts` (`caches.open('hydrogen')`, `executionContext.waitUntil`), `vite.config.ts` (the `oxygen()` plugin) and `app/lib/extend/runtime.ts` (`platformCaches()`, a `typeof caches` guard passed down structurally; `schedule` falls back to a plain promise where there is no `waitUntil`). Security headers are applied in `server.ts` and repeated in `entry.server.tsx`, so an own-server entry must call `withSecurityHeaders` too. This is a naming and tidiness divergence, not a design change; it needs no new ADR, but the "no Oxygen globals outside one adapter" review rule should be read as "outside those four files". Status stays **Proposed** until Q-003 is answered.

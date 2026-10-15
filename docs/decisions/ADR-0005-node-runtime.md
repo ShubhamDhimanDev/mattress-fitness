@@ -29,3 +29,7 @@ Stay on Node 25: outside the declared range, so dev-server breakage would be uns
 ## Verification
 
 P0-09 records `node --version` and a successful `shopify hydrogen --help` (or `npm create` dry run) on the pinned version; CI uses the same version.
+
+## Implementation note (2026-10-15, as built)
+
+`.nvmrc` is `22`, `storefront/package.json` declares `engines.node` `^22 || ^24`, and project commands run from Git Bash with fnm's Node 22.23.3 first on PATH (CLAUDE.md). Whether a CI workflow pins the same version is for the devops-engineer's record (DEPLOYMENT.md); this ADR makes no claim about it.

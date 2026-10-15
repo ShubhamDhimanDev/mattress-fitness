@@ -49,6 +49,10 @@ We never claim a rule is enforced inside checkout. Where the SOW says it is, [SO
 | 15 | Product import of up to 400 products (§8) | Admin API 100 points per second | Importer uses Shopify **bulk operations** and throttles | None | REQ-CAT-002 |
 | 16 | Admin API token for import, guest lookup and webhooks | Legacy custom apps no longer creatable | A **Dev Dashboard app with custom distribution** (no Functions or extensions, so no Plus needed); authorization-code grant on the client's store because client-credentials works only within the same organisation *(verify)* | One-time merchant approval | REQ-CAT-002, REQ-EXT-003, REQ-ACC-003 |
 
+## 3a. As built (2026-10-15)
+
+Built and mock-green, not verified on a store: the layers before checkout for row 1 and 2 (UI cap, server cap in every cart action, the `/checkout-steps` gate with up to three repair passes, delivery-choice step, haul-away step, `delivery_choice` attribute); row 5 (nested coverage lines, price-point matching, own order sync, cross-check, flag and mock); row 6 (zone and ZIP logic on the `OFFER_CONFIG_JSON` seam, signed ZIP cookie, parity script over two JSON exports); row 8 (the gift picker ships **dark** behind `PUBLIC_GIFT_PICKER_ENABLED=true` because the $0 gift price depends on V-03; a gift line not priced at 0 pauses checkout; a bundle saving is shown only from a titled automatic discount allocation). The **code-based detective control is built** (`app/lib/detective/`, run on `orders/paid` and `orders/updated`, plus `scripts/detective/report.mjs`) and is now the primary after-the-order control for row 1 and 2; the Shopify Flow rule described in row 1 is an optional second layer and is not configured (V-17). The detective only logs: no tag, email or alert, and it has never run on a real order. Not built: row 3 and 4 (post-purchase app, by decision), row 9 (guest order lookup), rows 10 to 13 (reviews, chat, maps, Affirm, Klaviyo, GA4, Meta: placeholders only), row 15 beyond the importer scripts. Residual risk acceptance by the client and the Shopify checkout ZIP restriction are open (B-17, B-18, SD-01).
+
 ## 4. Layered enforcement for haul-away (detail)
 
 ```
@@ -58,7 +62,7 @@ Shopper UI  ->  server action  ->  revalidation before checkout  ->  Shopify che
 ```
 
 - All cart changes from our site go through server actions using the **private** Storefront token, so the browser never needs write access. The public token still exists (Hydrogen design), which is why the layers after the server are detective rather than preventive.
-- The cap value lives in `site_settings.haul_away_max`; the code reads it, while the Flow condition holds its own hand-set copy of the number (the admin guide says to change both together, and a reconciliation report compares them).
+- The cap value is **designed** to live in `site_settings.haul_away_max`, with the Flow condition holding its own hand-set copy (the admin guide says to change both together, and a reconciliation report compares them). **As built the code reads it from `rules.haulAway.maxPieces` in `OFFER_CONFIG_JSON`** (DEC-030) until P4-12; no Flow rule and no cap-comparison report exist yet.
 - This is a deviation from the SOW sentence "enforced inside checkout by a Shopify Function" and must be acknowledged by the client (SD-01 in SOW_DEVIATIONS).
 
 ## 5. Third-party apps we may recommend (client pays; verify on the dev store before recommending)

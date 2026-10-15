@@ -1,6 +1,6 @@
 # Integration readiness checklist
 
-Update at every phase gate and before any dependent work starts. States: `READY` (verified usable now, evidence linked), `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED` (cannot proceed until the named input exists). A BLOCKED item is never faked: its requirement stays Blocked. Dated 2026-10-11 (Stage A).
+Update at every phase gate and before any dependent work starts. States: `READY` (verified usable now, evidence linked), `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED` (cannot proceed until the named input exists). A BLOCKED item is never faked: its requirement stays Blocked. Dated 2026-10-11 (Stage A); reconciled with the code on `main` on 2026-10-15. Code that is built and tested against mocks does **not** move an item to READY: every row needs its own evidence from a store or provider, and none of the BLOCKED rows below has changed state since 2026-10-12.
 
 | # | Item | Needed by | Depends on | Evidence required | State |
 |---|---|---|---|---|---|
@@ -10,7 +10,7 @@ Update at every phase gate and before any dependent work starts. States: `READY`
 | IR-04 | **Dev Dashboard app** (custom distribution) with least-privilege Admin API scopes and webhooks (import, guest lookup, Extend sync) | Phase 3A and 5A | IR-01, V-20 | scopes list, token stored only in the secret store | BLOCKED |
 | IR-05 | Metafield and metaobject definitions applied with Storefront access | Phase 3A | IR-01, V-05 | script run output | BLOCKED |
 | IR-06 | Search and Discovery filters configured for the attribute metafields | Phase 3A | IR-05, V-04 | admin screenshot, API check | BLOCKED |
-| IR-07 | Automatic discount behaviour in Storefront-API carts verified on a Basic-equivalent store (gift, bundle, 25-discount cap) | Phase 4 | IR-01, V-03 | experiment result | BLOCKED |
+| IR-07 | Automatic discount behaviour in Storefront-API carts verified on a Basic-equivalent store (gift, bundle, 25-discount cap). Also gates `PUBLIC_GIFT_PICKER_ENABLED=true` (the picker is built and ships dark, DEC-047) and any bundle saving display (needs an automatic discount whose title equals the rule's `discountTitle`, DEC-046) | Phase 4 | IR-01, V-03 | experiment result | BLOCKED |
 | IR-08 | Nested cart lines verified (removal, quantity, order and webhook representation) | Phase 4 and 5A | IR-01, V-02, V-16 | experiment result | BLOCKED |
 | IR-09 | Extend merchant account approved; store ID; demo credentials. **Not needed to build** (mock); needed before the demo-host run and go-live | Phase 5A go-live | CLR-006, Q-005 | written confirmation from Extend | BLOCKED |
 | IR-10 | Extend confirms headless custom UI, price-point table, line-property keys and who owns order sync | Phase 5A go-live | IR-09 | written answers | BLOCKED |

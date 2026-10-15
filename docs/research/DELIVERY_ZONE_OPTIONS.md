@@ -6,6 +6,10 @@ Task P0-07 (research only). Decides nothing: the decision is taken in P3A-10 aft
 
 The store is on **Basic** and the owner chose **one delivery zone for now**. Result: model the zone once as a metaobject and use **Shopify Local delivery** with the same postal-code list as the checkout mechanism (option 1 with a generated mirror and a parity test), because the Delivery Customization Function (option 2) is not available to us on Basic. Whole-state zones would use a normal shipping rate instead. See [ADR-0007](../decisions/ADR-0007-single-delivery-zone-local-delivery.md), SD-04 and SD-07. The detailed comparison below is kept as the evidence.
 
+## As built (2026-10-15)
+
+Option 1 with a mirror is what the code assumes. Built: the zone and ZIP logic (`storefront/app/lib/delivery/`, wildcard-aware list parsing, free-over rule), the signed `delivery_zip` cookie and `/delivery` route, the delivery-choice and haul-away steps, and an **offline** parity script (`scripts/shopify/check-delivery-parity.mjs`, two JSON exports; exit 0 equal, 1 drift, 2 usage). The zone itself is read from `zone` in the server-only `OFFER_CONFIG_JSON` seam, not yet from a `delivery_zone` metaobject (P3A-10, P4-12), and no ZIP list has arrived (Q-008). Still unverified: V-06a to V-06e, so wallet behaviour with Local delivery and an Admin API read of its postal codes are open; V-06d is sidestepped, not answered: the pre-checkout promise comes from our own list, so whether the Storefront API can return delivery options for a bare ZIP stays unverified.
+
 ## The problem
 
 The SOW wants white-glove in-home delivery offered only when the shopper's ZIP is inside the client's delivery area, with the client's ZIP list and fee rules (free above a threshold, flat fee below) (SOW §7). The storefront must show a delivery promise by ZIP on the product page (REQ-DEL-002), offer haul-away only inside the area (REQ-PRE-003), and checkout must offer or hide white-glove consistently. If the storefront and checkout use different lists, shoppers see promises that checkout rejects (R-09).
