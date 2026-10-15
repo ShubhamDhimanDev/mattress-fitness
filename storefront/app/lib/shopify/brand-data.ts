@@ -35,6 +35,7 @@ import type {
   ProductCardView,
 } from '~/lib/shopify/types';
 import type {DataSource} from '~/lib/pages/data-source';
+import {logError} from '~/lib/logging/logger';
 
 /** Names and logos only (no price or availability), so the long cache applies. */
 export const BRANDS_INDEX_QUERY = `#graphql
@@ -207,7 +208,7 @@ export async function loadBrandsIndex(
   } catch {
     // An empty list with a message, never the fictional preview list: the store may well have real brands.
     // Nothing from the request is logged (T-05).
-    console.error('[brands] could not read the brand list');
+    logError('brands.index_read_failed');
     return {source: 'shopify', brands: []};
   }
 }
@@ -289,7 +290,7 @@ export async function loadBrandPage(
     read = await readBrand(storefront, handle);
   } catch {
     // Degrades like the index: a fixed state, not a 500. Nothing from the request is logged (T-05).
-    console.error('[brands] could not read the brand');
+    logError('brands.page_read_failed');
     return {status: 'unavailable'};
   }
   const {brand: node, anyBrand} = read;

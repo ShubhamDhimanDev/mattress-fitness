@@ -39,6 +39,7 @@ import {
   type ProductFacts,
 } from './facts';
 import type {CoveragePlan} from '~/lib/extend/offers-service';
+import {logError} from '~/lib/logging/logger';
 import {
   DELIVERY_STEP_FAILURE_TEXT,
   OFFERS_UNAVAILABLE_REASON,
@@ -215,7 +216,10 @@ function loadConfig(runtime: OfferRuntime): ConfigGate {
   const loaded = readOfferConfig(runtime.env);
   if (loaded.status !== 'ok' || loaded.warnings.length > 0) {
     // Loud, value-free: the status and the names of dropped entries only (T-05).
-    console.error('Offer config:', loaded.status, loaded.warnings.join('; '));
+    logError('offers.config_problem', {
+      status: loaded.status,
+      warnings: loaded.warnings,
+    });
   }
   return {
     unverified: runtime.production && loaded.status !== 'ok',
@@ -251,7 +255,7 @@ async function prepareRuntime(
   // A collection-qualified gift is judged by its product's collections; without them it would look orphaned
   // and be removed. Make no repairs on an incomplete read (size choices alone may be missing safely).
   if (needsCollections && loadedFacts.status === 'incomplete') {
-    console.error('Offer facts incomplete:', loadedFacts.reason);
+    logError('offers.facts_incomplete', {reason: loadedFacts.reason});
     return {status: 'unverified'};
   }
   const facts = loadedFacts.facts;
@@ -265,10 +269,7 @@ async function prepareRuntime(
   // Without the coverage catalog (or with no price point while the cart holds coverage) coverage lines cannot be told
   // from ordinary ones, and a coverage-only cart would reach checkout. Pause it, like a missing offer configuration.
   if (extendMakesCartUnverifiable(outcome)) {
-    console.error(
-      'Extend coverage inputs unavailable:',
-      summary.degraded.join(','),
-    );
+    logError('coverage.inputs_unavailable', {degraded: summary.degraded});
     return {status: 'unverified', extend: summary};
   }
   const extend = outcome.inputs;

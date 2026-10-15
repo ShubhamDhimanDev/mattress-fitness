@@ -21,7 +21,7 @@ The ten-phase sequence requested for this project is kept, with three dependency
 | 8 | End-to-end acceptance testing, UAT and defect resolution | [plan](phases/phase-08-acceptance-and-uat.md) | 5 | NOT_STARTED |
 | 9 | Production deployment, launch verification and handover | [plan](phases/phase-09-launch-and-handover.md) | 8 | NOT_STARTED |
 
-No phase is marked complete and gates G1 to G8 have not been passed for any phase; "built, unverified" means code exists but nothing has run against a dev store or the Extend demo host. For the current task counts per phase see "Completion by phase" in [STATUS](../progress/STATUS.md#completion-by-phase-2026-10-14).
+No phase is marked complete and gates G1 to G8 have not been passed for any phase; "built, unverified" means code exists but nothing has run against a dev store or the Extend demo host. For the current task counts per phase see "Completion by phase" in [STATUS](../progress/STATUS.md#completion-by-phase-2026-10-15).
 
 **Why the changes.** Phase 3 split: the catalog import and data model is a client-dependent, tool-building deliverable that everything else reads, while the shopping pages are UI work with a different risk profile. Phase 5 split: Extend depends on a third party (Q-005) and must not hold up delivery, haul-away and checkout configuration; checkout configuration was added to 5B because delivery and payment rules take effect there. The delivery-zone data-model decision moves earlier (P3A-10) so 5B implements a decided design. See [ROADMAP](ROADMAP.md#reordering-decisions).
 

@@ -48,6 +48,7 @@ import {
   saveQuizToDevice,
   type SavedQuiz,
 } from '~/lib/quiz/storage';
+import {logWarn} from '~/lib/logging/logger';
 
 // P6-03 / P6-10: the sleep quiz. REQ-QZ-001 (flow), REQ-QZ-002 (results), REQ-QZ-005 (device storage),
 // REQ-QZ-006 (events through track()), REQ-QZ-007 (guidance-only note). The state lives in the URL
@@ -72,10 +73,9 @@ export async function loader({request}: Route.LoaderArgs) {
   const {config, warnings} = resolveQuizConfig(rawConfig);
   if (rawConfig !== undefined && warnings.length > 0) {
     // Admin configuration problems are logged by code only; they hold no personal data (REQ-QZ-004).
-    console.warn(
-      '[quiz] configuration warnings:',
-      warnings.map((warning) => warning.code).join(','),
-    );
+    logWarn('quiz.config_warnings', {
+      codes: warnings.map((warning) => warning.code),
+    });
   }
 
   const state = decodeFlow(url.searchParams, config);

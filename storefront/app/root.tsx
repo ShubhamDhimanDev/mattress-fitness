@@ -19,6 +19,7 @@ import {PageLayout} from '~/components/layout/PageLayout';
 import {MAIN_CONTENT_ID, SkipLink} from '~/components/layout/SkipLink';
 import {Button} from '~/components/ui/Button';
 import {loadDeliverySummary} from '~/lib/delivery-runtime/summary';
+import {errorFields, logError} from '~/lib/logging/logger';
 import {PRIVATE_REVALIDATE_HEADERS} from '~/lib/pages/private-response';
 import {resolveSupportPhone} from '~/lib/navigation';
 import {
@@ -105,7 +106,7 @@ async function loadMyStore(request: Request): Promise<MyStoreSummary | null> {
     return summarizeMyStore(index, cookieHeader);
   } catch {
     // The header falls back to "Select your store"; nothing from the request is logged (T-05).
-    console.error('[root] could not read the chosen store');
+    logError('root.store_read_failed');
     return null;
   }
 }
@@ -185,9 +186,9 @@ function loadDeferredData({context}: Route.LoaderArgs) {
         footerMenuHandle: 'footer', // Adjust to your footer menu handle
       },
     })
-    .catch((error: Error) => {
-      // Log query errors, but don't throw them so the page can still render
-      console.error(error);
+    .catch((error: unknown) => {
+      // Log the failure (class name only), but don't throw so the page can still render.
+      logError('root.footer_read_failed', errorFields(error));
       return null;
     });
   return {

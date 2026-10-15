@@ -12,6 +12,7 @@ import {isValidHandle} from '~/lib/shopify/collection-data';
 import {mapProductPage} from '~/lib/shopify/product';
 import {PRODUCT_AVAILABILITY_QUERY, PRODUCT_QUERY} from '~/lib/shopify/queries';
 import type {ProductPageView} from '~/lib/shopify/types';
+import {errorFields, logError} from '~/lib/logging/logger';
 
 export type ProductPageResult =
   | {readonly status: 'ok'; readonly product: ProductPageView}
@@ -36,10 +37,7 @@ export async function loadProductPage(
       })
       .catch((error: unknown) => {
         // The page still renders from the content query; log without any request data.
-        console.error(
-          'Product availability read failed:',
-          error instanceof Error ? error.message : 'unknown error',
-        );
+        logError('product.availability_read_failed', errorFields(error));
         return null;
       }),
   ]);

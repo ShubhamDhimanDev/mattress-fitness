@@ -2,6 +2,8 @@
 // treated as absent, so the code that signs or verifies fails closed instead of running on a weak key.
 // Runtime-neutral and pure, apart from the one-line configuration report below.
 
+import {logError} from '~/lib/logging/logger';
+
 export const MIN_COOKIE_SECRET_LENGTH = 32;
 
 /** The secret if it is a string of at least 32 characters, otherwise null. */
@@ -26,9 +28,11 @@ export function reportUnusableSecret(
 ): void {
   if (!production || reportedSecrets.has(name)) return;
   reportedSecrets.add(name);
-  console.error(
-    `[config] ${name} is missing or shorter than ${MIN_COOKIE_SECRET_LENGTH} characters. Set it in the hosting environment.`,
-  );
+  // The field is `variable`, not `name`: the redaction layer treats a field called name as personal data.
+  logError('config.secret_unusable', {
+    variable: name,
+    minLength: MIN_COOKIE_SECRET_LENGTH,
+  });
 }
 
 /** For tests only: forget what has been reported. */

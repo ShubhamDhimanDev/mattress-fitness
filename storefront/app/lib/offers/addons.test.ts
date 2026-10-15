@@ -153,3 +153,38 @@ describe('matchingAddOnOffers (REQ-ADD-001, REQ-CART-003)', () => {
     ]);
   });
 });
+
+// REQ-ADD-001: a size is matched whole, so "Twin" never stands in for "Twin XL" and "Full" never for "Full XL".
+describe('matchingAddOnOffers size matching is exact (REQ-ADD-001)', () => {
+  const only = (size: string): MatchingAddOnRules => ({
+    foundations: [
+      {
+        mattressProductId: PRODUCT.mattressA,
+        size,
+        productId: PRODUCT.foundation,
+        variantId: VARIANT.foundQueen,
+      },
+    ],
+    protectors: [],
+    pillows: [],
+    bedding: [],
+  });
+
+  it.each([
+    ['Twin', 'Twin XL'],
+    ['Twin XL', 'Twin'],
+    ['Full', 'Full XL'],
+    ['Full XL', 'Full'],
+  ])('a %s add-on is not offered for a %s mattress', (relation, mattress) => {
+    expect(offers([mattressA(mattress)], only(relation))).toEqual([]);
+  });
+
+  it.each(['Twin', 'Twin XL', 'Full', 'Full XL'])(
+    'a %s add-on is offered for the same size, whatever the case or spacing',
+    (size) => {
+      expect(
+        offers([mattressA(`  ${size.toUpperCase()} `)], only(size)),
+      ).toHaveLength(1);
+    },
+  );
+});

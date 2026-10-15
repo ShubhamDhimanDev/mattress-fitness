@@ -1,4 +1,5 @@
 import {expect, type Page} from '@playwright/test';
+import {isBlockedTelemetryRefusal} from './a11y';
 
 /** Navigates and waits until the page has hydrated, so clicks reach React handlers. */
 export async function gotoReady(page: Page, url: string) {
@@ -51,17 +52,12 @@ export async function firstProductPath(page: Page, listing: string) {
  */
 const MOCK_SHOP_CAD_LOG = 'Only USD is supported, got CAD';
 
-/**
- * Shopify's own performance telemetry (otlp-http-production.shopifysvc.com) is refused by our Content Security
- * Policy in development, intermittently; it is not part of our code, so it is left out of the assertion.
- */
-const SHOPIFY_TELEMETRY_HOST = 'shopifysvc.com';
-
 export function ourErrors(errors: readonly string[]): string[] {
   return errors.filter(
     (message) =>
+      // Only the exact telemetry host Shopify's consent script posts to, and only as a CSP refusal (DEC-045).
       !message.includes(MOCK_SHOP_CAD_LOG) &&
-      !message.includes(SHOPIFY_TELEMETRY_HOST),
+      !isBlockedTelemetryRefusal(message),
   );
 }
 

@@ -26,6 +26,7 @@ import {
 } from '~/lib/shopify/home-sections';
 import {HOME_QUERY} from '~/lib/shopify/queries';
 import type {ImageView, ProductCardView} from '~/lib/shopify/types';
+import {logError} from '~/lib/logging/logger';
 
 const MAX_BRAND_TILES = 8;
 const MAX_COLLECTION_TILES = 6;
@@ -232,7 +233,7 @@ async function loadHomeSections(
     return sections.nodes;
   } catch {
     // No error text is logged: it can quote the request (T-05).
-    console.error('[home] could not read the homepage sections');
+    logError('home.sections_read_failed');
     return [];
   }
 }

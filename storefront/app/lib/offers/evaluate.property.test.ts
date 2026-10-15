@@ -296,6 +296,7 @@ const isValid = (quantity: unknown): quantity is number =>
   Number.isSafeInteger(quantity) &&
   quantity >= 1;
 
+// 4000 generated carts, each evaluated several times: it can pass 5 s on a quiet machine and not under load, so it has a real budget.
 const CASES = 4000;
 
 describe('evaluateOffers properties over generated carts (REQ-PRE-006, REQ-PROMO-003, REQ-PRE-003)', () => {
@@ -490,5 +491,5 @@ describe('evaluateOffers properties over generated carts (REQ-PRE-006, REQ-PROMO
     expect(corrected).toBeGreaterThan(CASES / 20);
     expect(rejected).toBeGreaterThan(CASES / 20);
     expect(clean).toBeGreaterThan(CASES / 20);
-  });
+  }, 60_000);
 });

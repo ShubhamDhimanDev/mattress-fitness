@@ -15,8 +15,12 @@ import {
   loadExtendEligibility,
   loadProductPage,
 } from '~/lib/shopify/product-data';
-import {protectionModeFor} from '~/lib/shopify/protection-mode';
+import {
+  hasDevEligibleCookie,
+  protectionModeFor,
+} from '~/lib/shopify/protection-mode';
 import {offersConfigOf} from '~/lib/extend/runtime';
+import {loadOfferOnlyHandles} from '~/lib/shopify/offer-only';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {
   parseSelectedOptions,
@@ -31,6 +35,8 @@ export const meta: Route.MetaFunction = ({data}) => {
     ...(product.seoDescription
       ? [{name: 'description', content: product.seoDescription}]
       : []),
+    // Offer-only products (Extend price points, services, gifts, protectors) are not content (K-L3).
+    ...(data.offerOnly ? [{name: 'robots', content: 'noindex,follow'}] : []),
     ...(data.canonical
       ? [{tagName: 'link', rel: 'canonical', href: data.canonical}]
       : []),
@@ -58,8 +64,6 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
  * Development only: the mock stores have no `custom.extend_category` metafield, so the e2e spec opts a page in with this
  * cookie. `import.meta.env.DEV` is false in a production build, so the branch is removed there and no request can opt in.
  */
-const DEV_ASSUME_ELIGIBLE_COOKIE = /(?:^|;s*)e2e_extend_eligible=1(?:;|$)/;
-
 async function protectionModeOf(
   context: Route.LoaderArgs['context'],
   request: Request,
@@ -71,7 +75,7 @@ async function protectionModeOf(
   if (!enabled) return protectionModeFor({enabled, eligible: false});
   const assumed =
     import.meta.env.DEV &&
-    DEV_ASSUME_ELIGIBLE_COOKIE.test(request.headers.get('Cookie') ?? '');
+    hasDevEligibleCookie(request.headers.get('Cookie') ?? '');
   const eligible = assumed
     ? true
     : await loadExtendEligibility(context.storefront, productId);
@@ -91,9 +95,13 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     isDev: import.meta.env.DEV,
   });
   const origin = siteOrigin ?? '';
-  const protection = await protectionModeOf(context, request, product.id);
+  const [protection, offerOnlyHandles] = await Promise.all([
+    protectionModeOf(context, request, product.id),
+    loadOfferOnlyHandles(context.storefront),
+  ]);
   return {
     product,
+    offerOnly: offerOnlyHandles.has(product.handle),
     // The Extend flag and the product's own eligibility (P5A-05): the same for every shopper, so neither touches a
     // cache key. 'off' costs the page no request and no reserved space (NFR-002).
     protection,
@@ -141,6 +149,7 @@ export default function Product() {
           initialIndex={Math.max(variantImageIndex, 0)}
         />
         <ProductBuyBox
+          key={product.id}
           product={product}
           variant={variant}
           protection={protection}

@@ -116,7 +116,13 @@ export function CartMain({
             )}
           </ul>
         </div>
-        {slots?.offers ?? (offers ? <CartOffers view={offers} /> : null)}
+        {slots?.offers ??
+          (offers ? (
+            <CartOffers
+              view={offers}
+              onAdded={() => linesRegion.current?.focus()}
+            />
+          ) : null)}
         {/* The ZIP decides the in-home and recycling offers at checkout (P3B-11, P5B-04). */}
         <DeliveryCheck className="mt-6" refreshPageAfterChange />
       </div>

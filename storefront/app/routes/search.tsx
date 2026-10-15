@@ -5,6 +5,7 @@ import {SearchResults} from '~/components/collection/SearchResults';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {Button} from '~/components/ui/Button';
 import {Input} from '~/components/ui/Input';
+import {errorFields, logError} from '~/lib/logging/logger';
 import {countActiveFilters, parseFilterParams} from '~/lib/filters';
 import {
   getEmptyPredictiveSearchResult,
@@ -24,15 +25,13 @@ export const meta: Route.MetaFunction = ({data}) => [
       data && 'term' in data && data.term ? `Search: ${data.term}` : 'Search',
     ),
   },
-  {name: 'robots', content: 'noindex'},
+  // Never indexed (DEC-044): internal search results are thin duplicates of the catalog.
+  {name: 'robots', content: 'noindex,follow'},
 ];
 
 /** Shopify problems are logged without the shopper's search text and never shown to them (T-05). */
 function logSearchFailure(error: unknown) {
-  console.error(
-    'Search failed:',
-    error instanceof Error ? error.name : 'unknown error',
-  );
+  logError('search.failed', errorFields(error));
 }
 
 export async function loader({request, context}: Route.LoaderArgs) {

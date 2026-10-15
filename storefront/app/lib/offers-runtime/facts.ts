@@ -11,15 +11,13 @@ import {
 } from './queries';
 import type {OptionPair, VariantOptions} from './sizes';
 import type {OfferedVariant} from './view';
+import {errorFields, logError} from '~/lib/logging/logger';
 
 const MAX_IDS = 100;
 
 function logFailure(what: string, error: unknown): void {
-  // No request data in the log: the message of the error only (T-05).
-  console.error(
-    `Cart offers: ${what} read failed:`,
-    error instanceof Error ? error.message : 'unknown error',
-  );
+  // No request data in the log: the class name of the error only (T-05).
+  logError('offers.facts_read_failed', {what, ...errorFields(error)});
 }
 
 function unique(ids: readonly string[]): string[] {

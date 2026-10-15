@@ -96,6 +96,12 @@ export type BundleRule = {
   /** The product whose page shows the bundle; the shopper's selected variant is the anchor line. */
   readonly anchorProductId: string;
   readonly members: readonly BundleMemberRule[];
+  /**
+   * The title of the Shopify AUTOMATIC discount that gives this bundle its saving. Only an allocation with this title
+   * counts as the bundle's saving in the cart (REQ-PROMO-002); without it no saving figure is shown, because a code or an
+   * unrelated sale on the same lines would otherwise read as the bundle saving.
+   */
+  readonly discountTitle?: string;
 };
 
 export type ComfortGuaranteeRules = {

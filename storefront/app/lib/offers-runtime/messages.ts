@@ -21,7 +21,7 @@ const HAUL_AWAY_BLOCKED: Record<HaulAwayViolation['reason'], string> = {
 };
 
 export type BlockReason = {
-  readonly code: Violation['code'] | 'unverified';
+  readonly code: Violation['code'] | 'unverified' | 'gift-not-free';
   readonly message: string;
   /** Cart lines the message is about, so the shopper can find and remove them. */
   readonly lineIds: readonly string[];
@@ -166,3 +166,73 @@ export const PROTECTION_STEP_FAILURE_TEXT: Record<
   'protection-partial':
     'Your item was added, but we could not add its protection plan. You can add protection from your cart or continue without it.',
 };
+
+/**
+ * A gift line that Shopify does not price at 0 (REQ-PROMO-001, T-02): the promotion that makes it a gift is not applying,
+ * so the shopper would pay for it. Checkout is paused until the line is removed; the line stays so the shopper can see it.
+ */
+export function giftNotFreeReason(lineIds: readonly string[]): BlockReason {
+  return {
+    code: 'gift-not-free',
+    message:
+      'A gift in your cart is not showing its promotion price right now, so checkout is paused. Remove the gift to continue, or try again in a moment.',
+    lineIds,
+  };
+}
+
+/** Why adding a gift, add-on or bundle from the cart picker could not be applied (P4-04 to P4-06). Fixed text; nothing from the request is echoed. */
+export type PickerStepFailure =
+  | 'gift-not-offered'
+  | 'gift-choice-invalid'
+  | 'addon-not-offered'
+  | 'cart-changed'
+  | 'bundle-not-offered'
+  | 'bundle-partial'
+  | 'bundle-add-failed';
+
+export const PICKER_STEP_FAILURE_TEXT: Record<PickerStepFailure, string> = {
+  'gift-not-offered': 'That gift is not available on your cart right now.',
+  'gift-choice-invalid': 'Choose one of the gifts shown.',
+  'cart-changed':
+    'Your cart changed while you were choosing, for example in another tab. Nothing was added. Please check your cart and try again.',
+  'addon-not-offered': 'That item is not offered for your cart right now.',
+  'bundle-not-offered': 'That set is not available on your cart right now.',
+  'bundle-partial':
+    'Some items in the set could not be added. Please check your cart or try again.',
+  'bundle-add-failed':
+    'We could not add the set to your cart. Your cart was not changed. You can try again or continue without it.',
+};
+
+/**
+ * Wording for the cart pickers (gift, add-ons, bundle). Placeholder copy until the client approves it (CLR-010, CLR-011).
+ * Deliberately no price claim: a gift or bundle price is Shopify's discount and is shown only as Shopify returns it on
+ * the cart line.
+ */
+export const PICKER_COPY = {
+  region: 'Offers for your cart',
+  gift: {
+    badge: 'Gift offer',
+    legend: 'Choose your gift',
+    help: 'Choose one. The store applies the promotion and shows the final price on the cart line.',
+    add: 'Add gift to cart',
+    adding: 'Adding',
+  },
+  addOns: {
+    heading: 'Goes with your mattress',
+    add: 'Add',
+    adding: 'Adding',
+    categories: {
+      foundation: 'Matching foundation',
+      protector: 'Matching protector',
+      pillow: 'Matching pillow',
+      bedding: 'Matching bedding',
+    },
+  },
+  bundle: {
+    heading: 'Complete your set',
+    help: 'Any saving is applied by the store and shown on your cart lines.',
+    add: 'Add missing items',
+    adding: 'Adding',
+    completeHeading: 'Set complete',
+  },
+} as const;

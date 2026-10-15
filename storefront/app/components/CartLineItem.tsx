@@ -10,7 +10,11 @@ import {Button} from '~/components/ui/Button';
 import {Price} from '~/components/ui/Price';
 import {QuantityStepper} from '~/components/ui/QuantityStepper';
 import {MAX_LINE_QUANTITY} from '~/lib/cart/input';
-import {visibleLineProperties, visibleOptions} from '~/lib/cart/lines';
+import {
+  linePromotions,
+  visibleLineProperties,
+  visibleOptions,
+} from '~/lib/cart/lines';
 import {fromCents, toCents} from '~/lib/money';
 import type {SizeChoice} from '~/lib/offers-runtime/view';
 
@@ -60,6 +64,7 @@ export function CartLineItem({
   const children = childrenMap[id];
   const options = visibleOptions(selectedOptions);
   const properties = visibleLineProperties(line.attributes);
+  const promotions = linePromotions(line.discountAllocations);
   const pending = Boolean(line.isOptimistic);
   const href = `/products/${product.handle}`;
   const sizeChoices = lineSizes?.[id];
@@ -113,6 +118,15 @@ export function CartLineItem({
             size="sm"
             className={pending ? 'opacity-60' : undefined}
           />
+          {promotions.length > 0 ? (
+            <ul className="text-sm text-fg-muted">
+              {promotions.map((promotion) => (
+                <li key={promotion.title}>
+                  {promotion.title}: -{promotion.amount}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       </div>
 

@@ -235,3 +235,67 @@ export function validateDiscountCodes(
   }
   return {status: 'ok', value: codes.slice(0, MAX_DISCOUNT_CODES)};
 }
+
+// Offer ids are the admin's own labels (up to 120 characters, offers-runtime/config.ts), so they are checked for shape
+// here and for meaning against the rules on the server; they are never echoed back.
+const MAX_OFFER_ID_LENGTH = 120;
+
+function isOfferId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= MAX_OFFER_ID_LENGTH &&
+    // eslint-disable-next-line no-control-regex -- rejecting control characters is the point
+    !/[\u0000-\u001f\u007f]/.test(value)
+  );
+}
+
+export type ValidAddGift = {ruleId: string; variantId: string};
+
+/** A gift from the cart picker: a rule id and a variant id. A quantity, a price or anything else in the request is dropped. */
+export function validateAddGift(raw: unknown): Validated<ValidAddGift> {
+  if (
+    !isRecord(raw) ||
+    !isOfferId(raw.ruleId) ||
+    typeof raw.variantId !== 'string' ||
+    !VARIANT_ID.test(raw.variantId)
+  ) {
+    return {status: 'invalid', reason: 'Choose one of the gifts shown.'};
+  }
+  return {
+    status: 'ok',
+    value: {ruleId: raw.ruleId, variantId: raw.variantId},
+  };
+}
+
+export type ValidAddAddOn = {variantId: string};
+
+/** An add-on from the cart picker: a variant id. The quantity is always the server's (one). */
+export function validateAddAddOn(raw: unknown): Validated<ValidAddAddOn> {
+  if (
+    !isRecord(raw) ||
+    typeof raw.variantId !== 'string' ||
+    !VARIANT_ID.test(raw.variantId)
+  ) {
+    return {status: 'invalid', reason: 'Invalid item.'};
+  }
+  return {status: 'ok', value: {variantId: raw.variantId}};
+}
+
+export type ValidAddBundle = {bundleId: string; anchorLineId: string};
+
+/** A bundle completion: the bundle's id and the cart line it anchors on. Which lines and how many is the server's. */
+export function validateAddBundle(raw: unknown): Validated<ValidAddBundle> {
+  if (
+    !isRecord(raw) ||
+    !isOfferId(raw.bundleId) ||
+    typeof raw.anchorLineId !== 'string' ||
+    !LINE_ID.test(raw.anchorLineId)
+  ) {
+    return {status: 'invalid', reason: 'Invalid set.'};
+  }
+  return {
+    status: 'ok',
+    value: {bundleId: raw.bundleId, anchorLineId: raw.anchorLineId},
+  };
+}

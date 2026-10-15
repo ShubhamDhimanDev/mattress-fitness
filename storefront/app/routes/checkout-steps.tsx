@@ -38,12 +38,13 @@ import {
   addProtectionToLine,
   declineProtection,
 } from '~/lib/offers-runtime/protection-steps';
+import {revalidateCartGate} from '~/lib/offers-runtime/cart-gate';
 import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
+import {errorFields, logError} from '~/lib/logging/logger';
 import {
   acceptComfortGuarantee,
   declineComfortGuarantee,
   parseStepFailure,
-  revalidateCartOffers,
   stepFailureText,
   type OfferRuntime,
   type OffersResult,
@@ -75,15 +76,12 @@ async function check(
   current: CartApiQueryFragment,
 ): Promise<OffersResult | null> {
   try {
-    return await revalidateCartOffers(
+    return await revalidateCartGate(
       await offerRuntimeOf(context, request),
       current,
     );
   } catch (error) {
-    console.error(
-      'Checkout revalidation failed:',
-      error instanceof Error ? error.message : 'unknown error',
-    );
+    logError('checkout.revalidation_failed', errorFields(error));
     return null;
   }
 }

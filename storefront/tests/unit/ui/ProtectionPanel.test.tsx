@@ -282,6 +282,19 @@ describe('<ProtectionPanel> with the offers hook', () => {
     expect(container.querySelector('[class*="min-h"]')).toBeNull();
   });
 
+  it('an eligible product keeps its reserved box when the answer is no plan, so the button does not jump (NFR-002)', async () => {
+    vi.stubGlobal('fetch', respondWith(answer(VARIANT_A, [])));
+    const {container} = render(<Harness variantId={VARIANT_A} reserveSpace />);
+    expect(container.querySelector('[aria-busy]')?.className).toContain(
+      'min-h-64',
+    );
+    await settle();
+    expect(container.querySelector('fieldset')).toBeNull();
+    expect(
+      container.querySelector('[aria-hidden="true"]')?.className,
+    ).toContain('min-h-64');
+  });
+
   it('without reserved space the plans still appear, and keep no minimum height', async () => {
     vi.stubGlobal('fetch', respondWith(answer(VARIANT_A, [plan('P-1')])));
     const {container} = render(

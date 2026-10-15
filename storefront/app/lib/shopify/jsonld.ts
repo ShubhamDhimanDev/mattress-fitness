@@ -47,6 +47,8 @@ export function buildProductJsonLd(
 
   const description =
     product.seoDescription ?? product.description.join(' ').slice(0, 5000);
+  // A Brand without a name is invalid markup, so a product with neither a brand entry nor a vendor has none.
+  const brandName = product.brand?.name.trim() || product.vendor.trim();
 
   return {
     '@context': 'https://schema.org',
@@ -57,7 +59,7 @@ export function buildProductJsonLd(
     ...(product.images.length > 0
       ? {image: product.images.map((image) => image.url)}
       : {}),
-    brand: {'@type': 'Brand', name: product.brand?.name ?? product.vendor},
+    ...(brandName ? {brand: {'@type': 'Brand', name: brandName}} : {}),
     ...(offers.length === 1
       ? {offers: offers[0]}
       : offers.length > 1

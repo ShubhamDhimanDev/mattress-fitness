@@ -8,6 +8,8 @@ import type {BundleMemberRule, BundleRule, CartLike, OfferRules} from './types';
 
 /** A bundle member of 0 or 1000 units is a configuration mistake, not an offer. */
 const MAX_MEMBER_QUANTITY = 10;
+/** The cart's own per-line limit (cart/input.ts); a bundle that would need more is not offered in one step. */
+const MAX_COMPLETION_LINE_QUANTITY = 99;
 
 export type BundleLine = {
   readonly variantId: string;
@@ -305,4 +307,106 @@ export function bundleCartStatus(
         missingProductIds,
       };
     });
+}
+
+export type BundleCompletion = {
+  readonly bundleId: string;
+  readonly anchorLineId: string;
+  /**
+   * complete: every companion is already in the cart in the anchor's size.
+   * incomplete: `missing` lists what to add (one cartLinesAdd call).
+   * unavailable: the rule cannot be completed for this anchor (no companion in its size, or an invalid rule), so it is
+   * never offered: a partial bundle would not earn the saving.
+   */
+  readonly state: 'complete' | 'incomplete' | 'unavailable';
+  /** Companions still to add, never the anchor; empty unless `incomplete`. */
+  readonly missing: readonly BundleLine[];
+  /** Variants that make up this bundle for the anchor's size (the companions, not the anchor). */
+  readonly memberVariantIds: readonly string[];
+};
+
+/**
+ * What each anchor line in the cart still needs to complete a bundle (REQ-ADD-002 in the cart). Unlike
+ * `bundleCartStatus`, companions already in the cart are used up by one anchor line before the next one is judged, so
+ * two mattresses of one size are not both "complete" on one foundation. Only ordinary lines can be anchors, and only the
+ * quantities of lines that are really in the cart count. Everything is derived from the rule and the cart: the browser
+ * names a bundle id and an anchor line, nothing else.
+ */
+export function bundleCompletions(
+  bundle: BundleRule,
+  cart: CartLike,
+  rules: OfferRules,
+): BundleCompletion[] {
+  const prepared = prepareCart(cart, rules);
+  const pool = new Map<string, number>();
+  for (const {line} of prepared.lines) {
+    pool.set(line.variantId, (pool.get(line.variantId) ?? 0) + line.quantity);
+  }
+  const validRule =
+    bundle.members.length > 0 &&
+    bundle.members.every((member) => validQuantity(member.quantity));
+
+  const completions: BundleCompletion[] = [];
+  for (const {line, kind} of prepared.lines) {
+    if (kind !== 'regular' || line.productId !== bundle.anchorProductId) {
+      continue;
+    }
+    const unavailable: BundleCompletion = {
+      bundleId: bundle.id,
+      anchorLineId: line.id,
+      state: 'unavailable',
+      missing: [],
+      memberVariantIds: [],
+    };
+    if (!validRule) {
+      completions.push(unavailable);
+      continue;
+    }
+    const need = new Map<string, {productId: string; quantity: number}>();
+    let sizeOffered = true;
+    for (const member of bundle.members) {
+      const variantId = memberVariantId(member, line.size);
+      if (variantId === null) {
+        sizeOffered = false;
+        break;
+      }
+      const existing = need.get(variantId);
+      need.set(variantId, {
+        productId: member.productId,
+        quantity: (existing?.quantity ?? 0) + member.quantity * line.quantity,
+      });
+    }
+    if (
+      !sizeOffered ||
+      [...need.values()].some(
+        (entry) => entry.quantity > MAX_COMPLETION_LINE_QUANTITY,
+      )
+    ) {
+      completions.push(unavailable);
+      continue;
+    }
+
+    const missing: BundleLine[] = [];
+    for (const [variantId, {productId, quantity}] of need) {
+      const have = pool.get(variantId) ?? 0;
+      const taken = Math.min(have, quantity);
+      pool.set(variantId, have - taken);
+      if (taken < quantity) {
+        missing.push({
+          variantId,
+          productId,
+          quantity: quantity - taken,
+          isAnchor: false,
+        });
+      }
+    }
+    completions.push({
+      bundleId: bundle.id,
+      anchorLineId: line.id,
+      state: missing.length === 0 ? 'complete' : 'incomplete',
+      missing,
+      memberVariantIds: [...need.keys()],
+    });
+  }
+  return completions;
 }

@@ -3,6 +3,7 @@
 
 import {getStores, type DataSource} from '~/lib/pages/data-source';
 import {buildStoreIndex, type StoreIndex} from '~/lib/stores/grouping';
+import {logWarn} from '~/lib/logging/logger';
 
 export type StoreIndexResult = {
   readonly source: DataSource;
@@ -13,7 +14,7 @@ export async function loadStoreIndex(): Promise<StoreIndexResult> {
   const {source, stores, warnings} = await getStores();
   if (warnings.length > 0) {
     // Counts only: the warnings themselves can quote admin-entered text.
-    console.warn(`[stores] ${warnings.length} store record warning(s)`);
+    logWarn('stores.record_warnings', {count: warnings.length});
   }
   return {source, index: buildStoreIndex(stores)};
 }

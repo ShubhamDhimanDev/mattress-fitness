@@ -25,6 +25,19 @@ import { createLogger } from '../lib/redact.mjs';
 import { connectionNodes, createAdminClient, isRecord } from '../lib/shopify-admin.mjs';
 import { loadDetectiveLibs } from './ts-loader.mjs';
 
+/**
+ * Exit 4: no violation was found, but at least one order could not be fully judged (and that was not accepted with
+ * --accept-unjudged). Kept apart from EXIT_FAILED (1 = a violation, or the read failed) so an alert wrapper can page on
+ * 1 and merely ticket 4: "cannot judge" must never hide, or be mistaken for, "violation found" (review M3).
+ */
+export const EXIT_UNJUDGED = 4;
+
+/**
+ * Unjudged reasons an operator may knowingly accept. Only a reason that is a standing limit of the check, not a fault:
+ * accepting `order_unreadable` or `rules_unavailable` would hide a broken run.
+ */
+export const ACCEPTABLE_UNJUDGED = ['coverage_price_unjudged'];
+
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 1000;
 const DEFAULT_DAYS = 14;
@@ -32,8 +45,11 @@ const DEFAULT_DAYS = 14;
 const ESTIMATED_COST_PER_ORDER = 420;
 
 const USAGE = `Usage: node scripts/detective/report.mjs --store <shop>.myshopify.com [--since YYYY-MM-DD] [--limit ${DEFAULT_LIMIT}]
-         [--offer-config-file <offers.json>] [--json] [--out <report.json>]
+         [--offer-config-file <offers.json>] [--accept-unjudged coverage_price_unjudged] [--json] [--out <report.json>]
 Reads orders only; nothing is written to Shopify. --out writes the report to a new local file (an existing file is refused).
+Exit codes: 0 every order judged and clean (or only accepted unjudged reasons); 1 a violation was found or the Shopify read
+failed; 2 usage; 3 store refused; 4 no violation, but some order could not be fully judged. --accept-unjudged (repeatable or
+comma separated; only: ${ACCEPTABLE_UNJUDGED.join(', ')}) stops that reason alone from raising 4; it is still counted and printed.
 Environment: SHOPIFY_ADMIN_API_ACCESS_TOKEN, SHOPIFY_ALLOWED_STORES, and OFFER_CONFIG_JSON unless --offer-config-file is given.`;
 
 /** @param {number} days @param {() => number} now */
@@ -121,9 +137,23 @@ export async function judgeRecentOrders(client, libs, config, { since, limit }) 
   return { ok: true, results, truncated };
 }
 
-/** @param {import('../../storefront/app/lib/detective/report').DetectiveReport} report @param {{ truncated: boolean, warnings: readonly string[], limit: number, since: string }} extra */
+/**
+ * What the run found, for the exit code and for wrappers: a violation always wins over unjudged noise.
+ * `unjudged_only` = no violation, and some order has an unjudged reason that was not accepted.
+ * @param {import('../../storefront/app/lib/detective/report').DetectiveReport} report
+ * @param {readonly string[]} accepted
+ * @returns {'clean' | 'violations' | 'unjudged_only'}
+ */
+export function reportOutcome(report, accepted) {
+  if (report.counts.violations > 0) return 'violations';
+  const unaccepted = report.findings.some((finding) => finding.unjudged.some((reason) => !accepted.includes(reason)));
+  return unaccepted ? 'unjudged_only' : 'clean';
+}
+
+/** @param {import('../../storefront/app/lib/detective/report').DetectiveReport} report @param {{ truncated: boolean, warnings: readonly string[], limit: number, since: string, accepted?: readonly string[] }} extra */
 export function renderReport(report, extra) {
   const { counts } = report;
+  const accepted = extra.accepted ?? [];
   const lines = [
     `Checked ${report.checkedOrders} Shopify orders: ${counts.clean} clean, ${counts.violations} with violations, ${counts.unjudgeable} not judged.`,
   ];
@@ -159,8 +189,19 @@ export function renderReport(report, extra) {
       `The limit of ${extra.limit} orders was reached. The ${report.checkedOrders} newest orders created since ${extra.since} were checked; the older orders in that window were NOT checked. Raise --limit (up to ${MAX_LIMIT}) or narrow --since to cover them.`,
     );
   }
+  if (accepted.length > 0) {
+    lines.push('', `accepted by --accept-unjudged (still counted above, not alerting): ${accepted.join(', ')}`);
+  }
   for (const warning of extra.warnings) lines.push(`offer rules: ${warning}`);
   lines.push('', 'Judged against the current offer rules and delivery zone. Delivery method is read from the order attribute delivery_choice (a shopper-writable claim).');
+  const outcome = reportOutcome(report, accepted);
+  lines.push(
+    outcome === 'violations'
+      ? 'Result: VIOLATIONS found (exit 1).'
+      : outcome === 'unjudged_only'
+        ? `Result: no violation found, but some orders could not be fully judged (exit ${EXIT_UNJUDGED}).`
+        : 'Result: clean (exit 0).',
+  );
   return lines.join('\n');
 }
 
@@ -179,6 +220,7 @@ export async function main(argv, io = {}) {
     since: { type: 'string' },
     limit: { type: 'string' },
     'offer-config-file': { type: 'string' },
+    'accept-unjudged': { type: 'string', multiple: true },
     json: { type: 'boolean' },
     out: { type: 'string' },
     help: { type: 'boolean' },
@@ -195,6 +237,12 @@ export async function main(argv, io = {}) {
   const limit = v.limit === undefined ? DEFAULT_LIMIT : Number(v.limit);
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
     err(`--limit must be a whole number from 1 to ${MAX_LIMIT}.`);
+    return EXIT_USAGE;
+  }
+  const accepted = [...new Set((Array.isArray(v['accept-unjudged']) ? v['accept-unjudged'] : []).flatMap((value) => String(value).split(',').map((part) => part.trim()).filter(Boolean)))];
+  const unacceptable = accepted.filter((reason) => !ACCEPTABLE_UNJUDGED.includes(reason));
+  if (unacceptable.length > 0) {
+    err(`--accept-unjudged accepts only: ${ACCEPTABLE_UNJUDGED.join(', ')}. Other reasons hide a broken run.`);
     return EXIT_USAGE;
   }
   const since = typeof v.since === 'string' ? v.since : defaultSince(DEFAULT_DAYS, now);
@@ -232,9 +280,10 @@ export async function main(argv, io = {}) {
   }
 
   const report = libs.summarizeResults(judged.results);
-  const extra = { truncated: judged.truncated, warnings: rules.warnings, limit, since };
+  const extra = { truncated: judged.truncated, warnings: rules.warnings, limit, since, accepted };
+  const outcome = reportOutcome(report, accepted);
   // order: orders are read newest first, so a truncated run holds the newest `limit` orders and skipped the OLDER ones.
-  const document = { generatedAt: new Date(now()).toISOString(), store: guard.store, since, limit, order: 'newest_first', truncated: judged.truncated, report };
+  const document = { generatedAt: new Date(now()).toISOString(), store: guard.store, since, limit, order: 'newest_first', truncated: judged.truncated, acceptedUnjudged: accepted, outcome, report };
   if (typeof v.out === 'string') {
     try {
       // 'wx': never overwrite an earlier report.
@@ -246,7 +295,8 @@ export async function main(argv, io = {}) {
   }
   if (v.json) out(JSON.stringify(document, null, 2));
   else out(renderReport(report, extra));
-  return report.clean ? EXIT_OK : EXIT_FAILED;
+  if (outcome === 'violations') return EXIT_FAILED;
+  return outcome === 'unjudged_only' ? EXIT_UNJUDGED : EXIT_OK;
 }
 
 if (isMainModule(import.meta.url)) {

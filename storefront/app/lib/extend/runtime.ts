@@ -24,6 +24,7 @@ import {
 } from '~/lib/extend/coverage-facts';
 import {extendEnvOf, readEnvString} from '~/lib/extend/env';
 import type {ExtendLogger} from '~/lib/extend/log';
+import {logEvent} from '~/lib/logging/logger';
 import {
   answerOffers,
   createDistinctVariantLimiter,
@@ -57,14 +58,12 @@ export const realSleep: SleepFn = (ms) =>
 const realNow = () => Date.now();
 
 /**
- * One JSON line per event, redacted by construction (the event type has no field for personal data or secrets, log.ts).
- * The project lint allows only `console.warn` and `console.error`, so informational events travel on `warn` with their
- * own `level` field intact.
+ * One JSON line per event. The event type has no field for personal data or secrets (log.ts), and the line also
+ * goes through the shared redaction layer (P7-08) as a second guard. Informational events travel on `warn` with
+ * their own `level` field intact (the project lint allows only `console.warn` and `console.error`).
  */
-export const consoleLogger: ExtendLogger = (event) => {
-  const line = JSON.stringify(event);
-  if (event.level === 'error') console.error(line);
-  else console.warn(line);
+export const consoleLogger: ExtendLogger = ({level, event, ...fields}) => {
+  logEvent(level, event, fields);
 };
 
 /**
