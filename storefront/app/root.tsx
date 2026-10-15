@@ -21,7 +21,10 @@ import {Button} from '~/components/ui/Button';
 import {loadDeliverySummary} from '~/lib/delivery-runtime/summary';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {PRIVATE_REVALIDATE_HEADERS} from '~/lib/pages/private-response';
-import {resolveSupportPhone} from '~/lib/navigation';
+import {
+  chooseSupportPhone,
+  loadSiteSettings,
+} from '~/lib/shopify/site-settings';
 import {
   hasMyStoreCookie,
   summarizeMyStore,
@@ -118,10 +121,11 @@ export async function loader(args: Route.LoaderArgs) {
 
   // Await the critical data required to render initial state of the page. The store lookup and the ZIP
   // cookie read are independent of it, so they run alongside instead of after.
-  const [criticalData, myStore, delivery] = await Promise.all([
+  const [criticalData, myStore, delivery, siteSettings] = await Promise.all([
     loadCriticalData(args),
     loadMyStore(args.request),
     loadDeliverySummary(args.request, env),
+    loadSiteSettings(storefront),
   ]);
 
   return {
@@ -129,9 +133,13 @@ export async function loader(args: Route.LoaderArgs) {
     ...criticalData,
     myStore,
     ...delivery,
-    // Shown only when configured (PUBLIC_SUPPORT_PHONE); development shows a labelled placeholder (REQ-CNT-001).
-    supportPhone: resolveSupportPhone(
+    // The promotion bar and the phone come from the `site_settings` entry (P3B-13). The phone is shown only when
+    // valid: PUBLIC_SUPPORT_PHONE overrides the admin value; development shows a labelled placeholder when
+    // neither is set (REQ-CNT-001, B-15). Nothing here is a price, and nothing keys on the shopper.
+    promo: siteSettings.promo,
+    supportPhone: chooseSupportPhone(
       env.PUBLIC_SUPPORT_PHONE,
+      siteSettings,
       import.meta.env.DEV,
     ),
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
@@ -237,6 +245,7 @@ export default function App() {
         cart={data.cart}
         isLoggedIn={data.isLoggedIn}
         myStore={data.myStore}
+        promo={data.promo}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
       >
@@ -332,6 +341,7 @@ export function ErrorBoundary() {
         cart={data.cart}
         isLoggedIn={data.isLoggedIn}
         myStore={data.myStore}
+        promo={data.promo}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
       >

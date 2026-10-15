@@ -15,9 +15,9 @@ type PageLayoutProps = {
   isLoggedIn: Promise<boolean>;
   /** The shopper's chosen store from the validated cookie, or null (REQ-LOC-003). */
   myStore?: MyStoreSummary | null;
-  /** From site_settings once a typed read exists (P3B-13); null hides the bar, nothing is invented (B-15). */
+  /** From the site_settings entry (lib/shopify/site-settings.ts, P3B-13); null hides the bar, nothing is invented (B-15). */
   promo?: PromoMessage | null;
-  /** The client's number from the environment, or null: no phone link is rendered without one (REQ-CNT-001). */
+  /** The client's number (PUBLIC_SUPPORT_PHONE or site_settings), or null: no phone link is rendered without one (REQ-CNT-001). */
   supportPhone?: SupportPhone | null;
   /** False when the deployment cannot save a ZIP; the header then offers no ZIP entry. */
   deliveryZipAvailable?: boolean;

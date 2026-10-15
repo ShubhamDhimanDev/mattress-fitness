@@ -160,6 +160,9 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
     ).toHaveCount(0);
   });
 
+  // The promotion text now comes from the site_settings entry (site-settings.ts, unit tested with a recorded entry).
+  // The mock stores have no such entry, so this proves the empty case end to end (nothing invented, B-15); a bar
+  // with real admin text needs the development store (V-04 for metaobject access).
   test('no placeholder promotion text is shown', async ({page}) => {
     await gotoReady(page);
     await expect(page.getByText(/Sample promotion text/)).toHaveCount(0);

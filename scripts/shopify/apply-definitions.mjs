@@ -33,7 +33,7 @@ export const DEFAULT_SPEC_PATH = fileURLToPath(new URL('./definitions.json', imp
 const KEY_PATTERN = /^[A-Za-z0-9_-]{2,64}$/;
 const NAMESPACE_PATTERN = /^[A-Za-z0-9_-]{3,255}$/;
 const TYPE_NAME_PATTERN = /^[a-z0-9_]{3,255}$/;
-const OWNER_TYPES = Object.freeze(['PRODUCT', 'PRODUCTVARIANT']);
+const OWNER_TYPES = Object.freeze(['PRODUCT', 'PRODUCTVARIANT', 'COLLECTION']);
 const STOREFRONT_ACCESS = Object.freeze(['NONE', 'PUBLIC_READ']);
 
 /**

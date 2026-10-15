@@ -4,7 +4,7 @@ Two tools that keep the development store and the client's store identical and k
 
 ## definitions.json and apply-definitions.mjs
 
-`definitions.json` is the single description of the data model in [SHOPIFY_DATA_MODEL](../../docs/architecture/SHOPIFY_DATA_MODEL.md): ten metaobject definitions (`brand`, `faq`, `store`, `quiz_option`, `quiz_question`, `homepage_section`, `promo_tile`, `offer_rule`, `site_settings`, `delivery_zone`) and seventeen metafield definitions (sixteen on products in namespace `custom`, plus `custom.dimensions` on variants). Every definition has Storefront API read access (`PUBLIC_READ`). Several product attributes are enabled as smart-collection conditions so rule-based collections work without code.
+`definitions.json` is the single description of the data model in [SHOPIFY_DATA_MODEL](../../docs/architecture/SHOPIFY_DATA_MODEL.md): ten metaobject definitions (`brand`, `faq`, `store`, `quiz_option`, `quiz_question`, `homepage_section`, `promo_tile`, `offer_rule`, `site_settings`, `delivery_zone`) and eighteen metafield definitions (sixteen on products in namespace `custom`, `custom.dimensions` on variants and `custom.faqs` on collections). Every definition has Storefront API read access (`PUBLIC_READ`). Several product attributes are enabled as smart-collection conditions so rule-based collections work without code.
 
 The allowed values (comfort levels, mattress types, delivery types) are the same lists the product sheet uses in `scripts/catalog/schema.mjs`; a test compares the two so they cannot drift apart. Shopify supports the `choices` validation only on single-value text, so `sleep_positions` and `benefits` (lists) are enforced by the sheet validator instead.
 

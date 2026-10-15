@@ -1,4 +1,5 @@
 import type {CustomerAddressInput} from '@shopify/hydrogen/customer-account-api-types';
+import type {CustomerAccount} from '@shopify/hydrogen';
 import type {
   AddressFragment,
   CustomerFragment,
@@ -17,15 +18,34 @@ import {
   DELETE_ADDRESS_MUTATION,
   CREATE_ADDRESS_MUTATION,
 } from '~/graphql/customer-account/CustomerAddressMutations';
+import {isSameOriginRequest} from '~/lib/cart/http';
+import {readSmallForm} from '~/lib/delivery-runtime/form';
+import {
+  NEW_ADDRESS_FORM_ID,
+  accountErrorStatus,
+  accountFailure,
+  accountNoStoreHeaders,
+  hasOversizedField,
+  parseAddressId,
+  type AccountErrorCode,
+  type AccountFailure,
+} from '~/lib/account/results';
+import {errorFields, logError, logWarn} from '~/lib/logging/logger';
 
-export type ActionResponse = {
-  addressId?: string | null;
-  createdAddress?: AddressFragment;
-  defaultAddress?: string | null;
-  deletedAddress?: string | null;
-  error: Record<AddressFragment['id'], string> | null;
-  updatedAddress?: AddressFragment;
-};
+type AddressOperation = 'create' | 'update' | 'delete';
+
+/**
+ * The result the page reads. `addressId` is the id the form posted (the form that shows the message), or null
+ * when the request named no usable address. No Shopify or exception text is ever part of it (P-L8).
+ */
+export type ActionResponse =
+  | {
+      readonly status: 'ok';
+      readonly operation: AddressOperation;
+      readonly addressId: string;
+      readonly defaultAddress: boolean;
+    }
+  | (AccountFailure & {readonly addressId: string | null});
 
 export const meta: Route.MetaFunction = () => {
   return [{title: 'Addresses'}];
@@ -37,232 +57,244 @@ export async function loader({context}: Route.LoaderArgs) {
   return {};
 }
 
+// A form is a few short text fields; 8 KB is generous for ten of them and refuses anything abusive early.
+const ADDRESS_FORM_MAX_BYTES = 8192;
+
+const ADDRESS_KEYS: readonly (keyof CustomerAddressInput)[] = [
+  'address1',
+  'address2',
+  'city',
+  'company',
+  'territoryCode',
+  'firstName',
+  'lastName',
+  'phoneNumber',
+  'zoneCode',
+  'zip',
+];
+
+type Outcome = 'ok' | AccountErrorCode;
+
+function respond(body: ActionResponse) {
+  const status = body.status === 'ok' ? 200 : accountErrorStatus(body.code);
+  return data(body, {status, headers: accountNoStoreHeaders()});
+}
+
+function fail(addressId: string | null, code: AccountErrorCode) {
+  return respond({...accountFailure(code), addressId});
+}
+
+/**
+ * Turns what Shopify answered into one of our outcomes. Messages from `errors` and `userErrors` are not read
+ * (they can quote input and ids); only their presence is, and the log carries our own vocabulary.
+ */
+function judge(
+  operation: AddressOperation,
+  result: {errors?: readonly unknown[]; userErrors?: readonly unknown[]},
+  succeeded: boolean,
+): Outcome {
+  if (result.errors?.length) {
+    logError('account.address_failed', {operation, reason: 'graphql_errors'});
+    return 'failed';
+  }
+  if (result.userErrors?.length) {
+    logWarn('account.address_rejected', {operation});
+    return 'rejected';
+  }
+  if (!succeeded) {
+    logError('account.address_failed', {operation, reason: 'no_result'});
+    return 'failed';
+  }
+  return 'ok';
+}
+
+function outcomeFromThrown(operation: AddressOperation, error: unknown) {
+  // The client throws a redirect Response when the session ended during the call.
+  if (error instanceof Response) return 'signed-out' as const;
+  logError('account.address_failed', {operation, ...errorFields(error)});
+  return 'failed' as const;
+}
+
+async function createAddress(
+  customerAccount: CustomerAccount,
+  address: CustomerAddressInput,
+  defaultAddress: boolean,
+): Promise<Outcome> {
+  try {
+    const {data: result, errors} = await customerAccount.mutate(
+      CREATE_ADDRESS_MUTATION,
+      {
+        variables: {
+          address,
+          defaultAddress,
+          language: customerAccount.i18n.language,
+        },
+      },
+    );
+    return judge(
+      'create',
+      {
+        errors,
+        userErrors: result?.customerAddressCreate?.userErrors,
+      },
+      Boolean(result?.customerAddressCreate?.customerAddress),
+    );
+  } catch (error: unknown) {
+    return outcomeFromThrown('create', error);
+  }
+}
+
+async function updateAddress(
+  customerAccount: CustomerAccount,
+  addressId: string,
+  address: CustomerAddressInput,
+  defaultAddress: boolean,
+): Promise<Outcome> {
+  try {
+    const {data: result, errors} = await customerAccount.mutate(
+      UPDATE_ADDRESS_MUTATION,
+      {
+        variables: {
+          address,
+          addressId,
+          defaultAddress,
+          language: customerAccount.i18n.language,
+        },
+      },
+    );
+    return judge(
+      'update',
+      {
+        errors,
+        userErrors: result?.customerAddressUpdate?.userErrors,
+      },
+      Boolean(result?.customerAddressUpdate?.customerAddress),
+    );
+  } catch (error: unknown) {
+    return outcomeFromThrown('update', error);
+  }
+}
+
+async function deleteAddress(
+  customerAccount: CustomerAccount,
+  addressId: string,
+): Promise<Outcome> {
+  try {
+    const {data: result, errors} = await customerAccount.mutate(
+      DELETE_ADDRESS_MUTATION,
+      {
+        variables: {addressId, language: customerAccount.i18n.language},
+      },
+    );
+    return judge(
+      'delete',
+      {
+        errors,
+        userErrors: result?.customerAddressDelete?.userErrors,
+      },
+      Boolean(result?.customerAddressDelete?.deletedAddressId),
+    );
+  } catch (error: unknown) {
+    return outcomeFromThrown('delete', error);
+  }
+}
+
+function readAddress(form: FormData): CustomerAddressInput {
+  const address: CustomerAddressInput = {};
+  for (const key of ADDRESS_KEYS) {
+    const value = form.get(key);
+    if (typeof value === 'string') {
+      address[key] = value;
+    }
+  }
+  return address;
+}
+
 export async function action({request, context}: Route.ActionArgs) {
   const {customerAccount} = context;
 
-  try {
-    const form = await request.formData();
+  if (!isSameOriginRequest(request)) return fail(null, 'forbidden');
 
-    const addressId = form.has('addressId')
-      ? String(form.get('addressId'))
+  const read = await readSmallForm(request, ADDRESS_FORM_MAX_BYTES);
+  if (read.status !== 'ok') return fail(null, 'invalid-request');
+  const {form} = read;
+
+  // The id only names which form shows the message, plus (for an update or delete) which of the shopper's own
+  // addresses to change. The customer is never read from the request: the mutation runs with the signed-in
+  // customer's token, so another customer's address id is answered by Shopify as not found.
+  const rawId = form.get('addressId');
+  const addressId =
+    typeof rawId === 'string' &&
+    (rawId === NEW_ADDRESS_FORM_ID || parseAddressId(rawId) !== null)
+      ? rawId
       : null;
-    if (!addressId) {
-      throw new Error('You must provide an address id.');
-    }
+  if (addressId === null) return fail(null, 'invalid-request');
 
-    // this will ensure redirecting to login never happen for mutatation
-    const isLoggedIn = await customerAccount.isLoggedIn();
-    if (!isLoggedIn) {
-      return data(
-        {error: {[addressId]: 'Unauthorized'}},
-        {
-          status: 401,
-        },
-      );
-    }
-
-    const defaultAddress = form.has('defaultAddress')
-      ? String(form.get('defaultAddress')) === 'on'
-      : false;
-    const address: CustomerAddressInput = {};
-    const keys: (keyof CustomerAddressInput)[] = [
-      'address1',
-      'address2',
-      'city',
-      'company',
-      'territoryCode',
-      'firstName',
-      'lastName',
-      'phoneNumber',
-      'zoneCode',
-      'zip',
-    ];
-
-    for (const key of keys) {
-      const value = form.get(key);
-      if (typeof value === 'string') {
-        address[key] = value;
-      }
-    }
-
-    switch (request.method) {
-      case 'POST': {
-        // handle new address creation
-        try {
-          const {data, errors} = await customerAccount.mutate(
-            CREATE_ADDRESS_MUTATION,
-            {
-              variables: {
-                address,
-                defaultAddress,
-                language: customerAccount.i18n.language,
-              },
-            },
-          );
-
-          if (errors?.length) {
-            throw new Error(errors[0].message);
-          }
-
-          if (data?.customerAddressCreate?.userErrors?.length) {
-            throw new Error(data?.customerAddressCreate?.userErrors[0].message);
-          }
-
-          if (!data?.customerAddressCreate?.customerAddress) {
-            throw new Error('Customer address create failed.');
-          }
-
-          return {
-            error: null,
-            createdAddress: data?.customerAddressCreate?.customerAddress,
-            defaultAddress,
-          };
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            return data(
-              {error: {[addressId]: error.message}},
-              {
-                status: 400,
-              },
-            );
-          }
-          return data(
-            {error: {[addressId]: error}},
-            {
-              status: 400,
-            },
-          );
-        }
-      }
-
-      case 'PUT': {
-        // handle address updates
-        try {
-          const {data, errors} = await customerAccount.mutate(
-            UPDATE_ADDRESS_MUTATION,
-            {
-              variables: {
-                address,
-                addressId: decodeURIComponent(addressId),
-                defaultAddress,
-                language: customerAccount.i18n.language,
-              },
-            },
-          );
-
-          if (errors?.length) {
-            throw new Error(errors[0].message);
-          }
-
-          if (data?.customerAddressUpdate?.userErrors?.length) {
-            throw new Error(data?.customerAddressUpdate?.userErrors[0].message);
-          }
-
-          if (!data?.customerAddressUpdate?.customerAddress) {
-            throw new Error('Customer address update failed.');
-          }
-
-          return {
-            error: null,
-            updatedAddress: address,
-            defaultAddress,
-          };
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            return data(
-              {error: {[addressId]: error.message}},
-              {
-                status: 400,
-              },
-            );
-          }
-          return data(
-            {error: {[addressId]: error}},
-            {
-              status: 400,
-            },
-          );
-        }
-      }
-
-      case 'DELETE': {
-        // handles address deletion
-        try {
-          const {data, errors} = await customerAccount.mutate(
-            DELETE_ADDRESS_MUTATION,
-            {
-              variables: {
-                addressId: decodeURIComponent(addressId),
-                language: customerAccount.i18n.language,
-              },
-            },
-          );
-
-          if (errors?.length) {
-            throw new Error(errors[0].message);
-          }
-
-          if (data?.customerAddressDelete?.userErrors?.length) {
-            throw new Error(data?.customerAddressDelete?.userErrors[0].message);
-          }
-
-          if (!data?.customerAddressDelete?.deletedAddressId) {
-            throw new Error('Customer address delete failed.');
-          }
-
-          return {error: null, deletedAddress: addressId};
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            return data(
-              {error: {[addressId]: error.message}},
-              {
-                status: 400,
-              },
-            );
-          }
-          return data(
-            {error: {[addressId]: error}},
-            {
-              status: 400,
-            },
-          );
-        }
-      }
-
-      default: {
-        return data(
-          {error: {[addressId]: 'Method not allowed'}},
-          {
-            status: 405,
-          },
-        );
-      }
-    }
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      return data(
-        {error: error.message},
-        {
-          status: 400,
-        },
-      );
-    }
-    return data(
-      {error},
-      {
-        status: 400,
-      },
-    );
+  const method = request.method;
+  if (method !== 'POST' && method !== 'PUT' && method !== 'DELETE') {
+    return fail(addressId, 'method-not-allowed');
   }
+
+  // This ensures a login redirect never happens for a mutation (it is a fetch, not a navigation).
+  if (!(await customerAccount.isLoggedIn())) {
+    return fail(addressId, 'signed-out');
+  }
+
+  if (hasOversizedField(form, ADDRESS_KEYS)) {
+    return fail(addressId, 'invalid-request');
+  }
+
+  const defaultAddress = form.has('defaultAddress')
+    ? String(form.get('defaultAddress')) === 'on'
+    : false;
+  const address = readAddress(form);
+  const existingId = parseAddressId(addressId);
+
+  let outcome: Outcome;
+  let operation: AddressOperation;
+  if (method === 'POST') {
+    operation = 'create';
+    outcome = await createAddress(customerAccount, address, defaultAddress);
+  } else if (existingId === null) {
+    // An update or delete of "the new address form" names nothing to change.
+    return fail(addressId, 'invalid-request');
+  } else if (method === 'PUT') {
+    operation = 'update';
+    outcome = await updateAddress(
+      customerAccount,
+      existingId,
+      address,
+      defaultAddress,
+    );
+  } else {
+    operation = 'delete';
+    outcome = await deleteAddress(customerAccount, existingId);
+  }
+
+  if (outcome !== 'ok') return fail(addressId, outcome);
+  return respond({status: 'ok', operation, addressId, defaultAddress});
 }
 
 export default function Addresses() {
   const {customer} = useOutletContext<{customer: CustomerFragment}>();
   const {defaultAddress, addresses} = customer;
+  const action = useActionData<ActionResponse>();
+  // A request that named no usable address has no form to show its message in.
+  const pageError =
+    action?.status === 'error' && action.addressId === null
+      ? action.message
+      : null;
 
   return (
     <div className="account-addresses">
       <h2>Addresses</h2>
+      {pageError ? (
+        <p role="alert">
+          <mark>
+            <small>{pageError}</small>
+          </mark>
+        </p>
+      ) : null}
       <br />
       <div>
         <div>
@@ -374,7 +406,10 @@ export function AddressForm({
 }) {
   const {state, formMethod} = useNavigation();
   const action = useActionData<ActionResponse>();
-  const error = action?.error?.[addressId];
+  const error =
+    action?.status === 'error' && action.addressId === addressId
+      ? action.message
+      : null;
   const isDefaultAddress = defaultAddress?.id === addressId;
   return (
     <Form id={addressId}>
@@ -499,7 +534,7 @@ export function AddressForm({
           <label htmlFor="defaultAddress">Set as default address</label>
         </div>
         {error ? (
-          <p>
+          <p role="alert">
             <mark>
               <small>{error}</small>
             </mark>

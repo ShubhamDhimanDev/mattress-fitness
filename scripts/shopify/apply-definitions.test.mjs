@@ -33,8 +33,21 @@ test('definitions.json is valid and declares the ten metaobject types of the dat
   const checked = validateSpec(spec);
   assert.deepEqual(checked.ok ? [] : checked.errors, []);
   assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'site_settings', 'store']);
-  assert.equal(spec.metafieldDefinitions.length, 17, '16 product metafields and the variant dimensions field');
-  assert.equal(TOTAL, 27);
+  assert.equal(spec.metafieldDefinitions.length, 18, '16 product metafields, the variant dimensions field and the collection FAQs');
+  assert.equal(TOTAL, 28);
+});
+
+test('custom.faqs is defined for products and for collections with the same shape (REQ-COL-004)', () => {
+  const faqs = spec.metafieldDefinitions.filter((definition) => definition.namespace === 'custom' && definition.key === 'faqs');
+  assert.deepEqual(faqs.map((definition) => definition.ownerType).sort(), ['COLLECTION', 'PRODUCT']);
+  const [first, second] = faqs;
+  for (const definition of faqs) {
+    assert.equal(definition.type, 'list.metaobject_reference');
+    assert.deepEqual(definition.validations, [{ name: 'metaobject_definition_type', value: 'faq' }]);
+    assert.equal(definition.storefrontAccess, 'PUBLIC_READ');
+    assert.ok(definition.description && definition.description.length > 10, 'has a description');
+  }
+  assert.equal(first.name, second.name);
 });
 
 test('every definition the storefront reads has Storefront API access enabled (PUBLIC_READ)', () => {
@@ -91,7 +104,13 @@ test('the data model fields that other work packages depend on are present', () 
   assert.deepEqual(fields('brand'), ['name', 'slug', 'logo', 'about', 'warranty_terms']);
   assert.ok(['pickup_enabled', 'location_handle', 'latitude', 'longitude', 'hours', 'photo'].every((key) => fields('store').includes(key)));
   assert.ok(['postal_codes', 'free_over', 'fee_text'].every((key) => fields('delivery_zone').includes(key)));
-  assert.ok(['haul_away_max', 'extend_enabled', 'promo_bar_text'].every((key) => fields('site_settings').includes(key)));
+  assert.ok(['haul_away_max', 'extend_enabled', 'promo_bar_text', 'promo_bar_link', 'support_phone'].every((key) => fields('site_settings').includes(key)));
+  // The storefront reads these three as plain text (site-settings.ts); a different type would change what the read returns.
+  const settings = spec.metaobjectDefinitions.find((definition) => definition.type === 'site_settings');
+  for (const key of ['promo_bar_text', 'promo_bar_link', 'support_phone']) {
+    assert.equal(settings.fieldDefinitions.find((field) => field.key === key).type, 'single_line_text_field', key);
+  }
+  assert.equal(settings.storefrontAccess, 'PUBLIC_READ');
   assert.ok(!fields('site_settings').includes('free_delivery_threshold'), 'free-delivery threshold has one source: delivery_zone.free_over');
   const offerType = spec.metaobjectDefinitions.find((definition) => definition.type === 'offer_rule').fieldDefinitions.find((field) => field.key === 'type');
   assert.deepEqual(offerType.validations[0].value, ['comfort_protector', 'haul_away', 'matching_protector', 'pillow', 'bedding', 'gift', 'bundle']);

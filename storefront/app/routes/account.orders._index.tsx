@@ -1,4 +1,5 @@
 import {
+  data as routeData,
   Link,
   useLoaderData,
   useNavigation,
@@ -23,6 +24,8 @@ import type {
   OrderItemFragment,
 } from 'customer-accountapi.generated';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
+import {accountFailure, accountNoStoreHeaders} from '~/lib/account/results';
+import {errorFields, logError} from '~/lib/logging/logger';
 
 type OrdersLoaderData = {
   customer: CustomerOrdersFragment;
@@ -35,6 +38,10 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader({request, context}: Route.LoaderArgs) {
   const {customerAccount} = context;
+  // Explicit, so the check does not depend on the query call making it (T-11). Which orders come back is
+  // decided by Shopify from the signed-in customer's token; nothing in the URL names a customer.
+  await customerAccount.handleAuthStatus();
+
   const paginationVariables = getPaginationVariables(request, {
     pageBy: 20,
   });
@@ -43,16 +50,33 @@ export async function loader({request, context}: Route.LoaderArgs) {
   const filters = parseOrderFilters(url.searchParams);
   const query = buildOrderSearchQuery(filters);
 
-  const {data, errors} = await customerAccount.query(CUSTOMER_ORDERS_QUERY, {
-    variables: {
-      ...paginationVariables,
-      query,
-      language: customerAccount.i18n.language,
-    },
-  });
+  let result;
+  try {
+    result = await customerAccount.query(CUSTOMER_ORDERS_QUERY, {
+      variables: {
+        ...paginationVariables,
+        query,
+        language: customerAccount.i18n.language,
+      },
+    });
+  } catch (error: unknown) {
+    if (error instanceof Response) throw error;
+    logError('account.orders_read_failed', errorFields(error));
+    throw routeData(accountFailure('failed'), {
+      status: 500,
+      headers: accountNoStoreHeaders(),
+    });
+  }
 
+  const {data, errors} = result;
   if (errors?.length || !data?.customer) {
-    throw Error('Customer orders not found');
+    logError('account.orders_read_failed', {
+      reason: errors?.length ? 'graphql_errors' : 'no_customer',
+    });
+    throw routeData(accountFailure('failed'), {
+      status: 500,
+      headers: accountNoStoreHeaders(),
+    });
   }
 
   return {customer: data.customer, filters};
