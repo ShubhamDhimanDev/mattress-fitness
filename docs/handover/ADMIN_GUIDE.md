@@ -1,20 +1,25 @@
 # Admin guide: running the store from Shopify admin
 
-**Draft 1, dated 2026-10-12.** For the client's store managers, merchandisers and customer service. Deliverable H-03 (REQ-HAND-003, NFR-005).
+**Draft 2, dated 2026-10-15** (draft 1 was 2026-10-12). For the client's store managers, merchandisers and customer service. Deliverable H-03 (REQ-HAND-003, NFR-005).
 
 ## Read this first
 
-**Status of this draft.** The storefront is still being built. As of this date, the project records show no development store connected and nothing live for shoppers. This guide describes how each task **will** work once the feature is built, using the project's design documents. It has **not** yet been tested by a non-developer, and it has no real screenshots yet. Treat every step as a draft until the final version is dated.
+**Status of this draft.** The storefront is partly built, but **no development store is connected and nothing is live for shoppers**. Everything built so far was checked only against test data, simulated Shopify answers and a public demo store, never against your Shopify store. This guide was updated to match what the code does on 2026-10-15. It has **not** been tested by a non-developer, and it has no real screenshots yet. Treat every step as a draft until the final version is dated.
+
+**Important correction to draft 1.** Several things draft 1 described as "edit it in Shopify admin" are **not connected to Shopify admin yet**. The website currently reads only these from Shopify admin: products and variants, the product facts (metafields), collections, brands, homepage sections, promo tiles, FAQs, menus and pages. The **store locator, the sleep quiz and the compare page still use built-in sample data** (editing Store or Quiz entries in Shopify changes nothing yet), and the **offer rules (gift, bundle, comfort protector, add-ons, haul-away, free-delivery amount) and the delivery zone are held in a developer-managed setting**, not in Shopify admin. The promo bar text and the Site settings entry are not read yet either. Each section below says which case applies.
 
 **Tags you will see**
 
-| Tag | Meaning |
-|---|---|
-| `(verify on the dev store)` | The step relies on a Shopify screen or behavior we have not yet seen on a development store. Names and menu paths may differ. |
-| `UNVERIFIED` | A whole feature (for example a Shopify Flow rule) that we have not yet proven works as described. |
-| `PLANNED` | The feature is designed but not built yet. |
-| `TO BE CONFIRMED` | A number or rule that is not decided yet. |
-| `[Screenshot: ...]` | A real screenshot from a development store (with made-up data) goes here. |
+| Tag                                      | Meaning                                                                                                                       |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `(verify on the dev store)`              | The step relies on a Shopify screen or behavior we have not yet seen on a development store. Names and menu paths may differ. |
+| `BUILT, AWAITING DEV-STORE VERIFICATION` | The website side exists and passes automated tests on test data. Not yet seen working against a real Shopify store.           |
+| `NOT CONNECTED YET`                      | The Shopify admin entry can be created, but the website does not read it yet.                                                 |
+| `DEVELOPER-MANAGED`                      | Today a developer changes it (and redeploys); you cannot change it in Shopify admin.                                          |
+| `UNVERIFIED`                             | A whole feature (for example a Shopify Flow rule) that we have not yet proven works as described.                             |
+| `PLANNED`                                | The feature is designed but not built yet.                                                                                    |
+| `TO BE CONFIRMED`                        | A number or rule that is not decided yet.                                                                                     |
+| `[Screenshot: ...]`                      | A real screenshot from a development store (with made-up data) goes here.                                                     |
 
 **Shopify menu names change from time to time.** If you cannot find a screen, use the search at the top of Shopify admin `(verify on the dev store)`.
 
@@ -22,29 +27,32 @@
 
 **Who to call** (filled in at handover, deliverable H-05)
 
-| Situation | Contact |
-|---|---|
+| Situation                                                                                     | Contact                                        |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | The site or checkout is down, or shoppers cannot buy (a **Blocker** in the project's grading) | [Name, phone, email: TO BE FILLED AT HANDOVER] |
-| Something does not work as this guide says (a **Major**) | [Name, email: TO BE FILLED AT HANDOVER] |
-| Wording or a cosmetic problem (a **Minor**) | [Shared issue list: TO BE FILLED AT HANDOVER] |
-| Shopify account, billing or Shopify features | Shopify support |
-| Extend claims or contract questions | Extend |
+| Something does not work as this guide says (a **Major**)                                      | [Name, email: TO BE FILLED AT HANDOVER]        |
+| Wording or a cosmetic problem (a **Minor**)                                                   | [Shared issue list: TO BE FILLED AT HANDOVER]  |
+| Shopify account, billing or Shopify features                                                  | Shopify support                                |
+| Extend claims or contract questions                                                           | Extend                                         |
 
 ## What works today and what is waiting
 
-| Area | Status on 2026-10-12 | What it is waiting for |
-|---|---|---|
-| Product import tool | Written. Not yet run against a Shopify store. | A development store (no store is connected yet) |
-| Prices, sales, products in admin | Standard Shopify. The storefront that shows them is being built. | Storefront build |
-| Gift with purchase, bundles | Designed. The storefront part is `PLANNED`. | Storefront build; your launch rules |
-| Add-on offers (haul-away, protectors, matching add-ons) | Designed. `PLANNED`. | Storefront build; your haul-away price and maximum |
-| Haul-away over-limit check | `UNVERIFIED`. This replaces the "enforced inside checkout" sentence in the scope of work. | Your written acknowledgement (change request CR-08); a test of Shopify Flow on the development store |
-| Stores, homepage, FAQs, menus | Designed. `PLANNED`. | Storefront build; your store list |
-| Sleep quiz | Matching and question-checking logic written, with unit tests in the repository (not re-run for this draft). The quiz page is `PLANNED`. | Storefront build; your approval of the questions |
-| Single delivery zone | Designed. `PLANNED`. | Your ZIP list, fee and free-delivery amount; your acknowledgement (CR-10, CR-12) |
-| Extend accident protection | Built against a **practice copy** of Extend's documented system. **Switched off.** | An approved Extend account and Extend's written approval |
-| Post-purchase and thank-you offers | **Not built by us.** An App Store app you would install and pay for. | Your decision (CR-09) |
-| Financing messages | Hidden until a provider is active. | Provider details (CR-14) |
+| Area                                                                         | Status on 2026-10-15                                                                                                                                                                                                                 | What it is waiting for                                                   |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| Product import tool and definitions tool                                     | Written and tested against a simulated Shopify. Not yet run against a Shopify store.                                                                                                                                                 | A development store (none is connected yet)                              |
+| Prices, sales, products, collections, filters                                | Standard Shopify. Product, collection, search and cart pages are built and read them. `BUILT, AWAITING DEV-STORE VERIFICATION`                                                                                                       | A development store; filters need Search & Discovery set up              |
+| Homepage sections, promo tiles, brands, FAQs, menus, pages                   | Read from Shopify admin; built. `BUILT, AWAITING DEV-STORE VERIFICATION`                                                                                                                                                             | A development store; your content                                        |
+| Promo bar text, support phone, guarantee strip, Financing and Warranty links | **Hidden** until you supply the wording. The phone comes from a setting, not Shopify admin.                                                                                                                                          | Your content (B-15); the Site settings entry is `NOT CONNECTED YET`      |
+| Gift with purchase, bundles                                                  | Cart pickers built; **the gift picker is off by default** until the gift discount is verified on a development store. `DEVELOPER-MANAGED` rules                                                                                      | A development store; your launch rules                                   |
+| Add-on offers (protectors, matching add-ons), comfort guarantee              | Cart steps and pickers built. `DEVELOPER-MANAGED` rules. Wording is placeholder text for your approval.                                                                                                                              | A development store; your approval of the wording                        |
+| Haul-away and delivery choice                                                | Built; the maximum, price and ZIP list are `DEVELOPER-MANAGED`. Haul-away blocks checkout until the shopper has saved a ZIP.                                                                                                         | A development store; your ZIP list, fee, amounts (CR-10, CR-12)          |
+| Haul-away over-limit check                                                   | A check that runs after each paid order and a report a developer can run are **built** (replacing the Flow rule idea). Not yet run against a real order. This replaces the "enforced inside checkout" sentence in the scope of work. | Your written acknowledgement (change request CR-08); a development store |
+| Store locator                                                                | Pages built on **sample stores**. `NOT CONNECTED YET`                                                                                                                                                                                | Store reader (P3A-07); your store list                                   |
+| Sleep quiz, compare                                                          | Pages built on **sample data**. `NOT CONNECTED YET`                                                                                                                                                                                  | Reading quiz and products from Shopify; your approval of the questions   |
+| Customer accounts                                                            | Template pages only; not finished                                                                                                                                                                                                    | P6-07                                                                    |
+| Extend accident protection                                                   | Built against a **practice copy** of Extend's documented system. **Switched off.**                                                                                                                                                   | An approved Extend account and Extend's written approval                 |
+| Post-purchase and thank-you offers                                           | **Not built by us.** An App Store app you would install and pay for.                                                                                                                                                                 | Your decision (CR-09)                                                    |
+| Financing messages, reviews, analytics, chat, signup                         | **Not built** (financing hidden until a provider is active).                                                                                                                                                                         | Provider details (CR-14) and later phases                                |
 
 ---
 
@@ -52,34 +60,36 @@
 
 Shopify is the one place your data lives. The website reads it; it keeps no copy of its own. Most changes need no developer.
 
-| What you want to change | Where to go in Shopify admin | Notes |
-|---|---|---|
-| Products, sizes, prices, sale prices, product facts | **Products** `(verify on the dev store)` | One product per mattress model; one variant per size |
-| Collections | **Products > Collections** `(verify on the dev store)` | Collections fill themselves from rules (see 2.5) |
-| Stores, homepage sections, promo tiles, FAQs, brands, quiz, offer rules, site settings, delivery zone | **Content > Metaobjects** `(verify on the dev store)` | Each is a list of entries (see the table below) |
-| Gift and bundle promotions | **Discounts** `(verify on the dev store)` | Automatic discounts only |
-| Menus | **Online Store > Navigation** `(verify on the dev store)` | Drives the main menu |
-| Content pages (Delivery, Warranty, FAQ and so on) | **Online Store > Pages** `(verify on the dev store)` | |
-| Store locations and pickup | **Settings > Locations** `(verify on the dev store)` | Pickup availability comes from stock at each location |
-| Delivery ZIP list and fee | **Settings > Delivery and shipping > Local delivery** `(verify on the dev store)` | Also kept in a metaobject (see section 8) |
-| Automatic flagging of orders | **Flow** app `(verify on the dev store)` | `UNVERIFIED` (see 4.6) |
-| What shoppers declined | **Orders**, then the order page | See 4.5 |
+| What you want to change                                                                               | Where to go in Shopify admin                                                      | Notes                                                 |
+| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Products, sizes, prices, sale prices, product facts                                                   | **Products** `(verify on the dev store)`                                          | One product per mattress model; one variant per size  |
+| Collections                                                                                           | **Products > Collections** `(verify on the dev store)`                            | Collections fill themselves from rules (see 2.5)      |
+| Stores, homepage sections, promo tiles, FAQs, brands, quiz, offer rules, site settings, delivery zone | **Content > Metaobjects** `(verify on the dev store)`                             | Each is a list of entries (see the table below)       |
+| Gift and bundle promotions                                                                            | **Discounts** `(verify on the dev store)`                                         | Automatic discounts only                              |
+| Menus                                                                                                 | **Online Store > Navigation** `(verify on the dev store)`                         | Drives the main menu                                  |
+| Content pages (Delivery, Warranty, FAQ and so on)                                                     | **Online Store > Pages** `(verify on the dev store)`                              |                                                       |
+| Store locations and pickup                                                                            | **Settings > Locations** `(verify on the dev store)`                              | Pickup availability comes from stock at each location |
+| Delivery ZIP list and fee                                                                             | **Settings > Delivery and shipping > Local delivery** `(verify on the dev store)` | Also kept in a metaobject (see section 8)             |
+| Flagged orders                                                                                        | Reported by the developer (logs and a report), not by Shopify Flow                | See 4.6                                               |
+| What shoppers declined                                                                                | **Orders**, then the order page                                                   | See 4.5                                               |
 
 [Screenshot: Shopify admin left menu with Products, Orders, Content, Discounts and Settings highlighted]
 
 ### The metaobject lists you will use
 
-| Name in admin | What each entry is | Section |
-|---|---|---|
-| Brand | A brand: name, URL name ("slug"), logo, about text, warranty terms | 6.5 |
-| FAQ | One question and answer, and where it applies | 6.3 |
-| Store | One retail store: address, phone, hours, photo, pickup on or off | 5 |
-| Homepage section | One block on the homepage | 6.1 |
-| Promo tile | One tile inside a collection's product grid | 6.2 |
-| Quiz question and Quiz option | A quiz question and one answer with its scoring rules | 7 |
-| Offer rule | An add-on offer: haul-away, comfort-guarantee protector, matching add-ons | 4 |
-| Site settings | One entry: promo bar text and link, free-delivery amount, haul-away maximum, financing text | 4.1, 6.4 |
-| Delivery zone | One entry: the ZIP list, fee text, free-over amount, delivery promise wording | 8 |
+The developer creates these lists once with `node scripts/shopify/apply-definitions.mjs` (see [scripts/shopify/README.md](../../scripts/shopify/README.md)); the definitions have not yet been created on any store. "Read by the website" is the state on 2026-10-15.
+
+| Name in admin                 | What each entry is                                                                          | Read by the website today?                                                                                               | Section  |
+| ----------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------- |
+| Brand                         | A brand: name, URL name ("slug"), logo, about text, warranty terms                          | Yes. `BUILT, AWAITING DEV-STORE VERIFICATION`                                                                            | 6.5      |
+| FAQ                           | One question and answer, and where it applies                                               | Yes, when attached to a product or collection through the FAQs field (see 6.3). `BUILT, AWAITING DEV-STORE VERIFICATION` | 6.3      |
+| Store                         | One retail store: address, phone, hours, photo, pickup on or off                            | No. The locator shows sample stores. `NOT CONNECTED YET`                                                                 | 5        |
+| Homepage section              | One block on the homepage                                                                   | Yes. `BUILT, AWAITING DEV-STORE VERIFICATION`                                                                            | 6.1      |
+| Promo tile                    | One tile inside a collection's product grid                                                 | Yes. `BUILT, AWAITING DEV-STORE VERIFICATION`                                                                            | 6.2      |
+| Quiz question and Quiz option | A quiz question and one answer with its scoring rules                                       | No. The quiz uses a built-in default. `NOT CONNECTED YET`                                                                | 7        |
+| Offer rule                    | An add-on offer: haul-away, comfort-guarantee protector, matching add-ons                   | No. Rules are `DEVELOPER-MANAGED` (see section 4)                                                                        | 4        |
+| Site settings                 | One entry: promo bar text and link, free-delivery amount, haul-away maximum, financing text | No. `NOT CONNECTED YET`                                                                                                  | 4.1, 6.4 |
+| Delivery zone                 | One entry: the ZIP list, fee text, free-over amount, delivery promise wording               | No. The zone is `DEVELOPER-MANAGED` (see section 8)                                                                      | 8        |
 
 [Screenshot: Content > Metaobjects list showing the ten entry types]
 
@@ -88,6 +98,8 @@ Shopify is the one place your data lives. The website reads it; it keeps no copy
 - **Product handles and SKUs** after the first import. The import tool uses them to recognize products. Renaming one makes the tool treat it as a new product or stop with an error.
 - **The "Size" option name and the size names** (Twin, Twin XL, Full, Queen, King, California King, Split California King). Add-ons, gifts and the quiz match on them.
 - **Products named "Extend-Protection-Plan-..."** and the **"Recycle and disposal service"** product's structure (one variant). Change only its price (see 4.1). Never add the Extend products to collections.
+- **The tags `extend-coverage` and `offer-only`** (see 2.8). Removing one makes a service or protection product appear in search engines and the sitemap.
+- **Product, variant, collection and discount IDs used in the offer rules.** The developer's offer setting names variants by their Shopify ID. Deleting and re-creating a gift, protector or haul-away variant breaks its offer until the developer updates the ID. Edit the existing product instead.
 - **Field names or the structure of a metaobject list.** Edit entries, not the list definition.
 - **Order note details** beginning `offer_declined_` or named `delivery_choice`. They are written by the website (see 4.5).
 
@@ -97,9 +109,9 @@ Shopify is the one place your data lives. The website reads it; it keeps no copy
 
 ### 2.1 Pick one method for each change
 
-| You want to... | Use |
-|---|---|
-| Change one or a few products | Shopify admin (2.2 to 2.4) |
+| You want to...                                                               | Use                                         |
+| ---------------------------------------------------------------------------- | ------------------------------------------- |
+| Change one or a few products                                                 | Shopify admin (2.2 to 2.4)                  |
 | Change many prices, start or end a sale on a whole range, or add a new range | The product sheet and the import tool (2.6) |
 
 **Do not mix the two on the same product.** The import tool makes the store match the sheet. If you edit a price in admin and later re-run an old sheet, the sheet's price replaces yours. After an admin edit, update the sheet too, or stop using the sheet for that product.
@@ -148,18 +160,19 @@ The website sorts new products into collections, filters, the quiz and compariso
 8. Make sure the product is available to the website's sales channel (the Hydrogen or Headless channel) and its status is Active. `(verify on the dev store)`
 9. After the delay in section 10.2, find the product on its collection page and in the filters.
 
-| Fact | Allowed values |
-|---|---|
-| Comfort level | Ultra Plush, Plush, Medium, Firm, Extra Firm |
-| Mattress type | Memory Foam, Hybrid, Innerspring, Foam, Latex |
-| Sleep positions (pick all that fit) | Back, Side, Stomach |
-| Benefits (pick all that fit) | Cooling, Pressure Relief, Motion Separation, Back Support, Eco-Friendly |
-| Product line | Free text (the line's name) |
-| Height (inches) | A number |
-| Delivery type | white-glove, parcel, both |
-| Feature bullets | One short bullet per line |
-| Specifications | A list of label and value pairs |
-| Compare group | A name shared by similar products |
+| Fact                                | Allowed values                                                                                                                                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Comfort level                       | Ultra Plush, Plush, Medium, Firm, Extra Firm                                                                                                                                                                  |
+| Mattress type                       | Memory Foam, Hybrid, Innerspring, Foam, Latex                                                                                                                                                                 |
+| Sleep positions (pick all that fit) | Back, Side, Stomach                                                                                                                                                                                           |
+| Benefits (pick all that fit)        | Cooling, Pressure Relief, Motion Separation, Back Support, Eco-Friendly                                                                                                                                       |
+| Product line                        | Free text (the line's name)                                                                                                                                                                                   |
+| Height (inches)                     | A number                                                                                                                                                                                                      |
+| Delivery type                       | white-glove, parcel, both                                                                                                                                                                                     |
+| Feature bullets                     | One short bullet per line                                                                                                                                                                                     |
+| Specifications                      | A list of label and value pairs                                                                                                                                                                               |
+| Compare group                       | A name shared by similar products                                                                                                                                                                             |
+| Extend category                     | Only for products that may be offered accident protection. Without a value the protection panel never appears for that product. The allowed category names come from Extend (Q-005) and are `TO BE CONFIRMED` |
 
 [Screenshot: Product page Metafields area with comfort level, type and delivery type filled in]
 
@@ -192,6 +205,17 @@ Good to know:
 1. Open the product and change its status to **Draft** or **Archived**. `(verify on the dev store)`
 2. Prefer this to deleting a product that has been sold before. `(verify on the dev store)`
 
+### 2.8 Service, gift and protection products: the `offer-only` and `extend-coverage` tags
+
+Some products exist only so the cart can hold them as ordinary order lines: the Extend protection price points, the "Recycle and disposal service", gift variants and comfort-guarantee protectors. They must be published to the website's sales channel, which would also let search engines list them. Two tags prevent that. **Add the tag when you create such a product:**
+
+| Product                                                                                                | Tag               |
+| ------------------------------------------------------------------------------------------------------ | ----------------- |
+| Extend protection price-point products ("Extend-Protection-Plan-...")                                  | `extend-coverage` |
+| Haul-away service, gift products and variants, comfort-guarantee protectors, any other service product | `offer-only`      |
+
+What the tag does (`BUILT, AWAITING DEV-STORE VERIFICATION`): the website leaves the product out of its sitemap and marks its page "noindex". A product that is also sold normally (for example a protector people may buy on its own) should **not** carry `offer-only`. If you forget the tag the product is still correct in the cart; it can only show up in search results. Shopify's own "hide from search engines" setting is the preferred second control; whether the Storefront sitemap honours it is checked on the development store. The tag search itself is also unverified there (V-05).
+
 ---
 
 ## 3. Create and end promotions (gift with purchase and bundles)
@@ -200,12 +224,14 @@ Good to know:
 
 A promotion has two halves. Both must be set up, and both must be switched off when it ends.
 
-| Half | Where | What it does |
-|---|---|---|
-| The price | **Discounts** in Shopify admin | Makes the gift free ($0) or takes the bundle saving off. **Only Shopify sets these prices.** The website never makes up a price. |
-| The offer | The website's offer settings `PLANNED` | Decides what shoppers are shown: the gift picker or the "frequently bought together" bundle. |
+| Half      | Where                                            | What it does                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The price | **Discounts** in Shopify admin                   | Makes the gift free ($0) or takes the bundle saving off. **Only Shopify sets these prices.** The website never makes up a price.                                                                                                                                                                                                                                                                  |
+| The offer | The website's offer settings `DEVELOPER-MANAGED` | Decides what shoppers are shown: the gift picker or the "frequently bought together" bundle. Today these rules are in a developer-managed setting (`OFFER_CONFIG_JSON`) that names the qualifying products, the gift variants for each size, the maximum number of gifts and, for a bundle, the discount title. You send the developer the rule; the developer changes the setting and redeploys. |
 
-The website adds the gift to the cart when the shopper picks a size. If the qualifying item leaves the cart, the website removes the gift too. Otherwise the shopper would be charged full price for it.
+The website adds the gift to the cart when the shopper picks a size. If the qualifying item leaves the cart, the website removes the gift too. Otherwise the shopper would be charged full price for it. **The gift picker is switched off** (a developer setting, `PUBLIC_GIFT_PICKER_ENABLED`) until a development-store test proves Shopify prices the added gift at $0. If a gift ever reaches the cart at a price above $0, the cart pauses checkout with a message and the shopper must remove the gift. `BUILT, AWAITING DEV-STORE VERIFICATION`
+
+**The discount title matters.** For a **bundle**, the website shows a saving only when the bundle rule's `discountTitle` matches the **title of the automatic discount** in Shopify (capitals and extra spaces are ignored). A code discount, or an automatic discount with another title, is never counted as the bundle's saving. Always tell the developer the exact title you typed in Discounts.
 
 ### 3.2 Check the 25-discount limit first
 
@@ -226,7 +252,7 @@ You need, from your launch rules: the qualifying products or collection, the gif
 5. **Quantity they get:** set the number of gifts per order (usually 1). **The website must allow exactly this many.** Any extra gift beyond this number would be charged full price, so the website never keeps more. Tell the developer the number so the offer matches.
 6. Set start and end dates if the promotion is for a limited time.
 7. Check how the discount combines with others. `(verify on the dev store)`
-8. Save. Then ask the developer to add or enable the gift offer on the website `PLANNED`.
+8. Save. Then ask the developer to add the gift rule (qualifying products, gift variant for each size, maximum quantity) and, once the dev-store test passes, to turn the gift picker on.
 9. Do the **cart and checkout match check** (3.5).
 
 [Screenshot: Automatic discount, Buy X get Y, gift product free]
@@ -234,10 +260,10 @@ You need, from your launch rules: the qualifying products or collection, the gif
 ### 3.4 Create a bundle ("frequently bought together")
 
 1. Open **Discounts > Create discount > Automatic discount**. Use **Buy X get Y** (or an amount-off discount, as the launch rules say). `(verify on the dev store)`
-2. **Title:** the bundle name shoppers should see on the discount line.
+2. **Title:** the bundle name shoppers should see on the discount line. **Write it down exactly:** the developer copies it into the bundle rule's `discountTitle` (see 3.1). Without a matching title the website shows no saving figure.
 3. Choose the bundle items and the saving, as in your launch rules.
 4. The saving should disappear when a bundle item is removed. Test that (3.5).
-5. Save. Ask the developer to add or enable the bundle on the website `PLANNED`. The "Add all" button adds every item in the shopper's chosen size.
+5. Save. Ask the developer to add the bundle rule (the main product, the companion products and sizes, the discount title). The "Add all" button adds every item in the shopper's chosen size. `BUILT, AWAITING DEV-STORE VERIFICATION`
 6. Do the **cart and checkout match check** (3.5).
 
 ### 3.5 Check that the cart equals checkout
@@ -260,7 +286,7 @@ If anything differs, see 3.7.
 
 Do these steps **in this order**.
 
-1. Ask the developer to switch off the offer on the website `PLANNED`, so shoppers are no longer shown it.
+1. Ask the developer to remove or switch off the offer rule on the website (`DEVELOPER-MANAGED`), so shoppers are no longer shown it.
 2. In **Discounts**, set an **end date** or deactivate the discount. Keep it rather than deleting it if you may run it again. `(verify on the dev store)`
 3. Run the match check (3.5) with a fresh cart. The gift or bundle must no longer appear.
 
@@ -278,13 +304,15 @@ Do these steps **in this order**.
 
 Offers appear on the website before checkout. They arrive at checkout as ordinary order lines.
 
-| Offer | Shopper sees | Order line |
-|---|---|---|
-| Comfort guarantee | A mattress protector in the mattress's size | The protector, at its price |
-| Haul-away and recycling | A choice of how many old pieces to remove | "Recycle and disposal service" times the number of pieces |
-| Matching add-ons | Foundations, protectors, pillows and bedding that fit the mattress's size | Ordinary products |
+| Offer                   | Shopper sees                                                              | Order line                                                |
+| ----------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Comfort guarantee       | A mattress protector in the mattress's size                               | The protector, at its price                               |
+| Haul-away and recycling | A choice of how many old pieces to remove                                 | "Recycle and disposal service" times the number of pieces |
+| Matching add-ons        | Foundations, protectors, pillows and bedding that fit the mattress's size | Ordinary products                                         |
 
-Offer rules are saved as data in **Content > Metaobjects > Offer rule**, so changing one needs no developer visit `PLANNED`. Each rule has a name, a type, what triggers it (a collection or a product), the products offered, a maximum quantity and an **Enabled** switch.
+**Where the rules live today.** The plan was to save offer rules in **Content > Metaobjects > Offer rule** so changing one needs no developer. That is **not built**: the website reads the rules from a developer-managed setting (`OFFER_CONFIG_JSON`), and the Offer rule and Site settings entries are not read (`NOT CONNECTED YET`). So, today, **any change to a rule, the haul-away maximum, the free-delivery amount or the offered products is a request to the developer**, who edits the setting and redeploys; your own part is the Shopify products and prices. If the setting is missing or damaged in production, **checkout is paused for every shopper** with an explanation until it is fixed, so ask the developer to test every change. The rules refer to variants by Shopify ID, which is why products must not be deleted and re-created (section 1). `BUILT, AWAITING DEV-STORE VERIFICATION`
+
+Offer wording (the text on the comfort-guarantee, delivery-choice, haul-away, protection and picker steps) is **placeholder text in the code**, awaiting your approval (CLR-010, CLR-011). You cannot edit it in Shopify admin; send the developer the approved wording.
 
 ### 4.1 Haul-away: price and maximum pieces
 
@@ -296,30 +324,27 @@ Offer rules are saved as data in **Content > Metaobjects > Offer rule**, so chan
 
 **Maximum pieces**
 
-1. Open **Content > Metaobjects > Site settings** and click the entry. `(verify on the dev store)`
-2. Change **Haul-away maximum pieces**. Save.
-3. **Also change the same number in the Shopify Flow rule** (see 4.6). The two must always be equal.
+1. Tell the developer the new maximum. The number the website enforces is `rules.haulAway.maxPieces` in the developer-managed setting (a whole number from 1 to 99). The Site settings field "Haul-away maximum pieces" and the Offer rule "Maximum quantity" field exist in Shopify admin but **the website does not read either today** (open question C5 in the runbooks). Do not rely on them.
+2. The order check described in 4.6 judges orders against the same current number, so there is no second number to keep in step (the Shopify Flow rule of draft 1 is no longer part of the design).
 
-   > `TO BE CONFIRMED`: the design documents also give the Offer rule a "maximum quantity" field. The developer will confirm which field is the real one before launch. Until then, keep both equal if both exist.
+**Switch haul-away off.** Ask the developer to remove the haul-away rule (or set `OFFERS_ENABLED=false`, which turns off every offer). The website then stops offering it and removes it from carts that have it. `BUILT, AWAITING DEV-STORE VERIFICATION`
 
-**Switch haul-away off.** Set the maximum to 0, or disable the haul-away Offer rule. The website then stops offering it and removes it from carts that have it. `PLANNED`
-
-**Who is offered haul-away.** Only shoppers who chose **in-home delivery** in the website's delivery step and whose ZIP code is **inside the delivery zone**. A shopper who chose pickup, or whose ZIP is outside the zone, is not offered it.
+**Who is offered haul-away.** Only shoppers who chose **in-home delivery** in the website's delivery step and whose ZIP code is **inside the delivery zone**. A shopper who chose pickup, or whose ZIP is outside the zone, is not offered it. A shopper who has not entered a ZIP is asked to before haul-away can be judged; without a saved ZIP, a cart that holds haul-away cannot go to checkout.
 
 ### 4.2 Comfort-guarantee protectors
 
 The shopper is offered a protector in **the same size as the mattress** they are buying.
 
 1. Make sure there is one protector variant for each mattress size, with the size names exactly as in 2.5.
-2. Open the **Offer rule** of type "comfort protector" `PLANNED` and check: which mattresses or collections trigger it, which protector products it offers, and that **Enabled** is on.
+2. Ask the developer which mattresses trigger the comfort-guarantee step and which protector variant is used for each size (`DEVELOPER-MANAGED`: the "comfort guarantee" part of the offer setting). Tag the protector products `offer-only` (section 2.8). The comfort-guarantee wording is placeholder text pending your approval (CLR-010).
 3. Add a qualifying mattress to a test cart. In the pre-checkout step, check the protector shown is the right size.
 
 ### 4.3 Matching add-ons (foundations, protectors, pillows, bedding)
 
-The website offers the add-ons you list on each mattress, **matched to the mattress size**.
+The website offers add-ons **matched to the mattress size**. **Today the offered add-ons come from the developer-managed setting** (a list of mattress, add-on product and variant by size). The product fields **Related foundations**, **Related protectors** and **Related bedding** exist and the importer fills them, but the cart does not read them yet. Keep them filled in anyway: they are the planned source (REQ-ADD-001).
 
 1. Open the mattress product. `(verify on the dev store)`
-2. In **Related foundations**, **Related protectors** and **Related bedding**, pick the products to offer. `(verify on the dev store)`
+2. In **Related foundations**, **Related protectors** and **Related bedding**, pick the products to offer, and send the developer the same list for the offer setting. `(verify on the dev store)`
 3. Make sure each add-on has a variant with the **same size name** as the mattress (Queen with Queen). A spelling difference means no offer is shown.
 4. Check on the website: change the mattress size and confirm the offered add-on changes with it.
 
@@ -327,7 +352,7 @@ An add-on with no variant for the chosen size is not offered. Unavailable varian
 
 ### 4.4 Free-delivery message
 
-The cart shows progress toward free delivery. The amount is **Free delivery threshold** in **Site settings**. Keep it equal to the free-over amount in the **Delivery zone** entry and in the Local delivery price rule (section 8).
+The cart shows progress toward free delivery. The amount is `freeDelivery.thresholdCents` in the developer-managed offer setting (`DEVELOPER-MANAGED`; the **Free delivery threshold** field in Site settings is not read today). Keep it equal to the free-over amount in the zone setting and in the Shopify Local delivery price rule (section 8); the website cannot check that for you.
 
 ### 4.5 See which offers a shopper declined
 
@@ -337,14 +362,14 @@ When a shopper declines an offer step, the order records it, so customer service
 2. Look in the order's **Additional details** or notes area. `(verify on the dev store)`
 3. You may see these entries:
 
-| Entry | Meaning |
-|---|---|
-| `offer_declined_comfort_guarantee` = yes | The shopper declined the protector offer |
-| `offer_declined_haul_away` = yes | The shopper declined haul-away |
-| `offer_declined_protection` = yes | The shopper declined accident protection |
-| `delivery_choice` = in-home or pickup | What the shopper chose in the website's delivery step |
+| Entry                                    | Meaning                                               |
+| ---------------------------------------- | ----------------------------------------------------- |
+| `offer_declined_comfort_guarantee` = yes | The shopper declined the protector offer              |
+| `offer_declined_haul_away` = yes         | The shopper declined haul-away                        |
+| `offer_declined_protection` = yes        | The shopper declined accident protection              |
+| `delivery_choice` = in-home or pickup    | What the shopper chose in the website's delivery step |
 
-A value of "no" means the shopper accepted after first declining. Do not edit these entries.
+A value of "no" means the shopper accepted after first declining. Do not edit these entries. Whether Shopify copies these cart notes onto the order (and where they show) has not been seen on a real order (V-20); until it is, the entries may not appear.
 
 [Screenshot: Order page showing the declined-offer entries]
 
@@ -352,41 +377,25 @@ A value of "no" means the shopper accepted after first declining. Do not edit th
 
 **Why it exists.** The scope of work says Shopify enforces the haul-away maximum inside checkout. On your Shopify Basic plan that is not possible (it needs Shopify Plus). Instead the website enforces the maximum in layers **before** checkout. One gap remains: someone who builds a cart by calling Shopify's public interface directly could ask for more pieces than the maximum. They would pay for every piece, so the money risk is low, but the order should be corrected by staff. To catch these orders, an automatic check runs **after** the order is placed. **This replacement has not been acknowledged by you yet** (change request CR-08).
 
-**How the check works** `UNVERIFIED`
+**How the check works** `BUILT, AWAITING DEV-STORE VERIFICATION`
 
-- A Shopify Flow rule runs when an order is created. If the haul-away quantity is higher than the maximum, **or** the order has haul-away but the delivery method is pickup or parcel, it tags the order and sends an internal email.
-- The project documents say Flow is free on Basic. Whether Flow can test the quantity on a line and send an internal email on your plan has **not been proven**. If it cannot, the developer will use a website check instead, or give you a report to run by hand. `PLANNED`
-- The tag name and who receives the email are `TO BE CONFIRMED` (task P5B-05).
+- The Shopify Flow rule that draft 1 described was **not built**; Flow is not needed. Instead, every time Shopify tells the website an order was paid or updated, the website re-reads that order and checks it against the current rules (haul-away quantity, delivery zone, gifts without a qualifying item, protectors, Extend protection lines). It writes one line to the developer's log per finding, with the order number and a code only. A developer can also run a report for a date range (`scripts/detective/report.mjs`, see the runbooks section 8).
+- **Nothing is tagged on the order and no email is sent today.** The order is not changed. Staff learn of a finding from the developer (the log or the report), so agree with the developer how often the report is run and who tells you. The alert rule that would notify someone is specified but not wired to a tool (runbooks section 11, waiting on the hosting decision).
+- It detects after the order; it does not prevent. It has never run on a real order, and some assumptions (for example whether Shopify keeps the delivery-choice note on the order) are unproven (V-20).
 
 **What you see and do when an order is flagged**
 
-1. You receive an internal email, or you see the flag tag on the order in **Orders**. `UNVERIFIED`
+1. The developer gives you an order number (and a code such as `haul-away-over-max`).
 2. Open the order.
 3. Find the line **Recycle and disposal service**. Read its quantity.
-4. Compare it with the maximum in **Site settings**.
+4. Ask the developer what maximum the website used (it is the current offer setting; see 4.1).
 5. Check the delivery method on the order. In-home delivery is correct. Pickup or parcel with a haul-away line is a mismatch.
 6. Contact the customer if needed and decide what to do under your own policy: `[Client policy: TO BE DEFINED, for example keep the order as paid, or reduce the quantity and refund the difference]`.
 7. To change the quantity or refund, use Shopify's order edit and refund tools. `(verify on the dev store)`
-8. Mark the order as handled the way you agree (remove the tag or add a note). `TO BE CONFIRMED`
+8. Mark the order as handled the way you agree with the developer (for example a note on the order). `TO BE CONFIRMED`
 9. If you see several flagged orders, tell the developer. It may mean someone is bypassing the site.
 
-**Keeping the number in step (your job)**
-
-| Where the maximum lives | Who changes it |
-|---|---|
-| **Site settings > Haul-away maximum pieces** | You |
-| The number inside the Flow rule's condition | You, by hand, at the same time |
-
-[Screenshot: Flow workflow with the haul-away quantity condition, UNVERIFIED]
-
-To change the number in Flow:
-
-1. Open the **Flow** app. `(verify on the dev store)`
-2. Open the workflow for haul-away over-limit orders (name `TO BE CONFIRMED`). `UNVERIFIED`
-3. Open the condition that tests the haul-away quantity and change the number. `UNVERIFIED`
-4. Save and make sure the workflow is on. `UNVERIFIED`
-
-A **reconciliation report** that compares the two numbers is `PLANNED`. Ask the developer to run it after any change. As an extra safety net you may install a quantity-limit app from the Shopify App Store at your own cost; that is optional (change request CR-13) and not yet checked on your plan.
+**Keeping numbers in step.** Because the check reads the same developer-managed setting as the cart, the haul-away maximum lives in one place. If you later add an optional quantity-limit app from the Shopify App Store (your own cost, change request CR-13, not checked on your plan), its number would be a second place to keep equal.
 
 ---
 
@@ -394,13 +403,15 @@ A **reconciliation report** that compares the two numbers is `PLANNED`. Ask the 
 
 Each retail store is one **Store** entry (**Content > Metaobjects > Store**). `(verify on the dev store)`
 
+> **`NOT CONNECTED YET`.** The store locator pages (`/stores`, by state, city and store) are built, but today they show **made-up sample stores** with a visible "preview" notice and are kept out of search engines. The website does not read your Store entries until the store reader is built (task P3A-07). You can prepare the entries now; they will start to show only after that. Steps 5.1 to 5.3 describe the intended behaviour. Pickup availability on product pages (5.2) is also not built (P3B-10).
+
 ### 5.1 Add or edit a store
 
 1. Open **Content > Metaobjects > Store**. `(verify on the dev store)`
 2. Click **Add entry**, or open the store to edit.
 3. Fill in: name, a short URL name ("slug", lowercase with hyphens), address lines, city, state, postal code, phone and a photo.
 4. Fill in **Latitude** and **Longitude**. The map needs them. If you change the address, change these too. `(verify on the dev store)`
-5. Fill in **Opening hours**. The exact format is `PLANNED` and will be explained when the store locator is built; this guide will be updated with a worked example.
+5. Fill in **Opening hours** (a JSON field). The website's reader accepts a weekly list with up to three opening intervals a day and understands overnight hours; the final accepted format and a worked example will be added here when the store reader is built. `TO BE CONFIRMED` A store with no valid hours shows "hours not available".
 6. Switch **Pickup enabled** on or off.
 7. Enter **Shopify location** exactly as the matching location is named in Settings (see 5.2).
 8. Save, wait for the delay in section 10.2, then open the store's page on the website. Check the address, today's hours, the phone number and the directions link.
@@ -429,15 +440,15 @@ Open the Store entry and switch **Pickup enabled** off. To remove the store page
 
 ### 6.1 Homepage sections
 
-Each block on the homepage is one **Homepage section** entry. `PLANNED`
+Each block on the homepage is one **Homepage section** entry. `BUILT, AWAITING DEV-STORE VERIFICATION` If there are no enabled entries, the website shows a built-in placeholder layout.
 
-| Field | What it does |
-|---|---|
-| Type | Which kind of block (sale banner, shop by size, brand tiles, category tiles, financing banner, store and chat call-outs, signup block). The allowed types are fixed when the homepage is built. |
-| Heading, Body, Image | The content |
-| Link | Where it goes. Use a path such as `/collections/queen-mattresses` or a full `https://` address. The site checks links, and a link that fails the check may not be shown. |
-| Order | A number. Lower numbers appear higher on the page. |
-| Enabled | Off hides the block without deleting it |
+| Field                | What it does                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Type                 | One of eight fixed kinds: `hero`, `promo-banner`, `shop-by-size`, `featured`, `brands`, `categories`, `financing`, `signup`. `hero`, `promo-banner` and `financing` show your heading, body, image and link. `shop-by-size`, `featured`, `brands` and `categories` fill themselves from the catalog and use only the heading, order and enabled switch. `signup` shows nothing until the signup form is built. |
+| Heading, Body, Image | The content                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Link, Link label     | Where it goes, and the button text. If the label is empty the heading itself is the link. Use a path such as `/collections/queen-mattresses` or a full `https://` address. The site checks links, and a link that fails the check may not be shown.                                                                                                                                                            |
+| Order                | A number. Lower numbers appear higher on the page.                                                                                                                                                                                                                                                                                                                                                             |
+| Enabled              | Off hides the block without deleting it                                                                                                                                                                                                                                                                                                                                                                        |
 
 **To reorder:** change the **Order** numbers. Leave gaps (10, 20, 30) so you can slot a block between two others.
 **To hide a block:** switch **Enabled** off.
@@ -449,7 +460,7 @@ After saving, wait for the delay in section 10.2 and look at the homepage on a p
 
 ### 6.2 Promo tiles in a collection
 
-A **Promo tile** is a picture and heading placed inside a collection's product grid.
+A **Promo tile** is a picture and heading placed inside a collection's product grid. `BUILT, AWAITING DEV-STORE VERIFICATION` Tiles show only in the collection's normal view (not when filters are applied) and never as a lone last tile; a tile whose position is beyond the products shown waits for "Load more"; a tile with no valid link is shown but not clickable. Up to 100 tiles are read.
 
 1. Open **Content > Metaobjects > Promo tile**. `(verify on the dev store)`
 2. Click **Add entry** and choose the **Collection** it belongs to.
@@ -461,16 +472,18 @@ A **Promo tile** is a picture and heading placed inside a collection's product g
 
 1. Open **Content > Metaobjects > FAQ** and click **Add entry**.
 2. Type the **Question** and **Answer**.
-3. In **Scope**, put the handle of the collection or product it belongs to. The exact values are agreed when the collection pages are built. `TO BE CONFIRMED`
-4. Check the collection page: the FAQ opens and closes with the keyboard.
+3. Attach the FAQ to a collection or product: on that collection or product, add it to the **FAQs** field (a list of FAQ entries; up to 20 are read). The **Scope** text on the FAQ entry is only a label; the website does not use it. `BUILT, AWAITING DEV-STORE VERIFICATION`
+4. Check the page: the FAQ opens and closes with the keyboard.
+
+> **Gap for the developer:** the website reads the FAQs field (`custom.faqs`) on collections as well as products, but the definitions tool creates it only for products. Until a collection-level field is created, collection FAQs cannot be attached.
 
 ### 6.4 Promo bar and free-delivery amount
 
-Open **Site settings**. Edit **Promo bar text** and **Promo bar link**. Keep the link a path on your site or a full `https://` address.
+`NOT CONNECTED YET`. The Site settings entry (promo bar text and link, financing text) exists as a definition, but the website does not read it yet (task P3B-13). Until it does, **no promo bar is shown**, and the header and footer guarantee wording, the Financing and Warranty links and the support phone link are hidden until you supply the wording or number (B-15). The support phone is set by the developer as `PUBLIC_SUPPORT_PHONE`. When the read exists: open **Site settings**, edit **Promo bar text** and **Promo bar link**, and keep the link a path on your site or a full `https://` address.
 
 ### 6.5 Brands
 
-Open **Content > Metaobjects > Brand**. Edit the logo, about text and warranty terms. The change shows on the brand page **and** on every product page of that brand. The **slug** must stay equal to the entry's handle, because the import tool finds brands by it.
+Open **Content > Metaobjects > Brand**. Edit the logo, about text and warranty terms. The change shows on the brand page (`/brands/<slug>`) **and** on every product page of that brand. `BUILT, AWAITING DEV-STORE VERIFICATION` Until real brands exist the brand pages show sample brands with a preview notice and are kept out of search engines. Brand pages are not yet in the sitemap, and the product page does not link to its brand yet (P3B-06). The **slug** must stay equal to the entry's handle, because the import tool finds brands by it.
 
 ### 6.6 Menus
 
@@ -492,7 +505,7 @@ The 15 content pages (Delivery and shipping, Financing, Comfort guarantee, Price
 
 ## 7. Edit the sleep quiz
 
-The quiz has **6 to 8 questions**. Each question has **2 to 8 answers**, and each answer carries **scoring rules** saying which products it favors. You manage this in **Content > Metaobjects**, under **Quiz question** and **Quiz option**. `PLANNED`
+The quiz has **6 to 8 questions**. Each question has **2 to 8 answers**, and each answer carries **scoring rules** saying which products it favors. You will manage this in **Content > Metaobjects**, under **Quiz question** and **Quiz option**. **`NOT CONNECTED YET`:** the quiz page is built and checks all the limits below, but today it uses a built-in default quiz and sample products; it does not read your entries (task P6-01). The default questions and scoring await your approval (CLR-012). Sections 7.1 to 7.4 describe how editing will work once connected; the limits and the "what a bad mapping does" behaviour are real (checked by the code's tests).
 
 Approve any change with the people who own your product advice. The quiz is shopping guidance, not medical advice, and the results page says so.
 
@@ -508,13 +521,13 @@ Approve any change with the people who own your product advice. The quiz is shop
 
 Each answer is a **Quiz option**: a **Label** (up to 80 characters) and **Scoring rules**. A rule says what the answer does to the products:
 
-| Rule | What it does | Limits |
-|---|---|---|
-| Boost | Products with that fact score higher | Fact: comfort level, mattress type, sleep position or benefit. Weight: a whole number from 1 to 10 |
-| Penalty | Products with that fact score lower | Weight from -1 to -10. Not 0 |
-| Exclude | Products with that fact are removed from the results | |
-| Size | Limits results to a size | One of the seven sizes in 2.5 |
-| Budget | Limits price | Whole dollars, a minimum and/or maximum. The maximum is above 0 and not below the minimum |
+| Rule    | What it does                                         | Limits                                                                                             |
+| ------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Boost   | Products with that fact score higher                 | Fact: comfort level, mattress type, sleep position or benefit. Weight: a whole number from 1 to 10 |
+| Penalty | Products with that fact score lower                  | Weight from -1 to -10. Not 0                                                                       |
+| Exclude | Products with that fact are removed from the results |                                                                                                    |
+| Size    | Limits results to a size                             | One of the seven sizes in 2.5                                                                      |
+| Budget  | Limits price                                         | Whole dollars, a minimum and/or maximum. The maximum is above 0 and not below the minimum          |
 
 - Use only the values in the table in 2.5 (for example "Memory Foam", "Pressure Relief"). Capitals and hyphens are forgiven; other words are not.
 - Up to 12 rules per answer.
@@ -522,16 +535,16 @@ Each answer is a **Quiz option**: a **Label** (up to 80 characters) and **Scorin
 
 ### 7.3 What a bad mapping does
 
-| Mistake | What happens | Do you see an error? |
-|---|---|---|
-| A rule with a misspelled or unknown value or weight | That one rule is **ignored**. The answer then scores less, or nothing. | **No.** Only the developer's logs show a warning. |
-| A question with fewer than 2 valid answers | The whole question is **dropped** from the quiz. | No |
-| More than 8 questions | Only the first 8 are used. | No |
-| Fewer than 6 questions | The quiz still works but is shorter than the scope of work says. | No |
-| Two questions or answers with the same internal ID | The second is dropped. | No |
-| A rule that is valid but **wrong** (for example boosting "Extra Firm" for "I want soft") | The quiz recommends the wrong mattresses. | **No.** This is the most harmful mistake. |
-| An Exclude rule on a fact most products have | Fewer than three results, or none. | No |
-| Very high weights on one answer | That answer overpowers all the others. | No |
+| Mistake                                                                                  | What happens                                                           | Do you see an error?                              |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------- |
+| A rule with a misspelled or unknown value or weight                                      | That one rule is **ignored**. The answer then scores less, or nothing. | **No.** Only the developer's logs show a warning. |
+| A question with fewer than 2 valid answers                                               | The whole question is **dropped** from the quiz.                       | No                                                |
+| More than 8 questions                                                                    | Only the first 8 are used.                                             | No                                                |
+| Fewer than 6 questions                                                                   | The quiz still works but is shorter than the scope of work says.       | No                                                |
+| Two questions or answers with the same internal ID                                       | The second is dropped.                                                 | No                                                |
+| A rule that is valid but **wrong** (for example boosting "Extra Firm" for "I want soft") | The quiz recommends the wrong mattresses.                              | **No.** This is the most harmful mistake.         |
+| An Exclude rule on a fact most products have                                             | Fewer than three results, or none.                                     | No                                                |
+| Very high weights on one answer                                                          | That answer overpowers all the others.                                 | No                                                |
 
 The quiz never crashes because of a bad edit; it just gives worse advice. **So always test after every edit.**
 
@@ -549,14 +562,18 @@ When you change questions or rules, shoppers' previously saved results are treat
 
 ## 8. The single delivery zone
 
-For now there is **one** in-home delivery zone (an owner decision, change request CR-12). More zones are a change request. The ZIP list, fee and free-delivery amount come from you (CLR-009). Until you supply them, this section is `PLANNED`.
+For now there is **one** in-home delivery zone (an owner decision, change request CR-12). More zones are a change request. The ZIP list, fee and free-delivery amount come from you (CLR-009). Until you supply them, no delivery promise is shown on product pages.
+
+**What the website reads today.** The website's zone (name, ZIP list or `606*`-style prefixes, fee, free-over amount and the promise wording for in-home, parcel and pickup) comes from the developer-managed offer setting (`OFFER_CONFIG_JSON`, `zone` part), **not** from the **Delivery zone** metaobject, which the website does not read yet (`NOT CONNECTED YET`). The shopper's saved ZIP is kept in a signed cookie for 30 days. With no zone the product page and cart say nothing about delivery, by design. `BUILT, AWAITING DEV-STORE VERIFICATION`
+
+So today a ZIP list change means: send the developer the new list; the developer updates the setting and redeploys; **you** update Shopify Local delivery. The steps in 8.2 describe keeping the metaobject as the planned single source; until it is read, keep it as your written record.
 
 ### 8.1 Why the list is kept in two places
 
-| Place | What uses it |
-|---|---|
+| Place                                                    | What uses it                                                                                         |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | **Content > Metaobjects > Delivery zone > Postal codes** | The website: the ZIP check in the header, the delivery promise on product pages, the haul-away offer |
-| **Settings > Delivery and shipping > Local delivery** | Shopify's checkout: it decides whether in-home delivery is offered and at what price |
+| **Settings > Delivery and shipping > Local delivery**    | Shopify's checkout: it decides whether in-home delivery is offered and at what price                 |
 
 The website cannot read Shopify's list, and checkout cannot read the website's. So **you update both, with the same codes, every time.**
 
@@ -574,7 +591,7 @@ If the two lists differ:
 5. Open **Settings > Delivery and shipping**, then the **Local delivery** area for your location. `(verify on the dev store)`
 6. Replace the postal codes with **exactly the same list**. Shopify's limit is also 3,000 characters. Whether Shopify accepts the same `*` wildcard form is not yet proven; if it does not, write the full codes in both places. `(verify on the dev store)`
 7. Save.
-8. Ask the developer to run the **parity check**, which compares the two lists. `PLANNED` (task P5B-02)
+8. Ask the developer to run the **parity check**, which compares the ZIP list in the website's zone with Shopify's Local delivery list, understanding `100*`-style wildcards (`node scripts/shopify/check-delivery-parity.mjs --zone zone-export.json --local local-delivery-export.json`, exit code 0 means identical). It reads two exported JSON files, so you must give the developer an export or copy of each list. Built and tested on sample files only. `BUILT, AWAITING DEV-STORE VERIFICATION`
 9. Test: on the website enter one ZIP inside the zone and one outside. Inside should be offered in-home delivery and haul-away. Outside should not. Then go to checkout with an inside ZIP and confirm Local delivery is offered, and with an outside ZIP that it is not. `(verify on the dev store)`
 
 [Screenshot: Settings > Delivery and shipping > Local delivery]
@@ -592,10 +609,10 @@ A list of five-digit codes separated by commas holds roughly 400 to 430 codes (t
 
 Shopify's Local delivery has a zone price, an optional minimum order and up to three extra price rules. That covers "free above an amount, flat fee below". Keep these equal:
 
-| Value | Where |
-|---|---|
-| Free-over amount | **Delivery zone > Free over**, **Site settings > Free delivery threshold**, and the price rule in Local delivery |
-| Fee wording shoppers read | **Delivery zone > Fee text** and **Promise** wording (client-approved) |
+| Value                     | Where                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Free-over amount          | **Delivery zone > Free over**, **Site settings > Free delivery threshold**, and the price rule in Local delivery |
+| Fee wording shoppers read | **Delivery zone > Fee text** and **Promise** wording (client-approved)                                           |
 
 ### 8.5 What shoppers will notice
 
@@ -607,7 +624,7 @@ Shopify's Local delivery has a zone price, an optional minimum order and up to t
 
 ## 9. Extend accident protection: what you see and do
 
-**Status: switched off.** The feature is built against a practice copy of Extend's documented system. It goes live only when you have an approved Extend merchant account, Extend approves the website's design, and Extend answers some technical questions in writing. Without those, no Extend offers appear and nothing else on the site is affected.
+**Status: switched off** (`PUBLIC_EXTEND_ENABLED` is not `true`). The feature is built against a practice copy of Extend's documented system; none of it has run against Extend's real or demo system or your Shopify store. Built: the protection panel on product pages (only for products with an **Extend category** fact), the add-with-protection and add-protection cart actions, the protection step, the order sync route, and a reconciliation script. "Powered by Extend" is plain text until you supply Extend's logo. It goes live only when you have an approved Extend merchant account, Extend approves the website's design, and Extend answers some technical questions in writing. Without those, no Extend offers appear and nothing else on the site is affected.
 
 ### 9.1 What shoppers and you will see once it is live
 
@@ -625,18 +642,18 @@ Shopify's Local delivery has a zone price, an optional minimum order and up to t
 
 ### 9.3 Flagged mismatches and the reconciliation report
 
-The website checks every order that has coverage. If something does not add up, it **does not send the line to Extend** and flags it for staff instead. The developer runs the **reconciliation report** on a schedule `PLANNED` (task P5A-10) and shares it. It lists order IDs and short reasons only, with no customer details.
+The website checks every order that has coverage. If something does not add up, it **does not send the line to Extend** and flags it for staff instead. The developer runs the **reconciliation report** (`scripts/extend/reconcile.mjs`, built; a schedule is not set up) once Extend is live, and shares it. `BUILT, AWAITING DEV-STORE VERIFICATION` It lists order IDs and short reasons only, with no customer details.
 
-| Report says | In plain words | What to do |
-|---|---|---|
-| Missing sync | Shopify has an order with coverage that Extend does not have | Give the order ID to the developer, who can re-send it (re-sending is safe) |
-| Orphan coverage | A coverage line has no matching covered item (or Extend has a line Shopify does not) | Open the order and give the order ID to the developer |
-| Price mismatch | The price paid for coverage does not match the plan it names | Open the order and give the order ID to the developer |
-| Quantity mismatch | Coverage quantity differs from the covered item's quantity | Give the order ID to the developer |
-| Status mismatch | Shopify and Extend disagree on whether the order is active, cancelled or refunded | Give the order ID to the developer |
-| Contract missing | The item is fulfilled in Shopify but Extend issued no contract | Give the order ID to the developer; the developer contacts Extend if it persists |
-| Flagged coverage | The coverage line failed a check (for example an unknown plan or duplicate coverage) | Open the order and give the order ID to the developer |
-| Invalid order / unexpected Extend order | Data problem on one side | Give the order ID to the developer |
+| Report says                             | In plain words                                                                       | What to do                                                                       |
+| --------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| Missing sync                            | Shopify has an order with coverage that Extend does not have                         | Give the order ID to the developer, who can re-send it (re-sending is safe)      |
+| Orphan coverage                         | A coverage line has no matching covered item (or Extend has a line Shopify does not) | Open the order and give the order ID to the developer                            |
+| Price mismatch                          | The price paid for coverage does not match the plan it names                         | Open the order and give the order ID to the developer                            |
+| Quantity mismatch                       | Coverage quantity differs from the covered item's quantity                           | Give the order ID to the developer                                               |
+| Status mismatch                         | Shopify and Extend disagree on whether the order is active, cancelled or refunded    | Give the order ID to the developer                                               |
+| Contract missing                        | The item is fulfilled in Shopify but Extend issued no contract                       | Give the order ID to the developer; the developer contacts Extend if it persists |
+| Flagged coverage                        | The coverage line failed a check (for example an unknown plan or duplicate coverage) | Open the order and give the order ID to the developer                            |
+| Invalid order / unexpected Extend order | Data problem on one side                                                             | Give the order ID to the developer                                               |
 
 What to tell or refund the customer in each case (for example refund the coverage line, or keep it) is your policy to set. `[Client policy: TO BE DEFINED]` Whether Extend lets us read its own records back for this comparison is not confirmed, so the report may compare against an export from Extend's Merchant Portal. `UNVERIFIED`
 
@@ -651,37 +668,43 @@ Work down this list. Most problems stop at step 1 or 2.
 1. **Is it just waiting?** Check the delay in 10.2. Wait that long, then reload with a fresh browser window.
 2. **Is it switched on and published?** Product status Active and available to the website's sales channel; entry **Enabled** on; discount active and within its dates.
 3. **Is the data complete and spelled right?** Product facts (2.5), size names, ZIP lists, slugs.
-4. **Did you change one half of a pair?** Pairs: Price and Compare-at; Site settings maximum and Flow rule; metaobject ZIP list and Local delivery; discount and website offer; free-over amounts.
+4. **Did you change one half of a pair?** Pairs: Price and Compare-at; the website's ZIP list (developer setting) and Local delivery; a discount and its website offer rule (including the bundle discount title); free-over amounts (offer setting, zone setting, Local delivery rule).
 5. **Still wrong?** Undo your last change, then call (see "Who to call").
 
-| What you see | Look first | Likely cause |
-|---|---|---|
-| Edit not on the website | 10.2 | Not enough time has passed |
-| Product missing from a collection or filter | Product facts (2.5); status; sales channel | Missing or misspelled fact |
-| Price on a collection page differs from the cart | 10.2 | Collection pages are cached; the cart is always current |
-| Gift not offered | Discount active and dates; qualifying product; website offer enabled | One half missing |
-| Gift charged full price, or cart total differs from checkout | 3.7 | Discount and offer out of step |
-| Haul-away not offered | Shopper chose in-home delivery; ZIP in zone; maximum above 0; offer Enabled | Eligibility rule |
-| Site says in-home delivery is available but checkout does not offer it (or the opposite) | Section 8.1 | The two ZIP lists differ |
-| Add-on not offered | Size names match; add-on has a variant in that size | Spelling or missing size |
-| Quiz gives odd or too few results | 7.3 and 7.4 | A rule was dropped or is wrong |
-| No Extend offers | Section 9 | Feature is off, or the product is not in an eligible category, or no coverage price matches, or Extend is unreachable (offers are hidden by design) |
-| Store page wrong | Store entry fields (5.1) | Missing latitude, longitude or hours |
-| Import stops with errors | The printed report (2.6) | Sheet problem; nothing was imported |
-| Checkout will not open, or shoppers cannot pay | n/a | **Blocker:** call the developer now |
+| What you see                                                                             | Look first                                                                                                                                         | Likely cause                                                                                                                                        |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Edit not on the website                                                                  | 10.2                                                                                                                                               | Not enough time has passed                                                                                                                          |
+| Product missing from a collection or filter                                              | Product facts (2.5); status; sales channel                                                                                                         | Missing or misspelled fact                                                                                                                          |
+| Price on a collection page differs from the cart                                         | 10.2                                                                                                                                               | Collection pages are cached; the cart is always current                                                                                             |
+| Gift not offered                                                                         | Discount active and dates; qualifying product; developer's gift rule exists; **gift picker switched on** (off by default)                          | One half missing                                                                                                                                    |
+| Cart says checkout is paused                                                             | Read the message: a gift not priced at $0, offer settings unreadable, delivery ZIP needed for haul-away, or a coverage list that could not be read | Call the developer if it persists; "Try again" works for temporary read failures                                                                    |
+| Bundle shows no saving                                                                   | The automatic discount's title equals the bundle rule's discount title                                                                             | Title mismatch                                                                                                                                      |
+| A service or protection product appears in Google                                        | `offer-only` or `extend-coverage` tag (2.8)                                                                                                        | Tag missing                                                                                                                                         |
+| Gift charged full price, or cart total differs from checkout                             | 3.7                                                                                                                                                | Discount and offer out of step                                                                                                                      |
+| Haul-away not offered                                                                    | Shopper chose in-home delivery; ZIP saved and in zone; developer's haul-away rule exists                                                           | Eligibility rule                                                                                                                                    |
+| Site says in-home delivery is available but checkout does not offer it (or the opposite) | Section 8.1                                                                                                                                        | The two ZIP lists differ                                                                                                                            |
+| Add-on not offered                                                                       | Size names match; add-on has a variant in that size                                                                                                | Spelling or missing size                                                                                                                            |
+| Quiz gives odd or too few results                                                        | 7.3 and 7.4                                                                                                                                        | A rule was dropped or is wrong                                                                                                                      |
+| No Extend offers                                                                         | Section 9                                                                                                                                          | Feature is off, or the product is not in an eligible category, or no coverage price matches, or Extend is unreachable (offers are hidden by design) |
+| Store page wrong                                                                         | Store entry fields (5.1)                                                                                                                           | Missing latitude, longitude or hours                                                                                                                |
+| Import stops with errors                                                                 | The printed report (2.6)                                                                                                                           | Sheet problem; nothing was imported                                                                                                                 |
+| Checkout will not open, or shoppers cannot pay                                           | n/a                                                                                                                                                | **Blocker:** call the developer now                                                                                                                 |
 
 ### 10.2 How long edits take to appear
 
-The website keeps copies of some Shopify data for a short time so pages load quickly. **The numbers below are not decided yet.** They are proposals from the architecture notes and are `TO BE CONFIRMED` in task P3B-01. The final guide will state the real times.
+The website keeps copies of some Shopify data for a short time so pages load quickly. The windows below are what the code sets (decision DEC-024); they have **not been measured** on a real store, and the "long" window is Hydrogen's default whose exact length has not been re-checked here (`TO BE CONFIRMED`).
 
-| What you changed | Appears on the website after |
-|---|---|
-| Menus, content pages, brands, stores, FAQs, quiz, offer rules, homepage sections, promo tiles, site settings | about **N** minutes `TO BE CONFIRMED` |
-| Product details, collections, **prices and sales** | about **N** minutes `TO BE CONFIRMED` (kept short enough that price changes appear promptly; to be agreed with you) |
-| Stock and pickup availability | about **N** minutes, shorter than the above `TO BE CONFIRMED` |
-| Search suggestions | about **N** minutes, short `TO BE CONFIRMED` |
-| The cart, your account, orders, and ZIP-based delivery answers | Not kept: always current |
-| Shopify checkout settings and the Local delivery list | Not controlled by the website. `(verify on the dev store)` |
+| What you changed                                                                                               | Appears on the website after                                                                                               |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Prices, sale prices, stock and sold-out sizes** on product pages, collection pages, the home page and search | about 1 minute; a stale copy may be served for up to 5 more minutes while it refreshes, so allow **up to about 6 minutes** |
+| Product titles, descriptions, images, product facts and FAQs on a product page                                 | "long" cache (Hydrogen's default, in the range of an hour or more `TO BE CONFIRMED`)                                       |
+| Menus, content pages, shop policies, brands, homepage sections, promo tiles, the offer-only tag list           | "long" cache, same range                                                                                                   |
+| Search suggestions                                                                                             | a few seconds (Hydrogen's short cache)                                                                                     |
+| The cart, your account, orders, the saved delivery ZIP, and the offer checks on the cart                       | Not kept: always current                                                                                                   |
+| Offer rules, the delivery zone, the haul-away maximum                                                          | Change only when the developer redeploys the setting                                                                       |
+| Shopify checkout settings and the Local delivery list                                                          | Not controlled by the website. `(verify on the dev store)`                                                                 |
+
+The cart always shows Shopify's current price. If a page shows an old price, the cart and checkout are still right.
 
 Tip: when you edit several things, make all the edits, then do all your checks once after the delay.
 
@@ -704,5 +727,7 @@ The project covers the build and the handover. These are **not included** afterw
 ## References for the project team
 
 REQ-HAND-003, REQ-CAT-009, REQ-PROMO-001 to REQ-PROMO-003, REQ-PRE-002, REQ-PRE-003, REQ-PRE-005, REQ-CAT-007, REQ-CAT-008, REQ-LOC-002, REQ-HOME-001, REQ-COL-003, REQ-COL-004, REQ-QZ-004, REQ-DEL-001, REQ-EXT-003, NFR-005, EXC-13; SD-01, SD-04, SD-07, SD-08; [SHOPIFY_DATA_MODEL](../architecture/SHOPIFY_DATA_MODEL.md), [BASIC_PLAN_WORKAROUNDS](../research/BASIC_PLAN_WORKAROUNDS.md), [SOW_DEVIATIONS](../requirements/SOW_DEVIATIONS.md), [EXTEND](../integrations/EXTEND.md), [HANDOVER](HANDOVER.md).
+
+**Not covered by this guide:** customer accounts and order lookup (not built), reviews, analytics, signup and chat (not built), financing messages, the product sheet's `copy_approved` publishing rule beyond section 2.6 (see the catalog README), and the final wording of offer steps (pending your approval).
 
 **Before this guide is final:** capture real screenshots from a development store; run every `(verify on the dev store)` step there; have a non-developer complete each task using only this guide; replace each `TO BE CONFIRMED`; record the client's acknowledgement of the haul-away, delivery-zone and post-purchase changes.

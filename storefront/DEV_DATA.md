@@ -40,7 +40,7 @@ Filter counts matching Shopify admin (V-04), metafield-driven badges, specificat
 
 ## Delivery ZIP and the product-page promise (P3B-11, P5B-03)
 
-The ZIP check needs a delivery zone, which the server reads from the non-secret `OFFER_CONFIG_JSON` setting (`zone` key; the metaobject reader replaces it later). With no zone the product page and cart say nothing about delivery, by design, and `tests/e2e/delivery.spec.ts` skips with that reason.
+The ZIP check needs a delivery zone, which the server reads from the non-secret `OFFER_CONFIG_JSON` setting (`zone` key; the metaobject reader replaces it later, P4-12; the `delivery_zone` metaobject is not read today). With no zone the product page and cart say nothing about delivery, by design, and `tests/e2e/delivery.spec.ts` skips with that reason.
 
 1. Create `storefront/.env.delivery` (git-ignored by the `.env.*` pattern) with the four variables from `.env.bedding` plus one line (placeholder zone and wording, not client data):
 
@@ -51,6 +51,19 @@ The ZIP check needs a delivery zone, which the server reads from the non-secret 
 2. `npm run dev -- --port 3700 --env-file .env.delivery`, then `E2E_PORT=3700 npx playwright test tests/e2e/delivery.spec.ts`.
 
 The haul-away and delivery-choice steps cannot be exercised here: they need Storefront `nodes(ids)` lookups of the service variant, which the mock stores do not answer. They are covered by `tests/unit/routes/delivery-routes.test.ts` and need the development store (a real `haulAway` rule with a variant id) for a live run.
+
+## Environment files at a glance (checked against the code 2026-10-15)
+
+A fresh checkout has no `.env` (all `.env*` except the root `.env.example` are git-ignored), and the app refuses to serve without `SESSION_SECRET`, so create one before `npm run dev`. Complete variable list: [DEPLOYMENT](../docs/deployment/DEPLOYMENT.md#environment-variables).
+
+| File               | Extra variables beyond the four in `.env.bedding`                                                             | Port used above | Spec                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------- |
+| `.env.bedding`     | `DELIVERY_COOKIE_SECRET` (32 or more characters)                                                              | 3400            | catalog, cart, search, home, shell                |
+| `.env.delivery`    | `OFFER_CONFIG_JSON` with a `zone`                                                                             | 3700            | delivery                                          |
+| `.env.protection`  | `PUBLIC_EXTEND_ENABLED=true`, `EXTEND_API_HOST`, `EXTEND_STORE_ID`, `EXTEND_ACCESS_TOKEN` (local mock values) | 3900            | protection, resilience (`E2E_PROTECTION_FLAG=on`) |
+| `.env.prodpreview` | `SESSION_SECRET` of 32 or more characters                                                                     | 4400            | b20-production (`E2E_PROD_PREVIEW=1`)             |
+
+Other switches: `PUBLIC_GIFT_PICKER_ENABLED=true` turns the gift picker on (off by default; the e2e `pickers.spec` success paths are skipped on mock stores). `OFFERS_ENABLED=false` removes all offers. In a production build (`npm run build` then preview) `EXTEND_API_HOST=http://127.0.0.1:4010` is refused, so Extend reads as disabled there. The local Extend mock is started with `node scripts/mocks/extend-mock.mjs --port 4010`.
 
 ## Extend protection panel (P5A-05, P5A-07)
 

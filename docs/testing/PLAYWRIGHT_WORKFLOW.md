@@ -27,34 +27,63 @@ claude mcp add --scope local playwright -- cmd /c npx @playwright/mcp@0.0.83 --i
 ```
 cd storefront
 npm run dev            # Hydrogen dev server on http://localhost:3000
-npm run e2e            # Playwright Test (script defined in P1-05), starts or reuses the dev server through the config
-npm run e2e -- --ui    # interactive runner
+npm run e2e            # Playwright Test, starts or reuses a dev server on port 3100
+npm run e2e:ui         # interactive runner (script exists); `npm run e2e -- --ui` also works
 npx playwright show-report
 npx playwright show-trace test-results/<trace>.zip
 ```
 
-The config starts the app with `webServer` and `reuseExistingServer` locally, uses a fresh build in CI, runs against fixtures or the development store, never against production.
+`playwright.config.ts` starts `npm run dev -- --port <E2E_PORT> --disable-version-check` as its `webServer` and reuses a server already listening on that port locally (not in CI). Today every spec runs against the dev server with mock stores (`mock.shop`, `bedding.mock.shop`) or a development store, never against production; CI is configured to run the same dev-server setup (not a built app) and has not run on a remote yet. A fresh checkout needs a `storefront/.env` (see [DEV_DATA](../../storefront/DEV_DATA.md)) because the app refuses to serve without `SESSION_SECRET`.
+
+### E2E switches and environment files
+
+| Switch                    | Effect                                                                                                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `E2E_PORT` (default 3100) | Port the config starts or reuses. Set it to the port of a server you started yourself with `--env-file`                                                                            |
+| `E2E_ALL_BROWSERS=1`      | Adds desktop WebKit, mobile WebKit (iPhone 14) and desktop Firefox to desktop and mobile (Pixel 7) Chromium. Needs `npx playwright install` for those browsers; CI sets it         |
+| `E2E_PROTECTION_FLAG=on`  | Tells `protection.spec` and `resilience.spec` the server was started with `PUBLIC_EXTEND_ENABLED=true`; without it the flag-off tests run and the others skip with a stated reason |
+| `E2E_PROD_PREVIEW=1`      | Enables `b20-production.spec` against a production preview; without it the spec skips                                                                                              |
+| `CI`                      | Set by CI: one retry, two workers, no server reuse, `forbidOnly`                                                                                                                   |
+
+| Env file (git-ignored, you create it) | Used with                                                                                    | Port in the docs | Specs                                                                                                                                            |
+| ------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.env`                                | default dev server (Playwright starts it)                                                    | 3100             | the specs find their data at run time, so any store with a collection and a product works; DEV_DATA records which specs were run on which server |
+| `.env.bedding`                        | `npm run dev -- --port 3400 --env-file .env.bedding`                                         | 3400             | `catalog`, `cart`, `search`, `home` on `bedding.mock.shop` (products with a Size option)                                                         |
+| `.env.delivery`                       | as above, port 3700                                                                          | 3700             | `delivery.spec` (needs `OFFER_CONFIG_JSON` with a `zone`; skips without one)                                                                     |
+| `.env.protection`                     | as above, port 3900                                                                          | 3900             | `protection.spec`, `resilience.spec` with `E2E_PROTECTION_FLAG=on`                                                                               |
+| `.env.prodpreview`                    | `npx shopify hydrogen preview --port 4400 --env-file .env.prodpreview` after `npm run build` | 4400             | `b20-production.spec` with `E2E_PROD_PREVIEW=1`                                                                                                  |
+
+Contents of each file are in DEV_DATA (placeholder values only). Every file used for e2e needs `DELIVERY_COOKIE_SECRET` of 32 or more characters; production-mode files also need a `SESSION_SECRET` of 32 or more.
+
+### What runs where, and what is evidence of what
+
+- **Vitest** (`npm run test`, Node, no browser): `app/**/*.test.ts(x)`, `tests/unit/**`, `tests/integration/**`. Recorded on 2026-10-15 by the orchestrator in `progress/STATUS.md`: 138 files, 4051 tests passing (not re-run by the writer of this document).
+- **Scripts tests** (`node --test "scripts/**/*.test.mjs"` from the repository root): importer, definitions, parity, Extend mock and reconcile, detective report. 238 passing on the same record.
+- **Playwright** (`npm run e2e`): runs on the dev server against mock stores and fixtures. Specs in `tests/e2e/`: `smoke`, `shell`, `home`, `catalog`, `search`, `brands`, `gallery`, `cart`, `pickers`, `delivery`, `protection`, `resilience`, `quiz`, `compare`, `stores`, `seo-headers`, `b20-production`. Results recorded so far are agent-reported, desktop and mobile Chromium; WebKit and Firefox have not been run locally.
+- **Mock-only evidence.** Nothing here is evidence against a real Shopify store, Extend's demo host or a real host. mock.shop and bedding.mock.shop answer no `nodes(ids)` lookups, so the picker, add-on, bundle, haul-away and delivery-choice success paths are covered only by unit tests with fakes (`tests/unit/routes/*`, `tests/unit/offers-runtime/*`) and are `test.skip`ped in e2e with that reason. The `e2e_extend_eligible` cookie that makes a product look Extend-eligible exists only in development builds.
+- **Known environment gap:** the delivery ZIP e2e tests (`shell.spec`) fail if the env file lacks `DELIVERY_COOKIE_SECRET` (intended fail-closed behaviour).
+- **Not yet in place:** Lighthouse and performance budgets (P7-06; a separate performance document is being written), manual screen-reader and real-device passes (P7-05, P8), and any run against a development store (B-13).
 
 ## Projects and viewports
 
-Projects (proposal, finalised in P8-01): desktop Chromium 1280 px, mobile Chromium (Pixel class, 360 px), WebKit desktop and iPhone class, Firefox desktop. Layout checks at 360, 768, 1280 and 1536 px. Traces `on-first-retry`, screenshots and video `only-on-failure`.
+Projects (as configured in `playwright.config.ts`; the browser set is finalised in P8-01): `desktop-chromium` (1280 x 800), `mobile-chromium` (Pixel 7); with `E2E_ALL_BROWSERS=1` also `desktop-webkit`, `mobile-webkit` (iPhone 14) and `desktop-firefox`. Layout checks at 360, 768, 1280 and 1536 px. Traces `on-first-retry`, screenshots and video `only-on-failure`.
 
 ## Journeys to cover (each is a spec in the traceability matrix)
 
-| Area | Checks |
-|---|---|
-| Navigation | desktop mega menu by keyboard; mobile drawer; search entry; skip link |
-| Product selection | size change updates price, SKU, availability, URL; sold-out size disabled; gallery by keyboard |
-| Cart | quantity change, size change, removal, totals; drawer and page agree; reload persists |
-| Gifts and add-ons | gift appears with a qualifying item, size picker, disappears when the item is removed; size-matched foundation; protector; bundle Add all and partial failure |
-| Pre-checkout | each step shown only when it applies; accept and decline both advance; decline recorded; back button safe |
-| Protection | offer shown for eligible items only; accept links to the item; quantity follows; removal removes coverage; decline recorded; Extend unavailable |
-| Delivery | eligible ZIP, ineligible ZIP, invalid ZIP, ZIP+4; promise text; haul-away offered only when eligible; maximum enforced (UI and server) |
-| Checkout hand-off | lines and totals identical to the cart; discounts preserved; **stop at Shopify's checkout page** (no payment) |
-| Error states | each provider (Extend, reviews, maps, chat, analytics) failing or slow; Storefront API error; 404 and out-of-stock products; offline |
-| Quiz, compare, stores, account | full quiz and retake; saved results; compare on mobile; my store; sign-in and orders; guest tracking generic errors |
-| Accessibility | axe on every template with zero serious or critical; keyboard path through each flow; focus management in drawers and dialogs; reduced motion |
-| Console and network | no console errors or warnings on key pages; no request to a tracker before consent; no private token in any client request |
+| Area                           | Checks                                                                                                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Navigation                     | desktop mega menu by keyboard; mobile drawer; search entry; skip link                                                                                         |
+| Product selection              | size change updates price, SKU, availability, URL; sold-out size disabled; gallery by keyboard                                                                |
+| Cart                           | quantity change, size change, removal, totals; drawer and page agree; reload persists                                                                         |
+| Gifts and add-ons              | gift appears with a qualifying item, size picker, disappears when the item is removed; size-matched foundation; protector; bundle Add all and partial failure |
+| Pre-checkout                   | each step shown only when it applies; accept and decline both advance; decline recorded; back button safe                                                     |
+| Protection                     | offer shown for eligible items only; accept links to the item; quantity follows; removal removes coverage; decline recorded; Extend unavailable               |
+| Delivery                       | eligible ZIP, ineligible ZIP, invalid ZIP, ZIP+4; promise text; haul-away offered only when eligible; maximum enforced (UI and server)                        |
+| Checkout hand-off              | lines and totals identical to the cart; discounts preserved; **stop at Shopify's checkout page** (no payment)                                                 |
+| Error states                   | each provider (Extend, reviews, maps, chat, analytics) failing or slow; Storefront API error; 404 and out-of-stock products; offline                          |
+| Quiz, compare, stores, account | full quiz and retake; saved results; compare on mobile; my store; sign-in and orders; guest tracking generic errors                                           |
+| Accessibility                  | axe on every template with zero serious or critical; keyboard path through each flow; focus management in drawers and dialogs; reduced motion                 |
+| Console and network            | no console errors or warnings on key pages; no request to a tracker before consent; no private token in any client request                                    |
 
 ## Reproducible defect reports
 
