@@ -1,7 +1,8 @@
 // The product page's "has an Extend category" hint, read by HANDLE so it can start together with the product read
 // instead of after it (review m7: the page used to wait for the product, then for this). It reads the same
-// `custom.extend_category` metafield, validated by the same parser, as the by-id read the offers route uses
-// (`loadProductCategories`), so the page's hint and the server's answer cannot disagree.
+// `custom.extend_category` metafield and validates it with the same parser (`parseProductCategories`) as the by-id
+// read the offers route uses (`loadProductCategories`), so the page's hint and the server's answer cannot disagree
+// about what counts as a category; the tests below pin the parser's verdicts for this read.
 
 import {parseProductCategories} from '~/lib/extend/coverage-facts';
 import type {FactsStorefront} from '~/lib/extend/coverage-facts';

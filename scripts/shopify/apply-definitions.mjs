@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Applies definitions.json to a store: metaobject definitions first, then product metafield definitions
 // (P3A-02, REQ-CAT-005, REQ-LOC-002). Idempotent: existing definitions are left alone and any difference
-// is reported, never silently changed. Dry run is the default.
+// is reported, never silently changed. Dry run is the default. The one change made to an existing
+// metaobject definition is ADDING a field the spec has and the store lacks (a definition created from an
+// older spec, for example site_settings before support_phone existed); nothing is ever altered or deleted.
 //
 //   node scripts/shopify/apply-definitions.mjs --offline            plan only, no network
 //   node scripts/shopify/apply-definitions.mjs --store x.myshopify.com   dry run: reads the store
@@ -14,6 +16,11 @@
 //  metaobjectDefinitionCreate(definition: MetaobjectDefinitionCreateInput!)  scope write_metaobject_definitions
 //    fields: type, name, description, displayNameKey, access { storefront: PUBLIC_READ }, fieldDefinitions
 //    [{ key, name, description, type, required, validations }].
+//  metaobjectDefinitionUpdate(id: ID!, definition: MetaobjectDefinitionUpdateInput!)  scope write_metaobject_definitions
+//    (read 2026-10-15) definition.fieldDefinitions is a list of operations, exactly one of { create, update, delete }
+//    each; create takes MetaobjectFieldDefinitionCreateInput { key!, type!, name, description, required (default
+//    false), validations, capabilities }. resetFieldOrder defaults to false, so a created field is appended and
+//    existing fields keep their order. This tool only ever sends `create` operations.
 //  metaobjectDefinitionByType(type) scope read_metaobject_definitions; metafieldDefinitions(ownerType, namespace).
 //  Validations: https://shopify.dev/docs/apps/build/custom-data/metafields/definitions/list-of-validation-options
 //    choices (single_line_text_field only, value = JSON-encoded array), min/max, metaobject_definition_type,
@@ -82,15 +89,34 @@ export function toMetaobjectDefinitionInput(definition) {
     ...(definition.description ? { description: definition.description } : {}),
     displayNameKey: definition.displayNameKey,
     access: { storefront: definition.storefrontAccess },
-    fieldDefinitions: definition.fieldDefinitions.map((field) => ({
-      key: field.key,
-      name: field.name,
-      type: field.type,
-      required: field.required === true,
-      ...(field.description ? { description: field.description } : {}),
-      ...(field.validations?.length ? { validations: encodeValidations(field.validations) } : {}),
-    })),
+    fieldDefinitions: definition.fieldDefinitions.map(toFieldInput),
   };
+}
+
+/**
+ * One field as the create input of both mutations (MetaobjectFieldDefinitionCreateInput).
+ * @param {SpecField} field
+ * @returns {Record<string, unknown>}
+ */
+export function toFieldInput(field) {
+  return {
+    key: field.key,
+    name: field.name,
+    type: field.type,
+    required: field.required === true,
+    ...(field.description ? { description: field.description } : {}),
+    ...(field.validations?.length ? { validations: encodeValidations(field.validations) } : {}),
+  };
+}
+
+/**
+ * The update input that adds fields and does nothing else: only `create` operations, no name, access, display
+ * name or field order change, no update or delete operation.
+ * @param {SpecField[]} fields
+ * @returns {Record<string, unknown>} MetaobjectDefinitionUpdateInput
+ */
+export function toAddFieldsInput(fields) {
+  return { fieldDefinitions: fields.map((field) => ({ create: toFieldInput(field) })) };
 }
 
 /**
@@ -182,6 +208,12 @@ const EXISTING_METAOBJECT = `query ExistingMetaobjectDefinition($type: String!) 
     fieldDefinitions { key name description required type { name } validations { name value } }
   }
 }`;
+
+const UPDATE_METAOBJECT = `mutation AddMetaobjectDefinitionFields($id: ID!, $definition: MetaobjectDefinitionUpdateInput!) {
+  metaobjectDefinitionUpdate(id: $id, definition: $definition) { metaobjectDefinition { id type } userErrors { field message code } }
+}`;
+
+const METAOBJECT_DEFINITION_ID = /^gid:\/\/shopify\/MetaobjectDefinition\/[0-9]+$/;
 
 const CREATE_METAFIELD = `mutation CreateMetafieldDefinition($definition: MetafieldDefinitionInput!) {
   metafieldDefinitionCreate(definition: $definition) { createdDefinition { id namespace key } userErrors { field message code } }
@@ -288,7 +320,22 @@ export function diffMetaobjectDefinition(definition, actual) {
 }
 
 /**
- * @typedef {{ kind: 'metaobject' | 'metafield', label: string, action: 'create' | 'exists' | 'differs', diffs: string[], input: Record<string, unknown> }} DefinitionPlanItem
+ * Splits the spec fields the store lacks from every other difference. Missing fields are safe to add; the rest
+ * is reported only.
+ * @param {SpecMetaobject} definition
+ * @param {Record<string, unknown>} actual a metaobjectDefinitionByType result
+ * @returns {{ missing: SpecField[], diffs: string[] }}
+ */
+export function splitMissingFields(definition, actual) {
+  const have = new Set((Array.isArray(actual.fieldDefinitions) ? actual.fieldDefinitions : []).filter(isRecord).map((field) => String(field.key)));
+  const missing = definition.fieldDefinitions.filter((field) => !have.has(field.key));
+  const missingLines = new Set(missing.map((field) => `field ${field.key} is missing in Shopify`));
+  return { missing, diffs: diffMetaobjectDefinition(definition, actual).filter((line) => !missingLines.has(line)) };
+}
+
+/**
+ * `add-fields`: the definition exists and only lacks fields the spec has; live, they are added.
+ * @typedef {{ kind: 'metaobject' | 'metafield', label: string, action: 'create' | 'exists' | 'differs' | 'add-fields', diffs: string[], input: Record<string, unknown>, existingId?: string, addFields?: SpecField[] }} DefinitionPlanItem
  */
 
 /**
@@ -307,8 +354,18 @@ export async function planDefinitions({ spec, client }) {
       if (!result.ok) return { ok: false, message: `Reading metaobject ${definition.type}: ${result.error.message}` };
       existing = isRecord(result.data.metaobjectDefinitionByType) ? result.data.metaobjectDefinitionByType : null;
     }
-    const diffs = existing ? diffMetaobjectDefinition(definition, existing) : [];
-    items.push({ kind: 'metaobject', label: definition.type, action: existing ? (diffs.length > 0 ? 'differs' : 'exists') : 'create', diffs, input });
+    if (!existing) {
+      items.push({ kind: 'metaobject', label: definition.type, action: 'create', diffs: [], input });
+      continue;
+    }
+    const { missing, diffs } = splitMissingFields(definition, existing);
+    // Only a well-formed definition id is sent back to Shopify; anything else is reported, not changed.
+    const existingId = typeof existing.id === 'string' && METAOBJECT_DEFINITION_ID.test(existing.id) ? existing.id : null;
+    const addable = existingId !== null && missing.length > 0;
+    const unaddable = !addable ? missing.map((field) => `field ${field.key} is missing in Shopify`) : [];
+    const allDiffs = [...unaddable, ...diffs];
+    const action = allDiffs.length > 0 ? 'differs' : addable ? 'add-fields' : 'exists';
+    items.push({ kind: 'metaobject', label: definition.type, action, diffs: allDiffs, input, ...(addable ? { existingId, addFields: missing } : {}) });
   }
   /** @type {Map<string, Record<string, unknown>[]>} */
   const existingByScope = new Map();
@@ -327,16 +384,31 @@ export async function planDefinitions({ spec, client }) {
 }
 
 /**
- * Creates what is missing. A failure on one definition does not stop the others (re-running is safe).
+ * Creates what is missing and adds missing fields to existing metaobject definitions. A failure on one
+ * definition does not stop the others (re-running is safe). Existing fields are never touched.
  * @param {{ items: DefinitionPlanItem[], client: import('../lib/shopify-admin.mjs').AdminClient }} args
- * @returns {Promise<{ created: string[], failed: { label: string, message: string }[] }>}
+ * @returns {Promise<{ created: string[], extended: string[], failed: { label: string, message: string }[] }>}
  */
 export async function applyDefinitions({ items, client }) {
   /** @type {string[]} */
   const created = [];
+  /** @type {string[]} */
+  const extended = [];
   /** @type {{ label: string, message: string }[]} */
   const failed = [];
   for (const item of items) {
+    if (item.existingId && item.addFields && item.addFields.length > 0) {
+      const result = await client.request(UPDATE_METAOBJECT, { id: item.existingId, definition: toAddFieldsInput(item.addFields) }, { operationName: 'AddMetaobjectDefinitionFields', estimatedCost: 20 });
+      if (!result.ok) {
+        failed.push({ label: item.label, message: result.error.message });
+        if (result.error.kind === 'auth' || result.error.kind === 'not_found') break;
+        continue;
+      }
+      const payload = readPayload(result.data, 'metaobjectDefinitionUpdate');
+      if (payload.ok) extended.push(item.label);
+      else failed.push({ label: item.label, message: payload.error.message });
+      continue;
+    }
     if (item.action !== 'create') continue;
     const isMetaobject = item.kind === 'metaobject';
     const result = await client.request(isMetaobject ? CREATE_METAOBJECT : CREATE_METAFIELD, { definition: item.input }, { operationName: isMetaobject ? 'CreateMetaobjectDefinition' : 'CreateMetafieldDefinition', estimatedCost: 20 });
@@ -349,7 +421,7 @@ export async function applyDefinitions({ items, client }) {
     if (payload.ok) created.push(item.label);
     else failed.push({ label: item.label, message: payload.error.message });
   }
-  return { created, failed };
+  return { created, extended, failed };
 }
 
 // ---- CLI -----------------------------------------------------------------------------------------
@@ -359,7 +431,8 @@ const USAGE = `Usage: node scripts/shopify/apply-definitions.mjs [options]
   --offline        plan against an empty store; no network, no credentials
   --store <domain> <name>.myshopify.com (default: $${ENV_STORE_DOMAIN})
   --spec <file>    definitions file (default scripts/shopify/definitions.json)
-  --live           CREATE the missing definitions. Default is a dry run. Needs SHOPIFY_ALLOWED_STORES.
+  --live           CREATE the missing definitions and ADD fields the spec has to existing metaobject
+                   definitions (nothing is altered or deleted). Default is a dry run. Needs SHOPIFY_ALLOWED_STORES.
 Exit code: 0 in sync, 1 differences or failures, 2 usage or file problem, 3 refused by the guard.`;
 
 /**
@@ -420,14 +493,18 @@ export async function main(argv, env, { out = (text) => console.log(text), err =
   out(`${live ? 'LIVE RUN' : 'DRY RUN'}${offline ? ' (offline: planned against an empty store)' : ''}`);
   out(renderTable(['kind', 'definition', 'action', 'differences'], plan.items.map((item) => [item.kind, item.label, item.action.toUpperCase(), item.diffs.length])));
   for (const item of plan.items) for (const diff of item.diffs) out(`DIFF ${item.label}: ${diff}`);
-  const counts = { create: 0, exists: 0, differs: 0 };
+  for (const item of plan.items) for (const field of item.addFields ?? []) out(`ADD ${item.label}: field ${field.key} (${field.type}) is missing in Shopify and would be added`);
+  const counts = { create: 0, exists: 0, differs: 0, 'add-fields': 0 };
   for (const item of plan.items) counts[item.action] += 1;
   out(`Plan: ${counts.create} to create, ${counts.exists} already in sync, ${counts.differs} differ (reported, never changed by this tool).`);
+  const adding = plan.items.reduce((sum, item) => sum + (item.addFields?.length ?? 0), 0);
+  if (adding > 0) out(`${adding} missing field(s) in ${counts['add-fields'] + plan.items.filter((item) => item.action === 'differs' && item.addFields).length} existing metaobject definition(s) would be added (existing fields are never changed or removed).`);
 
   let failures = 0;
   if (live && client) {
     const result = await applyDefinitions({ items: plan.items, client });
     out(`Created ${result.created.length} definition(s).`);
+    if (adding > 0) out(`Added missing fields to ${result.extended.length} existing definition(s).`);
     for (const failure of result.failed) err(`FAILED ${failure.label}: ${failure.message}`);
     failures = result.failed.length;
   }

@@ -16,6 +16,7 @@ import {
   accountFailure,
   accountNoStoreHeaders,
   hasOversizedField,
+  requireAccountSession,
   type AccountErrorCode,
   type AccountFailure,
 } from '~/lib/account/results';
@@ -34,7 +35,7 @@ export const meta: Route.MetaFunction = () => {
 };
 
 export async function loader({context}: Route.LoaderArgs) {
-  await context.customerAccount.handleAuthStatus();
+  await requireAccountSession(context.customerAccount);
 
   return {};
 }

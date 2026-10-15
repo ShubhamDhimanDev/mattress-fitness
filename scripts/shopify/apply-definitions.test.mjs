@@ -259,17 +259,98 @@ test('differences are reported with specifics and never changed; the exit code i
   assert.equal((await run(['--live'], { fake })).code, 0);
   fake.state.metafieldDefinitions.get('PRODUCT:custom.comfort_level').access.storefront = 'NONE';
   fake.state.metafieldDefinitions.get('PRODUCT:custom.mattress_type').validations = [{ name: 'choices', value: '["Hybrid","Foam"]' }];
-  fake.state.metaobjectDefinitions.get('store').fieldDefinitions.pop();
   fake.state.metaobjectDefinitions.get('brand').fieldDefinitions.push({ key: 'extra_field', name: 'Extra', description: null, required: false, type: { name: 'single_line_text_field' }, validations: [] });
   fake.reset();
   const result = await run(['--live'], { fake });
   assert.equal(result.code, 1);
   assert.match(result.out, /DIFF product custom\.comfort_level: Storefront API access is NONE in Shopify, PUBLIC_READ in the spec/);
   assert.match(result.out, /DIFF product custom\.mattress_type: validations: validation choices differs/);
-  assert.match(result.out, /DIFF store: field location_handle is missing in Shopify/);
   assert.match(result.out, /DIFF brand: Shopify has an extra field extra_field/);
-  assert.match(result.out, /4 differ \(reported, never changed by this tool\)/);
+  assert.match(result.out, /3 differ \(reported, never changed by this tool\)/);
   assert.equal(fake.mutations().length, 0, 'existing definitions are never modified');
+});
+
+/** Removes one field from the fake store's copy of a definition, as if it had been created from an older spec. */
+function dropField(fake, type, key) {
+  const definition = fake.state.metaobjectDefinitions.get(type);
+  const index = definition.fieldDefinitions.findIndex((field) => field.key === key);
+  assert.ok(index >= 0, `${type}.${key} exists in the fake store`);
+  return definition.fieldDefinitions.splice(index, 1)[0];
+}
+
+test('an existing definition that only lacks a spec field is extended in a live run, never in a dry run (site_settings.support_phone)', async () => {
+  const fake = createFakeShopify();
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  dropField(fake, 'site_settings', 'support_phone');
+  const before = structuredClone(fake.state.metaobjectDefinitions.get('site_settings'));
+  fake.reset();
+
+  const dry = await run([], { fake });
+  assert.equal(dry.code, 0, dry.err);
+  assert.match(dry.out, /ADD site_settings: field support_phone \(single_line_text_field\) is missing in Shopify and would be added/);
+  assert.match(dry.out, /1 missing field\(s\) in 1 existing metaobject definition\(s\) would be added/);
+  assert.doesNotMatch(dry.out, /DIFF site_settings/);
+  assert.equal(fake.mutations().length, 0, 'a dry run writes nothing');
+
+  fake.reset();
+  const live = await run(['--live'], { fake });
+  assert.equal(live.code, 0, live.err);
+  assert.match(live.out, /Added missing fields to 1 existing definition\(s\)\./);
+  assert.deepEqual(fake.mutations().map((call) => call.operationName), ['AddMetaobjectDefinitionFields']);
+  const sent = fake.mutations()[0].variables;
+  assert.equal(sent.id, before.id);
+  assert.deepEqual(Object.keys(sent.definition), ['fieldDefinitions'], 'only fields are sent: no name, access, display name or order change');
+  assert.deepEqual(sent.definition.fieldDefinitions.map((operation) => Object.keys(operation)), [['create']]);
+  assert.equal(sent.definition.fieldDefinitions[0].create.key, 'support_phone');
+
+  const after = fake.state.metaobjectDefinitions.get('site_settings');
+  assert.deepEqual(after.fieldDefinitions.slice(0, -1), before.fieldDefinitions, 'existing fields are untouched and keep their order');
+  assert.equal(after.fieldDefinitions.at(-1).key, 'support_phone');
+
+  fake.reset();
+  const again = await run(['--live'], { fake });
+  assert.equal(again.code, 0, again.err);
+  assert.equal(fake.mutations().length, 0, 'the second run finds it in sync');
+});
+
+test('missing fields are still added when something else also differs, but the other difference is only reported and the run fails', async () => {
+  const fake = createFakeShopify();
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  dropField(fake, 'store', 'location_handle');
+  fake.state.metaobjectDefinitions.get('store').name = 'Renamed in admin';
+  fake.reset();
+  const result = await run(['--live'], { fake });
+  assert.equal(result.code, 1);
+  assert.match(result.out, /DIFF store: name is "Renamed in admin"/);
+  assert.match(result.out, /ADD store: field location_handle/);
+  assert.deepEqual(fake.mutations().map((call) => call.operationName), ['AddMetaobjectDefinitionFields']);
+  assert.equal(fake.state.metaobjectDefinitions.get('store').name, 'Renamed in admin', 'the name is never changed');
+});
+
+test('a definition id that is not a metaobject definition gid is never sent back; the missing field is reported as a difference', async () => {
+  const fake = createFakeShopify();
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  dropField(fake, 'site_settings', 'support_phone');
+  fake.state.metaobjectDefinitions.get('site_settings').id = 'gid://shopify/Product/1';
+  fake.reset();
+  const result = await run(['--live'], { fake });
+  assert.equal(result.code, 1);
+  assert.match(result.out, /DIFF site_settings: field support_phone is missing in Shopify/);
+  assert.equal(fake.mutations().length, 0);
+});
+
+test('a rejected field addition is listed as failed and the exit code is non-zero', async () => {
+  const fake = createFakeShopify({
+    intercept: ({ operationName }) => (operationName === 'AddMetaobjectDefinitionFields'
+      ? new Response(JSON.stringify({ data: { metaobjectDefinitionUpdate: { metaobjectDefinition: null, userErrors: [{ field: ['definition'], message: 'Cannot add field', code: 'INVALID' }] } } }), { status: 200 })
+      : null),
+  });
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  dropField(fake, 'site_settings', 'support_phone');
+  fake.reset();
+  const result = await run(['--live'], { fake });
+  assert.equal(result.code, 1);
+  assert.match(result.err, /FAILED site_settings: metaobjectDefinitionUpdate rejected: definition: Cannot add field \[INVALID\]/);
 });
 
 test('diff helpers ignore validation order and treat id and type references as equivalent', () => {

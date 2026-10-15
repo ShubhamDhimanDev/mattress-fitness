@@ -66,6 +66,31 @@ export function withAccountNoStore(response: Response): Response {
   });
 }
 
+/**
+ * Re-issues a Response thrown by Hydrogen's customer account client (the redirect to the login, which also sets
+ * the login state cookie) with the account cache headers. The client builds that Response itself, so the only
+ * way to add the headers is to catch it where it is thrown and wrap it: status, `Location` and `Set-Cookie`
+ * are kept. Anything else is returned unchanged. The login redirect itself is not a page nobody should cache,
+ * but a shared cache keeping it would replay one shopper's login state cookie to another (T-05, T-11).
+ */
+export function withAccountNoStoreIfResponse(error: unknown): unknown {
+  return error instanceof Response ? withAccountNoStore(error) : error;
+}
+
+/**
+ * The session check every account loader makes. A signed-out visitor gets Hydrogen's login redirect, thrown as
+ * a Response; it is thrown again with no-store headers (see `withAccountNoStoreIfResponse`).
+ */
+export async function requireAccountSession(client: {
+  handleAuthStatus: () => Promise<unknown>;
+}): Promise<void> {
+  try {
+    await client.handleAuthStatus();
+  } catch (error: unknown) {
+    throw withAccountNoStoreIfResponse(error);
+  }
+}
+
 const ADDRESS_ID_PREFIX = 'gid://shopify/CustomerAddress/';
 const MAX_ID_LENGTH = 200;
 const ORDER_ID =
@@ -127,13 +152,6 @@ export function decodeOrderRouteId(raw: string | undefined): string | null {
 
 /** Longest value a single address or profile field may carry; the API validates the rest. */
 export const MAX_FIELD_LENGTH = 255;
-
-/** A form value as a bounded string, or null for a missing, non-text or oversized value. */
-export function readTextField(form: FormData, key: string): string | null {
-  const value = form.get(key);
-  if (typeof value !== 'string') return null;
-  return value.length <= MAX_FIELD_LENGTH ? value : null;
-}
 
 /** True when a posted text value is present but longer than any field may be. */
 export function hasOversizedField(form: FormData, keys: readonly string[]) {

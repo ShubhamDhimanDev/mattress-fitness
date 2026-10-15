@@ -8,7 +8,9 @@ import {
   decodeOrderRouteId,
   hasOversizedField,
   parseAddressId,
+  requireAccountSession,
   withAccountNoStore,
+  withAccountNoStoreIfResponse,
   type AccountErrorCode,
 } from '~/lib/account/results';
 
@@ -119,6 +121,46 @@ describe('withAccountNoStore', () => {
       'a=1; Path=/; HttpOnly',
       'b=2; Path=/; HttpOnly',
     ]);
+  });
+});
+
+describe('requireAccountSession (the login redirect Hydrogen throws is re-issued with no-store)', () => {
+  it('passes when the session is fine', async () => {
+    await expect(
+      requireAccountSession({handleAuthStatus: async () => undefined}),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rethrows the login redirect with private, no-store and keeps status, location and cookies', async () => {
+    const login = new Response(null, {status: 302});
+    login.headers.set('Location', '/account/login');
+    login.headers.append('Set-Cookie', 'state=1; HttpOnly');
+    const error = await requireAccountSession({
+      handleAuthStatus: async () => {
+        throw login;
+      },
+    }).then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+    expect(error).toBeInstanceOf(Response);
+    const response = error as Response;
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('/account/login');
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(response.headers.getSetCookie()).toEqual(['state=1; HttpOnly']);
+  });
+
+  it('leaves any other error exactly as it was', async () => {
+    const failure = new TypeError('boom');
+    await expect(
+      requireAccountSession({
+        handleAuthStatus: async () => {
+          throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
+    expect(withAccountNoStoreIfResponse(failure)).toBe(failure);
   });
 });
 

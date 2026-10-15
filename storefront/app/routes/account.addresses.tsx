@@ -4,6 +4,7 @@ import type {
   AddressFragment,
   CustomerFragment,
 } from 'customer-accountapi.generated';
+import {useId} from 'react';
 import {
   data,
   Form,
@@ -27,6 +28,7 @@ import {
   accountNoStoreHeaders,
   hasOversizedField,
   parseAddressId,
+  requireAccountSession,
   type AccountErrorCode,
   type AccountFailure,
 } from '~/lib/account/results';
@@ -52,7 +54,7 @@ export const meta: Route.MetaFunction = () => {
 };
 
 export async function loader({context}: Route.LoaderArgs) {
-  await context.customerAccount.handleAuthStatus();
+  await requireAccountSession(context.customerAccount);
 
   return {};
 }
@@ -298,7 +300,6 @@ export default function Addresses() {
       <br />
       <div>
         <div>
-          <legend>Create address</legend>
           <NewAddressForm key={addresses.nodes.length} />
         </div>
         <br />
@@ -334,7 +335,8 @@ function NewAddressForm() {
 
   return (
     <AddressForm
-      addressId={'NEW_ADDRESS_ID'}
+      legend="Create address"
+      addressId={NEW_ADDRESS_FORM_ID}
       address={newAddress}
       defaultAddress={null}
     >
@@ -359,10 +361,11 @@ function ExistingAddresses({
 }: Pick<CustomerFragment, 'addresses' | 'defaultAddress'>) {
   return (
     <div>
-      <legend>Existing addresses</legend>
-      {addresses.nodes.map((address) => (
+      <h3>Existing addresses</h3>
+      {addresses.nodes.map((address, index) => (
         <AddressForm
           key={address.id}
+          legend={`Saved address ${index + 1}`}
           addressId={address.id}
           address={address}
           defaultAddress={defaultAddress}
@@ -391,12 +394,19 @@ function ExistingAddresses({
   );
 }
 
+/**
+ * One address form. Several render on the page, so every control id carries a per-form prefix (a repeated id
+ * breaks `label for` and axe's duplicate-id rule), and the group is named by a real `legend` inside its
+ * `fieldset`. The posted `addressId` stays the Shopify id; it is a hidden value, never an element id.
+ */
 export function AddressForm({
+  legend,
   addressId,
   address,
   defaultAddress,
   children,
 }: {
+  legend: string;
   addressId: AddressFragment['id'];
   address: CustomerAddressInput;
   defaultAddress: CustomerFragment['defaultAddress'];
@@ -411,114 +421,117 @@ export function AddressForm({
       ? action.message
       : null;
   const isDefaultAddress = defaultAddress?.id === addressId;
+  const formKey = useId();
+  const idOf = (field: string) => `${formKey}-${field}`;
   return (
-    <Form id={addressId}>
+    <Form>
       <fieldset>
+        <legend>{legend}</legend>
         <input type="hidden" name="addressId" defaultValue={addressId} />
-        <label htmlFor="firstName">First name*</label>
+        <label htmlFor={idOf('firstName')}>First name*</label>
         <input
           aria-label="First name"
           autoComplete="given-name"
           defaultValue={address?.firstName ?? ''}
-          id="firstName"
+          id={idOf('firstName')}
           name="firstName"
           placeholder="First name"
           required
           type="text"
         />
-        <label htmlFor="lastName">Last name*</label>
+        <label htmlFor={idOf('lastName')}>Last name*</label>
         <input
           aria-label="Last name"
           autoComplete="family-name"
           defaultValue={address?.lastName ?? ''}
-          id="lastName"
+          id={idOf('lastName')}
           name="lastName"
           placeholder="Last name"
           required
           type="text"
         />
-        <label htmlFor="company">Company</label>
+        <label htmlFor={idOf('company')}>Company</label>
         <input
           aria-label="Company"
           autoComplete="organization"
           defaultValue={address?.company ?? ''}
-          id="company"
+          id={idOf('company')}
           name="company"
           placeholder="Company"
           type="text"
         />
-        <label htmlFor="address1">Address line*</label>
+        <label htmlFor={idOf('address1')}>Address line*</label>
         <input
           aria-label="Address line 1"
           autoComplete="address-line1"
           defaultValue={address?.address1 ?? ''}
-          id="address1"
+          id={idOf('address1')}
           name="address1"
           placeholder="Address line 1*"
           required
           type="text"
         />
-        <label htmlFor="address2">Address line 2</label>
+        <label htmlFor={idOf('address2')}>Address line 2</label>
         <input
           aria-label="Address line 2"
           autoComplete="address-line2"
           defaultValue={address?.address2 ?? ''}
-          id="address2"
+          id={idOf('address2')}
           name="address2"
           placeholder="Address line 2"
           type="text"
         />
-        <label htmlFor="city">City*</label>
+        <label htmlFor={idOf('city')}>City*</label>
         <input
           aria-label="City"
           autoComplete="address-level2"
           defaultValue={address?.city ?? ''}
-          id="city"
+          id={idOf('city')}
           name="city"
           placeholder="City"
           required
           type="text"
         />
-        <label htmlFor="zoneCode">State / Province*</label>
+        <label htmlFor={idOf('zoneCode')}>State / Province*</label>
         <input
           aria-label="State/Province"
           autoComplete="address-level1"
           defaultValue={address?.zoneCode ?? ''}
-          id="zoneCode"
+          id={idOf('zoneCode')}
           name="zoneCode"
           placeholder="State / Province"
           required
           type="text"
         />
-        <label htmlFor="zip">Zip / Postal Code*</label>
+        <label htmlFor={idOf('zip')}>Zip / Postal Code*</label>
         <input
           aria-label="Zip"
           autoComplete="postal-code"
           defaultValue={address?.zip ?? ''}
-          id="zip"
+          id={idOf('zip')}
           name="zip"
           placeholder="Zip / Postal Code"
           required
           type="text"
         />
-        <label htmlFor="territoryCode">Country Code*</label>
+        <label htmlFor={idOf('territoryCode')}>Country Code*</label>
         <input
           aria-label="Country code"
           autoComplete="country"
           defaultValue={address?.territoryCode ?? ''}
-          id="territoryCode"
+          id={idOf('territoryCode')}
           name="territoryCode"
           placeholder="Country"
           required
           type="text"
           maxLength={2}
         />
-        <label htmlFor="phoneNumber">Phone</label>
+        <label htmlFor={idOf('phoneNumber')}>Phone</label>
         <input
           aria-label="Phone Number"
           autoComplete="tel"
           defaultValue={address?.phoneNumber ?? ''}
-          id="phoneNumber"
+          id={idOf('phoneNumber')}
           name="phoneNumber"
           placeholder="+16135551111"
           pattern="^\+?[1-9]\d{3,14}$"
@@ -527,11 +540,11 @@ export function AddressForm({
         <div>
           <input
             defaultChecked={isDefaultAddress}
-            id="defaultAddress"
+            id={idOf('defaultAddress')}
             name="defaultAddress"
             type="checkbox"
           />
-          <label htmlFor="defaultAddress">Set as default address</label>
+          <label htmlFor={idOf('defaultAddress')}>Set as default address</label>
         </div>
         {error ? (
           <p role="alert">

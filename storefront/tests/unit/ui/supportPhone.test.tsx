@@ -108,6 +108,20 @@ describe('the promotion bar', () => {
     const link = await screen.findByRole('link', {name: 'Partner offer'});
     expect(link).toHaveAttribute('href', 'https://example.com/offer');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    // Same tab: a new-tab link would need a visible cue, so none is opened.
+    expect(link).not.toHaveAttribute('target');
+  });
+
+  it('is the same height with and without a link (44 px touch target either way)', async () => {
+    const {container, unmount} = render(<PromoBar message={{text: 'Sale'}} />);
+    const textOnly = container.querySelector('p > *');
+    expect(textOnly).toHaveClass('min-h-touch', 'items-center');
+    unmount();
+    renderIn(<PromoBar message={{text: 'Sale', to: '/collections'}} />);
+    expect(await screen.findByRole('link', {name: 'Sale'})).toHaveClass(
+      'min-h-touch',
+      'items-center',
+    );
   });
 
   it('keeps the text and a separate labelled link when both are given', async () => {

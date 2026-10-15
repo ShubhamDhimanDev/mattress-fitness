@@ -2,7 +2,11 @@ import {data, Form, NavLink, Outlet, useLoaderData} from 'react-router';
 import type {Route} from './+types/account';
 import {AccountErrorBoundary} from '~/components/account/AccountErrorBoundary';
 import {CUSTOMER_DETAILS_QUERY} from '~/graphql/customer-account/CustomerDetailsQuery';
-import {accountFailure, accountNoStoreHeaders} from '~/lib/account/results';
+import {
+  accountFailure,
+  accountNoStoreHeaders,
+  withAccountNoStoreIfResponse,
+} from '~/lib/account/results';
 import {errorFields, logError} from '~/lib/logging/logger';
 
 export function shouldRevalidate() {
@@ -28,8 +32,8 @@ export async function loader({context}: Route.LoaderArgs) {
       },
     });
   } catch (error: unknown) {
-    // The login redirect is a Response and must reach the router untouched.
-    if (error instanceof Response) throw error;
+    // The login redirect is a Response: it still reaches the router as the same redirect, now with no-store.
+    if (error instanceof Response) throw withAccountNoStoreIfResponse(error);
     logError('account.customer_read_failed', errorFields(error));
     throw data(accountFailure('failed'), {
       status: 500,

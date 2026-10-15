@@ -3,6 +3,10 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import settingsFixture from '../../fixtures/shopify/site-settings.json';
 import {fakeStorefront} from './fake-storefront';
 import {
+  PRICED_MAX_AGE_SECONDS,
+  PRICED_STALE_WHILE_REVALIDATE_SECONDS,
+} from '~/lib/shopify/cache';
+import {
   MAX_PROMO_TEXT_LENGTH,
   NO_SITE_SETTINGS,
   SITE_SETTINGS_FIELDS,
@@ -10,6 +14,7 @@ import {
   chooseSupportPhone,
   loadSiteSettings,
   mapSiteSettings,
+  truncateCodePoints,
 } from '~/lib/shopify/site-settings';
 
 // P3B-13 follow-up, REQ-NAV-001, REQ-CNT-001, B-15, T-07, T-08: the promotion bar text and the support phone come
@@ -111,6 +116,25 @@ describe('mapSiteSettings', () => {
     expect(promo?.text).toHaveLength(MAX_PROMO_TEXT_LENGTH);
   });
 
+  it('never cuts an emoji (a surrogate pair) in half at the limit', () => {
+    const emoji = String.fromCodePoint(0x1f600);
+    const {promo} = mapSiteSettings(
+      entry({
+        promo_bar_text: `${'a'.repeat(MAX_PROMO_TEXT_LENGTH - 1)}${emoji}${emoji}`,
+      }),
+    );
+    expect(promo?.text).toBe(
+      `${'a'.repeat(MAX_PROMO_TEXT_LENGTH - 1)}${emoji}`,
+    );
+    expect(Array.from(promo?.text ?? '')).toHaveLength(MAX_PROMO_TEXT_LENGTH);
+    // A well-formed string: no lone surrogate survives.
+    expect(promo?.text).not.toMatch(
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/,
+    );
+    expect(truncateCodePoints('abc', 5)).toBe('abc');
+    expect(truncateCodePoints(`${emoji}${emoji}`, 1)).toBe(emoji);
+  });
+
   it('uses only the first entry', () => {
     const nodes: Nodes = [
       ...entry({promo_bar_text: 'First'}),
@@ -187,15 +211,20 @@ describe('chooseSupportPhone', () => {
 });
 
 describe('loadSiteSettings', () => {
-  it('asks for the site_settings entry with the long cache (no price or availability is read)', async () => {
+  it('asks for the site_settings entry with the 60 s priced cache (admin text may quote a price or a date, DEC-024)', async () => {
     const {storefront, calls} = fakeStorefront(() => settingsFixture);
     const settings = await loadSiteSettings(storefront);
     expect(settings.promo?.text).toContain('Free in-home delivery');
     expect(calls).toHaveLength(1);
     expect(calls[0]?.query).toBe(SITE_SETTINGS_QUERY);
     expect(calls[0]?.query).toContain('type: "site_settings"');
-    expect(calls[0]?.cache).toEqual({mode: 'long'});
-    // No product, variant or money field can sit in a long-cached query (DEC-024).
+    expect(calls[0]?.cache).toMatchObject({
+      mode: 'public',
+      maxAge: PRICED_MAX_AGE_SECONDS,
+      staleWhileRevalidate: PRICED_STALE_WHILE_REVALIDATE_SECONDS,
+    });
+    expect(calls[0]?.cache).not.toEqual({mode: 'long'});
+    // The query itself still reads no product, variant or money field.
     expect(calls[0]?.query).not.toMatch(/price|availab|amount|variant/i);
   });
 

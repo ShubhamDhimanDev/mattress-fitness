@@ -653,14 +653,66 @@ describe('account order routes (T-11)', () => {
     expect(logs.text()).not.toContain('LEAK');
   });
 
-  it('redirects to the login, with no read, when signed out', async () => {
+  it('redirects to the login, with no read and private, no-store, when signed out', async () => {
     const out = fakeCustomerAccount({loggedIn: false});
     const id = btoa(ORDER_GID);
     const error = await thrown(() =>
       orderLoader(args(orderRequest(id), out, {id})),
     );
     expect(error).toBeInstanceOf(Response);
+    expect((error as Response).headers.get('Location')).toBe('/account/login');
+    expect((error as Response).headers.get('Cache-Control')).toBe(
+      'private, no-store',
+    );
     expect(out.query).not.toHaveBeenCalled();
+  });
+
+  it('every account loader that checks the session answers a signed-out visitor with a no-store login redirect', async () => {
+    const loaders = [
+      () =>
+        addressesLoader(
+          args(
+            new Request(`${ORIGIN}/account/addresses`),
+            fakeCustomerAccount({loggedIn: false}),
+          ),
+        ),
+      () =>
+        ordersLoader(
+          args(
+            new Request(`${ORIGIN}/account/orders`),
+            fakeCustomerAccount({loggedIn: false}),
+          ),
+        ),
+      () =>
+        wildcardLoader(
+          args(
+            new Request(`${ORIGIN}/account/other`),
+            fakeCustomerAccount({loggedIn: false}),
+          ),
+        ),
+      () =>
+        accountLoader(
+          args(
+            new Request(`${ORIGIN}/account`),
+            fakeCustomerAccount({loggedIn: false}),
+          ),
+        ),
+    ];
+    for (const load of loaders) {
+      const error = (await thrown(load)) as Response;
+      expect(error).toBeInstanceOf(Response);
+      expect(error.headers.get('Cache-Control')).toBe('private, no-store');
+    }
+  });
+
+  it('the redirect for a missing order id is private, no-store', async () => {
+    const account = fakeCustomerAccount();
+    const result = (await orderLoader(
+      args(new Request(`${ORIGIN}/account/orders/`), account, {}),
+    )) as Response;
+    expect(result.status).toBe(302);
+    expect(result.headers.get('Location')).toBe('/account/orders');
+    expect(result.headers.get('Cache-Control')).toBe('private, no-store');
   });
 
   it('lists orders with the session check first and builds the search from the sanitised filters only', async () => {
@@ -722,6 +774,31 @@ describe('account redirects and session routes carry private, no-store', () => {
     );
     expect(logout.headers.get('Cache-Control')).toBe('private, no-store');
     expect(logout.headers.get('Location')).toBe('/');
+
+    const crossSite = await logoutAction(
+      args(
+        new Request(`${ORIGIN}/account/logout`, {
+          method: 'POST',
+          headers: {Origin: 'https://evil.example'},
+        }),
+        account,
+      ),
+    );
+    expect(crossSite.status).toBe(403);
+    expect(crossSite.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(account.logout).toHaveBeenCalledTimes(1);
+
+    const noOriginCrossSite = await logoutAction(
+      args(
+        new Request(`${ORIGIN}/account/logout`, {
+          method: 'POST',
+          headers: {'Sec-Fetch-Site': 'cross-site'},
+        }),
+        account,
+      ),
+    );
+    expect(noOriginCrossSite.status).toBe(403);
+    expect(account.logout).toHaveBeenCalledTimes(1);
 
     const logoutGet = await logoutLoader();
     expect(logoutGet.headers.get('Cache-Control')).toBe('private, no-store');

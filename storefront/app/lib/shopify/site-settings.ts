@@ -4,9 +4,10 @@
 // reduced to plain text, the link goes through the same allow-list as every admin link (T-08) and the phone
 // must be a valid US number, or it is ignored.
 //
-// Nothing here is a price or an availability, so the read uses the long cache; an edit in admin shows after
-// the cache window. An absent entry, an empty field or a failed read all mean "show nothing", never an
-// invented message or number (B-15).
+// The promotion text is free text typed in admin and may quote a price or a date ("$100 off until Friday"),
+// so the read uses the same 60 s / 300 s strategy as every priced read (DEC-024), not the long cache: a stale
+// offer must not outlive its end date by hours. An edit in admin shows within that window. An absent entry, an
+// empty field or a failed read all mean "show nothing", never an invented message or number (B-15).
 
 import type {Storefront} from '@shopify/hydrogen';
 import type {SiteSettingsQuery} from 'storefrontapi.generated';
@@ -18,7 +19,7 @@ import {
   type SupportPhone,
 } from '~/lib/navigation';
 import {parseAdminLink} from '~/lib/shopify/admin-link';
-import {catalogCache} from '~/lib/shopify/cache';
+import {pricedCache} from '~/lib/shopify/cache';
 import {fieldRecord} from '~/lib/shopify/common';
 
 export const SITE_SETTINGS_FIELDS = {
@@ -63,13 +64,23 @@ export const NO_SITE_SETTINGS: SiteSettings = {
 
 type SettingsNodes = SiteSettingsQuery['settings']['nodes'];
 
+/**
+ * At most `max` characters, counted as code points: `String.slice` counts UTF-16 units and can cut an emoji
+ * (a surrogate pair) in half, which renders as a replacement character. A multi-code-point emoji (a skin tone or
+ * a joined family) can still lose its tail, which only shortens the picture, never corrupts the text.
+ */
+export function truncateCodePoints(text: string, max: number): string {
+  const points = Array.from(text);
+  return points.length <= max ? text : points.slice(0, max).join('');
+}
+
 function promoFrom(fields: Readonly<Record<string, string>>) {
   const raw = fields[SITE_SETTINGS_FIELDS.promoBarText];
   const text = raw === undefined ? '' : cleanText(raw);
   if (text === '') return null;
   const link = parseAdminLink(fields[SITE_SETTINGS_FIELDS.promoBarLink]);
   const message: PromoMessage = {
-    text: text.slice(0, MAX_PROMO_TEXT_LENGTH).trim(),
+    text: truncateCodePoints(text, MAX_PROMO_TEXT_LENGTH).trim(),
     ...(link ? {to: link.href, external: link.external} : {}),
   };
   return message;
@@ -116,7 +127,7 @@ export async function loadSiteSettings(
 ): Promise<SiteSettings> {
   try {
     const {settings} = await storefront.query(SITE_SETTINGS_QUERY, {
-      cache: catalogCache(storefront),
+      cache: pricedCache(storefront),
     });
     return mapSiteSettings(settings.nodes);
   } catch (error: unknown) {

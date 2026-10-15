@@ -216,6 +216,25 @@ export function createFakeShopify({ store = FAKE_STORE, token = FAKE_TOKEN, bran
         });
         return { metaobjectDefinitionCreate: { metaobjectDefinition: { id, type: input.type }, userErrors: [] } };
       }
+      case 'AddMetaobjectDefinitionFields': {
+        // Documented semantics: fieldDefinitions is a list of operations (exactly one of create, update, delete);
+        // resetFieldOrder defaults to false, so created fields are appended. Only `create` is modelled, because
+        // the tooling must never send anything else, and any other operation fails the test loudly.
+        const definition = [...metaobjectDefinitions.values()].find((item) => item.id === variables.id);
+        if (!definition) return { metaobjectDefinitionUpdate: { metaobjectDefinition: null, userErrors: [{ field: ['id'], message: 'Definition not found', code: 'NOT_FOUND' }] } };
+        const operations = variables.definition.fieldDefinitions ?? [];
+        for (const operation of operations) {
+          const keys = Object.keys(operation);
+          if (keys.length !== 1 || keys[0] !== 'create') throw new Error(`fake-shopify: unexpected field operation ${keys.join(',')}`);
+        }
+        for (const key of Object.keys(variables.definition)) if (key !== 'fieldDefinitions') throw new Error(`fake-shopify: unexpected definition change ${key}`);
+        const taken = operations.find((operation) => definition.fieldDefinitions.some((field) => field.key === operation.create.key));
+        if (taken) return { metaobjectDefinitionUpdate: { metaobjectDefinition: null, userErrors: [{ field: ['definition', 'fieldDefinitions'], message: 'Key is already in use', code: 'TAKEN' }] } };
+        for (const { create: field } of operations) {
+          definition.fieldDefinitions.push({ key: field.key, name: field.name, description: field.description ?? null, required: field.required === true, type: { name: field.type }, validations: field.validations ?? [] });
+        }
+        return { metaobjectDefinitionUpdate: { metaobjectDefinition: { id: definition.id, type: definition.type }, userErrors: [] } };
+      }
       default:
         throw new Error(`fake-shopify: unhandled operation ${operationName}`);
     }

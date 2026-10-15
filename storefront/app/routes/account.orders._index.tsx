@@ -24,7 +24,12 @@ import type {
   OrderItemFragment,
 } from 'customer-accountapi.generated';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
-import {accountFailure, accountNoStoreHeaders} from '~/lib/account/results';
+import {
+  accountFailure,
+  accountNoStoreHeaders,
+  requireAccountSession,
+  withAccountNoStoreIfResponse,
+} from '~/lib/account/results';
 import {errorFields, logError} from '~/lib/logging/logger';
 
 type OrdersLoaderData = {
@@ -40,7 +45,7 @@ export async function loader({request, context}: Route.LoaderArgs) {
   const {customerAccount} = context;
   // Explicit, so the check does not depend on the query call making it (T-11). Which orders come back is
   // decided by Shopify from the signed-in customer's token; nothing in the URL names a customer.
-  await customerAccount.handleAuthStatus();
+  await requireAccountSession(customerAccount);
 
   const paginationVariables = getPaginationVariables(request, {
     pageBy: 20,
@@ -60,7 +65,7 @@ export async function loader({request, context}: Route.LoaderArgs) {
       },
     });
   } catch (error: unknown) {
-    if (error instanceof Response) throw error;
+    if (error instanceof Response) throw withAccountNoStoreIfResponse(error);
     logError('account.orders_read_failed', errorFields(error));
     throw routeData(accountFailure('failed'), {
       status: 500,

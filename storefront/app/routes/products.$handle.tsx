@@ -88,6 +88,13 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   // All three reads depend on the handle only, so they start together instead of one after the other (review m7).
   // The two side reads never reject (they answer null / an empty set on failure), so a failed product read cannot
   // leave one of them as an unhandled rejection.
+  //
+  // Cost of an unknown handle (valid shape, no product): the reads are already in flight when the 404 is known, so
+  // it makes up to three per-handle reads, but every one of them carries a cache strategy (content long, the
+  // availability and category reads the 60 s priced window) and Hydrogen caches the empty answers too, so repeats of
+  // the same handle cost nothing upstream. The alternative, starting the category read only after the product
+  // exists, would put a serial round trip in front of every real product page to save a bounded, cached cost on
+  // pages nobody should be requesting (review m7). A malformed handle never reaches any read (`isValidHandle`).
   const [result, protection, offerOnlyHandles] = await Promise.all([
     loadProductPage(context.storefront, handle),
     protectionModeOf(context, request, handle),

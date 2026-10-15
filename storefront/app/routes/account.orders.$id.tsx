@@ -10,6 +10,8 @@ import {
   accountFailure,
   accountNoStoreHeaders,
   decodeOrderRouteId,
+  requireAccountSession,
+  withAccountNoStoreIfResponse,
 } from '~/lib/account/results';
 import {errorFields, logError} from '~/lib/logging/logger';
 
@@ -26,10 +28,10 @@ export const meta: Route.MetaFunction = ({data}) => {
 
 export async function loader({params, context}: Route.LoaderArgs) {
   const {customerAccount} = context;
-  await customerAccount.handleAuthStatus();
+  await requireAccountSession(customerAccount);
 
   if (!params.id) {
-    return redirect('/account/orders');
+    return redirect('/account/orders', {headers: accountNoStoreHeaders()});
   }
 
   // The same answer for a malformed id, an order that does not exist and an order that belongs to someone
@@ -47,7 +49,7 @@ export async function loader({params, context}: Route.LoaderArgs) {
       },
     });
   } catch (error: unknown) {
-    if (error instanceof Response) throw error;
+    if (error instanceof Response) throw withAccountNoStoreIfResponse(error);
     logError('account.order_read_failed', errorFields(error));
     throw routeData(accountFailure('failed'), {
       status: 500,

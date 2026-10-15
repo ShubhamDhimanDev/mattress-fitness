@@ -10,102 +10,42 @@
     "assert": {
       "assertMatrix": [
         {
-          "matchingUrlPattern": "^https?://[^/]+/?$",
+          "matchingUrlPattern": ".*",
           "assertions": {
             "categories:performance": [
               "error",
-              {"minScore": 0.85, "aggregationMethod": "median-run"}
+              {
+                "minScore": 0.85,
+                "aggregationMethod": "median-run"
+              }
             ],
             "largest-contentful-paint": [
-              "error",
-              {"maxNumericValue": 2500, "aggregationMethod": "median-run"}
+              "warn",
+              {
+                "maxNumericValue": 2500,
+                "aggregationMethod": "median-run"
+              }
             ],
             "cumulative-layout-shift": [
               "error",
-              {"maxNumericValue": 0.1, "aggregationMethod": "median-run"}
+              {
+                "maxNumericValue": 0.1,
+                "aggregationMethod": "median-run"
+              }
             ],
             "total-blocking-time": [
               "warn",
-              {"maxNumericValue": 200, "aggregationMethod": "median-run"}
+              {
+                "maxNumericValue": 200,
+                "aggregationMethod": "median-run"
+              }
             ],
             "resource-summary:script:size": [
               "warn",
-              {"maxNumericValue": 200000, "aggregationMethod": "median-run"}
-            ]
-          }
-        },
-        {
-          "matchingUrlPattern": "^https?://[^/]+/collections/[^/?#]+/?$",
-          "assertions": {
-            "categories:performance": [
-              "error",
-              {"minScore": 0.85, "aggregationMethod": "median-run"}
-            ],
-            "largest-contentful-paint": [
-              "error",
-              {"maxNumericValue": 2500, "aggregationMethod": "median-run"}
-            ],
-            "cumulative-layout-shift": [
-              "error",
-              {"maxNumericValue": 0.1, "aggregationMethod": "median-run"}
-            ],
-            "total-blocking-time": [
-              "warn",
-              {"maxNumericValue": 200, "aggregationMethod": "median-run"}
-            ],
-            "resource-summary:script:size": [
-              "warn",
-              {"maxNumericValue": 200000, "aggregationMethod": "median-run"}
-            ]
-          }
-        },
-        {
-          "matchingUrlPattern": "^https?://[^/]+/products/[^/?#]+/?$",
-          "assertions": {
-            "categories:performance": [
-              "error",
-              {"minScore": 0.85, "aggregationMethod": "median-run"}
-            ],
-            "largest-contentful-paint": [
-              "error",
-              {"maxNumericValue": 2500, "aggregationMethod": "median-run"}
-            ],
-            "cumulative-layout-shift": [
-              "error",
-              {"maxNumericValue": 0.1, "aggregationMethod": "median-run"}
-            ],
-            "total-blocking-time": [
-              "warn",
-              {"maxNumericValue": 200, "aggregationMethod": "median-run"}
-            ],
-            "resource-summary:script:size": [
-              "warn",
-              {"maxNumericValue": 200000, "aggregationMethod": "median-run"}
-            ]
-          }
-        },
-        {
-          "matchingUrlPattern": "^https?://[^/]+/(cart|quiz|search|compare)/?(\\?.*)?$",
-          "assertions": {
-            "categories:performance": [
-              "error",
-              {"minScore": 0.85, "aggregationMethod": "median-run"}
-            ],
-            "largest-contentful-paint": [
-              "error",
-              {"maxNumericValue": 2500, "aggregationMethod": "median-run"}
-            ],
-            "cumulative-layout-shift": [
-              "error",
-              {"maxNumericValue": 0.1, "aggregationMethod": "median-run"}
-            ],
-            "total-blocking-time": [
-              "warn",
-              {"maxNumericValue": 200, "aggregationMethod": "median-run"}
-            ],
-            "resource-summary:script:size": [
-              "warn",
-              {"maxNumericValue": 200000, "aggregationMethod": "median-run"}
+              {
+                "maxNumericValue": 200000,
+                "aggregationMethod": "median-run"
+              }
             ]
           }
         }

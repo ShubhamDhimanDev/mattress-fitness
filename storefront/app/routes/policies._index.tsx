@@ -1,9 +1,13 @@
 import {useLoaderData, Link} from 'react-router';
 import type {Route} from './+types/policies._index';
 import type {PoliciesQuery, PolicyItemFragment} from 'storefrontapi.generated';
+import {catalogCache} from '~/lib/shopify/cache';
 
 export async function loader({context}: Route.LoaderArgs) {
-  const data: PoliciesQuery = await context.storefront.query(POLICIES_QUERY);
+  // Policy titles hold no price or availability, so the read is cached long (DEC-024).
+  const data: PoliciesQuery = await context.storefront.query(POLICIES_QUERY, {
+    cache: catalogCache(context.storefront),
+  });
 
   const shopPolicies = data.shop;
   const policies: PolicyItemFragment[] = [

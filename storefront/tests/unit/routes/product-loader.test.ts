@@ -133,6 +133,43 @@ describe('product loader reads (review m7)', () => {
     ).rejects.toMatchObject({status: 404});
   });
 
+  it('a valid-shaped unknown handle is a 404 whose reads all carry a cache strategy, so a repeat costs nothing upstream', async () => {
+    const {storefront, calls} = fakeStorefront((call) => {
+      if (call.query === PRODUCT_QUERY) return {product: null};
+      if (call.query.includes('query CatalogProductAvailability')) {
+        return {product: null};
+      }
+      if (call.query.includes('query ExtendProductCategoryByHandle')) {
+        return {product: null};
+      }
+      if (call.query.includes('query OfferOnlyProductHandles')) {
+        return {products: {nodes: []}};
+      }
+      throw new Error(`unexpected query: ${call.query.slice(0, 60)}`);
+    });
+    await expect(
+      run(storefront, {...EXTEND_ENV, PUBLIC_SITE_URL: SITE}),
+    ).rejects.toMatchObject({status: 404});
+    // Bounded: no more than the four reads the page starts, none of them uncached.
+    expect(calls).toHaveLength(4);
+    for (const call of calls) {
+      expect(call.cache, String(names([call]))).toBeDefined();
+      expect(call.cache).not.toEqual({mode: 'none'});
+    }
+    const byHandle = calls.filter((call) => 'handle' in call.variables);
+    expect(byHandle).toHaveLength(3);
+    for (const call of byHandle) {
+      expect(call.cache).toSatisfy(
+        (cache: unknown) =>
+          JSON.stringify(cache) === JSON.stringify({mode: 'long'}) ||
+          (typeof cache === 'object' &&
+            cache !== null &&
+            'maxAge' in cache &&
+            cache.maxAge === 60),
+      );
+    }
+  });
+
   it('an invalid handle makes no category read', async () => {
     const {storefront, calls} = fakeStorefront((call) => answer(call, null));
     await expect(
@@ -143,6 +180,8 @@ describe('product loader reads (review m7)', () => {
       } as never),
     ).rejects.toMatchObject({status: 404});
     expect(names(calls)).not.toContain('ExtendProductCategoryByHandle');
+    // Nor any other per-handle read: only the shared offer-only list can be read.
+    expect(calls.filter((call) => 'handle' in call.variables)).toHaveLength(0);
   });
 });
 

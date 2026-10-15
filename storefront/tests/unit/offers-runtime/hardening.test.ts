@@ -169,6 +169,14 @@ describe('http guards (P-L3, P-L4, CSRF)', () => {
     [{Origin: 'https://evil.example'}, false],
     [{Origin: 'null'}, false],
     [{Origin: 'not a url'}, false],
+    // No Origin: allowed (SameSite=Lax covers it), unless the browser itself says the request is cross-site.
+    [{'Sec-Fetch-Site': 'same-origin'}, true],
+    [{'Sec-Fetch-Site': 'same-site'}, true],
+    [{'Sec-Fetch-Site': 'none'}, true],
+    [{'Sec-Fetch-Site': 'cross-site'}, false],
+    // A matching Origin decides on its own.
+    [{Origin: 'https://shop.example', 'Sec-Fetch-Site': 'same-origin'}, true],
+    [{Origin: 'https://evil.example', 'Sec-Fetch-Site': 'same-origin'}, false],
   ])('same-origin check for %j is %s', (headers, allowed) => {
     expect(
       isSameOriginRequest({

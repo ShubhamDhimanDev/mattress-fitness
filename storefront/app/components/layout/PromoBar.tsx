@@ -7,8 +7,11 @@ type PromoBarProps = {
   message?: PromoMessage | null;
 };
 
-const LINK_CLASSES =
-  'inline-flex min-h-touch items-center underline underline-offset-2 hover:no-underline';
+// The text and the link share one height (44 px, the touch target) so the bar does not change size when a link
+// is added in admin. There is no `target="_blank"`: another site opens in the same tab like every other link, so
+// no "opens in a new tab" cue is needed (WCAG 3.2.5 is met by not changing context unexpectedly).
+const BOX_CLASSES = 'inline-flex min-h-touch items-center';
+const LINK_CLASSES = `${BOX_CLASSES} underline underline-offset-2 hover:no-underline`;
 
 /** Site paths use the router; another site opens as a plain anchor (the target is allow-listed upstream). */
 function PromoLink({
@@ -46,7 +49,7 @@ export function PromoBar({message}: PromoBarProps) {
         {linked && !message.linkLabel ? (
           <PromoLink message={linked}>{message.text}</PromoLink>
         ) : (
-          <span className="py-2">{message.text}</span>
+          <span className={BOX_CLASSES}>{message.text}</span>
         )}
         {linked && message.linkLabel ? (
           <PromoLink message={linked}>{message.linkLabel}</PromoLink>

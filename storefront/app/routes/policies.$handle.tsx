@@ -2,6 +2,7 @@ import {Link, useLoaderData} from 'react-router';
 import type {Route} from './+types/policies.$handle';
 import {SafeHtml} from '~/components/SafeHtml';
 import {formatPageTitle} from '~/components/layout/documentTitle';
+import {catalogCache} from '~/lib/shopify/cache';
 
 // URL handle to the Shop field it reads. A closed list: the handle never becomes a variable name unchecked.
 const POLICY_FIELDS = {
@@ -24,7 +25,9 @@ export async function loader({params, context}: Route.LoaderArgs) {
     throw new Response('Could not find the policy', {status: 404});
   }
 
+  // Policy text holds no price or availability, so it is cached long (DEC-024).
   const data = await context.storefront.query(POLICY_CONTENT_QUERY, {
+    cache: catalogCache(context.storefront),
     variables: {
       privacyPolicy: false,
       shippingPolicy: false,
