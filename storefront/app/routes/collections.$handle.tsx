@@ -11,16 +11,21 @@ import {buildBreadcrumbJsonLd, buildFaqJsonLd} from '~/lib/shopify/jsonld';
 import {isValidHandle, loadCollectionPage} from '~/lib/shopify/collection-data';
 import {loadPromoTiles} from '~/lib/shopify/promo-data';
 import {showsPromoTiles} from '~/lib/shopify/promo-placement';
+import {canonicalMeta, canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 
 export const meta: Route.MetaFunction = ({data}) => {
   if (!data) return [{title: formatPageTitle('Collection not found')}];
   return [
     {title: formatPageTitle(data.collection.seoTitle ?? data.collection.title)},
+    // Every filtered, sorted or paginated view points at the plain collection URL (DEC-044, SEO_POLICY.md).
+    ...canonicalMeta(data.canonicalHref),
     ...(data.collection.seoDescription
       ? [{name: 'description', content: data.collection.seoDescription}]
       : []),
-    {'script:ld+json': data.breadcrumbJsonLd},
+    ...(data.breadcrumbJsonLd
+      ? [{'script:ld+json': data.breadcrumbJsonLd}]
+      : []),
     ...(data.faqJsonLd ? [{'script:ld+json': data.faqJsonLd}] : []),
   ];
 };
@@ -40,26 +45,33 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   if (page.status === 'not-found') {
     throw new Response('Collection not found', {status: 404});
   }
-  const breadcrumbJsonLd = buildBreadcrumbJsonLd(
-    [
-      {name: 'Home', path: '/'},
-      {name: 'Collections', path: '/collections'},
-      {
-        name: page.collection.title,
-        path: `/collections/${page.collection.handle}`,
-      },
-    ],
-    // Never the request's Host (P-L2); relative URLs when no site origin is configured.
-    resolveSiteOrigin({
-      env: context.env,
-      requestUrl: request.url,
-      isDev: import.meta.env.DEV,
-    }) ?? '',
-  );
+  // Never the request's Host (P-L2); with no site origin configured there is no canonical and no breadcrumb markup.
+  const origin = resolveSiteOrigin({
+    env: context.env,
+    requestUrl: request.url,
+    isDev: import.meta.env.DEV,
+  });
+  const collectionPath = `/collections/${encodeURIComponent(page.collection.handle)}`;
+  // Breadcrumb items must be absolute URLs, so without an origin there is no breadcrumb markup at all.
+  const breadcrumbJsonLd =
+    origin === null
+      ? null
+      : buildBreadcrumbJsonLd(
+          [
+            {name: 'Home', path: '/'},
+            {name: 'Collections', path: '/collections'},
+            {
+              name: page.collection.title,
+              path: collectionPath,
+            },
+          ],
+          origin,
+        );
   return {
     ...page,
     promoTiles,
     breadcrumbJsonLd,
+    canonicalHref: canonicalUrl(origin, collectionPath),
     faqJsonLd: buildFaqJsonLd(page.collection.faqs),
   };
 }

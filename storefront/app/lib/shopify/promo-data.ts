@@ -10,6 +10,7 @@ import {parseAdminLink} from '~/lib/shopify/admin-link';
 import {catalogCache} from '~/lib/shopify/cache';
 import {fieldRecord, mapImage} from '~/lib/shopify/common';
 import type {PromoTileView} from '~/lib/shopify/promo-placement';
+import {logError} from '~/lib/logging/logger';
 
 export const PROMO_FIELDS = {
   collection: 'collection',
@@ -119,14 +120,14 @@ export async function loadPromoTiles(
     // A full page may mean more entries exist than were read. Tiles are decoration, so the grid still
     // renders, but the count is logged so the cap is noticed before a tile silently disappears.
     if (tiles.nodes.length >= PROMO_TILE_READ_CAP) {
-      console.error(
-        `[collection] promo tiles: read cap of ${PROMO_TILE_READ_CAP} entries reached; later entries are not shown`,
-      );
+      logError('collection.promo_tiles_cap_reached', {
+        cap: PROMO_TILE_READ_CAP,
+      });
     }
     return mapPromoTiles(tiles.nodes, collectionHandle);
   } catch {
     // No error text is logged: it can quote the request (T-05).
-    console.error('[collection] could not read the promo tiles');
+    logError('collection.promo_tiles_read_failed');
     return [];
   }
 }

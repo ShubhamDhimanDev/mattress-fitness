@@ -16,6 +16,7 @@ import {
   type PricePointVariant,
 } from '~/lib/extend/price-points';
 import {toCents} from '~/lib/money';
+import {errorFields, logError} from '~/lib/logging/logger';
 
 export const COVERAGE_PRODUCT_TAG = 'extend-coverage';
 
@@ -181,11 +182,8 @@ export async function loadCoverageCatalog(
     );
     return parseCoverageCatalog(raw);
   } catch (error) {
-    // Message only: the error cause holds the query and variables (security review O-L7).
-    console.error(
-      'Extend coverage catalog read failed:',
-      error instanceof Error ? error.message : 'unknown error',
-    );
+    // Class name only: the error cause holds the query and variables (security review O-L7).
+    logError('coverage.catalog_read_failed', errorFields(error));
     return {status: 'unavailable', reason: 'read-failed'};
   }
 }

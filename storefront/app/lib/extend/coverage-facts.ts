@@ -6,6 +6,7 @@ import type {Storefront} from '@shopify/hydrogen';
 import {normalizeShopifyId} from '~/lib/extend/ids';
 import {toCents} from '~/lib/money';
 import {pricedCache} from '~/lib/shopify/cache';
+import {errorFields, logError} from '~/lib/logging/logger';
 
 const MAX_IDS = 100;
 const CATEGORY = /^[A-Za-z0-9][A-Za-z0-9 _&/-]{0,63}$/;
@@ -120,10 +121,7 @@ export function parseProductCategories(raw: unknown): Map<string, string> {
 }
 
 function logFailure(what: string, error: unknown): void {
-  console.error(
-    `Extend ${what} read failed:`,
-    error instanceof Error ? error.message : 'unknown error',
-  );
+  logError('coverage.facts_read_failed', {what, ...errorFields(error)});
 }
 
 function unique(ids: readonly string[]): string[] {

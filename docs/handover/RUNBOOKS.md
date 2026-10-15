@@ -27,6 +27,7 @@
 8. [Investigate a flagged order (haul-away, gift, protector, protection)](#8-investigate-a-flagged-order-haul-away-gift-protector-protection)
 9. [Upgrade Hydrogen](#9-upgrade-hydrogen)
 10. [Open items and document conflicts](#10-open-items-and-document-conflicts)
+11. [Monitoring events and alert definitions](#11-monitoring-events-and-alert-definitions)
 
 ---
 
@@ -451,7 +452,7 @@ Sequential, throttled calls (about 400 products times 3 calls); bulk operations 
    node scripts/detective/report.mjs --store <shop>.myshopify.com --json --out report.json
    ```
 
-   Flags: `--since YYYY-MM-DD` (default 14 days back), `--limit 1..1000` (default 200; orders are read newest first, so when the limit is reached it is the **oldest** orders in the window that are not checked, and the report says so: raise `--limit` or narrow `--since`), `--offer-config-file <json>` (default: the `OFFER_CONFIG_JSON` environment variable), `--json`, `--out <file>` (a new local file; an existing one is refused). It only reads: the Admin client has no write path, the store must be in `SHOPIFY_ALLOWED_STORES`, and the token comes from the environment. Exit codes: 0 every order judged and clean; 1 a violation, an order not judged (this includes `coverage_price_unjudged`), or a failed Shopify read; 2 usage; 3 store refused. The report holds order IDs, line IDs and codes only.
+   Flags: `--since YYYY-MM-DD` (default 14 days back), `--limit 1..1000` (default 200; orders are read newest first, so when the limit is reached it is the **oldest** orders in the window that are not checked, and the report says so: raise `--limit` or narrow `--since`), `--offer-config-file <json>` (default: the `OFFER_CONFIG_JSON` environment variable), `--accept-unjudged coverage_price_unjudged` (repeatable or comma separated; that one reason only, see below), `--json`, `--out <file>` (a new local file; an existing one is refused). It only reads: the Admin client has no write path, the store must be in `SHOPIFY_ALLOWED_STORES`, and the token comes from the environment. **Exit codes:** 0 every order judged and clean (or unjudged only for an accepted reason); **1 a violation was found** (it wins over any unjudged noise) **or the Shopify read failed**; 2 usage; 3 store refused; **4 no violation, but some order could not be fully judged**. An alert wrapper should page on 1 and only ticket or log 4. The `--json` document carries `outcome` (`clean`, `violations` or `unjudged_only`) and `acceptedUnjudged`, and the text report ends with a `Result:` line. The report holds order IDs, line IDs and codes only.
 
 **What a violation means.** Each code is a rule the cart gate enforces; the order breaks it, so the cart did not come from our gate, or the shopper changed the delivery in checkout.
 
@@ -473,8 +474,8 @@ A finding can also say **not judged** (`unjudgeable`, or a `violations` finding 
 
 **`coverage_price_unjudged`: protection price and plan are not judged by the detective.** The detective is offline. The right plan price for a covered item comes only from Extend's quote (a price point such as `Extend-Protection-Plan-5.00` is just a catalog SKU), so a $5 protection line on a $2,000 mattress passes every check the detective makes. The detective therefore says so on every order that still holds a protection line (not refunded, not cancelled), and counts it under "not judged", separately from clean. It is not a violation: the line may be right.
 
-- **Webhook:** the code is added unless `EXTEND_ORDER_SYNC=self`, because only that sync compares each line's price and plan with Extend's quote and flags a mismatch (`price_mismatch`, `unknown_plan`; never sent to Extend, section 4). With `off`, `extend-app` or Extend not configured, nobody checks the price, and every order with protection logs `detective.unjudged` with `reason` `coverage_price_unjudged`.
-- **Report script:** always added, because the script cannot know what the webhook did when the order arrived, and it makes no Extend call. A window with protection orders therefore exits 1 and prints "not judged: coverage_price_unjudged=N". To judge the price, compare the line's price in Shopify admin with the plan price Extend shows for that product (Extend dashboard) or run the reconcile script (section 4) with Extend credentials. Until a real Extend account exists (ADR-0009 mock), nothing judges it.
+- **Webhook:** the code is dropped only when the Extend sync **actually verified** the order: `EXTEND_ORDER_SYNC=self` and the sync ended `synced` (every non-flagged protection line compared with Extend's quote and the snapshot sent). Setting `self` is not enough. If the sync failed, skipped (for example every protection line was flagged), could not read the order, found Extend down or the circuit breaker open, or the sync crashed, nothing was verified and the order still logs `detective.unjudged` with `reason` `coverage_price_unjudged`. The same holds with `off`, `extend-app` or Extend not configured. A line the sync flagged (`price_mismatch`, `unknown_plan`; never sent to Extend, section 4) is in the sync's `sync.coverage_flagged` log.
+- **Report script:** always added, because the script cannot know what the webhook did when the order arrived, and it makes no Extend call. A window with protection orders therefore exits **4** (not 1), prints "not judged: coverage_price_unjudged=N" and a `Result:` line saying no violation was found. Once the team has decided to rely on the webhook sync or a manual price check for this, `--accept-unjudged coverage_price_unjudged` makes that reason alone exit 0; the report still counts it and echoes the acceptance, and a violation or any other unjudged reason (for example `order_unreadable`) still exits 1 or 4. To judge the price, compare the line's price in Shopify admin with the plan price Extend shows for that product (Extend dashboard) or run the reconcile script (section 4) with Extend credentials. Until a real Extend account exists (ADR-0009 mock), nothing judges it.
 
 **Steps**
 
@@ -569,3 +570,32 @@ Hydrogen is calendar-versioned and released about quarterly. Reassess monthly (A
 | Flow capability, webhook retries, webhook secret source, token regeneration | `integration-engineer` (V-12, V-17, V-20) |
 | Extend rotation, read-back, headless approval | Extend, through `integration-engineer` (Q-005, V-11) |
 | Effect of rotating `SESSION_SECRET` on carts and sign-in | `qa-engineer` on staging |
+
+---
+
+## 11. Monitoring events and alert definitions
+
+**State (2026-10-15).** Built: every server log line is one redacted JSON object written by `storefront/app/lib/logging/logger.ts` (P7-08). `PLANNED` (blocked on the host decision, Q-003): the delivery of these lines to a log store and the alert rules below. Nothing here pages anyone yet; this table is the specification the host's log search or alerting tool is configured from.
+
+**Line format.** `{"level":"warn|error","event":"<dotted.name>", ...ids, codes and counts}`. `info` events travel on the `warn` channel with `level":"info"`. The only error detail is `errorName` (a class name). Fields named like personal or secret data (`email`, `zip`, `phone`, `address*`, `token`, `cartId`, `name`...) are replaced by `[redacted]`, and strings are scanned for e-mail addresses, phone numbers, tokens and cart keys. Alert on the `event` field, never on free text. A line with `"event":"logging.invalid_event_name"` or `"logging.format_failed"` is itself a defect to report.
+
+| Event (match on `event`) | Level | Meaning | Proposed alert | Who acts |
+|---|---|---|---|---|
+| `webhook.background_failed` | error | The background order sync or detective check threw after the webhook was answered | Any occurrence: notify the same day; 3 within 15 minutes: urgent | `integration-engineer`; section 4 |
+| `sync.gave_up` | error | Extend order sync exhausted its retries; the order has coverage Extend was not told about | Any occurrence: notify the same day | section 4 (reconcile) |
+| `sync.attempt_failed` | warn | One sync attempt failed and will retry | More than 10 in 15 minutes | `integration-engineer` |
+| `offers.circuit_open` | warn | The Extend circuit breaker opened; protection offers are hidden for a cool-down | Any occurrence; urgent if still open after 30 minutes | `integration-engineer`; check Extend status |
+| `offers.request_failed` | warn | An Extend quote request failed | More than 20 in 15 minutes | `integration-engineer` |
+| `coverage.catalog_unavailable`, `coverage.catalog_incomplete`, `coverage.catalog_read_failed` | warn / error | The coverage product list could not be read or is incomplete; with the flag on, checkout is paused with an explanation (DEC-034) | Any occurrence: urgent while the flag is on | `shopify-hydrogen-developer` |
+| `coverage.inputs_degraded`, `coverage.facts_read_failed` | warn / error | Product facts for coverage could not be read | More than 5 in 15 minutes | `shopify-hydrogen-developer` |
+| `detective.violation` | warn | A paid order broke a rule the cart gate enforces (`reason` holds the violation code, never an order value) | Any occurrence: notify the same day | section 8 |
+| `detective.unjudged`, `detective.skipped` | warn | The order could not be judged (rules or data missing) | More than 3 in a day | section 8 |
+| `detective.read_failed` | error | The detective could not read the order | Any occurrence on 3 consecutive orders | `integration-engineer` |
+| `webhook.rejected` | warn | A webhook failed signature, age or shop checks | More than 5 in 15 minutes (probing, or a rotated secret) | `security-engineer`; section 5 |
+| `config.secret_unusable` | error | A required secret is missing or too short (`variable` names it, never the value) | Any occurrence in production: urgent | `devops-engineer`; section 5 |
+| `render.failed` | error | A page failed while rendering | More than 5 in 15 minutes | `shopify-hydrogen-developer` |
+| `search.failed`, `product.availability_read_failed`, `brands.index_read_failed`, `brands.page_read_failed`, `home.sections_read_failed`, `collection.promo_tiles_read_failed`, `root.store_read_failed`, `root.footer_read_failed` | error | A Shopify read failed and the page degraded | More than 20 in 15 minutes across all of them (a Shopify or token problem) | `devops-engineer`, then Shopify status |
+| `collection.promo_tiles_cap_reached` | error | More tile entries exist than are read (`cap`); later tiles are not shown | Any occurrence: notify within a week | client team or `shopify-hydrogen-developer` |
+| `stores.record_warnings`, `quiz.config_warnings` | warn | Admin-entered store or quiz records have problems (`count` or `codes`) | Notify the client team within a week | `technical-writer` / client team |
+
+**Not covered by events (needs the host, Q-003):** rate-limit rejections, edge errors (5xx from the platform before our code runs), TLS expiry, uptime of `/` and `/robots.txt`, and the browser-side Content-Security-Policy reports (see `docs/security/SECURITY_HEADERS.md`). Existing console calls still outside the logger are listed in `storefront/tests/unit/logging/no-direct-console.test.ts`.
