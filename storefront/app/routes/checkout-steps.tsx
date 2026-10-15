@@ -40,6 +40,7 @@ import {
 } from '~/lib/offers-runtime/protection-steps';
 import {revalidateCartGate} from '~/lib/offers-runtime/cart-gate';
 import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
+import {errorFields, logError} from '~/lib/logging/logger';
 import {
   acceptComfortGuarantee,
   declineComfortGuarantee,
@@ -80,10 +81,7 @@ async function check(
       current,
     );
   } catch (error) {
-    console.error(
-      'Checkout revalidation failed:',
-      error instanceof Error ? error.message : 'unknown error',
-    );
+    logError('checkout.revalidation_failed', errorFields(error));
     return null;
   }
 }

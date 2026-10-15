@@ -364,7 +364,7 @@ describe('REQ-PRE-006 revalidation of a Shopify cart (tamper cases)', () => {
         fake.snapshot(),
       );
       const logged = JSON.stringify(spy.mock.calls);
-      expect(logged).toContain('Offer config');
+      expect(logged).toContain('offers.config_problem');
       expect(logged).not.toContain('secret-looking-text');
     });
   });

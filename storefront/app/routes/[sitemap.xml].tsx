@@ -1,6 +1,6 @@
 import type {Route} from './+types/[sitemap.xml]';
 import {getSitemapIndex} from '@shopify/hydrogen';
-import {SITEMAP_TYPES} from '~/lib/seo/sitemap';
+import {SITEMAP_TYPES, bareUrlRedirect} from '~/lib/seo/sitemap';
 import {
   sitemapOriginFor,
   sitemapResponse,
@@ -12,6 +12,8 @@ export async function loader({
   request,
   context: {storefront, env},
 }: Route.LoaderArgs) {
+  const bare = bareUrlRedirect(request);
+  if (bare) return bare;
   const origin = sitemapOriginFor(env, request);
   if (origin === null) return sitemapUnavailable();
 

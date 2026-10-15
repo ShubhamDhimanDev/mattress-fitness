@@ -196,3 +196,22 @@ export function buildReportOnlyCsp(
     .map(([name, sources]) => `${name} ${[...new Set(sources)].join(' ')}`)
     .join('; ');
 }
+
+/**
+ * The response with the headers applied. A response built by `Response.redirect()` or taken from `fetch()` has
+ * immutable headers and `Headers.set` throws on it; it is then copied (status, headers and body kept) and the copy
+ * gets the headers. Used by `server.ts` as the last step for every response, whichever path produced it.
+ */
+export function withSecurityHeaders(
+  response: Response,
+  input: SecurityHeaderInput,
+): Response {
+  try {
+    applySecurityHeaders(response.headers, input);
+    return response;
+  } catch {
+    const copy = new Response(response.body, response);
+    applySecurityHeaders(copy.headers, input);
+    return copy;
+  }
+}

@@ -71,7 +71,6 @@ describe('canonical URL (REQ-SEO-001, DEC-044)', () => {
     '/discount/SAVE10',
     '/search',
     '/compare',
-    '/policies/refund-policy',
     '/sitemap.xml',
     '/sitemap/products/1.xml',
     '/robots.txt',
@@ -82,6 +81,13 @@ describe('canonical URL (REQ-SEO-001, DEC-044)', () => {
   ])('%s has no canonical and is not indexable', (path) => {
     expect(isIndexablePath(path)).toBe(false);
     expect(canonicalUrl(ORIGIN, path)).toBeNull();
+  });
+
+  it('gives the trust pages a canonical (they are indexed, review m7)', () => {
+    expect(canonicalUrl(ORIGIN, '/policies/refund-policy')).toBe(
+      `${ORIGIN}/policies/refund-policy`,
+    );
+    expect(canonicalUrl(ORIGIN, '/policies')).toBe(`${ORIGIN}/policies`);
   });
 
   it('matches whole path segments, not string prefixes', () => {
@@ -113,17 +119,72 @@ describe('robots.txt (REQ-SEO-001)', () => {
   });
   const lines = text.split('\n');
 
+  /** A small robots.txt matcher: `*` spans any characters, a trailing `$` ends the URL, the rest is a prefix. */
+  function blockedBy(rules: readonly string[], url: string): boolean {
+    return rules.some((rule) => {
+      const anchored = rule.endsWith('$');
+      const body = (anchored ? rule.slice(0, -1) : rule)
+        .split('*')
+        .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+        .join('.*');
+      return new RegExp(`^${body}${anchored ? '$' : ''}`).test(url);
+    });
+  }
+  const starGroup = text.split('\n\n')[0] ?? '';
+  const starRules = starGroup
+    .split('\n')
+    .filter((line) => line.startsWith('Disallow: '))
+    .map((line) => line.slice('Disallow: '.length));
+
   it.each([
     '/cart',
+    '/cart/c/c1-abc',
+    '/cart?x=1',
     '/account',
+    '/account/orders',
     '/checkout-steps',
     '/delivery',
-    '/api',
-    '/webhooks',
-    '/discount',
+    '/api/extend/offers',
+    '/webhooks/shopify',
+    '/discount/SAVE10',
+    '/quiz?step=results',
+    '/collections/firm?size=queen',
+    '/collections/firm?brand=acme&sort=price-asc',
+    '/collections/firm?cursor=abc',
+    '/brands/acme?comfort=firm',
+  ])('blocks %s for the default crawler', (url) => {
+    expect(blockedBy(starRules, url)).toBe(true);
+  });
+
+  it.each([
+    '/cartridge-mattress',
+    '/accounting-tips',
+    '/apiary',
+    '/discounts-and-deals',
+    '/deliveryman-story',
+    '/pages/delivery',
+    '/collections/firm',
+    '/collections/firm?utm_source=mail',
+    '/products/resize-pad',
+    '/products/x?resize=1',
+    '/products/queen-hybrid',
+    '/quiz',
+    // Internal search is noindex,follow: it must stay fetchable so the noindex can be read (SEO_POLICY).
     '/search',
-    '/quiz?',
-  ])('blocks %s for every crawler group', (path) => {
+    '/search?q=firm',
+    // Trust pages are indexed.
+    '/policies',
+    '/policies/refund-policy',
+    '/policies/shipping-policy',
+    '/pages/about',
+    '/blogs/news/sleep-tips',
+    '/sitemap.xml',
+    '/',
+  ])('leaves %s crawlable', (url) => {
+    expect(blockedBy(starRules, url)).toBe(false);
+  });
+
+  it('repeats the rules in every named crawler group except the one that is shut out', () => {
     const groups = text
       .split('\n\n')
       .filter(
@@ -132,39 +193,20 @@ describe('robots.txt (REQ-SEO-001)', () => {
       );
     expect(groups.length).toBeGreaterThan(3);
     for (const group of groups) {
-      expect(group.split('\n')).toContain(`Disallow: ${path}`);
+      expect(group.split('\n')).toEqual(
+        expect.arrayContaining(['Disallow: /cart$', 'Disallow: /quiz?']),
+      );
     }
   });
 
-  it('blocks every filter and sort parameter of the codec, in any position of the query string', () => {
+  it('blocks every filter and sort parameter of the codec after ? and after &', () => {
     for (const param of MANAGED_FILTER_PARAMS) {
-      expect(lines).toContain(`Disallow: /*?*${param}=`);
+      expect(lines).toContain(`Disallow: /*?${param}=`);
+      expect(lines).toContain(`Disallow: /*&${param}=`);
     }
     expect(MANAGED_FILTER_PARAMS).toEqual(
       expect.arrayContaining(['size', 'sort', 'cursor', 'price_min']),
     );
-  });
-
-  it('never blocks the pages and the sitemap that should be crawled', () => {
-    const disallowed = lines
-      .filter((line) => line.startsWith('Disallow: '))
-      .map((line) => line.slice('Disallow: '.length));
-    for (const open of [
-      '/',
-      '/collections/mattresses',
-      '/products/queen-hybrid',
-      '/brands/acme',
-      '/stores/new-york',
-      '/pages/about',
-      '/blogs/news/sleep-tips',
-      '/sitemap.xml',
-      '/quiz',
-    ]) {
-      const blocked = disallowed.some(
-        (rule) => !rule.includes('*') && rule !== '/' && open.startsWith(rule),
-      );
-      expect(blocked, open).toBe(false);
-    }
   });
 
   it('names the sitemap from the configured origin only', () => {

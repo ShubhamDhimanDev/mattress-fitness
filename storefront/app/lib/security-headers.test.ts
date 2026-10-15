@@ -7,6 +7,7 @@ import {
   isHttpsRequest,
   isPublicHostname,
   shouldSendHsts,
+  withSecurityHeaders,
 } from '~/lib/security-headers';
 
 // P7-07 (P-L6, T-07, T-10): host-independent response headers and the report-only CSP.
@@ -197,5 +198,69 @@ describe('buildReportOnlyCsp', () => {
     ['too short', 'abc'],
   ])('refuses a nonce that is %s', (_label, nonce) => {
     expect(buildReportOnlyCsp({...PROD, nonce})).toBeNull();
+  });
+});
+
+describe('withSecurityHeaders (every response leaves server.ts through it)', () => {
+  const input = {requestUrl: 'https://www.example.com/x'};
+
+  it('adds the headers in place to an ordinary response', () => {
+    const response = new Response('ok', {status: 201});
+    const result = withSecurityHeaders(response, input);
+    expect(result).toBe(response);
+    expect(result.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(result.headers.get('strict-transport-security')).toBe(HSTS_VALUE);
+  });
+
+  it('copies a response whose headers are immutable and keeps status, location and body', async () => {
+    const redirect = Response.redirect('https://www.example.com/y', 301);
+    expect(() => redirect.headers.set('x', '1')).toThrow();
+    const result = withSecurityHeaders(redirect, input);
+    expect(result).not.toBe(redirect);
+    expect(result.status).toBe(301);
+    expect(result.headers.get('location')).toBe('https://www.example.com/y');
+    expect(result.headers.get('x-frame-options')).toBe('DENY');
+  });
+
+  it('keeps several Set-Cookie headers and the body when it has to copy', async () => {
+    const source = new Response('{"a":1}', {
+      status: 200,
+      headers: [
+        ['Set-Cookie', 'cart=1; Path=/'],
+        ['Set-Cookie', 'zip=2; Path=/'],
+      ],
+    });
+    // A guard that throws on write stands in for an immutable header list.
+    Object.defineProperty(source, 'headers', {
+      value: new Proxy(source.headers, {
+        get(target, key) {
+          if (key === 'set') {
+            return () => {
+              throw new TypeError('immutable');
+            };
+          }
+          const value = Reflect.get(target, key, target);
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      }),
+    });
+    const result = withSecurityHeaders(source, input);
+    expect(result.headers.getSetCookie()).toEqual([
+      'cart=1; Path=/',
+      'zip=2; Path=/',
+    ]);
+    expect(await result.text()).toBe('{"a":1}');
+    expect(result.headers.get('referrer-policy')).toBe(
+      'strict-origin-when-cross-origin',
+    );
+  });
+
+  it('gives an error response the headers too (the catch path of server.ts)', () => {
+    const result = withSecurityHeaders(
+      new Response('An unexpected error occurred', {status: 500}),
+      input,
+    );
+    expect(result.status).toBe(500);
+    expect(result.headers.get('x-content-type-options')).toBe('nosniff');
   });
 });

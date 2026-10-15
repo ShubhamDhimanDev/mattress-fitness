@@ -43,6 +43,7 @@ import {
   addProtectionToLine,
 } from '~/lib/offers-runtime/protection-steps';
 import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
+import {errorFields, logError} from '~/lib/logging/logger';
 
 export const meta: Route.MetaFunction = () => [
   {title: formatPageTitle('Your cart')},
@@ -218,10 +219,7 @@ export async function action({request, context}: Route.ActionArgs) {
     offers = checked.view;
     notices = [...(checked.view?.notices ?? [])];
   } catch (error) {
-    console.error(
-      'Cart revalidation failed:',
-      error instanceof Error ? error.message : 'unknown error',
-    );
+    logError('cart.revalidation_failed', errorFields(error));
   }
 
   const cartId = finalCart?.id;
@@ -260,10 +258,7 @@ export async function loader({context, request}: Route.LoaderArgs) {
       {headers: noStoreHeaders()},
     );
   } catch (error) {
-    console.error(
-      'Cart revalidation failed:',
-      error instanceof Error ? error.message : 'unknown error',
-    );
+    logError('cart.revalidation_failed', errorFields(error));
     return data({cart: current, offers: null}, {headers: noStoreHeaders()});
   }
 }

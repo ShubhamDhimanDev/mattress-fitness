@@ -33,6 +33,9 @@ export const CART_QUERY_FRAGMENT = `#graphql
       ... on CartAutomaticDiscountAllocation {
         title
       }
+      ... on CartCodeDiscountAllocation {
+        code
+      }
     }
     merchandise {
       ... on ProductVariant {
@@ -101,6 +104,9 @@ export const CART_QUERY_FRAGMENT = `#graphql
       }
       ... on CartAutomaticDiscountAllocation {
         title
+      }
+      ... on CartCodeDiscountAllocation {
+        code
       }
     }
     merchandise {

@@ -8,7 +8,11 @@ import {
   storesIndexPath,
 } from '~/lib/stores/grouping';
 import {brandPath, loadBrandsIndex} from '~/lib/shopify/brand-data';
-import {extraSitemapEntries, renderUrlset} from '~/lib/seo/sitemap';
+import {
+  bareUrlRedirect,
+  extraSitemapEntries,
+  renderUrlset,
+} from '~/lib/seo/sitemap';
 import {
   sitemapOriginFor,
   sitemapResponse,
@@ -21,6 +25,8 @@ export async function loader({
   request,
   context: {storefront, env},
 }: Route.LoaderArgs) {
+  const bare = bareUrlRedirect(request);
+  if (bare) return bare;
   const origin = sitemapOriginFor(env, request);
   if (origin === null) return sitemapUnavailable();
 

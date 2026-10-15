@@ -414,3 +414,169 @@ describe('redactValue', () => {
     expect(out).not.toContain('jane@');
   });
 });
+
+describe('multi-word values, newer keys and shapes (review m4)', () => {
+  it.each([
+    ['address: 12 Oak Lane Springfield', ['Oak', 'Lane', 'Springfield']],
+    ['name: Jane Q Public ordered', ['Jane', 'Public']],
+    ['customer: Jane Public', ['Jane', 'Public']],
+    ['address=12 Oak Lane, Springfield, IL 62704', ['Oak', 'Springfield']],
+    ['shippingAddress: 9 Elm Court Apt 4', ['Elm', 'Court']],
+  ])('redacts all of %j', (text, leaked) => {
+    const out = redactString(text);
+    expect(out).toContain(REDACTED);
+    for (const word of leaked) expect(out).not.toContain(word);
+  });
+
+  it('stops a multi-word value at the next pair, a delimiter or the end of the line', () => {
+    expect(redactString('name: Jane Public, status: failed')).toBe(
+      `name: ${REDACTED}, status: failed`,
+    );
+    expect(redactString('address=12 Oak Lane&page=2')).toBe(
+      `address=${REDACTED}&page=2`,
+    );
+    expect(redactString('address: 12 Oak Lane\nnext line stays')).toBe(
+      `address: ${REDACTED}\nnext line stays`,
+    );
+    expect(redactString('zip=60601; Path=/')).toBe(`zip=${REDACTED}; Path=/`);
+  });
+
+  it.each([
+    'city',
+    'ip',
+    'query',
+    'term',
+    'q',
+    'userAgent',
+    'user-agent',
+    'searchTerm',
+    'shippingCity',
+  ])('treats %s as sensitive', (key) => {
+    expect(isSensitiveKey(key)).toBe(true);
+  });
+
+  it.each(['capacity', 'velocity', 'description', 'tip', 'quantity', 'terms'])(
+    'does not treat %s as sensitive',
+    (key) => {
+      expect(isSensitiveKey(key)).toBe(false);
+    },
+  );
+
+  it('redacts a search term and a client address by key', () => {
+    expect(
+      redactValue({
+        q: 'queen mattress jane',
+        ip: '203.0.113.7',
+        city: 'Springfield',
+        count: 2,
+      }),
+    ).toEqual({q: REDACTED, ip: REDACTED, city: REDACTED, count: 2});
+    expect(redactString('GET /search?q=jane+doe&page=2')).toBe(
+      `GET /search?q=${REDACTED}&page=2`,
+    );
+  });
+
+  it.each([
+    '44 Maple Terrace',
+    '9 Ocean Circle',
+    '1 Union Square',
+    '77 Pine Trail',
+    '5 Lake Cir',
+    '3 Hill Trl',
+  ])('removes the street address %s', (address) => {
+    expect(redactString(`to ${address} today`)).toContain('[address]');
+  });
+
+  it.each(['3125550142', '13125550142', 'call 3125550142.', 'x=3125550142'])(
+    'removes the bare phone number in %j',
+    (text) => {
+      const out = redactString(text);
+      expect(out).not.toContain('5550142');
+    },
+  );
+
+  it('keeps epoch timestamps, long ids and prices that are not phone-shaped', () => {
+    const text =
+      'at 1728900000 ms 1728900000123 id 5123456789012 gid://shopify/Order/5123456789012 total 12345678.90';
+    expect(redactString(text)).toBe(text);
+  });
+
+  it('is fast on pathological inputs for the multi-word and phone patterns (ReDoS)', () => {
+    const inputs = [
+      'address: ' + 'word '.repeat(2_000),
+      'address: ' + ', key'.repeat(2_000),
+      'name='.repeat(5_000),
+      'name:' + ' '.repeat(3_900),
+      ('address: ' + ' '.repeat(190) + 'x=').repeat(20),
+      '3125550142'.repeat(400),
+      '1 '.repeat(2_000) + 'Terrace',
+      '12 ' + 'Oak '.repeat(1_000) + 'Trail',
+      'q=' + 'a%40'.repeat(1_500),
+    ];
+    const started = Date.now();
+    for (const input of inputs) {
+      expect(redactString(input).length).toBeLessThanOrEqual(501);
+    }
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+});
+
+describe('attribute pairs and more key names (security review K-L1)', () => {
+  it('redacts the value of a {key, value} pair by the key text, keeping the label', () => {
+    expect(
+      redactValue([
+        {key: 'delivery_zip', value: '90210'},
+        {key: 'zipcode', value: '60601'},
+        {key: 'gift_message', value: 'Happy birthday Jane'},
+        {key: 'delivery_choice', value: 'in-home'},
+        {key: 'orderNote', value: 'leave at back door'},
+      ]),
+    ).toEqual([
+      {key: 'delivery_zip', value: REDACTED},
+      {key: 'zipcode', value: REDACTED},
+      {key: 'gift_message', value: REDACTED},
+      {key: 'delivery_choice', value: 'in-home'},
+      {key: 'orderNote', value: REDACTED},
+    ]);
+  });
+
+  it('still scans the value of a non-sensitive pair and keeps a plain key field sensitive elsewhere', () => {
+    expect(
+      redactValue({key: 'note_to_us', value: 'mail jane@example.com'}),
+    ).toEqual({
+      key: 'note_to_us',
+      value: 'mail [email]',
+    });
+    expect(redactValue({key: 'abc123secretvalue', other: 1})).toEqual({
+      key: REDACTED,
+      other: 1,
+    });
+  });
+
+  it.each([
+    'pc',
+    'zp',
+    'ship_to',
+    'shipTo',
+    'recipient',
+    'recipientName',
+    'contactName',
+    'cell',
+    'msisdn',
+    'birthday',
+    'dateOfBirth',
+    'orderNote',
+    'ip',
+  ])('treats %s as sensitive', (key) => {
+    expect(isSensitiveKey(key)).toBe(true);
+  });
+
+  it('redacts a ZIP in prose only when a zip or postal label precedes it', () => {
+    expect(redactString('ZIP 90210 not served')).not.toContain('90210');
+    expect(redactString('zip code: 90210')).not.toContain('90210');
+    expect(redactString('Postal code 90210')).not.toContain('90210');
+    // Not over-redacted: five digits without a label are left alone (counts, ids, sizes).
+    expect(redactString('No delivery to 90210')).toBe('No delivery to 90210');
+    expect(redactString('loaded 12345 rows')).toBe('loaded 12345 rows');
+  });
+});

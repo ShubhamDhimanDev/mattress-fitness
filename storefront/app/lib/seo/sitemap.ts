@@ -160,3 +160,55 @@ export function extraSitemapEntries(input: ExtraSitemapInput): SitemapEntry[] {
   }
   return entries;
 }
+
+/**
+ * The path Hydrogen's `getSitemap` falls back to when a page has no items at all. It is not a real page, so the route
+ * can recognise an empty (out-of-range) page by it and answer 404 instead of a sitemap that lists the home page
+ * (security review K-L9).
+ */
+export const EMPTY_SITEMAP_MARKER = '/__empty-sitemap-page__';
+
+export function isEmptySitemapBody(xml: string): boolean {
+  return xml.includes(EMPTY_SITEMAP_MARKER);
+}
+
+/**
+ * Removes the `<url>` entries of the given product handles from Shopify's product sitemap XML (offer-only products,
+ * K-L3). Matching is on the `<loc>` path `/products/<handle>` after the same encoding the links were built with.
+ */
+export function dropProductEntries(
+  xml: string,
+  handles: ReadonlySet<string>,
+): string {
+  if (handles.size === 0) return xml;
+  const excluded = new Set(
+    [...handles].map((handle) => `/products/${encodeURIComponent(handle)}`),
+  );
+  return xml.replace(/<url>[\s\S]*?<\/url>/g, (block) => {
+    const loc = /<loc>([^<]*)<\/loc>/.exec(block)?.[1];
+    if (loc === undefined) return block;
+    let path: string;
+    try {
+      path = new URL(loc).pathname;
+    } catch {
+      return block;
+    }
+    return excluded.has(path) ? '' : block;
+  });
+}
+
+/**
+ * A request with a query string is redirected to the bare URL, so the cached object is keyed by the path alone and
+ * `?x=1` cannot be used to bypass the cache and reach Shopify again (K-L9). Null when there is no query.
+ */
+export function bareUrlRedirect(request: Request): Response | null {
+  const url = new URL(request.url);
+  if (url.search === '') return null;
+  return new Response(null, {
+    status: 301,
+    headers: {
+      Location: url.pathname, // relative: never the request Host (P-L2)
+      'Cache-Control': 'public, max-age=86400',
+    },
+  });
+}

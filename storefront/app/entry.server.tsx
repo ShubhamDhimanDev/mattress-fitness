@@ -7,7 +7,11 @@ import {
 } from '@shopify/hydrogen';
 import type {EntryContext} from 'react-router';
 import {errorFields, logError} from '~/lib/logging/logger';
-import {applySecurityHeaders, buildReportOnlyCsp} from '~/lib/security-headers';
+import {
+  applySecurityHeaders,
+  buildReportOnlyCsp,
+  withSecurityHeaders,
+} from '~/lib/security-headers';
 import {canonicalLinkHeader, canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 
@@ -94,13 +98,13 @@ export default async function handleRequest(
 }
 
 /**
- * Data requests (the `.data` fetches that client navigations make) do not pass through `handleRequest`, so the
- * host-independent headers are applied here as well. They carry no document, so no CSP.
+ * Data requests (the `.data` fetches that client navigations make) do not pass through `handleRequest`. `server.ts`
+ * already applies the host-independent headers to every response; this repeats it (idempotent, and safe for an
+ * immutable response) so a server entry that is not `server.ts` (Q-003) still covers them. No CSP: not a document.
  */
 export function handleDataRequest(
   response: Response,
   {request}: {request: Request},
 ) {
-  applySecurityHeaders(response.headers, headerInput(request));
-  return response;
+  return withSecurityHeaders(response, headerInput(request));
 }

@@ -7,8 +7,8 @@
 // reach a canonical link (P-L2). Without an origin there is no canonical, which is harmless; a wrong one is not.
 
 /**
- * Paths crawlers are told to stay out of (robots.txt): private or per-shopper pages, endpoints and internal
- * search. A prefix matches the path itself and anything below it ("/cart" and "/cart/c/1", not "/cartridge").
+ * Paths crawlers are told to stay out of (robots.txt): private or per-shopper pages and endpoints. Internal search is
+ * NOT here: it is `noindex,follow`, and a noindex can only be read on a URL the crawler may fetch. A prefix matches the path itself and anything below it ("/cart" and "/cart/c/1", not "/cartridge").
  */
 export const ROBOTS_DISALLOWED_PREFIXES: readonly string[] = [
   '/cart',
@@ -18,8 +18,6 @@ export const ROBOTS_DISALLOWED_PREFIXES: readonly string[] = [
   '/api',
   '/webhooks',
   '/discount',
-  '/search',
-  '/policies',
 ];
 
 /**
@@ -28,6 +26,7 @@ export const ROBOTS_DISALLOWED_PREFIXES: readonly string[] = [
  */
 export const NON_INDEXABLE_PREFIXES: readonly string[] = [
   ...ROBOTS_DISALLOWED_PREFIXES,
+  '/search',
   '/compare',
   '/sitemap',
   '/sitemap.xml',

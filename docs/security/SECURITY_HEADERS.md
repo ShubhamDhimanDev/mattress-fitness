@@ -68,8 +68,15 @@ To add a provider (analytics, Meta pixel, Klaviyo, Judge.me, Shopify Inbox, a ma
 4. Record the provider, hosts and reason in `progress/DECISIONS.md`; remove the origin in the same change that removes the provider.
 5. A provider that needs `frame-src` also needs `frame-ancestors`/COOP reconsidered (`same-origin-allow-popups` is already chosen for popups).
 
+## Where the headers are applied
+
+`storefront/server.ts` is the single exit: every response (documents, `.data` requests, resource routes such as `/api/*` and `/webhooks/*`, redirects from `storefrontRedirect` and the 500 error response) passes through `withSecurityHeaders` (`app/lib/security-headers.ts`), which copies a response whose headers are immutable (`Response.redirect()`, a proxied `fetch`) before writing. `entry.server.tsx` adds what only a document needs (the two CSPs with the nonce, the charset, the canonical `Link`) and repeats the base set for `.data` requests as a safety net. **An own-server entry (Q-003) that does not use `server.ts` must make the same `withSecurityHeaders` call on every response**, or only documents and data requests are covered. A test covers the immutable-headers copy; the `server.ts` wiring itself runs only on a built server (verified with a request to `/api/extend/offers` on the dev server).
+
+## Shopify's blocked telemetry (decision DEC-045)
+
+Shopify's consent script (loaded from `cdn.shopify.com` by Hydrogen's analytics) posts performance telemetry to `otlp-http-production.shopifysvc.com`, which neither Hydrogen's enforced `connect-src` nor ours allows. Blocking it is **intended**: nothing we ship depends on it and it is a third-party origin (T-10). The e2e helpers ignore a console line only when it names exactly that host and says it violates the Content Security Policy; a violation naming any other host (including in `[Report Only]` form) fails the specs.
+
 ## Known gaps
 
-- Resource routes outside `entry.server` (for example `/api/extend/offers`, `/webhooks/shopify`, the cart actions' JSON) do not get these headers; only `robots.txt` and the sitemaps apply them themselves. The complete fix is one call to `applySecurityHeaders` in `storefront/server.ts` (the host seam, not changed here).
-- `powered-by: Shopify, Hydrogen` is added by Hydrogen after our code runs; remove it with `poweredByHeader: false` in `server.ts`.
-- Behaviour behind a real proxy (`X-Forwarded-Proto`, P-L5) is unverified.
+- `powered-by: Shopify, Hydrogen` is added by Hydrogen after our code runs; remove it with `poweredByHeader: false` in `createRequestHandler` options (server.ts) if the client wants it gone.
+- Behaviour behind a real proxy (`X-Forwarded-Proto`, P-L5) and on a production build is unverified.

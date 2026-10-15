@@ -72,7 +72,7 @@ export type CartLineFragment = Pick<
           'currencyCode' | 'amount'
         >;
       })
-    | (Pick<StorefrontAPI.CartCodeDiscountAllocation, 'targetType'> & {
+    | (Pick<StorefrontAPI.CartCodeDiscountAllocation, 'code' | 'targetType'> & {
         discountedAmount: Pick<
           StorefrontAPI.MoneyV2,
           'currencyCode' | 'amount'
@@ -129,7 +129,7 @@ export type CartLineComponentFragment = Pick<
           'currencyCode' | 'amount'
         >;
       })
-    | (Pick<StorefrontAPI.CartCodeDiscountAllocation, 'targetType'> & {
+    | (Pick<StorefrontAPI.CartCodeDiscountAllocation, 'code' | 'targetType'> & {
         discountedAmount: Pick<
           StorefrontAPI.MoneyV2,
           'currencyCode' | 'amount'
@@ -182,7 +182,10 @@ export type CartLineComponentFragment = Pick<
               'currencyCode' | 'amount'
             >;
           })
-        | (Pick<StorefrontAPI.CartCodeDiscountAllocation, 'targetType'> & {
+        | (Pick<
+            StorefrontAPI.CartCodeDiscountAllocation,
+            'code' | 'targetType'
+          > & {
             discountedAmount: Pick<
               StorefrontAPI.MoneyV2,
               'currencyCode' | 'amount'
@@ -272,7 +275,10 @@ export type CartApiQueryFragment = Pick<
                   'currencyCode' | 'amount'
                 >;
               })
-            | (Pick<StorefrontAPI.CartCodeDiscountAllocation, 'targetType'> & {
+            | (Pick<
+                StorefrontAPI.CartCodeDiscountAllocation,
+                'code' | 'targetType'
+              > & {
                 discountedAmount: Pick<
                   StorefrontAPI.MoneyV2,
                   'currencyCode' | 'amount'
@@ -340,7 +346,10 @@ export type CartApiQueryFragment = Pick<
                   'currencyCode' | 'amount'
                 >;
               })
-            | (Pick<StorefrontAPI.CartCodeDiscountAllocation, 'targetType'> & {
+            | (Pick<
+                StorefrontAPI.CartCodeDiscountAllocation,
+                'code' | 'targetType'
+              > & {
                 discountedAmount: Pick<
                   StorefrontAPI.MoneyV2,
                   'currencyCode' | 'amount'
@@ -410,7 +419,7 @@ export type CartApiQueryFragment = Pick<
                   })
                 | (Pick<
                     StorefrontAPI.CartCodeDiscountAllocation,
-                    'targetType'
+                    'code' | 'targetType'
                   > & {
                     discountedAmount: Pick<
                       StorefrontAPI.MoneyV2,
@@ -726,6 +735,14 @@ export type CatalogHomeSectionsQuery = {
       }
     >;
   };
+};
+
+export type OfferOnlyProductHandlesQueryVariables = StorefrontAPI.Exact<{
+  query: StorefrontAPI.Scalars['String']['input'];
+}>;
+
+export type OfferOnlyProductHandlesQuery = {
+  products: {nodes: Array<Pick<StorefrontAPI.Product, 'handle'>>};
 };
 
 export type CatalogPromoTilesQueryVariables = StorefrontAPI.Exact<{
@@ -1644,6 +1661,10 @@ interface GeneratedQueryTypes {
   '#graphql\n  query CatalogHomeSections($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    sections: metaobjects(type: "homepage_section", first: 30) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
     return: CatalogHomeSectionsQuery;
     variables: CatalogHomeSectionsQueryVariables;
+  };
+  '#graphql\n  query OfferOnlyProductHandles($query: String!) {\n    products(first: 250, query: $query) {\n      nodes {\n        handle\n      }\n    }\n  }\n': {
+    return: OfferOnlyProductHandlesQuery;
+    variables: OfferOnlyProductHandlesQueryVariables;
   };
   '#graphql\n  query CatalogPromoTiles($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    tiles: metaobjects(type: "promo_tile", first: 100) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n            ... on Collection {\n              handle\n            }\n          }\n        }\n      }\n    }\n  }\n': {
     return: CatalogPromoTilesQuery;

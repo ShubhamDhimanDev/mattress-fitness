@@ -18,10 +18,6 @@ const ALLOWED: Readonly<Record<string, string>> = {
     'client-side component; logs a fixed currency message that tests and e2e match on (no personal data)',
   'app/lib/pages/track.ts':
     'development-only debug of quiz events until the analytics sink exists (P7-01)',
-  'app/routes/cart.tsx': 'cart route, owned by the cart work',
-  'app/routes/checkout-steps.tsx': 'cart gate route, owned by the cart work',
-  'app/lib/offers-runtime/server.ts': 'offers runtime, owned by the cart work',
-  'app/lib/offers-runtime/facts.ts': 'offers runtime, owned by the cart work',
 };
 
 function sourceFiles(dir: string): string[] {
@@ -34,9 +30,9 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
-// A call, not a mention in a comment: `console.warn(` at the start of an expression or after punctuation.
-const CONSOLE_CALL =
-  /(^|[^\w.'"`])console\.(log|info|debug|warn|error|trace)\s*\(/m;
+// Any use of the `console` identifier outside comments: a call, `.catch(console.error)`, an alias (`const log = console`)
+// or a destructure. A property access such as `window.console` is not matched by design (nothing here uses one).
+const CONSOLE_CALL = /(^|[^\w.'"`])console\b/m;
 
 function withoutComments(text: string): string {
   return text
@@ -50,7 +46,7 @@ function read(file: string): string {
 }
 
 describe('structured logging only (NFR-010, T-05)', () => {
-  const offenders = sourceFiles(APP_DIR)
+  const offenders = [...sourceFiles(APP_DIR), join(process.cwd(), 'server.ts')]
     .map((file) => relative(process.cwd(), file).split(sep).join('/'))
     .filter((file) => !(file in ALLOWED))
     .filter((file) => CONSOLE_CALL.test(read(file)));
@@ -63,5 +59,26 @@ describe('structured logging only (NFR-010, T-05)', () => {
     for (const file of Object.keys(ALLOWED)) {
       expect(CONSOLE_CALL.test(read(file)), file).toBe(true);
     }
+  });
+});
+
+describe('the guard itself', () => {
+  it.each([
+    'console.error("x")',
+    'promise.catch(console.error)',
+    'const log = console;',
+    'const {error} = console;',
+    'queueMicrotask(() => console.warn(e))',
+  ])('catches %s', (code) => {
+    expect(CONSOLE_CALL.test(code)).toBe(true);
+  });
+
+  it.each([
+    'consoleLogger(event)',
+    'window.console.log(x)',
+    '// console.error in a comment',
+    "const text = 'console';",
+  ])('ignores %s', (code) => {
+    expect(CONSOLE_CALL.test(withoutComments(code))).toBe(false);
   });
 });

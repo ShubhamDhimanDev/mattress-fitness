@@ -1,7 +1,7 @@
 // robots.txt content (P7-04, REQ-SEO-001, docs/architecture/SEO_POLICY.md).
 //
 // Pure: the route passes the site origin and this returns text. Crawling is blocked for private and per-shopper
-// pages, endpoints, internal search, quiz result URLs and every filtered or sorted collection view (the filter
+// pages, endpoints, quiz result URLs and every filtered or sorted collection view (the filter
 // parameters come from the filter codec, so a new filter dimension is blocked without editing this file).
 // Everything else is open and listed in the sitemap.
 
@@ -19,10 +19,19 @@ const QUIZ_STATE_RULE = 'Disallow: /quiz?';
 
 function disallowRules(facetParams: readonly string[]): string[] {
   return [
-    ...ROBOTS_DISALLOWED_PREFIXES.map((prefix) => `Disallow: ${prefix}`),
+    // Segment-safe: robots rules are prefixes, so `/cart` alone would also block `/cartridge`. The path itself,
+    // anything below it and its query string are three forms (`$` ends the URL).
+    ...ROBOTS_DISALLOWED_PREFIXES.flatMap((prefix) => [
+      `Disallow: ${prefix}$`,
+      `Disallow: ${prefix}/`,
+      `Disallow: ${prefix}?`,
+    ]),
     QUIZ_STATE_RULE,
-    // `*` also matches `&`, so one pattern covers the parameter in any position of the query string.
-    ...facetParams.map((param) => `Disallow: /*?*${param}=`),
+    // A parameter name must start right after `?` or `&`, so `size=` does not match `resize=`. `*` spans the path.
+    ...facetParams.flatMap((param) => [
+      `Disallow: /*?${param}=`,
+      `Disallow: /*&${param}=`,
+    ]),
   ];
 }
 

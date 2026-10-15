@@ -1,5 +1,5 @@
 import type {Page} from '@playwright/test';
-import {KNOWN_MOCK_SHOP_ERRORS} from './a11y';
+import {isKnownConsoleNoise} from './a11y';
 import {ourErrors} from './catalog';
 
 export type ConsoleError = {text: string; url: string};
@@ -15,7 +15,7 @@ export function collectConsoleErrorsWithUrls(page: Page): ConsoleError[] {
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
     const text = message.text();
-    if (KNOWN_MOCK_SHOP_ERRORS.some((known) => text.includes(known))) return;
+    if (isKnownConsoleNoise(text)) return;
     errors.push({text, url: message.location().url});
   });
   page.on('pageerror', (error) =>

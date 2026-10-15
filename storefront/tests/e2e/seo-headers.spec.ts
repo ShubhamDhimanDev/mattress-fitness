@@ -1,6 +1,5 @@
 import {expect, test} from '@playwright/test';
-import {collectConsoleErrors} from './helpers/a11y';
-import {ourErrors} from './helpers/catalog';
+import {BLOCKED_TELEMETRY_HOST} from './helpers/a11y';
 
 // P7-07 (P-L6) and P7-04: security headers on documents and resource routes, the report-only policy staying
 // silent in a real browser, robots.txt and the canonical policy. REQ-SEO-001, NFR-010.
@@ -71,13 +70,14 @@ test.describe('response headers and SEO files', () => {
     expect(response.headers()['x-content-type-options']).toBe('nosniff');
     const body = await response.text();
     for (const rule of [
-      'Disallow: /cart',
-      'Disallow: /account',
-      'Disallow: /checkout-steps',
-      'Disallow: /api',
-      'Disallow: /search',
-      'Disallow: /*?*sort=',
-      'Disallow: /*?*size=',
+      'Disallow: /cart$',
+      'Disallow: /cart/',
+      'Disallow: /account/',
+      'Disallow: /api/',
+      'Disallow: /*?sort=',
+      'Disallow: /*&sort=',
+      'Disallow: /checkout-steps$',
+      'Disallow: /*?size=',
     ]) {
       expect(body).toContain(rule);
     }
@@ -105,11 +105,16 @@ test.describe('response headers and SEO files', () => {
   test('the report-only policy stays silent on the home page in a real browser', async ({
     page,
   }) => {
-    const errors = collectConsoleErrors(page);
+    // A raw collector, not the shared one: the shared filters hide Shopify's blocked telemetry, and this spec must see
+    // every other policy line. The one host whose refusal is expected (DEC-045) is dropped by its exact name.
+    const lines: string[] = [];
+    page.on('console', (message) => lines.push(message.text()));
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-    const violations = ourErrors(errors).filter((message) =>
-      /content security policy|report only/i.test(message),
+    const violations = lines.filter(
+      (text) =>
+        /content security policy|report only/i.test(text) &&
+        !text.includes(BLOCKED_TELEMETRY_HOST),
     );
     expect(violations).toEqual([]);
   });

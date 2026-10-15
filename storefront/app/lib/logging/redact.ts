@@ -1,8 +1,10 @@
 // The one redaction layer for everything the server logs (P7-08, NFR-010, threats T-04 and T-05).
 //
 // Principle: log ids, codes and counts; never names, e-mail addresses, phone numbers, addresses, ZIP codes,
-// tokens or cart keys. The layer is a safety net under that rule, not a licence to log such values: callers
-// still pass only what they need. It works two ways on any value:
+// tokens or cart keys. The rule is kept by the callers, who pass ids and codes only. This layer is a best-effort
+// net under it, NOT a guarantee: free text can hold personal data in a shape no pattern knows (a name in a
+// sentence, an address without a street suffix, a phone number written in words), so never log such text on the
+// strength of this layer. It works two ways on any value:
 //   1. By key. A field whose name says it holds personal or secret data (`email`, `zip`, `cartId`, `token`...)
 //      is replaced whole, whatever its type.
 //   2. By content. Strings are scanned for e-mail addresses, phone numbers, card numbers, bearer and vendor
@@ -44,6 +46,19 @@ const SENSITIVE_EXACT_KEYS: ReadonlySet<string> = new Set([
   'buyeridentity',
   'shippingaddress',
   'billingaddress',
+  // Where a person is, what they typed and what they use: a bare word that is too common to match as a fragment.
+  'city',
+  'ip',
+  'query',
+  'term',
+  'q',
+  'useragent',
+  // Short or abbreviated names for the same things.
+  'pc',
+  'zp',
+  'cell',
+  'recipient',
+  'birthday',
 ]);
 
 /** Fragments that make a key sensitive wherever they appear (`shippingZip`, `x-api-key`, `cartKey`...). */
@@ -80,6 +95,20 @@ const SENSITIVE_FRAGMENTS: readonly string[] = [
   'cardnumber',
   'cvv',
   'cvc',
+  'shippingcity',
+  'billingcity',
+  'searchterm',
+  'searchquery',
+  'forwardedfor',
+  'clientip',
+  'useragent',
+  'shipto',
+  'contactname',
+  'msisdn',
+  'dateofbirth',
+  'ordernote',
+  'recipient',
+  'giftmessage',
 ];
 
 /** True when a field of this name must never be logged. Case, separators and prefixes do not matter. */
@@ -102,7 +131,11 @@ export function isSensitiveKey(key: string): boolean {
 // is sensitive is decided by isSensitiveKey, the same rule as for object keys.
 const KEY_SEPARATOR = /([\w-]{1,40})(["']?\s*(?:=|:|%3[Dd])\s*)/g;
 const MAX_VALUE_CHARS = 200;
-const VALUE_STOP = /[\s&"';,}]/;
+// Ends an unquoted value at once: a newline, or a delimiter of query strings, cookies and JSON. A space or a comma
+// does not, because addresses contain both; NEXT_KEY ends it there when another pair starts.
+const VALUE_STOP = /[\n\r&"';}]/;
+const NEXT_KEY = /^[\s,]+[\w-]{1,40}(?:=|:|%3[Dd])/;
+const MAX_NEXT_KEY_PROBE = 60;
 
 /** Where the value that starts at `from` ends, and the quote that wraps it, if any. */
 function valueEnd(text: string, from: number): {end: number; quote: string} {
@@ -118,8 +151,14 @@ function valueEnd(text: string, from: number): {end: number; quote: string} {
     }
     return {end: lineEnd, quote: first};
   }
+  // An unquoted value of a sensitive key can be several words ("address: 12 Oak Lane Springfield"), so it runs to
+  // the end of the line, a delimiter, or the next `key=` or `key:` token, and at most MAX_VALUE_CHARS.
+  const limit = Math.min(text.length, from + MAX_VALUE_CHARS);
   let end = from;
-  while (end < text.length && !VALUE_STOP.test(text.charAt(end))) end += 1;
+  while (end < limit && !VALUE_STOP.test(text.charAt(end))) {
+    if (NEXT_KEY.test(text.slice(end, end + MAX_NEXT_KEY_PROBE))) break;
+    end += 1;
+  }
   return {end, quote: ''};
 }
 
@@ -137,19 +176,22 @@ const VENDOR_TOKEN =
   /\b(?:shp[a-z]{2,3}_[A-Za-z0-9]{16,}|(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16})/g;
 const EMAIL =
   /[\p{L}\p{N}._+%-]{1,64}(?:@|%40)[\p{L}\p{N}-]{1,63}(?:\.[\p{L}\p{N}-]{1,63}){1,8}/gu;
-// US phone numbers need a separator, parentheses or a leading plus, so plain 10-digit ids and timestamps stay.
+// US phone numbers: separated, in parentheses, with a plus, or bare. A bare number must have a valid NANP shape (area
+// code and exchange start with 2 to 9, optional leading 1), which leaves current epoch timestamps (they start with 1)
+// alone. Any other 10-digit id that happens to look like a phone number is redacted: an accepted false positive.
 const PHONE_PAREN =
   /(^|[^\w.])((?:\+?1[\s.-]?)?\(\d{3}\)[\s.-]?\d{3}[\s.-]?\d{4})(?!\d)/g;
 const PHONE_SEPARATED =
   /(^|[^\w.])((?:\+?1[\s.-]?)?\d{3}[\s.-]\d{3}[\s.-]\d{4})(?!\d)/g;
 const PHONE_E164 = /(^|[^\w.])(\+\d{10,15})(?!\d)/g;
+const PHONE_BARE = /(^|[^\w.])(1?[2-9]\d{2}[2-9]\d{6})(?!\d)/g;
 // A card number written in groups; only Luhn-valid ones are redacted, so order ids are not hit.
 const CARD_GROUPED =
   /(^|[^\d])(\d{4}(?:[ -]\d{4}){2,3}(?:[ -]\d{1,4})?)(?!\d)/g;
 const ZIP_WORD =
   /\b(zip(?:\s?code)?|postal(?:\s?code)?|postcode)(\s*[:#]?\s*)\d{5}(?:-\d{4})?\b/gi;
 const STREET_ADDRESS =
-  /\b\d{1,6}\s+(?:[A-Za-z0-9.'-]+\s+){1,4}(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|court|ct|way|place|pl|parkway|pkwy|highway|hwy)\b\.?/gi;
+  /\b\d{1,6}\s+(?:[A-Za-z0-9.'-]+\s+){1,4}(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|court|ct|way|place|pl|parkway|pkwy|highway|hwy|terrace|ter|circle|cir|square|sq|trail|trl)\b\.?/gi;
 // A long run of letters and digits is a token or a hash, not a word (hyphenated handles are not matched).
 const LONG_TOKEN = /(^|[^A-Za-z0-9+])([A-Za-z0-9+]{32,}={0,2})/g;
 
@@ -227,6 +269,7 @@ export function redactString(input: string): string {
     .replace(PHONE_PAREN, '$1[phone]')
     .replace(PHONE_SEPARATED, '$1[phone]')
     .replace(PHONE_E164, '$1[phone]')
+    .replace(PHONE_BARE, '$1[phone]')
     .replace(ZIP_WORD, `$1$2${REDACTED}`)
     .replace(STREET_ADDRESS, '[address]');
   text = redactLongTokens(redactCards(text));
@@ -292,13 +335,26 @@ function redactDeep(
   }
 }
 
+/** The label of a `{key: 'delivery_zip', value: '90210'}` pair, or null when the object is not one. */
+function pairLabel(object: object, keys: readonly string[]): string | null {
+  if (keys.length > 4 || !keys.includes('key') || !keys.includes('value')) {
+    return null;
+  }
+  const label: unknown = Reflect.get(object, 'key');
+  return typeof label === 'string' && label.length <= MAX_KEY_CHARS
+    ? label
+    : null;
+}
+
 function redactEntries(
   object: object,
   depth: number,
   seen: WeakSet<object>,
 ): Record<string, unknown> {
   const entries: Array<[string, unknown]> = [];
-  for (const key of Object.keys(object).slice(0, MAX_KEYS)) {
+  const keys = Object.keys(object).slice(0, MAX_KEYS);
+  const label = pairLabel(object, keys);
+  for (const key of keys) {
     let raw: unknown;
     try {
       raw = Reflect.get(object, key);
@@ -306,7 +362,12 @@ function redactEntries(
       raw = '[unreadable]';
     }
     const safeKey = redactString(key).slice(0, MAX_KEY_CHARS);
-    const sensitive = isSensitiveKey(key) && typeof raw !== 'boolean';
+    // Shopify attributes and line properties are `{key, value}` pairs: the word `key` is a label, the sensitivity
+    // is in the label's text (`delivery_zip`), and it is the `value` that must go.
+    const sensitive =
+      label === null
+        ? isSensitiveKey(key) && typeof raw !== 'boolean'
+        : key === 'value' && isSensitiveKey(label) && typeof raw !== 'boolean';
     entries.push([
       safeKey,
       sensitive && raw !== null && raw !== undefined

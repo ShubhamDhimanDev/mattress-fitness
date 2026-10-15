@@ -40,10 +40,30 @@ export async function expectNoSeriousA11yViolations(
  */
 export const KNOWN_MOCK_SHOP_ERRORS: readonly string[] = [
   'Shopify Customer Privacy',
-  // Shopify's consent script posts performance telemetry to shopifysvc.com, which our Content Security Policy refuses
-  // (D-QA-1). It is Shopify's script, not our code, and blocking it is intended: nothing we ship depends on it.
-  'shopifysvc.com',
 ];
+
+/**
+ * Shopify's consent script posts performance telemetry to this one host, which our Content Security Policy refuses
+ * (D-QA-1). It is Shopify's script, not our code, and blocking it is intended (DEC-045): nothing we ship depends on
+ * it. Only a CSP refusal naming exactly this host is ignored; a violation naming any other host still fails.
+ */
+export const BLOCKED_TELEMETRY_HOST = 'otlp-http-production.shopifysvc.com';
+// Chromium words it two ways: "violates the following Content Security Policy directive" (resource loads) and
+// "violates the document's Content Security Policy" (fetch).
+const CSP_REFUSAL =
+  /violates the (?:following|document's) Content Security Policy/;
+
+export function isBlockedTelemetryRefusal(text: string): boolean {
+  return text.includes(BLOCKED_TELEMETRY_HOST) && CSP_REFUSAL.test(text);
+}
+
+/** True for console noise that comes from the demo store or from Shopify's own blocked telemetry. */
+export function isKnownConsoleNoise(text: string): boolean {
+  return (
+    KNOWN_MOCK_SHOP_ERRORS.some((known) => text.includes(known)) ||
+    isBlockedTelemetryRefusal(text)
+  );
+}
 
 /** Collects console errors so a spec can assert the page is quiet (known mock.shop noise is excluded). */
 export function collectConsoleErrors(page: Page): string[] {
@@ -51,7 +71,7 @@ export function collectConsoleErrors(page: Page): string[] {
   page.on('console', (msg) => {
     if (msg.type() !== 'error') return;
     const text = msg.text();
-    if (KNOWN_MOCK_SHOP_ERRORS.some((known) => text.includes(known))) return;
+    if (isKnownConsoleNoise(text)) return;
     errors.push(text);
   });
   page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));

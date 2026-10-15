@@ -260,3 +260,113 @@ describe('extra sitemap route: brands and stores only when real', () => {
     }
   });
 });
+
+describe('sitemap hardening (security review K-L3, K-L9)', () => {
+  const entry = (handle: string) => ({
+    handle,
+    updatedAt: '2026-10-01T10:00:00Z',
+  });
+
+  it('answers 404 for a page with no items instead of a sitemap that lists the home page', async () => {
+    const {storefront} = fakeStorefront(() => ({
+      sitemap: {resources: {items: []}},
+    }));
+    const status = await thrownStatus(() =>
+      pageLoader(
+        args(
+          `${SITE}/sitemap/products/99.xml`,
+          {storefront, env: envOf()},
+          {type: 'products', page: '99'},
+        ),
+      ),
+    );
+    expect(status).toBe(404);
+  });
+
+  it('redirects a query string to the bare URL, relative, without calling Shopify', async () => {
+    const {storefront, calls} = fakeStorefront(() => ({}));
+    for (const [loader, path, params] of [
+      [pageLoader, '/sitemap/products/1.xml', {type: 'products', page: '1'}],
+      [indexLoader, '/sitemap.xml', {}],
+      [extrasLoader, '/sitemap/extras.xml', {}],
+    ] as const) {
+      const result = await loader(
+        args(`${FORGED}${path}?x=1&y=2`, {storefront, env: envOf()}, params),
+      );
+      expect(result.status).toBe(301);
+      expect(result.headers.get('location')).toBe(path);
+    }
+    const robots = robotsLoader(
+      args(`${FORGED}/robots.txt?x=1`, {env: envOf()}),
+    );
+    expect(robots.status).toBe(301);
+    expect(robots.headers.get('location')).toBe('/robots.txt');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('leaves offer-only products (tagged extend-coverage or offer-only) out of the product sitemap', async () => {
+    const {storefront, calls} = fakeStorefront((call) =>
+      call.query.includes('OfferOnlyProductHandles')
+        ? {
+            products: {
+              nodes: [
+                {handle: 'extend-protection-plan'},
+                {handle: 'haul-away'},
+              ],
+            },
+          }
+        : {
+            sitemap: {
+              resources: {
+                items: [
+                  entry('queen-hybrid'),
+                  entry('extend-protection-plan'),
+                  entry('haul-away'),
+                  entry('haul-away-extra'),
+                ],
+              },
+            },
+          },
+    );
+    const xml = await bodyOf(
+      await pageLoader(
+        args(
+          `${SITE}/sitemap/products/1.xml`,
+          {storefront, env: envOf()},
+          {type: 'products', page: '1'},
+        ),
+      ),
+    );
+    expect(xml).toContain(`${SITE}/products/queen-hybrid</loc>`);
+    expect(xml).toContain(`${SITE}/products/haul-away-extra</loc>`);
+    expect(xml).not.toContain('extend-protection-plan');
+    expect(xml).not.toContain(`${SITE}/products/haul-away</loc>`);
+    const query = calls.find((call) =>
+      call.query.includes('OfferOnlyProductHandles'),
+    );
+    expect(query?.variables.query).toBe(
+      'tag:extend-coverage OR tag:offer-only',
+    );
+    expect(query?.cache).toEqual({mode: 'long'});
+  });
+
+  it('keeps every product when the offer-only read fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const {storefront} = fakeStorefront((call) => {
+      if (call.query.includes('OfferOnlyProductHandles'))
+        throw new Error('down');
+      return {sitemap: {resources: {items: [entry('a'), entry('b')]}}};
+    });
+    const xml = await bodyOf(
+      await pageLoader(
+        args(
+          `${SITE}/sitemap/products/1.xml`,
+          {storefront, env: envOf()},
+          {type: 'products', page: '1'},
+        ),
+      ),
+    );
+    expect(xml).toContain(`${SITE}/products/a</loc>`);
+    expect(xml).toContain(`${SITE}/products/b</loc>`);
+  });
+});

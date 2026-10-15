@@ -20,6 +20,7 @@ import {
   protectionModeFor,
 } from '~/lib/shopify/protection-mode';
 import {offersConfigOf} from '~/lib/extend/runtime';
+import {loadOfferOnlyHandles} from '~/lib/shopify/offer-only';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {
   parseSelectedOptions,
@@ -34,6 +35,8 @@ export const meta: Route.MetaFunction = ({data}) => {
     ...(product.seoDescription
       ? [{name: 'description', content: product.seoDescription}]
       : []),
+    // Offer-only products (Extend price points, services, gifts, protectors) are not content (K-L3).
+    ...(data.offerOnly ? [{name: 'robots', content: 'noindex,follow'}] : []),
     ...(data.canonical
       ? [{tagName: 'link', rel: 'canonical', href: data.canonical}]
       : []),
@@ -92,9 +95,13 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     isDev: import.meta.env.DEV,
   });
   const origin = siteOrigin ?? '';
-  const protection = await protectionModeOf(context, request, product.id);
+  const [protection, offerOnlyHandles] = await Promise.all([
+    protectionModeOf(context, request, product.id),
+    loadOfferOnlyHandles(context.storefront),
+  ]);
   return {
     product,
+    offerOnly: offerOnlyHandles.has(product.handle),
     // The Extend flag and the product's own eligibility (P5A-05): the same for every shopper, so neither touches a
     // cache key. 'off' costs the page no request and no reserved space (NFR-002).
     protection,
