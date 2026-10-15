@@ -3,6 +3,13 @@ name: CI
 # Mirrors the local commands in storefront/package.json (NFR-012). A failing check blocks merge.
 # Third-party actions are pinned to exact versions; pin to commit SHAs when the repository moves to the
 # client's organisation (threat T-12). No secrets are used: tests run on mock.shop and local mocks.
+#
+# Jobs and branch protection: require "Framework and docs", "Storefront (format, lint, types, unit, build)" and
+# "E2E (Chromium desktop and mobile)". "E2E (WebKit and Firefox, not required)" is informational until it has a
+# baseline of green runs; do not add it to the required checks before then.
+#
+# GitHub sets CI=true on every runner, so the jobs do not set it. playwright.config.ts reads it for retries,
+# workers, forbidOnly and a fresh (non-reused) server.
 
 on:
   push:
@@ -14,12 +21,17 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Only superseded pull request runs are cancelled. A push to main always finishes, so a quick second merge does
+  # not leave the first merge commit without a result (GitHub still keeps just one pending run per group).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   framework:
     name: Framework and docs
     runs-on: ubuntu-latest
+    # The history scan is commits x 5 patterns of `git grep` (about 220 greps for 44 commits); 30 minutes leaves
+    # room for a history that is ten times longer.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4.2.2
         with:
@@ -52,11 +64,9 @@ jobs:
       - run: node --test "scripts/**/*.test.mjs"
 
   storefront:
-    name: Storefront (format, lint, types, unit, build, e2e)
+    name: Storefront (format, lint, types, unit, build)
     runs-on: ubuntu-latest
-    # Run 1 alone is the whole e2e suite in five browser projects on two workers; a 3-spec subset took 7 minutes
-    # locally in two Chromium projects. Lower this once the first real run gives a duration.
-    timeout-minutes: 90
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: storefront
@@ -80,16 +90,38 @@ jobs:
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
 
+  # The end-to-end tests are separate jobs so that a red quality check above never hides the browser result (and the
+  # other way round), and so that each job has its own timeout and artefact.
+  #
+  # The app refuses to serve without SESSION_SECRET, and the catalog specs expect the bedding.mock.shop demo store
+  # (storefront/DEV_DATA.md). Every value written below is a public placeholder, NOT a credential: the token is the
+  # 32-character dummy bedding.mock.shop ignores, the secrets only sign cookies of a throwaway CI server (32+
+  # characters because a production preview refuses shorter ones), the Extend values are those of the local mock.
+  # The files match the git-ignored `.env.*` pattern and exist only on the runner. PUBLIC_SITE_URL stays unset on
+  # purpose (canonical URLs then follow the request host).
+  e2e-chromium:
+    name: E2E (Chromium desktop and mobile)
+    runs-on: ubuntu-latest
+    # Run 1 is the whole suite (224 tests per project, so about 450) in two projects on two workers against a cold
+    # dev server. Only a 3-spec subset was timed locally (7 minutes), so this is a ceiling, not an estimate: lower
+    # it after the first real run reports a duration.
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: storefront
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: storefront/package-lock.json
+      - run: npm ci
       - name: Install browsers
-        run: npx playwright install --with-deps chromium webkit firefox
+        run: npx playwright install --with-deps chromium
 
-      # The app refuses to serve without SESSION_SECRET, and the catalog specs expect the bedding.mock.shop demo
-      # store (storefront/DEV_DATA.md). Every value below is a public placeholder, NOT a credential: the token is
-      # the 32-character dummy bedding.mock.shop ignores, the secrets only sign cookies of a throwaway CI server
-      # (32+ characters because a production preview refuses shorter ones), the Extend values are those of the
-      # local mock. The files match the git-ignored `.env.*` pattern and exist only on the runner.
-      # PUBLIC_SITE_URL stays unset on purpose (canonical URLs then follow the request host).
       - name: Write placeholder env files for the e2e servers
+        id: env_files
         run: |
           cat > .env.ci <<'EOF'
           PUBLIC_STORE_DOMAIN=bedding.mock.shop
@@ -112,31 +144,43 @@ jobs:
             echo 'EXTEND_ACCESS_TOKEN=mock-access-token'
           } > .env.ci-protection
 
-      # Run 1 is the whole suite on the plain mock store, in all five browser projects. Specs that need a
-      # delivery zone, the Extend flag or a production preview skip themselves with a stated reason here and run
-      # in the three steps below.
-      - name: End-to-end tests (mock store, all browsers)
+      # Needed by run 4 (the preview serves this bundle). A failed build must not hide runs 1 to 3, so it has an id
+      # and the runs below test the outcome of the steps they depend on instead of relying on the default success().
+      - name: Build (bundle for the production preview run)
+        id: build
+        run: npm run build
+
+      # Runs 1 to 4 each use `!cancelled()` so that one red run does not skip the others: the first remote run must
+      # report every result. A run is skipped only when the setup it needs did not complete (env files step), or for
+      # run 4 also when the build failed. Each run has its own E2E_RUN_NAME so a later run does not erase the report
+      # and traces of an earlier failed one (playwright.config.ts).
+      #
+      # Run 1 is the whole suite on the plain mock store, in the two required Chromium projects. Specs that need a
+      # delivery zone, the Extend flag or a production preview skip themselves with a stated reason here and run in
+      # the three steps below.
+      - name: End-to-end tests (mock store, Chromium desktop and mobile)
+        if: ${{ !cancelled() && steps.env_files.outcome == 'success' }}
         run: npm run e2e
         env:
-          CI: "true"
-          E2E_ALL_BROWSERS: "1"
           E2E_ENV_FILE: .env.ci
+          E2E_RUN_NAME: run1-mock-store
 
       # Run 2: a server with a delivery zone. delivery.spec, plus the shell spec for the ZIP-entry tests that skip
-      # without a zone. Chromium projects only, to keep the job short; the cookie logic is browser-independent
-      # server code and run 1 covers the zone-less path in every browser.
+      # without a zone.
       - name: End-to-end tests (delivery zone)
+        if: ${{ !cancelled() && steps.env_files.outcome == 'success' }}
         run: >
           npx playwright test tests/e2e/delivery.spec.ts tests/e2e/shell.spec.ts
           --project=desktop-chromium --project=mobile-chromium
         env:
-          CI: "true"
           E2E_ENV_FILE: .env.ci-delivery
           E2E_PORT: "3700"
+          E2E_RUN_NAME: run2-delivery
 
       # Run 3: a server with the Extend flag on and the local Extend mock running. The mock and the Playwright run
       # share one step so the mock is always stopped, even when a test fails.
       - name: End-to-end tests (Extend protection flag, local mock)
+        if: ${{ !cancelled() && steps.env_files.outcome == 'success' }}
         run: |
           node ../scripts/mocks/extend-mock.mjs --port 4010 &
           mock_pid=$!
@@ -144,25 +188,86 @@ jobs:
           npx playwright test tests/e2e/protection.spec.ts tests/e2e/resilience.spec.ts \
             --project=desktop-chromium --project=mobile-chromium
         env:
-          CI: "true"
           E2E_ENV_FILE: .env.ci-protection
           E2E_PORT: "3900"
           E2E_PROTECTION_FLAG: "on"
+          E2E_RUN_NAME: run3-protection
 
       # Run 4: the production bundle built above, served by `shopify hydrogen preview` (b20-production.spec;
       # Chromium only because it asserts Chromium's own console wording). Reuses the `.env.ci` values, which already
       # satisfy the production 32-character secret rule.
       - name: End-to-end tests (production preview)
+        if: ${{ !cancelled() && steps.env_files.outcome == 'success' && steps.build.outcome == 'success' }}
         run: npx playwright test tests/e2e/b20-production.spec.ts --project=desktop-chromium --project=mobile-chromium
         env:
-          CI: "true"
           E2E_ENV_FILE: .env.ci
           E2E_PORT: "4400"
           E2E_PROD_PREVIEW: "1"
+          E2E_RUN_NAME: run4-production-preview
+
       - uses: actions/upload-artifact@v4.6.2
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-chromium
+          path: |
+            storefront/playwright-report
+            storefront/test-results
+          retention-days: 7
+
+  # WebKit and Firefox have never run against this suite, so there is no baseline of what passes there. Until there
+  # is one, this job reports but cannot block: `continue-on-error` keeps a red run from failing the workflow, and the
+  # job is not in the required checks. Promote it (remove continue-on-error, add it to branch protection) after a few
+  # consecutive green runs, and delete the projects that stay flaky for browser reasons rather than hiding them.
+  #
+  # Decision: it uses the dev server, like the required job, not the production preview (E2E_PROD_PREVIEW). Same
+  # server means a difference between the two jobs is the browser and nothing else. The preview would avoid the cold
+  # Vite compile, but it has only ever served one spec (b20-production), many specs rely on dev-only behaviour, and
+  # an unproven server would mix two unknowns in one first signal. Revisit if this job's failures are dominated by
+  # cold-start timeouts rather than by browser differences.
+  #
+  # Only run 1 (whole suite, plain mock store) runs here. Runs 2 to 4 test server logic that does not depend on the
+  # browser and stay Chromium only.
+  e2e-crossbrowser:
+    name: E2E (WebKit and Firefox, not required)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    # 224 tests per project, so about 670 in three projects on two workers; a ceiling until the first real run
+    # gives a duration.
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: storefront
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: storefront/package-lock.json
+      - run: npm ci
+      - name: Install browsers
+        run: npx playwright install --with-deps webkit firefox
+      - name: Write placeholder env file for the e2e server
+        run: |
+          cat > .env.ci <<'EOF'
+          PUBLIC_STORE_DOMAIN=bedding.mock.shop
+          PUBLIC_CHECKOUT_DOMAIN=bedding.mock.shop
+          PUBLIC_STOREFRONT_API_TOKEN=00000000000000000000000000000000
+          SESSION_SECRET=ci-placeholder-session-secret-0123456789abcdef
+          DELIVERY_COOKIE_SECRET=ci-placeholder-delivery-cookie-secret-0123456789
+          EOF
+      - name: End-to-end tests (mock store, WebKit and Firefox)
+        run: >
+          npx playwright test
+          --project=desktop-webkit --project=mobile-webkit --project=desktop-firefox
+        env:
+          E2E_ALL_BROWSERS: "1"
+          E2E_ENV_FILE: .env.ci
+          E2E_RUN_NAME: crossbrowser
+      - uses: actions/upload-artifact@v4.6.2
+        if: failure()
+        with:
+          name: playwright-report-crossbrowser
           path: |
             storefront/playwright-report
             storefront/test-results
