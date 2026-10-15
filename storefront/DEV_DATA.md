@@ -16,7 +16,8 @@ The app reads its store from `PUBLIC_STORE_DOMAIN`. The default `.env` points at
    ```
 
    - The token is a 32-character placeholder: bedding.mock.shop does not check it, but Hydrogen's consent code logs an error unless the token is exactly 32 characters (it rejects anything else as "private"). `PUBLIC_CHECKOUT_DOMAIN` is required by the same code.
-   - `SESSION_SECRET` is needed because the replacement file has to supply every variable; this value only signs a local cookie.
+   - `SESSION_SECRET` is needed because the replacement file has to supply every variable; this value only signs a local cookie. In a production build or preview it must be at least 32 characters (shorter is refused with a 500, DEC-032), so use a 32+ character placeholder there.
+   - `DELIVERY_COOKIE_SECRET` (32+ characters, different from `SESSION_SECRET`) is needed for anything that saves a delivery ZIP. Without it the ZIP cannot be saved and the delivery e2e tests that save one (the shell ZIP entry tests) fail; that is the intended fail-closed behaviour. Add a local placeholder value to the env file when you run them.
 
 2. Start the dev server: `npm run dev -- --port 3400 --env-file .env.bedding`
 

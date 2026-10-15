@@ -1,6 +1,7 @@
 import * as serverBuild from 'virtual:react-router/server-build';
 import {createRequestHandler, storefrontRedirect} from '@shopify/hydrogen';
 import {createHydrogenRouterContext} from '~/lib/context';
+import {applySecurityHeaders} from '~/lib/security-headers';
 import {appendSetCookie, describeError} from '~/lib/server-safety';
 
 /**
@@ -29,7 +30,20 @@ export default {
         getLoadContext: () => hydrogenContext,
       });
 
-      const response = await handleRequest(request);
+      let response = await handleRequest(request);
+
+      // Documents get these in entry.server; this covers the resource routes (/api/*, /webhooks/*, cart JSON, redirects) that
+      // never reach it. A response with immutable headers (a redirect built by Response.redirect) is copied first.
+      const securityInput = {
+        requestUrl: request.url,
+        forwardedProto: request.headers.get('X-Forwarded-Proto'),
+      };
+      try {
+        applySecurityHeaders(response.headers, securityInput);
+      } catch {
+        response = new Response(response.body, response);
+        applySecurityHeaders(response.headers, securityInput);
+      }
 
       if (hydrogenContext.session.isPending) {
         // Append, never set: a route may already have written the cart or ZIP cookie on this response (N-L4).
