@@ -40,6 +40,9 @@ export async function expectNoSeriousA11yViolations(
  */
 export const KNOWN_MOCK_SHOP_ERRORS: readonly string[] = [
   'Shopify Customer Privacy',
+  // Shopify's consent script posts performance telemetry to shopifysvc.com, which our Content Security Policy refuses
+  // (D-QA-1). It is Shopify's script, not our code, and blocking it is intended: nothing we ship depends on it.
+  'shopifysvc.com',
 ];
 
 /** Collects console errors so a spec can assert the page is quiet (known mock.shop noise is excluded). */
