@@ -52,10 +52,10 @@ Each route sets its own title through `formatPageTitle`. Unique `description` me
 
 ## Open items
 
-| Item | Owner / task |
-|---|---|
-| Canonical `<link>` tag on product, brand, page, store and blog routes (the header already covers them) | owners of those routes, P7-04 follow-up |
-| Article handle shape, real brand and store sitemap entries, Search Console submission | development store, launch (P9) |
-| Organization markup | blocked on client data (legal name, logo, profile links; CLR) |
-| Shop policies in the sitemap: confirm on the development store that the four fields return the pages the route serves; the `/policies` index also links the subscription policy, which the policy route answers 404 (route owner) | V-05 |
-| Verify `seo.hidden` and tag search on the development store; admin guide entry for the `offer-only` tag | V-05, `technical-writer` |
+| Item                                                                                                                                                                                                                                                                                     | Owner / task                                                  |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Canonical `<link>` tag on product, brand, page, store and blog routes (the header already covers them)                                                                                                                                                                                   | owners of those routes, P7-04 follow-up                       |
+| Article handle shape, real brand and store sitemap entries, Search Console submission                                                                                                                                                                                                    | development store, launch (P9)                                |
+| Organization markup                                                                                                                                                                                                                                                                      | blocked on client data (legal name, logo, profile links; CLR) |
+| Shop policies in the sitemap: confirm on the development store that the four fields (privacy, shipping, terms of service, refund) return the pages the route serves. The `/policies` index and the sitemap now list the same four; the subscription policy is neither queried nor listed | V-05                                                          |
+| Verify `seo.hidden` and tag search on the development store; admin guide entry for the `offer-only` tag                                                                                                                                                                                  | V-05, `technical-writer`                                      |

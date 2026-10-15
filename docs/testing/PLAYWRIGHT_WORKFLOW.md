@@ -37,13 +37,13 @@ npx playwright show-trace test-results/<trace>.zip
 
 ### E2E switches and environment files
 
-| Switch                    | Effect                                                                                                                                                                             |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `E2E_PORT` (default 3100) | Port the config starts or reuses. Set it to the port of a server you started yourself with `--env-file`                                                                            |
-| `E2E_ALL_BROWSERS=1`      | Adds desktop WebKit, mobile WebKit (iPhone 14) and desktop Firefox to desktop and mobile (Pixel 7) Chromium. Needs `npx playwright install` for those browsers; CI sets it         |
-| `E2E_PROTECTION_FLAG=on`  | Tells `protection.spec` and `resilience.spec` the server was started with `PUBLIC_EXTEND_ENABLED=true`; without it the flag-off tests run and the others skip with a stated reason |
-| `E2E_PROD_PREVIEW=1`      | Enables `b20-production.spec` against a production preview; without it the spec skips                                                                                              |
-| `CI`                      | Set by CI: one retry, two workers, no server reuse, `forbidOnly`                                                                                                                   |
+| Switch                    | Effect                                                                                                                                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `E2E_PORT` (default 3100) | Port the config starts or reuses. Set it to the port of a server you started yourself with `--env-file`                                                                                               |
+| `E2E_ALL_BROWSERS=1`      | Adds desktop WebKit, mobile WebKit (iPhone 14) and desktop Firefox to desktop and mobile (Pixel 7) Chromium. Needs `npx playwright install` for those browsers; only the CI cross-browser job sets it |
+| `E2E_PROTECTION_FLAG=on`  | Tells `protection.spec` and `resilience.spec` the server was started with `PUBLIC_EXTEND_ENABLED=true`; without it the flag-off tests run and the others skip with a stated reason                    |
+| `E2E_PROD_PREVIEW=1`      | Enables `b20-production.spec` against a production preview; without it the spec skips                                                                                                                 |
+| `CI`                      | Set by CI: one retry, two workers, no server reuse, `forbidOnly`                                                                                                                                      |
 
 | Env file (git-ignored, you create it) | Used with                                                                                    | Port in the docs | Specs                                                                                                                                            |
 | ------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
