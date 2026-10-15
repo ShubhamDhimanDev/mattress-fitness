@@ -22,17 +22,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0 # full history for the secret scan below
       - uses: actions/setup-node@v4.4.0
         with:
           node-version-file: .nvmrc
       - run: node scripts/validate-framework.mjs
+      # History secret scan with git and grep only (no third-party action, T-12). Same token shapes as checkSecrets()
+      # in scripts/validate-framework.mjs, which scans only the current tree. Prints paths and never the matched text.
+      # A dedicated scanner is a recommendation, not a dependency: docs/deployment/DEPLOYMENT.md, "Pipeline".
+      - name: Secret scan of the full git history
+        run: |
+          set +e
+          status=0
+          count=0
+          # git grep exits 0 on a match, 1 on none and above 1 on an error; an error must fail the step, not pass it.
+          for commit in $(git rev-list --all); do
+            count=$((count + 1))
+            for re in 'shp(at|ss|ca|pa)_[a-fA-F0-9]{16,}' '(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}' '-----BEGIN [A-Z ]*PRIVATE KEY-----' 'Bearer[[:space:]]+[A-Za-z0-9._~+/-]{24,}' '(^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}([^A-Za-z0-9]|$)'; do
+              hits=$(git grep -I -l -E -e "$re" "$commit" -- . ':!scripts/validate-framework.mjs')
+              rc=$?
+              if [ "$rc" -gt 1 ]; then echo "git grep failed (exit $rc) at $commit"; exit 2; fi
+              if [ "$rc" -eq 0 ]; then echo "possible secret (pattern $re) in: $hits"; status=1; fi
+            done
+          done
+          echo "history scanned: $count commits"
+          exit $status
       # Zero-dependency tooling tests (catalog importer, Shopify definitions, Extend mock). The quoted glob is required on Node 22.
       - run: node --test "scripts/**/*.test.mjs"
 
   storefront:
     name: Storefront (format, lint, types, unit, build, e2e)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Run 1 alone is the whole e2e suite in five browser projects on two workers; a 3-spec subset took 7 minutes
+    # locally in two Chromium projects. Lower this once the first real run gives a duration.
+    timeout-minutes: 90
     defaults:
       run:
         working-directory: storefront
@@ -58,11 +82,83 @@ jobs:
 
       - name: Install browsers
         run: npx playwright install --with-deps chromium webkit firefox
-      - name: End-to-end tests
+
+      # The app refuses to serve without SESSION_SECRET, and the catalog specs expect the bedding.mock.shop demo
+      # store (storefront/DEV_DATA.md). Every value below is a public placeholder, NOT a credential: the token is
+      # the 32-character dummy bedding.mock.shop ignores, the secrets only sign cookies of a throwaway CI server
+      # (32+ characters because a production preview refuses shorter ones), the Extend values are those of the
+      # local mock. The files match the git-ignored `.env.*` pattern and exist only on the runner.
+      # PUBLIC_SITE_URL stays unset on purpose (canonical URLs then follow the request host).
+      - name: Write placeholder env files for the e2e servers
+        run: |
+          cat > .env.ci <<'EOF'
+          PUBLIC_STORE_DOMAIN=bedding.mock.shop
+          PUBLIC_CHECKOUT_DOMAIN=bedding.mock.shop
+          PUBLIC_STOREFRONT_API_TOKEN=00000000000000000000000000000000
+          SESSION_SECRET=ci-placeholder-session-secret-0123456789abcdef
+          DELIVERY_COOKIE_SECRET=ci-placeholder-delivery-cookie-secret-0123456789
+          EOF
+          # Same store plus one delivery zone (placeholder wording and ZIPs, not client data): delivery.spec.
+          {
+            cat .env.ci
+            echo 'OFFER_CONFIG_JSON={"zone":{"name":"Test metro","postalCodes":"606*, 60007","feeCents":14900,"freeOverCents":99900,"promise":{"inHome":"Free in-home delivery and setup for your area.","parcel":"","pickup":""}}}'
+          } > .env.ci-delivery
+          # Same store plus the Extend flag pointed at the local mock (scripts/mocks/extend-mock.mjs, port 4010).
+          {
+            cat .env.ci
+            echo 'PUBLIC_EXTEND_ENABLED=true'
+            echo 'EXTEND_API_HOST=http://127.0.0.1:4010'
+            echo 'EXTEND_STORE_ID=mock-store-id'
+            echo 'EXTEND_ACCESS_TOKEN=mock-access-token'
+          } > .env.ci-protection
+
+      # Run 1 is the whole suite on the plain mock store, in all five browser projects. Specs that need a
+      # delivery zone, the Extend flag or a production preview skip themselves with a stated reason here and run
+      # in the three steps below.
+      - name: End-to-end tests (mock store, all browsers)
         run: npm run e2e
         env:
-          CI: 'true'
-          E2E_ALL_BROWSERS: '1'
+          CI: "true"
+          E2E_ALL_BROWSERS: "1"
+          E2E_ENV_FILE: .env.ci
+
+      # Run 2: a server with a delivery zone. delivery.spec, plus the shell spec for the ZIP-entry tests that skip
+      # without a zone. Chromium projects only, to keep the job short; the cookie logic is browser-independent
+      # server code and run 1 covers the zone-less path in every browser.
+      - name: End-to-end tests (delivery zone)
+        run: >
+          npx playwright test tests/e2e/delivery.spec.ts tests/e2e/shell.spec.ts
+          --project=desktop-chromium --project=mobile-chromium
+        env:
+          CI: "true"
+          E2E_ENV_FILE: .env.ci-delivery
+          E2E_PORT: "3700"
+
+      # Run 3: a server with the Extend flag on and the local Extend mock running. The mock and the Playwright run
+      # share one step so the mock is always stopped, even when a test fails.
+      - name: End-to-end tests (Extend protection flag, local mock)
+        run: |
+          node ../scripts/mocks/extend-mock.mjs --port 4010 &
+          mock_pid=$!
+          trap 'kill "$mock_pid" 2>/dev/null || true' EXIT
+          npx playwright test tests/e2e/protection.spec.ts tests/e2e/resilience.spec.ts \
+            --project=desktop-chromium --project=mobile-chromium
+        env:
+          CI: "true"
+          E2E_ENV_FILE: .env.ci-protection
+          E2E_PORT: "3900"
+          E2E_PROTECTION_FLAG: "on"
+
+      # Run 4: the production bundle built above, served by `shopify hydrogen preview` (b20-production.spec;
+      # Chromium only because it asserts Chromium's own console wording). Reuses the `.env.ci` values, which already
+      # satisfy the production 32-character secret rule.
+      - name: End-to-end tests (production preview)
+        run: npx playwright test tests/e2e/b20-production.spec.ts --project=desktop-chromium --project=mobile-chromium
+        env:
+          CI: "true"
+          E2E_ENV_FILE: .env.ci
+          E2E_PORT: "4400"
+          E2E_PROD_PREVIEW: "1"
       - uses: actions/upload-artifact@v4.6.2
         if: failure()
         with:

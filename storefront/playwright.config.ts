@@ -7,6 +7,22 @@ const PORT = Number(process.env.E2E_PORT ?? 3100);
 const baseURL = `http://localhost:${PORT}`;
 const allBrowsers = process.env.E2E_ALL_BROWSERS === '1';
 
+// The server Playwright starts reads its store and settings from an env file. `E2E_ENV_FILE` names one (a path
+// relative to storefront/, for example `.env.bedding`); unset, the app's default `.env` is used. CI writes
+// placeholder files and starts one Playwright run per server configuration (DEV_DATA.md "CI"). The value is
+// restricted so it cannot add shell syntax to the command.
+const envFile = process.env.E2E_ENV_FILE ?? '';
+if (envFile !== '' && !/^[\w./-]+$/.test(envFile)) {
+  throw new Error('E2E_ENV_FILE may only contain letters, digits, _ . / -');
+}
+const envFileArg = envFile === '' ? '' : ` --env-file ${envFile}`;
+// `E2E_PROD_PREVIEW=1` serves the already built production bundle (run `npm run build` first) instead of the dev
+// server, for tests/e2e/b20-production.spec.ts.
+const serverCommand =
+  process.env.E2E_PROD_PREVIEW === '1'
+    ? `npx shopify hydrogen preview --port ${PORT}${envFileArg}`
+    : `npm run dev -- --port ${PORT} --disable-version-check${envFileArg}`;
+
 export default defineConfig({
   testDir: './tests/e2e',
   outputDir: './test-results',
@@ -25,7 +41,7 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   webServer: {
-    command: `npm run dev -- --port ${PORT} --disable-version-check`,
+    command: serverCommand,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
