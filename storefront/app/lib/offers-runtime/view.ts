@@ -133,6 +133,30 @@ export type AddOnView = {
   readonly variant: OfferedVariant;
 };
 
+/**
+ * A bundle rule whose anchor product is in the cart (REQ-ADD-002, REQ-PROMO-002). `incomplete`: companions are missing
+ * and every one of them can be bought now (all or nothing, bundles.ts). `complete`: shown only when Shopify reports a
+ * line-level saving on the bundle's lines; the saving is read from the cart's discount allocations, never computed from
+ * a rule or from the browser. A complete bundle with no reported saving is not listed at all.
+ */
+export type BundleOfferView = {
+  readonly bundleId: string;
+  readonly name: string;
+  readonly anchorLineId: string;
+  readonly anchorTitle: string;
+  readonly status: 'incomplete' | 'complete';
+  /** Companions the shopper may add in one step; empty when complete. Display only: the server derives the lines again. */
+  readonly missing: ReadonlyArray<{
+    readonly variant: OfferedVariant;
+    readonly quantity: number;
+  }>;
+  /** Shopify's saving on the bundle's lines as returned; null unless complete and Shopify reported one. */
+  readonly savings: {
+    readonly amount: string;
+    readonly currencyCode: string;
+  } | null;
+};
+
 export type CartOffersView = {
   /** Cart version this view describes; the newest view wins when several arrive (see useCartOffers). */
   readonly updatedAt: string | null;
@@ -145,6 +169,7 @@ export type CartOffersView = {
   readonly accidentProtection: AccidentProtectionView | null;
   readonly gifts: readonly GiftView[];
   readonly addOns: readonly AddOnView[];
+  readonly bundles: readonly BundleOfferView[];
   /** Cart line id -> the sizes it can be swapped to (regular lines of multi-size products only). */
   readonly lineSizes: Readonly<Record<string, readonly SizeChoice[]>>;
   /** Why the hand-off is refused; empty when it may go ahead. */
@@ -323,6 +348,8 @@ export function buildOffersView(input: BuildViewInput): CartOffersView {
     accidentProtection: protectionView,
     gifts,
     addOns,
+    // Bundles need the whole cart and Shopify's discount allocations; cart-gate.ts fills them in after this view is built.
+    bundles: [],
     lineSizes: input.lineSizes,
     blocked: input.blocked,
     notices: input.notices,
@@ -344,6 +371,7 @@ export function unverifiedView(
     accidentProtection: null,
     gifts: [],
     addOns: [],
+    bundles: [],
     lineSizes: {},
     blocked: [reason],
     notices: [],

@@ -2,7 +2,11 @@ import {describe, expect, it} from 'vitest';
 import cartFixture from '../../fixtures/shopify/cart.json';
 import {toCartLike, type CartSource} from '~/lib/shopify/cart-mapper';
 import {isCartActionResult, readCartMessages} from '~/lib/cart/messages';
-import {visibleLineProperties, visibleOptions} from '~/lib/cart/lines';
+import {
+  linePromotions,
+  visibleLineProperties,
+  visibleOptions,
+} from '~/lib/cart/lines';
 import {evaluateOffers} from '~/lib/offers/evaluate';
 import {EMPTY_OFFER_RULES} from '~/lib/offers/types';
 
@@ -151,5 +155,70 @@ describe('line display helpers', () => {
         {name: 'Size', value: 'Queen'},
       ]),
     ).toEqual([{name: 'Size', value: 'Queen'}]);
+  });
+});
+
+// REQ-PROMO-001 / REQ-PROMO-002: the promotion Shopify applied to a line is shown with its name and Shopify's amount.
+describe('linePromotions', () => {
+  it('lists a named line-level discount with the amount Shopify took off', () => {
+    expect(
+      linePromotions([
+        {
+          targetType: 'LINE_ITEM',
+          title: 'Free pillow',
+          discountedAmount: {amount: '49.00'},
+        },
+      ]),
+    ).toEqual([{title: 'Free pillow', amount: '$49.00'}]);
+  });
+
+  it.each([
+    [
+      'a shipping allocation',
+      {
+        targetType: 'SHIPPING_LINE',
+        title: 'A',
+        discountedAmount: {amount: '5.00'},
+      },
+    ],
+    [
+      'an unnamed discount',
+      {
+        targetType: 'LINE_ITEM',
+        title: null,
+        discountedAmount: {amount: '5.00'},
+      },
+    ],
+    [
+      'a zero amount',
+      {targetType: 'LINE_ITEM', title: 'A', discountedAmount: {amount: '0.00'}},
+    ],
+    [
+      'an unreadable amount',
+      {targetType: 'LINE_ITEM', title: 'A', discountedAmount: {amount: 'abc'}},
+    ],
+    [
+      'a missing amount',
+      {targetType: 'LINE_ITEM', title: 'A', discountedAmount: null},
+    ],
+  ])('drops %s', (_name, allocation) => {
+    expect(linePromotions([allocation])).toEqual([]);
+  });
+
+  it('shows nothing for a line without allocations (an optimistic line)', () => {
+    expect(linePromotions(undefined)).toEqual([]);
+    expect(linePromotions(null)).toEqual([]);
+  });
+
+  it('strips markup from a title (it is text, never HTML)', () => {
+    expect(
+      linePromotions([
+        {
+          targetType: 'LINE_ITEM',
+          title: '<b>Gift</b>',
+          discountedAmount: {amount: '5.00'},
+        },
+      ])[0]?.title,
+    ).not.toContain('<');
   });
 });

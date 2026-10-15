@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {
   addAllPayload,
   bundleCartStatus,
+  bundleCompletions,
   bundleMemberVariantIds,
   bundleMembership,
   reconcileAddAll,
@@ -387,6 +388,136 @@ describe('bundleCartStatus (REQ-PROMO-002)', () => {
         makeCart([mattressA('Queen', {quantity: -1})]),
         RULES,
       ),
+    ).toEqual([]);
+  });
+});
+
+// REQ-ADD-002 / REQ-PROMO-002: what an anchor line in the cart still needs to complete a bundle.
+describe('bundleCompletions', () => {
+  const completionsFor = (
+    lines: Parameters<typeof makeCart>[0],
+    rule: BundleRule = BUNDLE,
+  ) => bundleCompletions(rule, makeCart(lines), RULES);
+
+  it('lists every companion in the anchor size when the cart has only the anchor', () => {
+    const [completion] = completionsFor([mattressA('Queen')]);
+    expect(completion).toMatchObject({
+      bundleId: BUNDLE.id,
+      anchorLineId: 'mattress-queen',
+      state: 'incomplete',
+      memberVariantIds: [VARIANT.foundQueen, VARIANT.pillow],
+    });
+    expect(completion?.missing).toEqual([
+      {
+        variantId: VARIANT.foundQueen,
+        productId: PRODUCT.foundation,
+        quantity: 1,
+        isAnchor: false,
+      },
+      {
+        variantId: VARIANT.pillow,
+        productId: PRODUCT.pillow,
+        quantity: 2,
+        isAnchor: false,
+      },
+    ]);
+  });
+
+  it('lists only what is still missing', () => {
+    const [completion] = completionsFor([
+      mattressA('Queen'),
+      makeLine({
+        id: 'pillows',
+        variantId: VARIANT.pillow,
+        productId: PRODUCT.pillow,
+        quantity: 1,
+      }),
+    ]);
+    expect(completion?.state).toBe('incomplete');
+    expect(
+      completion?.missing.map((line) => [line.variantId, line.quantity]),
+    ).toEqual([
+      [VARIANT.foundQueen, 1],
+      [VARIANT.pillow, 1],
+    ]);
+  });
+
+  it('is complete, with nothing to add, when every companion is in the cart', () => {
+    const [completion] = completionsFor([
+      mattressA('Queen'),
+      makeLine({
+        id: 'f',
+        variantId: VARIANT.foundQueen,
+        productId: PRODUCT.foundation,
+      }),
+      makeLine({
+        id: 'p',
+        variantId: VARIANT.pillow,
+        productId: PRODUCT.pillow,
+        quantity: 2,
+      }),
+    ]);
+    expect(completion).toMatchObject({state: 'complete', missing: []});
+  });
+
+  it('scales the companions with the anchor quantity', () => {
+    const [completion] = completionsFor([mattressA('Queen', {quantity: 2})]);
+    expect(completion?.missing.map((line) => line.quantity)).toEqual([2, 4]);
+  });
+
+  it('does not let one foundation complete two mattresses of the same size', () => {
+    const completions = completionsFor([
+      mattressA('Queen', {id: 'q1'}),
+      mattressA('Queen', {id: 'q2'}),
+      makeLine({
+        id: 'f',
+        variantId: VARIANT.foundQueen,
+        productId: PRODUCT.foundation,
+      }),
+      makeLine({
+        id: 'p',
+        variantId: VARIANT.pillow,
+        productId: PRODUCT.pillow,
+        quantity: 2,
+      }),
+    ]);
+    expect(completions.map((c) => [c.anchorLineId, c.state])).toEqual([
+      ['q1', 'complete'],
+      ['q2', 'incomplete'],
+    ]);
+  });
+
+  it('is unavailable (never a partial bundle) when a companion has no variant in the anchor size', () => {
+    const [completion] = completionsFor([mattressA('Twin')]);
+    expect(completion).toMatchObject({state: 'unavailable', missing: []});
+  });
+
+  it('is unavailable for an invalid rule (a member quantity of 0 or 1000)', () => {
+    for (const quantity of [0, 1000]) {
+      const rule: BundleRule = {
+        ...BUNDLE,
+        members: [{...BUNDLE.members[1]!, quantity}],
+      };
+      const [completion] = completionsFor([mattressA('Queen')], rule);
+      expect(completion?.state).toBe('unavailable');
+    }
+  });
+
+  it('is unavailable when it would need more units than one cart line may hold', () => {
+    const [completion] = completionsFor([mattressA('Queen', {quantity: 50})]);
+    expect(completion?.state).toBe('unavailable');
+  });
+
+  it('only an ordinary line anchors a bundle: a gift line of the anchor product does not', () => {
+    const completions = completionsFor([
+      mattressA('Queen', {role: 'gift', id: 'g'}),
+    ]);
+    expect(completions).toEqual([]);
+  });
+
+  it('says nothing when the anchor product is not in the cart', () => {
+    expect(
+      completionsFor([makeLine({id: 'x', productId: PRODUCT.other})]),
     ).toEqual([]);
   });
 });

@@ -44,7 +44,7 @@ export function ProductBuyBox({
   protection?: ProtectionMode;
 }) {
   const navigate = useNavigate();
-  const {open} = useAside();
+  const {open, type: asideType} = useAside();
   // The choice remembers its variant: switching size forgets it (a plan quoted for one size is never sent for another).
   const [choice, setChoice] = useState<{
     variantId: string;
@@ -200,7 +200,7 @@ export function ProductBuyBox({
         </AddToCartButton>
       )}
       {protection === 'unknown' ? panel : null}
-      <CartMessages />
+      <CartMessages suppressed={asideType === 'cart'} />
       <CompareToggle handle={product.handle} title={product.title} />
 
       {/* Delivery promise for the saved ZIP (P5B-03, REQ-DEL-002). Read after load so this page carries no ZIP. */}

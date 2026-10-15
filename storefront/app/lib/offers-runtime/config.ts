@@ -383,3 +383,13 @@ export function readOfferConfig(env: object): OfferConfigLoad {
 export function rulesNeedCollections(rules: OfferRules): boolean {
   return rules.gifts.some((gift) => gift.qualifyingCollectionIds.length > 0);
 }
+
+/**
+ * The offer rules for a cart the gate has already judged (server.ts `loadConfig` decided "off", "required" and
+ * "unverified" before this is called): "offers off" and a missing or unreadable setting both read as no rules. Never
+ * use it to decide whether a cart may be judged at all; that is the gate's decision, not this one's.
+ */
+export function offerRulesOf(env: object): OfferRules {
+  if (Reflect.get(env, 'OFFERS_ENABLED') === 'false') return EMPTY_OFFER_RULES;
+  return readOfferConfig(env).config.rules;
+}

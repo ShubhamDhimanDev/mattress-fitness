@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {
   currentCartResultSeq,
   useLatestCartResult,
@@ -12,16 +12,33 @@ import {readCartMessages, type CartMessage} from '~/lib/cart/messages';
  * say, so screen readers announce text the moment it appears (WCAG 4.1.3). The newest result replaces the
  * previous one, so a later success clears an old error. Results come from the forms that submitted them
  * (cart-results.ts, B-20), not from useFetchers(), which never lists a finished fetcher.
+ *
+ * `suppressed`: the cart drawer shows the same results, and two live regions saying the same thing is two announcements
+ * (review item m4). A copy outside the drawer (the product buy box) passes `suppressed={drawerIsOpen}`. Results that
+ * arrive while suppressed count as already seen, so they are not announced again when the drawer closes.
  */
-export function CartMessages({className}: {className?: string}) {
+export function CartMessages({
+  className,
+  suppressed = false,
+}: {
+  className?: string;
+  suppressed?: boolean;
+}) {
   const {seq, data} = useLatestCartResult();
   // Results that already existed when this component mounted are old news (for example a drawer opened
   // long after an earlier error); only results that arrive while it is mounted are shown.
   const [mountedAt] = useState(currentCartResultSeq);
   const [dismissedAt, setDismissedAt] = useState(0);
+  // Marked as seen from an effect: the render that first sees a suppressed result must not announce it either.
+  useEffect(() => {
+    if (suppressed) setDismissedAt(seq);
+  }, [suppressed, seq]);
   const messages = useMemo<readonly CartMessage[]>(
-    () => (seq > mountedAt && seq > dismissedAt ? readCartMessages(data) : []),
-    [seq, data, mountedAt, dismissedAt],
+    () =>
+      !suppressed && seq > mountedAt && seq > dismissedAt
+        ? readCartMessages(data)
+        : [],
+    [suppressed, seq, data, mountedAt, dismissedAt],
   );
 
   const errors = messages.filter((message) => message.kind === 'error');

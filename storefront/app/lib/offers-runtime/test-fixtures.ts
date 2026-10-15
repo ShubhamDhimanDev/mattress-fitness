@@ -14,14 +14,18 @@ export const GID = {
   giftPillow: 'gid://shopify/Product/3',
   haul: 'gid://shopify/Product/4',
   pillow: 'gid://shopify/Product/5',
+  foundation: 'gid://shopify/Product/6',
   other: 'gid://shopify/Product/9',
   mattressQueen: 'gid://shopify/ProductVariant/11',
   mattressKing: 'gid://shopify/ProductVariant/12',
   protectorQueen: 'gid://shopify/ProductVariant/21',
   protectorKing: 'gid://shopify/ProductVariant/22',
   gift: 'gid://shopify/ProductVariant/31',
+  giftAlt: 'gid://shopify/ProductVariant/32',
   haulVariant: 'gid://shopify/ProductVariant/41',
   pillowVariant: 'gid://shopify/ProductVariant/51',
+  foundationQueen: 'gid://shopify/ProductVariant/71',
+  foundationKing: 'gid://shopify/ProductVariant/72',
   otherVariant: 'gid://shopify/ProductVariant/91',
   coverageVariant: 'gid://shopify/ProductVariant/61',
   coverageHigh: 'gid://shopify/ProductVariant/62',
@@ -79,6 +83,10 @@ type LineSpec = {
   attributes?: Array<{key: string; value: string}>;
   parentId?: string;
   priceCents?: number;
+  /** What Shopify charges for the line after line-level discounts; defaults to the unit price (the gift variant: 0). */
+  totalCents?: number;
+  /** A line-level discount allocation Shopify reports on the line (a bundle or promotion saving). */
+  discountCents?: number;
 };
 
 const money = (cents: number) => ({
@@ -86,13 +94,37 @@ const money = (cents: number) => ({
   currencyCode: 'USD' as const,
 });
 
+/** Variants the fixtures treat as gifts: Shopify's discount prices them at 0 unless a test switches it off. */
+function isGiftVariant(variantId: string): boolean {
+  return variantId === GID.gift || variantId === GID.giftAlt;
+}
+
 export function lineNode(spec: LineSpec) {
   const price = money(spec.priceCents ?? 100000);
+  // The gift variant is priced $0 by Shopify's discount in these fixtures, like a live promotion would.
+  const total = money(
+    spec.totalCents ??
+      (spec.discountCents === undefined
+        ? isGiftVariant(spec.variantId)
+          ? 0
+          : (spec.priceCents ?? 100000)
+        : (spec.priceCents ?? 100000) - spec.discountCents),
+  );
   return {
     id: spec.id,
     quantity: spec.quantity ?? 1,
     attributes: spec.attributes ?? [],
-    cost: {totalAmount: price, amountPerQuantity: price},
+    cost: {totalAmount: total, subtotalAmount: price, amountPerQuantity: price},
+    discountAllocations:
+      spec.discountCents === undefined
+        ? []
+        : [
+            {
+              targetType: 'LINE_ITEM' as const,
+              discountedAmount: money(spec.discountCents),
+              title: 'Test promotion',
+            },
+          ],
     merchandise: {
       id: spec.variantId,
       availableForSale: true,
@@ -258,6 +290,9 @@ export class FakeCart implements CartHandlerLike {
     return Promise.resolve(this.done());
   }
 
+  /** False models a store where the gift's Shopify discount is missing or inactive: a gift line is charged in full. */
+  giftDiscountLive = true;
+
   /** The calls this fake would refuse like Shopify does: a parent that cannot be resolved (F-26). */
   failOnBadParent = true;
 
@@ -322,6 +357,9 @@ export class FakeCart implements CartHandlerLike {
         size: sizeOfVariant(line.merchandiseId),
         ...(line.attributes ? {attributes: line.attributes} : {}),
         ...(parentId ? {parentId} : {}),
+        ...(!this.giftDiscountLive && isGiftVariant(line.merchandiseId)
+          ? {priceCents: 4900, totalCents: 4900}
+          : {}),
         ...(PRICE_OF_VARIANT[line.merchandiseId] !== undefined
           ? {priceCents: PRICE_OF_VARIANT[line.merchandiseId]}
           : {}),
@@ -347,6 +385,9 @@ const VARIANT_PRODUCT: Record<string, string> = {
   [GID.gift]: GID.giftPillow,
   [GID.haulVariant]: GID.haul,
   [GID.pillowVariant]: GID.pillow,
+  [GID.giftAlt]: GID.giftPillow,
+  [GID.foundationQueen]: GID.foundation,
+  [GID.foundationKing]: GID.foundation,
   [GID.otherVariant]: GID.other,
   [GID.coverageVariant]: GID.coverageProduct,
   [GID.coverageHigh]: GID.coverageProduct,
@@ -361,6 +402,8 @@ const VARIANT_SIZE: Record<string, string> = {
   [GID.mattressKing]: 'King',
   [GID.protectorQueen]: 'Queen',
   [GID.protectorKing]: 'King',
+  [GID.foundationQueen]: 'Queen',
+  [GID.foundationKing]: 'King',
 };
 
 export function productOfVariant(variantId: string): string {

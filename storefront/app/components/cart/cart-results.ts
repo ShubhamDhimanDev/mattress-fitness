@@ -1,5 +1,7 @@
 import {useEffect, useSyncExternalStore} from 'react';
 import {isCartActionResult} from '~/lib/cart/messages';
+import {readOffersView} from '~/lib/offers-runtime/client';
+import type {CartOffersView} from '~/lib/offers-runtime/view';
 
 // The newest answer of the `/cart` action, reported by the component that submitted it (B-20).
 //
@@ -18,9 +20,14 @@ export type CartResultSnapshot = {
   /** Counts results reported since the page loaded; 0 means none. */
   readonly seq: number;
   readonly data: Record<string, unknown> | null;
+  /**
+   * The newest offers view any reported answer carried. Kept apart from `data` on purpose: a refused action answers with
+   * no view, and the view of the cart as it still is must survive it (useCartOffers).
+   */
+  readonly offers: CartOffersView | null;
 };
 
-const EMPTY: CartResultSnapshot = {seq: 0, data: null};
+const EMPTY: CartResultSnapshot = {seq: 0, data: null, offers: null};
 let latest: CartResultSnapshot = EMPTY;
 const listeners = new Set<() => void>();
 // The same result object can be offered again (a remounted form, a second effect pass); it counts once.
@@ -43,7 +50,11 @@ export function currentCartResultSeq(): number {
 export function reportCartResult(data: unknown): void {
   if (!isCartActionResult(data) || reported.has(data)) return;
   reported.add(data);
-  latest = {seq: latest.seq + 1, data};
+  latest = {
+    seq: latest.seq + 1,
+    data,
+    offers: readOffersView(data) ?? latest.offers,
+  };
   listeners.forEach((listener) => listener());
 }
 

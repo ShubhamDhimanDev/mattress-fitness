@@ -12,3 +12,15 @@ export const ADD_WITH_PROTECTION_ACTION = 'CustomAddWithProtection';
 
 /** Protect a line already in the cart (cart and pre-checkout step, P5A-07): a line id and a plan key only. */
 export const ADD_PROTECTION_ACTION = 'CustomAddProtection';
+
+/**
+ * Add a gift from the cart picker (P4-04, REQ-CART-002): a rule id and a variant id, both taken from the offers view. The
+ * server re-judges the cart, proves the variant belongs to that rule and derives the quantity.
+ */
+export const ADD_GIFT_ACTION = 'CustomAddGift';
+
+/** Add a size-matched add-on from the cart picker (P4-05, REQ-CART-003): a variant id only. */
+export const ADD_ADDON_ACTION = 'CustomAddAddOn';
+
+/** Add the missing companions of a bundle (P4-06, REQ-ADD-002): a bundle id and the anchor line id only. */
+export const ADD_BUNDLE_ACTION = 'CustomAddBundle';

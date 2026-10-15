@@ -1,0 +1,228 @@
+// SERVER ONLY. The cart pickers' accept actions (P4-04 gift, P4-05 add-on, P4-06 bundle; REQ-CART-002, REQ-CART-003,
+// REQ-ADD-002, T-01, T-02). Same shape as protection-steps.ts: nothing but the shopper's intent comes from the browser.
+//  - GIFT: a rule id and a variant id. Both must be in what the engine offers THIS cart right now (a qualifying line is in
+//    the cart, the allowance is not used up, the variant is in stock) and the variant must belong to that rule. The
+//    quantity is always one and never read from the request. The gift's price is Shopify's discount: if the line is not
+//    priced at 0 afterwards, the cart gate pauses checkout (cart-gate.ts).
+//  - ADD-ON: a variant id. It must be one the engine offers for a mattress line in THIS cart (so the size match in the
+//    rules holds), in stock. Quantity is one; the shopper changes it with the cart's own stepper (add-ons are ordinary
+//    lines the engine never limits, addons.ts).
+//  - BUNDLE: a bundle id and an anchor line id. The lines to add are derived again from the rule and the cart (the
+//    companions still missing, in the anchor's size), added in ONE call, and the result is reconciled against the cart
+//    read back from Shopify, so a partial add is reported instead of looking like success.
+// A refusal is a fixed text and changes nothing; the route's gate then repairs whatever is left.
+
+import type {CartApiQueryFragment} from 'storefrontapi.generated';
+import {
+  bundleCompletions,
+  reconcileAddAll,
+  type BundleLine,
+} from '~/lib/offers/bundles';
+import {giftSizeOptions} from '~/lib/offers/gifts';
+import {toCartLike} from '~/lib/shopify/cart-mapper';
+import {revalidateCartGate, type GateResult} from './cart-gate';
+import {PICKER_STEP_FAILURE_TEXT, type PickerStepFailure} from './messages';
+import {
+  failed,
+  stepFailureText,
+  type CartMutationResult,
+  type OfferRuntime,
+  type StepFailure,
+} from './server';
+import type {CartOffersView} from './view';
+
+type SharedFailure = Extract<
+  StepFailure,
+  'cart-gone' | 'unverified' | 'add-failed'
+>;
+export type PickerFailure = PickerStepFailure | SharedFailure;
+
+export type PickerResult =
+  | {
+      readonly status: 'ok';
+      readonly result: CartMutationResult;
+      /** The change went through in part (a known code, shown as fixed text). */
+      readonly warning?: PickerStepFailure;
+    }
+  | {
+      readonly status: 'rejected';
+      readonly code: PickerFailure;
+      readonly reason: string;
+    };
+
+type Rejected = Extract<PickerResult, {status: 'rejected'}>;
+
+function isPickerFailure(code: PickerFailure): code is PickerStepFailure {
+  return code in PICKER_STEP_FAILURE_TEXT;
+}
+
+function rejection(code: PickerFailure): Rejected {
+  return {
+    status: 'rejected',
+    code,
+    reason: isPickerFailure(code)
+      ? PICKER_STEP_FAILURE_TEXT[code]
+      : stepFailureText(code),
+  };
+}
+
+/** The fixed text of a partial-success warning, for the route's `warnings`. */
+export function pickerWarningText(code: PickerStepFailure): string {
+  return PICKER_STEP_FAILURE_TEXT[code];
+}
+
+type Judged = {
+  readonly status: 'ok';
+  readonly gate: GateResult;
+  readonly cart: CartApiQueryFragment;
+  readonly view: CartOffersView;
+};
+
+/** Judges the cart as it is now. A cart that could not be verified offers nothing, like the protection step. */
+async function judge(
+  runtime: OfferRuntime,
+  current: CartApiQueryFragment | null,
+): Promise<Judged | Rejected> {
+  const gate = await revalidateCartGate(runtime, current);
+  const {cart, view} = gate;
+  if (!cart || cart.lines.nodes.length === 0) return rejection('cart-gone');
+  if (!view || view.blocked.some((reason) => reason.code === 'unverified')) {
+    return rejection('unverified');
+  }
+  return {status: 'ok', gate, cart, view};
+}
+
+export type AddGiftInput = {
+  readonly ruleId: string;
+  readonly variantId: string;
+};
+
+export async function addGift(
+  runtime: OfferRuntime,
+  current: CartApiQueryFragment | null,
+  input: AddGiftInput,
+): Promise<PickerResult> {
+  const judged = await judge(runtime, current);
+  if (judged.status === 'rejected') return judged;
+  const {gate, view} = judged;
+
+  const offered = view.gifts.find((gift) => gift.ruleId === input.ruleId);
+  if (!offered) return rejection('gift-not-offered');
+  // Twice on purpose: the view proves the variant is in stock for this cart, the rule proves it belongs to this gift.
+  const rule = gate.rules.gifts.find((gift) => gift.id === input.ruleId);
+  const inRule =
+    rule !== undefined &&
+    giftSizeOptions(rule).some((size) => size.variantId === input.variantId);
+  const inView = offered.sizes.some(
+    (size) => size.variant.variantId === input.variantId,
+  );
+  if (!inRule || !inView) return rejection('gift-choice-invalid');
+
+  const added = await runtime.cart.addLines([
+    {merchandiseId: input.variantId, quantity: 1},
+  ]);
+  return failed(added)
+    ? rejection('add-failed')
+    : {status: 'ok', result: added};
+}
+
+export type AddAddOnInput = {readonly variantId: string};
+
+export async function addAddOn(
+  runtime: OfferRuntime,
+  current: CartApiQueryFragment | null,
+  input: AddAddOnInput,
+): Promise<PickerResult> {
+  const judged = await judge(runtime, current);
+  if (judged.status === 'rejected') return judged;
+  const offered = judged.view.addOns.some(
+    (addOn) => addOn.variant.variantId === input.variantId,
+  );
+  if (!offered) return rejection('addon-not-offered');
+
+  const added = await runtime.cart.addLines([
+    {merchandiseId: input.variantId, quantity: 1},
+  ]);
+  return failed(added)
+    ? rejection('add-failed')
+    : {status: 'ok', result: added};
+}
+
+function quantitiesByVariant(cart: CartApiQueryFragment): Map<string, number> {
+  const quantities = new Map<string, number>();
+  for (const node of cart.lines.nodes) {
+    const id = node.merchandise?.id;
+    if (id) quantities.set(id, (quantities.get(id) ?? 0) + node.quantity);
+  }
+  return quantities;
+}
+
+export type AddBundleInput = {
+  readonly bundleId: string;
+  readonly anchorLineId: string;
+};
+
+export async function addBundle(
+  runtime: OfferRuntime,
+  current: CartApiQueryFragment | null,
+  input: AddBundleInput,
+): Promise<PickerResult> {
+  const judged = await judge(runtime, current);
+  if (judged.status === 'rejected') return judged;
+  const {gate, cart, view} = judged;
+
+  // Offered now (all companions in stock), and re-derived from the rule and the cart, never from the view's list.
+  const offered = view.bundles.some(
+    (bundle) =>
+      bundle.bundleId === input.bundleId &&
+      bundle.anchorLineId === input.anchorLineId &&
+      bundle.status === 'incomplete',
+  );
+  const rule = gate.rules.bundles.find(
+    (bundle) => bundle.id === input.bundleId,
+  );
+  const completion = rule
+    ? bundleCompletions(rule, toCartLike(cart), gate.rules).find(
+        (candidate) => candidate.anchorLineId === input.anchorLineId,
+      )
+    : undefined;
+  if (!offered || !completion || completion.state !== 'incomplete') {
+    return rejection('bundle-not-offered');
+  }
+
+  const requested: readonly BundleLine[] = completion.missing;
+  const result = await runtime.cart.addLines(
+    requested.map((line) => ({
+      merchandiseId: line.variantId,
+      quantity: line.quantity,
+    })),
+  );
+
+  // What Shopify really holds decides, not what the mutation said (a partial add can still return userErrors).
+  const before = quantitiesByVariant(cart);
+  const after = await runtime.cart.get();
+  if (!after) {
+    return failed(result)
+      ? rejection('bundle-add-failed')
+      : {status: 'ok', result};
+  }
+  const now = quantitiesByVariant(after);
+  const added = requested.map((line) => ({
+    variantId: line.variantId,
+    quantity:
+      (now.get(line.variantId) ?? 0) - (before.get(line.variantId) ?? 0),
+  }));
+  const reconciled = reconcileAddAll(requested, added);
+  switch (reconciled.status) {
+    case 'complete':
+      return {status: 'ok', result};
+    case 'partial':
+      return {status: 'ok', result, warning: 'bundle-partial'};
+    case 'failed':
+      return rejection('bundle-add-failed');
+    default: {
+      const unreachable: never = reconciled;
+      return unreachable;
+    }
+  }
+}

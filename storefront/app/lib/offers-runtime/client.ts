@@ -21,6 +21,7 @@ export function isOffersView(value: unknown): value is CartOffersView {
         Array.isArray(value.accidentProtection.lines))) &&
     Array.isArray(value.gifts) &&
     Array.isArray(value.addOns) &&
+    Array.isArray(value.bundles) &&
     Array.isArray(value.blocked) &&
     Array.isArray(value.notices) &&
     (value.updatedAt === null || typeof value.updatedAt === 'string')

@@ -4,6 +4,9 @@ import {CartForm} from '@shopify/hydrogen';
 import {CartMain} from '~/components/CartMain';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {
+  validateAddAddOn,
+  validateAddBundle,
+  validateAddGift,
   validateAddLines,
   validateAddProtection,
   validateAddWithProtection,
@@ -13,14 +16,23 @@ import {
   validateUpdateLines,
 } from '~/lib/cart/actions';
 import {
+  ADD_ADDON_ACTION,
+  ADD_BUNDLE_ACTION,
+  ADD_GIFT_ACTION,
   ADD_PROTECTION_ACTION,
   ADD_WITH_PROTECTION_ACTION,
   CHANGE_SIZE_ACTION,
 } from '~/lib/cart/custom-actions';
 import {isSameOriginRequest, noStoreHeaders} from '~/lib/cart/http';
 import {safeRedirectPath} from '~/lib/cart/input';
+import {revalidateCartGate} from '~/lib/offers-runtime/cart-gate';
 import {
-  revalidateCartOffers,
+  addAddOn,
+  addBundle,
+  addGift,
+  pickerWarningText,
+} from '~/lib/offers-runtime/picker-steps';
+import {
   stepFailureText,
   swapLineSize,
   type CartMutationResult,
@@ -164,6 +176,32 @@ export async function action({request, context}: Route.ActionArgs) {
       result = added.result;
       break;
     }
+    case ADD_GIFT_ACTION: {
+      // A rule id and a variant id from the view; the server proves both against the rules and this cart and adds one.
+      const input = validateAddGift(inputs);
+      if (input.status === 'invalid') return rejected(input.reason);
+      const added = await addGift(runtime, await cart.get(), input.value);
+      if (added.status === 'rejected') return rejected(added.reason);
+      result = added.result;
+      break;
+    }
+    case ADD_ADDON_ACTION: {
+      const input = validateAddAddOn(inputs);
+      if (input.status === 'invalid') return rejected(input.reason);
+      const added = await addAddOn(runtime, await cart.get(), input.value);
+      if (added.status === 'rejected') return rejected(added.reason);
+      result = added.result;
+      break;
+    }
+    case ADD_BUNDLE_ACTION: {
+      const input = validateAddBundle(inputs);
+      if (input.status === 'invalid') return rejected(input.reason);
+      const added = await addBundle(runtime, await cart.get(), input.value);
+      if (added.status === 'rejected') return rejected(added.reason);
+      result = added.result;
+      if (added.warning) partial.push(pickerWarningText(added.warning));
+      break;
+    }
     default:
       return rejected('That cart action is not supported.');
   }
@@ -175,7 +213,7 @@ export async function action({request, context}: Route.ActionArgs) {
   let offers = null;
   let notices: string[] = [];
   try {
-    const checked = await revalidateCartOffers(runtime, await cart.get());
+    const checked = await revalidateCartGate(runtime, await cart.get());
     finalCart = checked.cart ?? finalCart;
     offers = checked.view;
     notices = [...(checked.view?.notices ?? [])];
@@ -213,7 +251,7 @@ export async function loader({context, request}: Route.LoaderArgs) {
   // The page shows the repaired cart and the reasons for any repair or refusal. A failed check shows the
   // cart as Shopify has it; the hand-off still revalidates.
   try {
-    const checked = await revalidateCartOffers(
+    const checked = await revalidateCartGate(
       await offerRuntimeOf(context, request),
       current,
     );
