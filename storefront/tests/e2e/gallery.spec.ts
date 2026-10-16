@@ -49,6 +49,7 @@ test.describe('component gallery: page', () => {
       'Display',
       'Selectors, accordion and tabs',
       'Dialog and drawers',
+      'Toast notifications',
     ]) {
       await expect(
         page.getByRole('heading', {level: 2, name: title}),
@@ -242,6 +243,97 @@ test.describe('component gallery: dialog and drawers keyboard', () => {
       page.getByRole('button', {name: 'Open right drawer'}),
       drawer,
     );
+    await expectNoSeriousA11yViolations(page);
+  });
+});
+
+// P2-03: the toast component. Timing rules (default, minimum, pause on hover and focus) are unit-tested with fake
+// timers in tests/unit/ui/Toast.test.tsx; here the browser proves the live regions, the dismiss paths and axe.
+test.describe('component gallery: toast notifications', () => {
+  const politeRegion = (page: Page) =>
+    page.locator('[data-toast-region="status"]');
+  const assertiveRegion = (page: Page) =>
+    page.locator('[data-toast-region="alert"]');
+
+  test('both live regions are in the page before any toast, with the right politeness', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    await expect(politeRegion(page)).toHaveAttribute('role', 'status');
+    await expect(politeRegion(page)).toHaveAttribute('aria-live', 'polite');
+    await expect(assertiveRegion(page)).toHaveAttribute('role', 'alert');
+    await expect(assertiveRegion(page)).toHaveAttribute(
+      'aria-live',
+      'assertive',
+    );
+    await expect(politeRegion(page)).toBeEmpty();
+    await expect(assertiveRegion(page)).toBeEmpty();
+  });
+
+  test('a success toast appears in the polite region and the dismiss button closes it', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const toast = politeRegion(page).getByText('Queen mattress');
+    await openUntilVisible(
+      page.getByRole('button', {name: 'Show success toast'}),
+      toast,
+    );
+    await expect(politeRegion(page).getByText('Added to cart')).toBeVisible();
+    await expect(assertiveRegion(page)).toBeEmpty();
+
+    await politeRegion(page)
+      .getByRole('button', {name: 'Dismiss notification'})
+      .click();
+    await expect(toast).toBeHidden();
+  });
+
+  test('an error toast appears in the assertive region, stays, and Escape on its button closes it', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const toast = assertiveRegion(page).getByText('Please try again.');
+    await openUntilVisible(
+      page.getByRole('button', {name: 'Show error toast'}),
+      toast,
+    );
+    await expect(politeRegion(page)).toBeEmpty();
+
+    const dismiss = assertiveRegion(page).getByRole('button', {
+      name: 'Dismiss notification',
+    });
+    await dismiss.focus();
+    await page.keyboard.press('Escape');
+    await expect(toast).toBeHidden();
+  });
+
+  test('a toast closes by itself after a few seconds', async ({page}) => {
+    await gotoGallery(page);
+    const toast = politeRegion(page).getByText('Your choice was saved.');
+    await openUntilVisible(
+      page.getByRole('button', {name: 'Show info toast'}),
+      toast,
+    );
+    await expect(toast).toBeHidden({timeout: 10_000}); // default 6 s
+  });
+
+  test('has no serious or critical axe violations with all four variants showing', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const lastToast = assertiveRegion(page).getByText('Please try again.');
+    await openUntilVisible(
+      page.getByRole('button', {name: 'Show info toast'}),
+      politeRegion(page).getByText('Your choice was saved.'),
+    );
+    for (const name of [
+      'Show success toast',
+      'Show warning toast',
+      'Show error toast',
+    ]) {
+      await page.getByRole('button', {name}).click();
+    }
+    await expect(lastToast).toBeVisible();
     await expectNoSeriousA11yViolations(page);
   });
 });

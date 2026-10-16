@@ -79,7 +79,7 @@ export function SizeSelector({
               <label
                 htmlFor={inputId}
                 className={cn(
-                  'flex min-h-touch flex-col items-center justify-center rounded-choice border-2 px-2 py-2 text-center text-sm font-bold transition-colors peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus',
+                  'flex min-h-touch flex-col items-center justify-center rounded-choice border-2 px-2 py-2 text-center text-sm font-bold motion-safe:transition-colors peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus',
                   option.available
                     ? 'cursor-pointer border-line-strong bg-surface text-fg hover:border-ink-900 peer-checked:border-ink-900 peer-checked:bg-accent-400 peer-checked:text-ink-900'
                     : 'cursor-not-allowed border-line bg-surface-muted text-fg-muted',

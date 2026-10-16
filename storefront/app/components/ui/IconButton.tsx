@@ -39,7 +39,7 @@ export function IconButton({
       inert={disabled}
       aria-label={label}
       className={cn(
-        'relative inline-flex min-h-touch min-w-touch shrink-0 flex-col items-center justify-center gap-0.5 rounded-choice px-2 transition-colors',
+        'relative inline-flex min-h-touch min-w-touch shrink-0 flex-col items-center justify-center gap-0.5 rounded-choice px-2 motion-safe:transition-colors',
         VARIANT[variant],
         disabled && 'pointer-events-none opacity-60',
         className,
