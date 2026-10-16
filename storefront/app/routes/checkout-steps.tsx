@@ -41,6 +41,7 @@ import {
 import {revalidateCartGate} from '~/lib/offers-runtime/cart-gate';
 import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
 import {errorFields, logError} from '~/lib/logging/logger';
+import {requestLogFields} from '~/lib/logging/request-context';
 import {
   acceptComfortGuarantee,
   declineComfortGuarantee,
@@ -81,7 +82,10 @@ async function check(
       current,
     );
   } catch (error) {
-    logError('checkout.revalidation_failed', errorFields(error));
+    logError('checkout.revalidation_failed', {
+      ...errorFields(error),
+      ...requestLogFields(request),
+    });
     return null;
   }
 }

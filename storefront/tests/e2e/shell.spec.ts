@@ -8,6 +8,7 @@ import {
 import {
   collectConsoleErrors,
   expectNoSeriousA11yViolations,
+  isBlockedTelemetryRefusal,
 } from './helpers/a11y';
 
 // P2-05 / P2-07: the responsive shell. Covers REQ-NAV-001 (header, menu, drawer and footer keyboard-operable,
@@ -42,8 +43,8 @@ function unexpectedErrors(errors: string[]): string[] {
     (message) =>
       !message.includes('Shopify Customer Privacy') &&
       // Shopify's own performance telemetry is refused by our CSP in development, intermittently; not our code
-      // (same exclusion as ourErrors in helpers/catalog.ts).
-      !message.includes('shopifysvc.com'),
+      // (same exclusion as ourErrors in helpers/catalog.ts: the blocked URL's host must be exactly that host).
+      !isBlockedTelemetryRefusal(message),
   );
 }
 

@@ -1,5 +1,9 @@
 import {AxeBuilder} from '@axe-core/playwright';
 import {expect, type Page} from '@playwright/test';
+import {
+  BLOCKED_TELEMETRY_HOST,
+  isBlockedTelemetryRefusal,
+} from './telemetry-refusal';
 
 /**
  * Runs axe on the current page state and fails on serious or critical violations (NFR-003, proposed WCAG 2.2 AA).
@@ -42,20 +46,9 @@ export const KNOWN_MOCK_SHOP_ERRORS: readonly string[] = [
   'Shopify Customer Privacy',
 ];
 
-/**
- * Shopify's consent script posts performance telemetry to this one host, which our Content Security Policy refuses
- * (D-QA-1). It is Shopify's script, not our code, and blocking it is intended (DEC-045): nothing we ship depends on
- * it. Only a CSP refusal naming exactly this host is ignored; a violation naming any other host still fails.
- */
-export const BLOCKED_TELEMETRY_HOST = 'otlp-http-production.shopifysvc.com';
-// Chromium words it two ways: "violates the following Content Security Policy directive" (resource loads) and
-// "violates the document's Content Security Policy" (fetch).
-const CSP_REFUSAL =
-  /violates the (?:following|document's) Content Security Policy/;
-
-export function isBlockedTelemetryRefusal(text: string): boolean {
-  return text.includes(BLOCKED_TELEMETRY_HOST) && CSP_REFUSAL.test(text);
-}
+// The telemetry refusal rule is pure and unit-tested, so it lives in ./telemetry-refusal (K-L7); re-exported here for
+// the specs that already import it from this file.
+export {BLOCKED_TELEMETRY_HOST, isBlockedTelemetryRefusal};
 
 /** True for console noise that comes from the demo store or from Shopify's own blocked telemetry. */
 export function isKnownConsoleNoise(text: string): boolean {

@@ -218,6 +218,8 @@ jobs:
   # is one, this job reports but cannot block: `continue-on-error` keeps a red run from failing the workflow, and the
   # job is not in the required checks. Promote it (remove continue-on-error, add it to branch protection) after a few
   # consecutive green runs, and delete the projects that stay flaky for browser reasons rather than hiding them.
+  # Because `continue-on-error` shows a red run as green, the last step of the job writes the real Playwright result
+  # (passed, FAILED, or did not run) into the run summary and as an annotation, so a failure is never silent.
   #
   # Decision: it uses the dev server, like the required job, not the production preview (E2E_PROD_PREVIEW). Same
   # server means a difference between the two jobs is the browser and nothing else. The preview would avoid the cold
@@ -257,6 +259,7 @@ jobs:
           DELIVERY_COOKIE_SECRET=ci-placeholder-delivery-cookie-secret-0123456789
           EOF
       - name: End-to-end tests (mock store, WebKit and Firefox)
+        id: crossbrowser
         run: >
           npx playwright test
           --project=desktop-webkit --project=mobile-webkit --project=desktop-firefox
@@ -272,3 +275,26 @@ jobs:
             storefront/playwright-report
             storefront/test-results
           retention-days: 7
+      # `continue-on-error` on the job reports a red run as green, so a failure here would go unnoticed. This last step
+      # states the real result in the run summary (and as an annotation) whatever happened before it. It never fails
+      # the job: the job stays informational until it has a baseline of green runs.
+      - name: Report the real result (the job is not required)
+        if: always()
+        env:
+          PLAYWRIGHT_OUTCOME: ${{ steps.crossbrowser.outcome }}
+        run: |
+          case "$PLAYWRIGHT_OUTCOME" in
+            success)
+              echo "### WebKit and Firefox e2e: passed" >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            failure)
+              echo "### WebKit and Firefox e2e: FAILED" >> "$GITHUB_STEP_SUMMARY"
+              echo "WARNING: the Playwright step failed. The job shows green only because it is not required (continue-on-error). See the playwright-report-crossbrowser artefact." >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=WebKit and Firefox e2e failed::The job is not required, so the run stays green. See the playwright-report-crossbrowser artefact."
+              ;;
+            *)
+              echo "### WebKit and Firefox e2e: did not run to a result (${PLAYWRIGHT_OUTCOME:-unknown})" >> "$GITHUB_STEP_SUMMARY"
+              echo "WARNING: an earlier step failed or the run was cancelled, so there is no cross-browser result for this commit." >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=WebKit and Firefox e2e did not run::An earlier step failed or the run was cancelled."
+              ;;
+          esac

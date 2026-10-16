@@ -204,18 +204,59 @@ test('--offline prints the plan as a table with no network and no credentials', 
   const result = await run(['--offline'], { fake: noNetwork, env: {} });
   assert.equal(result.code, 0, result.err);
   assert.match(result.out, /^DRY RUN \(offline: planned against an empty store\)/);
+  // Offline reads no store, so it says that and does not report "pending changes" for a store it never looked at.
+  assert.match(result.out, /OFFLINE: no store was read/);
+  assert.doesNotMatch(result.out, /PENDING CHANGES/);
   assert.match(result.out, /kind\s+definition\s+action\s+differences/);
   assert.match(result.out, new RegExp(`Plan: ${TOTAL} to create, 0 already in sync, 0 differ`));
   assert.equal(noNetwork.state.calls.length, 0);
 });
 
-test('a dry run reads the store, shows what would be created, and cannot write', async () => {
+test('a dry run reads the store, shows what would be created, cannot write, and does not read as in sync (exit 1, PENDING CHANGES)', async () => {
   const fake = createFakeShopify();
   const result = await run([], { fake });
-  assert.equal(result.code, 0, result.err);
+  assert.equal(result.code, 1, 'definitions still to create are pending changes, not "in sync"');
   assert.match(result.out, new RegExp(`${TOTAL} to create`));
+  assert.match(result.out, new RegExp(`PENDING CHANGES: ${TOTAL} definition\\(s\\) to create and 0 field\\(s\\) to add\\.`));
+  assert.match(result.out, /wrote nothing/);
   assert.equal(fake.mutations().length, 0);
   assert.equal(fake.state.metaobjectDefinitions.size + fake.state.metafieldDefinitions.size, 0);
+});
+
+test('a dry run on a store that is fully in sync exits 0 and prints no PENDING CHANGES line', async () => {
+  const fake = createFakeShopify();
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  fake.reset();
+  const result = await run([], { fake });
+  assert.equal(result.code, 0, result.err);
+  assert.match(result.out, new RegExp(`Plan: 0 to create, ${TOTAL} already in sync, 0 differ`));
+  assert.doesNotMatch(result.out, /PENDING CHANGES/);
+  assert.equal(fake.mutations().length, 0);
+});
+
+test('a dry run that only lacks one definition is pending, and --live clears it (exit 1, then 0)', async () => {
+  const fake = createFakeShopify();
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  fake.state.metaobjectDefinitions.delete('faq');
+  fake.reset();
+  const dry = await run([], { fake });
+  assert.equal(dry.code, 1);
+  assert.match(dry.out, /PENDING CHANGES: 1 definition\(s\) to create and 0 field\(s\) to add\./);
+  fake.reset();
+  const live = await run(['--live'], { fake });
+  assert.equal(live.code, 0, live.err);
+  assert.doesNotMatch(live.out, /PENDING CHANGES/, 'a live run applies the changes instead of leaving them pending');
+  fake.reset();
+  assert.equal((await run([], { fake })).code, 0);
+});
+
+test('the usage text states the exit codes, including the pending dry run', async () => {
+  const fake = createFakeShopify();
+  const result = await run(['--help'], { fake, env: {} });
+  assert.equal(result.code, 2);
+  assert.match(result.err, /Exit code: 0 in sync/);
+  assert.match(result.err, /PENDING\s+CHANGES/);
+  assert.match(result.err, /--offline reads no store/);
 });
 
 test('--live is refused without an allow-listed store or a token, and cannot be combined with --offline', async () => {
@@ -286,7 +327,8 @@ test('an existing definition that only lacks a spec field is extended in a live 
   fake.reset();
 
   const dry = await run([], { fake });
-  assert.equal(dry.code, 0, dry.err);
+  assert.equal(dry.code, 1, 'a field still to add is a pending change, not "in sync"');
+  assert.match(dry.out, /PENDING CHANGES: 0 definition\(s\) to create and 1 field\(s\) to add\./);
   assert.match(dry.out, /ADD site_settings: field support_phone \(single_line_text_field\) is missing in Shopify and would be added/);
   assert.match(dry.out, /1 missing field\(s\) in 1 existing metaobject definition\(s\) would be added/);
   assert.doesNotMatch(dry.out, /DIFF site_settings/);

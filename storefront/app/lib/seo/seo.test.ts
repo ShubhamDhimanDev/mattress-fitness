@@ -199,6 +199,34 @@ describe('robots.txt (REQ-SEO-001)', () => {
     }
   });
 
+  it('keeps the cart blocked for a crawler that ignores the $ end anchor', () => {
+    // Every named group carries all three forms, so the cart stays blocked whether or not `$` is understood.
+    const groups = text
+      .split('\n\n')
+      .filter(
+        (g) =>
+          g.startsWith('User-agent') && !g.split('\n').includes('Disallow: /'),
+      );
+    for (const group of groups) {
+      expect(group.split('\n')).toEqual(
+        expect.arrayContaining([
+          'Disallow: /cart$',
+          'Disallow: /cart/',
+          'Disallow: /cart?',
+        ]),
+      );
+    }
+    // A crawler that cannot use the `$` rule (it never matches) still blocks everything below and after the path.
+    const withoutAnchored = starRules.filter((rule) => !rule.endsWith('$'));
+    for (const url of ['/cart/c/c1-abc', '/cart/', '/cart?x=1', '/cart?']) {
+      expect(blockedBy(withoutAnchored, url)).toBe(true);
+    }
+    // Segment-safe: the extra forms must not block look-alike paths.
+    for (const url of ['/cartridge-mattress', '/carts', '/cart-liner']) {
+      expect(blockedBy(starRules, url)).toBe(false);
+    }
+  });
+
   it('blocks every filter and sort parameter of the codec after ? and after &', () => {
     for (const param of MANAGED_FILTER_PARAMS) {
       expect(lines).toContain(`Disallow: /*?${param}=`);

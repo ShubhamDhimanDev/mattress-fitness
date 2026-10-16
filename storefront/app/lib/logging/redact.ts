@@ -6,7 +6,8 @@
 // sentence, an address without a street suffix, a phone number written in words), so never log such text on the
 // strength of this layer. It works two ways on any value:
 //   1. By key. A field whose name says it holds personal or secret data (`email`, `zip`, `cartId`, `token`...)
-//      is replaced whole, whatever its type.
+//      is replaced whole, whatever its type (a boolean, null and a small whole number under a counter-style name such
+//      as `sessionCount` are the exceptions, see mustRedactValue).
 //   2. By content. Strings are scanned for e-mail addresses, phone numbers, card numbers, bearer and vendor
 //      tokens, long random-looking tokens, `key=value` pairs with a sensitive key (query strings, cookies and
 //      JSON text), checkout and cart URLs, and street addresses.
@@ -124,12 +125,71 @@ export function isSensitiveKey(key: string): boolean {
   );
 }
 
+// A whole number under a key like `sessionCount` or `addressCount` is a counter, not the thing the fragment names: it
+// carries nothing personal, and blanking it would hide useful numbers from the log. Only a key that ends in one of
+// these words (and has something before it) qualifies. An exact sensitive key (`zip`, `phone`, `name`) and every key
+// that merely contains a fragment (`shippingZip`, `phoneNumber`) is redacted whatever the type. Strings are never
+// exempt: `tokenCount: 'abc123'` is text and goes.
+const COUNTER_SUFFIXES: readonly string[] = [
+  'count',
+  'counts',
+  'total',
+  'length',
+  'size',
+  'ttl',
+  'age',
+  'attempts',
+  'retries',
+  'limit',
+  'index',
+  'ms',
+  'seconds',
+];
+const MAX_COUNTER_VALUE = 1_000_000_000;
+
+function isCounterKey(key: string): boolean {
+  const normal = key
+    .slice(0, MAX_KEY_CHARS)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+  return (
+    !SENSITIVE_EXACT_KEYS.has(normal) &&
+    COUNTER_SUFFIXES.some(
+      (suffix) => normal.length > suffix.length && normal.endsWith(suffix),
+    )
+  );
+}
+
+/**
+ * True when the value of this field must be replaced. A boolean, null or undefined carries no information; a small
+ * whole number under a counter-style key (`sessionCount`) passes; everything else under a sensitive key goes.
+ */
+export function mustRedactValue(key: string, value: unknown): boolean {
+  if (value === null || value === undefined || typeof value === 'boolean') {
+    return false;
+  }
+  if (!isSensitiveKey(key)) return false;
+  if (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= MAX_COUNTER_VALUE &&
+    isCounterKey(key)
+  ) {
+    return false;
+  }
+  return true;
+}
+
 // --- By content --------------------------------------------------------------------------------------------
 
 // `key=value`, `key: value`, `"key":"value"` and the URL-encoded forms. Only the key and its separator are matched
 // here; the value is read by valueEnd. The key is at most 40 characters so the scan stays linear, and whether it
-// is sensitive is decided by isSensitiveKey, the same rule as for object keys.
-const KEY_SEPARATOR = /([\w-]{1,40})(["']?\s*(?:=|:|%3[Dd])\s*)/g;
+// is sensitive is decided by isSensitiveKey, the same rule as for object keys. JSON that was itself put inside a
+// string has escaped quotes (`{\"firstName\":\"Jane\"}`), so a quote in the separator may follow up to four
+// backslashes.
+const KEY_SEPARATOR =
+  /([\w-]{1,40})((?:\\{1,4}["']|["'])?\s*(?:=|:|%3[Dd])\s*)/g;
 const MAX_VALUE_CHARS = 200;
 // Ends an unquoted value at once: a newline, or a delimiter of query strings, cookies and JSON. A space or a comma
 // does not, because addresses contain both; NEXT_KEY ends it there when another pair starts.
@@ -137,19 +197,35 @@ const VALUE_STOP = /[\n\r&"';}]/;
 const NEXT_KEY = /^[\s,]+[\w-]{1,40}(?:=|:|%3[Dd])/;
 const MAX_NEXT_KEY_PROBE = 60;
 
+const MAX_ESCAPES = 4;
+
+/** The quote that opens a value at `from`: `"`, `'`, or one preceded by up to four backslashes (escaped JSON). */
+function openingQuote(text: string, from: number): string {
+  let slashes = 0;
+  while (slashes <= MAX_ESCAPES && text.charAt(from + slashes) === '\\') {
+    slashes += 1;
+  }
+  if (slashes > MAX_ESCAPES) return '';
+  const quote = text.charAt(from + slashes);
+  return quote === '"' || quote === "'"
+    ? text.slice(from, from + slashes + 1)
+    : '';
+}
+
 /** Where the value that starts at `from` ends, and the quote that wraps it, if any. */
 function valueEnd(text: string, from: number): {end: number; quote: string} {
-  const first = text.charAt(from);
-  if (first === '"' || first === "'") {
-    const limit = Math.min(text.length, from + 1 + MAX_VALUE_CHARS);
-    const close = text.indexOf(first, from + 1);
-    const newline = text.indexOf('\n', from + 1);
+  const opening = openingQuote(text, from);
+  if (opening !== '') {
+    const bodyStart = from + opening.length;
+    const limit = Math.min(text.length, bodyStart + MAX_VALUE_CHARS);
+    const close = text.indexOf(opening, bodyStart);
+    const newline = text.indexOf('\n', bodyStart);
     const lineEnd = newline === -1 || newline > limit ? limit : newline;
     // A closed quote ends the value; an unterminated one runs to the end of the line, capped.
     if (close !== -1 && close < limit && close < lineEnd) {
-      return {end: close + 1, quote: first};
+      return {end: close + opening.length, quote: opening};
     }
-    return {end: lineEnd, quote: first};
+    return {end: lineEnd, quote: opening};
   }
   // An unquoted value of a sensitive key can be several words ("address: 12 Oak Lane Springfield"), so it runs to
   // the end of the line, a delimiter, or the next `key=` or `key:` token, and at most MAX_VALUE_CHARS.
@@ -239,7 +315,9 @@ function redactKeyValues(text: string): string {
     const valueStart = match.index + whole.length;
     const {end, quote} = valueEnd(text, valueStart);
     const closed =
-      quote !== '' && end > valueStart + 1 && text.charAt(end - 1) === quote;
+      quote !== '' &&
+      end >= valueStart + 2 * quote.length &&
+      text.slice(end - quote.length, end) === quote;
     out += `${text.slice(copied, valueStart)}${quote}${REDACTED}${closed ? quote : ''}`;
     copied = end;
     pattern.lastIndex = Math.max(end, valueStart);
@@ -363,16 +441,15 @@ function redactEntries(
     }
     const safeKey = redactString(key).slice(0, MAX_KEY_CHARS);
     // Shopify attributes and line properties are `{key, value}` pairs: the word `key` is a label, the sensitivity
-    // is in the label's text (`delivery_zip`), and it is the `value` that must go.
+    // is in the label's text (`delivery_zip`), and it is the `value` that must go. The pair's other fields are
+    // ordinary fields judged by their own names (`{key, value, zip}` loses the zip too).
     const sensitive =
-      label === null
-        ? isSensitiveKey(key) && typeof raw !== 'boolean'
-        : key === 'value' && isSensitiveKey(label) && typeof raw !== 'boolean';
+      label === null || key !== 'key'
+        ? mustRedactValue(label !== null && key === 'value' ? label : key, raw)
+        : false;
     entries.push([
       safeKey,
-      sensitive && raw !== null && raw !== undefined
-        ? REDACTED
-        : redactDeep(raw, depth + 1, seen),
+      sensitive ? REDACTED : redactDeep(raw, depth + 1, seen),
     ]);
   }
   // fromEntries defines own properties, so a hostile `__proto__` key stays plain data.
