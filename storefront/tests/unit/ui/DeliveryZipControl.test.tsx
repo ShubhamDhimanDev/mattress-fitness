@@ -10,10 +10,12 @@ afterEach(cleanup);
 // REQ-NAV-003 / P3B-11: the header ZIP control validates with the shared parser and reports the 5-digit ZIP;
 // the saving itself is the server's (useDeliveryZip), so the dialog closes only after the server has answered.
 
-function open() {
+// The dialog frame is static; the form inside is a lazy chunk (P7-06), so wait for the field before using it.
+async function open() {
   fireEvent.click(
     screen.getByRole('button', {name: /delivery ZIP|Delivering to/}),
   );
+  await screen.findByRole('textbox', {name: 'ZIP code'});
   return screen.getByRole('dialog', {name: 'Delivery ZIP code'});
 }
 
@@ -24,12 +26,12 @@ function type(value: string) {
 }
 
 describe('<DeliveryZipControl>', () => {
-  it('uses the same wording as the server for an invalid ZIP and sends nothing', () => {
+  it('uses the same wording as the server for an invalid ZIP and sends nothing', async () => {
     const onSubmit = vi.fn();
     render(
       <DeliveryZipControl zip={null} onSubmit={onSubmit} onClear={vi.fn()} />,
     );
-    open();
+    await open();
     type('1234');
     fireEvent.click(screen.getByRole('button', {name: 'Save ZIP code'}));
     expect(screen.getByText(ZIP_ERROR_MESSAGE)).toBeInTheDocument();
@@ -37,30 +39,30 @@ describe('<DeliveryZipControl>', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('reports the 5-digit ZIP and, as a local stand-in, closes at once', () => {
+  it('reports the 5-digit ZIP and, as a local stand-in, closes at once', async () => {
     const onSubmit = vi.fn();
     render(
       <DeliveryZipControl zip={null} onSubmit={onSubmit} onClear={vi.fn()} />,
     );
-    open();
+    await open();
     type('60645');
     fireEvent.click(screen.getByRole('button', {name: 'Save ZIP code'}));
     expect(onSubmit).toHaveBeenCalledWith('60645');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('shows the saved ZIP and offers to clear it', () => {
+  it('shows the saved ZIP and offers to clear it', async () => {
     const onClear = vi.fn();
     render(
       <DeliveryZipControl zip="60645" onSubmit={vi.fn()} onClear={onClear} />,
     );
     expect(screen.getByText('60645')).toBeInTheDocument();
-    open();
+    await open();
     fireEvent.click(screen.getByRole('button', {name: 'Clear ZIP code'}));
     expect(onClear).toHaveBeenCalledTimes(1);
   });
 
-  it('with a remote save stays open while pending, then closes on success', () => {
+  it('with a remote save stays open while pending, then closes on success', async () => {
     const onSubmit = vi.fn();
     const view = render(
       <DeliveryZipControl
@@ -70,7 +72,7 @@ describe('<DeliveryZipControl>', () => {
         pending={false}
       />,
     );
-    open();
+    await open();
     type('60645');
     fireEvent.click(screen.getByRole('button', {name: 'Save ZIP code'}));
     expect(onSubmit).toHaveBeenCalledWith('60645');
@@ -96,11 +98,11 @@ describe('<DeliveryZipControl>', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('with a remote save keeps the dialog open and shows the server error', () => {
+  it('with a remote save keeps the dialog open and shows the server error', async () => {
     const onSubmit = vi.fn();
     const props = {zip: null, onSubmit, onClear: vi.fn()};
     const view = render(<DeliveryZipControl {...props} pending={false} />);
-    open();
+    await open();
     type('60645');
     fireEvent.click(screen.getByRole('button', {name: 'Save ZIP code'}));
     view.rerender(<DeliveryZipControl {...props} pending />);

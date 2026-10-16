@@ -68,6 +68,8 @@ export type OptionView = {
 export type BrandView = {
   readonly name: string;
   readonly slug: string | null;
+  /** The metaobject's handle, which the brand page `/brands/<handle>` is served by; absent when not read. */
+  readonly handle?: string | null;
   readonly logo: ImageView | null;
   readonly about: readonly string[];
   readonly warranty: readonly string[];

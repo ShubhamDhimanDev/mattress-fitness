@@ -1,8 +1,8 @@
-import {Suspense} from 'react';
 import {Await} from 'react-router';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {Aside} from '~/components/Aside';
-import {CartMain} from '~/components/CartMain';
+import {LazyBoundary, PanelFailed} from '~/components/layout/LazyPanel';
+import {cartPanel, mobileMenuPanel} from '~/components/layout/lazyPanels';
 import {MAIN_CONTENT_ID} from '~/components/layout/SkipLink';
 import {MobileMenuContent, SiteHeader} from '~/components/layout/SiteHeader';
 import {SiteFooter} from '~/components/layout/SiteFooter';
@@ -38,7 +38,7 @@ export function PageLayout({
   children = null,
 }: PageLayoutProps) {
   return (
-    <Aside.Provider>
+    <Aside.Provider preload={ASIDE_PRELOAD}>
       <SiteHeader
         cart={cart}
         isLoggedIn={isLoggedIn}
@@ -63,14 +63,27 @@ export function PageLayout({
   );
 }
 
+// Started when a panel is asked to open from anywhere (the add-to-cart buttons, the quiz result), so its chunk
+// downloads while the cart request is still on its way (P7-06).
+const ASIDE_PRELOAD = {
+  cart: () => void cartPanel.preload(),
+  mobile: () => void mobileMenuPanel.preload(),
+};
+
+const CartMainPanel = cartPanel.Panel;
+
 function CartAside({cart}: Pick<PageLayoutProps, 'cart'>) {
   return (
     <Aside type="cart" heading="Cart">
-      <Suspense fallback={<CartSkeleton />}>
+      {/* The cart contents are a lazy chunk (P7-06); /cart, the no-JavaScript path, renders them statically. */}
+      <LazyBoundary
+        loading={<CartSkeleton />}
+        failed={<PanelFailed href="/cart" linkText="Open the cart page" />}
+      >
         <Await resolve={cart}>
-          {(resolved) => <CartMain cart={resolved} layout="aside" />}
+          {(resolved) => <CartMainPanel cart={resolved} layout="aside" />}
         </Await>
-      </Suspense>
+      </LazyBoundary>
     </Aside>
   );
 }

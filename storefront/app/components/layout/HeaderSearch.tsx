@@ -1,4 +1,3 @@
-import {Image} from '@shopify/hydrogen';
 import {
   useEffect,
   useId,
@@ -7,9 +6,10 @@ import {
   useState,
   type KeyboardEvent,
 } from 'react';
-import {Link, useFetcher, useLocation, useNavigate} from 'react-router';
+import {useFetcher, useLocation, useNavigate} from 'react-router';
 import {SearchIcon} from '~/components/ui/Icons';
-import {Price} from '~/components/ui/Price';
+import {LazyBoundary} from '~/components/layout/LazyPanel';
+import {suggestionsPanel} from '~/components/layout/lazyPanels';
 import {SearchFormPredictive} from '~/components/SearchFormPredictive';
 import {
   buildSuggestionGroups,
@@ -24,8 +24,7 @@ import {getEmptyPredictiveSearchResult} from '~/lib/search';
 import type {PredictiveSearchReturn} from '~/lib/search';
 import {MIN_PREDICTIVE_TERM_LENGTH} from '~/lib/shopify/config';
 
-const OPTION_CLASSES =
-  'flex min-h-touch items-center gap-3 rounded-choice p-1 text-base text-fg hover:bg-surface-muted aria-selected:bg-surface-muted aria-selected:outline-2 aria-selected:outline-offset-[-2px] aria-selected:outline-primary-700';
+const SuggestionGroupsPanel = suggestionsPanel.Panel;
 
 /**
  * The header search field with predictive suggestions (REQ-SRCH-001), built as the WAI-ARIA combobox with a
@@ -206,12 +205,14 @@ export function HeaderSearch() {
               placeholder="Search"
               value={value}
               onChange={(event) => {
+                void suggestionsPanel.preload();
                 setValue(event.target.value);
                 setActiveIndex(-1);
                 fetchResults(event);
                 setExpanded(true);
               }}
               onFocus={(event) => {
+                void suggestionsPanel.preload();
                 fetchResults(event);
                 setExpanded(true);
               }}
@@ -259,90 +260,18 @@ export function HeaderSearch() {
             aria-label="Search suggestions"
             className="flex flex-col gap-4"
           >
-            {groups.map((group) => {
-              const headingId = `${optionPrefix}-group-${group.id}`;
-              return (
-                <div
-                  key={group.id}
-                  role="group"
-                  aria-labelledby={group.heading ? headingId : undefined}
-                  aria-label={group.heading ? undefined : 'More results'}
-                >
-                  {group.heading ? (
-                    <p
-                      id={headingId}
-                      className="mb-1 text-xs font-bold tracking-wide text-fg-muted uppercase"
-                    >
-                      {group.heading}
-                    </p>
-                  ) : null}
-                  {group.options.map((option) => (
-                    <Option
-                      key={option.index}
-                      option={option}
-                      id={optionDomId(optionPrefix, option.index)}
-                      selected={option.index === activeIndex}
-                      onChoose={() => choose(option)}
-                    />
-                  ))}
-                </div>
-              );
-            })}
+            {/* The options arrive as a lazy chunk; the field's focus handler has already started the download. */}
+            <LazyBoundary loading={null} failed={null}>
+              <SuggestionGroupsPanel
+                groups={groups}
+                activeIndex={activeIndex}
+                optionPrefix={optionPrefix}
+                onChoose={choose}
+              />
+            </LazyBoundary>
           </div>
         </div>
       ) : null}
     </div>
-  );
-}
-
-function Option({
-  option,
-  id,
-  selected,
-  onChoose,
-}: {
-  option: SuggestionOption;
-  id: string;
-  selected: boolean;
-  onChoose: () => void;
-}) {
-  const isAll = option.kind === 'all';
-  return (
-    // The option is the link itself, so a click, a tap and a middle-click all behave like any link.
-    <Link
-      id={id}
-      role="option"
-      aria-selected={selected}
-      tabIndex={-1}
-      to={option.href}
-      onClick={onChoose}
-      className={
-        isAll ? `${OPTION_CLASSES} font-bold text-primary-700` : OPTION_CLASSES
-      }
-    >
-      {option.image ? (
-        <Image
-          alt=""
-          src={option.image.url}
-          width={50}
-          height={50}
-          className="size-12 shrink-0 rounded-choice object-cover"
-        />
-      ) : null}
-      <span className="min-w-0">
-        <span
-          className={
-            option.kind === 'product'
-              ? 'block truncate font-bold'
-              : 'block truncate'
-          }
-        >
-          {option.label}
-        </span>
-        {option.price ? (
-          <Price price={option.price} size="sm" className="text-fg-muted" />
-        ) : null}
-      </span>
-    </Link>
   );
 }
