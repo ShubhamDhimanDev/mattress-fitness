@@ -405,19 +405,13 @@ test.describe('NFR-003 axe audit: open overlays and widget states', () => {
     await auditAxe(page, testInfo, 'overlay:search-combobox-option-active');
   });
 
-  // A11Y-003 (axe: serious; judged Minor, see docs/testing/ACCESSIBILITY_AUDIT.md): when the suggestion panel is
-  // taller than 70 percent of the viewport it scrolls (max-h-[70dvh] overflow-y-auto) and axe reports it as a
-  // scrollable region with no focusable content, because the options are tabindex=-1 and the field keeps focus.
-  // Keyboard use is fine (the active option scrolls into view, checked by hand), so the harm is a rule that cannot be
-  // satisfied by this widget pattern as built. The test fails today as expected; when the panel is fixed (or the
-  // exception is accepted in writing) it will report an unexpected pass and the marker must be removed.
+  // A11Y-003 (axe: serious; judged Minor, see docs/testing/ACCESSIBILITY_AUDIT.md): the suggestion panel scrolls when
+  // it is taller than 70 percent of the viewport, and axe reports a scrollable region with no focusable content (the
+  // options are tabindex=-1 and the field keeps focus). Fixed two ways: the list is capped at eight rows, so the panel
+  // scrolls only in a very short window, and a panel that does scroll becomes a labelled tab stop (HeaderSearch).
   test('A11Y-003 a scrolling suggestion panel passes axe scrollable-region-focusable', async ({
     page,
   }) => {
-    test.fail(
-      true,
-      'A11Y-003: the panel scrolls but holds no tabbable content; fix: cap the number of suggestions so the panel fits, or record a written exception for the combobox pattern',
-    );
     const catalog = await catalogOf(page);
     await page.setViewportSize({width: 1280, height: 320});
     await gotoReady(page, '/');
@@ -453,6 +447,18 @@ test.describe('NFR-003 axe audit: open overlays and widget states', () => {
         kind === 'error' ? '[role=alert]' : '[role=status]',
       );
       await expect(live.filter({hasText: /./}).first()).toBeVisible();
+      // axe samples colours while the toast is still fading in under load; audit the settled state.
+      await page.evaluate(() =>
+        Promise.all(
+          document
+            .getAnimations()
+            .filter(
+              (animation) =>
+                animation.effect?.getTiming().iterations !== Infinity,
+            )
+            .map((animation) => animation.finished.catch(() => undefined)),
+        ),
+      );
       await auditAxe(page, testInfo, `overlay:toast-${kind}`);
     }
     // The error toast stays until dismissed. It never takes focus (by design), so a keyboard user reaches its
@@ -575,11 +581,7 @@ test.describe('NFR-003 keyboard: full tab order of key templates (order, focus v
   ];
 
   for (const template of templates) {
-    test(`tab walk: ${template.name}`, async ({page, isMobile}, testInfo) => {
-      test.fail(
-        isMobile && template.name === 'compare with four products',
-        'A11Y-001: on a phone the sticky first column of the comparison table covers the Remove link of the second product when Tab reaches it (WCAG 2.4.11); fix: scroll-padding-left on the scroll region equal to the sticky column width',
-      );
+    test(`tab walk: ${template.name}`, async ({page}, testInfo) => {
       const catalog = await catalogOf(page);
       await template.open(page, catalog);
       const walk = await walkTabOrder(page, 300);
@@ -783,10 +785,6 @@ test.describe('NFR-003 keyboard: cart drawer and quantity steppers', () => {
   test('A11Y-002 removing the last line by keyboard keeps focus inside the dialog (WCAG 2.4.3)', async ({
     page,
   }) => {
-    test.fail(
-      true,
-      'A11Y-002: the focused Remove button leaves the page and focus falls to the document; fix: after the empty state renders, focus its heading (tabIndex -1) or the Continue shopping button',
-    );
     const catalog = await catalogOf(page);
     const drawer = await addToCart(page, catalog.product);
     const remove = drawer.getByRole('button', {name: /^Remove .* from cart/});
@@ -810,6 +808,10 @@ test.describe('NFR-003 keyboard: cart drawer and quantity steppers', () => {
       where,
       'focus after the focused button was removed from the page',
     ).toMatchObject({inDialog: true});
+    // The empty-state heading takes focus (tabindex -1), so the next Tab continues from the drawer's content.
+    await expect(
+      drawer.getByRole('heading', {name: 'Your cart is empty'}),
+    ).toBeFocused();
   });
 });
 
@@ -1483,10 +1485,6 @@ test.describe('NFR-003 forced colours smoke (Windows High Contrast)', () => {
   test('A11Y-004 the cart drawer has a border or outline in forced colours', async ({
     page,
   }) => {
-    test.fail(
-      true,
-      'A11Y-004: the drawer is set apart by a shadow alone (class shadow-drawer, no border); fix: add border-l border-line (kept in forced colours)',
-    );
     await gotoReady(page, '/');
     const drawer = page.getByRole('dialog', {name: 'Cart'});
     await openUntilVisible(headerCart(page), drawer);
@@ -1496,10 +1494,6 @@ test.describe('NFR-003 forced colours smoke (Windows High Contrast)', () => {
   test('A11Y-004 the delivery ZIP dialog has a border or outline in forced colours', async ({
     page,
   }) => {
-    test.fail(
-      true,
-      'the same Dialog and Drawer primitives have no border or outline (components/ui/Dialog.tsx, Drawer.tsx); fix: add border-l border-line (drawers) and border border-line (dialog)',
-    );
     await gotoReady(page, '/');
     const dialog = page.getByRole('dialog', {name: 'Delivery ZIP code'});
     await openUntilVisible(
@@ -1514,10 +1508,6 @@ test.describe('NFR-003 forced colours smoke (Windows High Contrast)', () => {
     isMobile,
   }) => {
     test.skip(!isMobile, 'The menu drawer exists below 1024 px.');
-    test.fail(
-      true,
-      'the same Dialog and Drawer primitives have no border or outline (components/ui/Dialog.tsx, Drawer.tsx); fix: add border-l border-line (drawers) and border border-line (dialog)',
-    );
     await gotoReady(page, '/');
     const drawer = page.getByRole('dialog', {name: 'Menu'});
     await openUntilVisible(
@@ -1563,11 +1553,23 @@ test.describe('NFR-001 / WCAG 2.5.8 target size survey (report only; axe target-
             el instanceof HTMLAnchorElement &&
             getComputedStyle(el).display === 'inline';
           if (inline) continue;
-          const rect = el.getBoundingClientRect();
+          // A check box or radio is measured by its label row, which is the clickable area (the rule in
+          // design-rules.spec.ts and docs/design/DEVIATIONS.md UXD-09); the native input itself is 24 px.
+          const label =
+            el instanceof HTMLInputElement &&
+            (el.type === 'checkbox' || el.type === 'radio')
+              ? el.labels?.[0]
+              : undefined;
+          const rect = (label ?? el).getBoundingClientRect();
           if (rect.width <= 1 || rect.height <= 1) continue;
+          // UXD-09: a text link is 44 px high but only as wide as its words; everything else is 44 px both ways.
+          const textLink =
+            el instanceof HTMLAnchorElement &&
+            (el.innerText ?? '').trim() !== '';
           const text = `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') ?? el.innerText ?? '').trim().slice(0, 25)}" ${Math.round(rect.width)}x${Math.round(rect.height)}`;
           if (rect.width < 24 || rect.height < 24) under24.push(text);
-          else if (rect.width < 44 || rect.height < 44) small.push(text);
+          else if (rect.height < 44 || (!textLink && rect.width < 44))
+            small.push(text);
         }
         return {small: [...new Set(small)], under24: [...new Set(under24)]};
       });

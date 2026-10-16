@@ -88,6 +88,38 @@ function trackedHref(
 type Draft = Omit<SuggestionOption, 'index'>;
 
 /**
+ * Most suggestions the panel lists, not counting the closing "view all" option. Predictive search can return five of
+ * each kind (25 rows); at about 44 px each that is taller than most windows and turns the panel into a scroll area that
+ * keyboard users cannot reach (A11Y-003). Eight rows fit the common case; the rest is one "view all" away.
+ */
+export const MAX_SUGGESTIONS = 8;
+
+// Products first: they are what a shopper is looking for; the other kinds fill what is left, one row at a time.
+const SHARE_ORDER = ['products', 'queries', 'collections', 'pages', 'articles'];
+
+/** How many rows each group keeps: round-robin in SHARE_ORDER until the total reaches the cap. */
+function allocate(
+  sizes: ReadonlyMap<string, number>,
+  cap: number,
+): Map<string, number> {
+  const kept = new Map<string, number>(SHARE_ORDER.map((id) => [id, 0]));
+  let remaining = cap;
+  let progressed = true;
+  while (remaining > 0 && progressed) {
+    progressed = false;
+    for (const id of SHARE_ORDER) {
+      const have = kept.get(id) ?? 0;
+      if (remaining > 0 && have < (sizes.get(id) ?? 0)) {
+        kept.set(id, have + 1);
+        remaining -= 1;
+        progressed = true;
+      }
+    }
+  }
+  return kept;
+}
+
+/**
  * Groups in display order, with the closing "view all results" option last. `term` is the shopper's current
  * text and is what the final option searches for.
  */
@@ -184,8 +216,18 @@ export function buildSuggestionGroups(
     },
   ];
 
+  const kept = allocate(
+    new Map(drafts.map((group) => [group.id, group.options.length])),
+    MAX_SUGGESTIONS,
+  );
   let index = 0;
   return drafts
+    .map((group) =>
+      // The closing "view all" group is not in SHARE_ORDER and is always kept whole.
+      kept.has(group.id)
+        ? {...group, options: group.options.slice(0, kept.get(group.id))}
+        : group,
+    )
     .filter((group) => group.options.length > 0)
     .map((group) => ({
       id: group.id,

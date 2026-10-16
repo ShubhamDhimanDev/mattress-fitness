@@ -27,9 +27,11 @@ export function CompareTable({table, removeHref, onRemove}: CompareTableProps) {
       // "relative" makes this the containing block of the screen-reader-only text inside the cells; otherwise
       // that absolutely positioned text sits outside the scroll area and widens the whole page.
       // Focusable so a keyboard user can scroll the region with the arrow keys (WCAG 2.1.1).
+      // scroll-pl is the sticky first column (w-28, md:w-40) plus a little room for the focus ring, so the browser
+      // scrolls a focused Remove or product link clear of the column (WCAG 2.4.11, A11Y-001).
       // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region
       tabIndex={0}
-      className="relative max-w-full overflow-x-auto rounded-card border-2 border-line"
+      className="relative max-w-full scroll-pl-30 overflow-x-auto rounded-card border-2 border-line md:scroll-pl-42"
     >
       <table className="w-max min-w-full border-collapse text-left">
         <caption id={captionId} className="sr-only">
@@ -58,7 +60,7 @@ export function CompareTable({table, removeHref, onRemove}: CompareTableProps) {
                   </span>
                   <Link
                     to={`/products/${encodeURIComponent(column.handle)}`}
-                    className="text-base font-bold underline-offset-2 hover:underline"
+                    className="inline-flex min-h-touch w-fit items-center text-base font-bold underline-offset-2 hover:underline"
                   >
                     {column.title}
                   </Link>

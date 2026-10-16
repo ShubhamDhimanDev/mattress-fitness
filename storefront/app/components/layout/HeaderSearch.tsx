@@ -49,6 +49,7 @@ export function HeaderSearch() {
   const fetcher = useFetcher<PredictiveSearchReturn>({key: 'search'});
   const panelRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const [panelScrolls, setPanelScrolls] = useState(false);
 
   const term = value.trim();
   const ready = term.length >= MIN_PREDICTIVE_TERM_LENGTH;
@@ -98,6 +99,27 @@ export function HeaderSearch() {
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [expanded]);
+
+  // Even capped at eight rows, the panel can outgrow a short window and scroll. A scroll area with nothing tabbable in
+  // it cannot be scrolled from the keyboard (WCAG 2.1.1, axe scrollable-region-focusable), so only then it becomes a
+  // tab stop, where the arrow keys scroll it (A11Y-003). The arrow keys in the field already scroll the active option
+  // into view; this is the second route.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!visible || !panel) {
+      setPanelScrolls(false);
+      return;
+    }
+    const measure = () =>
+      setPanelScrolls(panel.scrollHeight > panel.clientHeight + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(panel);
+    // The options arrive in a lazy chunk and change the list's height without changing the capped panel's.
+    const list = panel.querySelector('[role="listbox"]');
+    if (list) observer.observe(list);
+    return () => observer.disconnect();
+  }, [visible, groups]);
 
   // Keep the highlighted option in view inside the scrolling panel.
   useEffect(() => {
@@ -237,9 +259,17 @@ export function HeaderSearch() {
       </p>
 
       {visible ? (
+        // The lint rule cannot see the role through the spread; the panel is presentation or a labelled scroll group.
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
         <div
           ref={panelRef}
-          role="presentation"
+          {...(panelScrolls
+            ? {
+                role: 'group',
+                'aria-label': 'Scrollable suggestions',
+                tabIndex: 0,
+              }
+            : {role: 'presentation'})}
           className="absolute inset-x-0 top-full z-40 mt-1 max-h-[70dvh] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-lg"
           // Keep focus in the text field when the panel is pressed (a click would otherwise blur it first).
           onMouseDown={(event) => event.preventDefault()}

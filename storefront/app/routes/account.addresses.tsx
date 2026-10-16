@@ -430,7 +430,6 @@ export function AddressForm({
         <input type="hidden" name="addressId" defaultValue={addressId} />
         <label htmlFor={idOf('firstName')}>First name*</label>
         <input
-          aria-label="First name"
           autoComplete="given-name"
           defaultValue={address?.firstName ?? ''}
           id={idOf('firstName')}
@@ -441,7 +440,6 @@ export function AddressForm({
         />
         <label htmlFor={idOf('lastName')}>Last name*</label>
         <input
-          aria-label="Last name"
           autoComplete="family-name"
           defaultValue={address?.lastName ?? ''}
           id={idOf('lastName')}
@@ -452,7 +450,6 @@ export function AddressForm({
         />
         <label htmlFor={idOf('company')}>Company</label>
         <input
-          aria-label="Company"
           autoComplete="organization"
           defaultValue={address?.company ?? ''}
           id={idOf('company')}
@@ -462,7 +459,6 @@ export function AddressForm({
         />
         <label htmlFor={idOf('address1')}>Address line*</label>
         <input
-          aria-label="Address line 1"
           autoComplete="address-line1"
           defaultValue={address?.address1 ?? ''}
           id={idOf('address1')}
@@ -473,7 +469,6 @@ export function AddressForm({
         />
         <label htmlFor={idOf('address2')}>Address line 2</label>
         <input
-          aria-label="Address line 2"
           autoComplete="address-line2"
           defaultValue={address?.address2 ?? ''}
           id={idOf('address2')}
@@ -483,7 +478,6 @@ export function AddressForm({
         />
         <label htmlFor={idOf('city')}>City*</label>
         <input
-          aria-label="City"
           autoComplete="address-level2"
           defaultValue={address?.city ?? ''}
           id={idOf('city')}
@@ -494,7 +488,6 @@ export function AddressForm({
         />
         <label htmlFor={idOf('zoneCode')}>State / Province*</label>
         <input
-          aria-label="State/Province"
           autoComplete="address-level1"
           defaultValue={address?.zoneCode ?? ''}
           id={idOf('zoneCode')}
@@ -505,7 +498,6 @@ export function AddressForm({
         />
         <label htmlFor={idOf('zip')}>Zip / Postal Code*</label>
         <input
-          aria-label="Zip"
           autoComplete="postal-code"
           defaultValue={address?.zip ?? ''}
           id={idOf('zip')}
@@ -516,7 +508,6 @@ export function AddressForm({
         />
         <label htmlFor={idOf('territoryCode')}>Country Code*</label>
         <input
-          aria-label="Country code"
           autoComplete="country"
           defaultValue={address?.territoryCode ?? ''}
           id={idOf('territoryCode')}
@@ -528,7 +519,6 @@ export function AddressForm({
         />
         <label htmlFor={idOf('phoneNumber')}>Phone</label>
         <input
-          aria-label="Phone Number"
           autoComplete="tel"
           defaultValue={address?.phoneNumber ?? ''}
           id={idOf('phoneNumber')}

@@ -92,7 +92,7 @@ export function CartLineItem({
             to={href}
             prefetch="intent"
             onClick={layout === 'aside' ? close : undefined}
-            className="text-base font-bold text-fg hover:underline"
+            className="flex min-h-touch w-fit items-center text-base font-bold text-fg hover:underline"
           >
             {product.title}
           </Link>
