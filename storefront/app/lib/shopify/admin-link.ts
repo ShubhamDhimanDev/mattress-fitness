@@ -31,19 +31,34 @@ const PUBLIC_PATH_PREFIXES: readonly string[] = [
   '/policies',
 ];
 
+/** Percent-decodes up to three times, so a double-encoded dot segment ("%252e%252e") is seen as what it is. */
+function fullyDecoded(path: string): string | null {
+  let current = path;
+  for (let pass = 0; pass < 3; pass += 1) {
+    let next: string;
+    try {
+      next = decodeURIComponent(current);
+    } catch {
+      return null;
+    }
+    if (next === current) return current;
+    current = next;
+  }
+  return current;
+}
+
+/** Runs on the entity-decoded text, which is what the browser will receive (S-L1). */
 function isPublicPath(link: string): boolean {
   const end = link.search(/[?#]/);
   const path = end === -1 ? link : link.slice(0, end);
   if (path === '/') return true;
   // Dot segments (also percent-encoded) would let "/pages/../api" walk out of an allowed prefix.
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(path);
-  } catch {
-    return false;
-  }
+  const decoded = fullyDecoded(path);
+  if (decoded === null) return false;
   if (
-    decoded.split('/').some((segment) => segment === '.' || segment === '..')
+    decoded
+      .split(/[/\\]/)
+      .some((segment) => segment === '.' || segment === '..')
   ) {
     return false;
   }
@@ -60,13 +75,17 @@ export function parseAdminLink(
   if (text === '' || text.length > MAX_LINK_LENGTH) return null;
   if (/\s/.test(text) || hasControlCharacter(text)) return null;
 
-  const internal = text.startsWith('/') && !text.startsWith('//');
-  const external = /^https:\/\//i.test(text);
-  if (!internal && !external) return null;
-  if (internal && !isPublicPath(text)) return null;
-
-  // The shared checker also rejects encoded schemes and backslashes.
+  // The shared checker also rejects encoded schemes and backslashes, and returns the text with HTML entities
+  // decoded ("&#46;" becomes "."). Everything below is judged on that decoded value, the one that is returned
+  // and rendered, never on the raw text (S-L1).
   const safe = safeUrl(text, {schemes: ['https']});
   if (safe === null) return null;
+  if (safe.length > MAX_LINK_LENGTH) return null;
+  if (/\s/.test(safe) || hasControlCharacter(safe)) return null;
+
+  const internal = safe.startsWith('/') && !safe.startsWith('//');
+  const external = /^https:\/\//i.test(safe);
+  if (!internal && !external) return null;
+  if (internal && !isPublicPath(safe)) return null;
   return {href: safe, external};
 }

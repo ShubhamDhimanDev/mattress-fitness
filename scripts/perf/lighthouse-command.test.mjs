@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_PORT, LHCI_VERSION, lighthouseCommand, lighthouseUrls, main } from './lighthouse-command.mjs';
+import { DEFAULT_PORT, LHCI_NOTE, LHCI_VERSION, lighthouseCommand, lighthouseUrls, main } from './lighthouse-command.mjs';
 
 // P7-06 (NFR-002): `npm run perf:lighthouse` prints the Lighthouse CI command and runs nothing.
 
@@ -17,7 +17,12 @@ function run(argv) {
 test('prints a pinned npx command that uses the committed config and every template URL', () => {
   const { code, out } = run(['--product', 'queen-mattress']);
   assert.equal(code, 0);
-  assert.ok(out.startsWith(`npx -y @lhci/cli@${LHCI_VERSION} autorun --config=lighthouserc.json`));
+  const lines = out.split('\n');
+  assert.deepEqual(lines.slice(0, LHCI_NOTE.length), LHCI_NOTE, 'the note comes first');
+  assert.ok(lines[LHCI_NOTE.length].startsWith(`npx @lhci/cli@${LHCI_VERSION} autorun --config=lighthouserc.json`));
+  assert.ok(!/npx\s+(-y|--yes)/.test(out), 'npx is not told to skip its install prompt');
+  assert.match(out, /scratch directory/);
+  assert.match(out, /ADR/);
   for (const url of lighthouseUrls({ port: DEFAULT_PORT, collection: 'all', product: 'queen-mattress' })) {
     assert.ok(out.includes(`--collect.url=${url}`), url);
   }

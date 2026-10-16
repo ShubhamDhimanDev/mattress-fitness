@@ -41,13 +41,13 @@ node ../scripts/perf/bundle-budget.mjs --dist dist/client --budgets ../scripts/p
 
 It reads React Router's build manifest (`dist/client/assets/manifest-*.js`), adds the entry, the root route, every parent layout and the route's own chunks (static imports only), gzips each file and compares. It follows the manifest, not the directory, because `dist/client/assets` keeps files from older builds. Lazy `import()` chunks are not counted (that is the point of lazy loading them). Unit tests: `node --test "scripts/**/*.test.mjs"` (`scripts/perf/bundle-budget.test.mjs`).
 
-**2. Lighthouse CI (minutes, needs Chrome).** `@lhci/cli` is **not** a dependency of the project. Adding it needs an ADR (`.claude/rules/git-practices.md`: dependency changes need a reason, a compatibility check and a recorded decision), so run it through a pinned `npx`, which installs into npm's cache and leaves `package.json` and the lockfile untouched:
+**2. Lighthouse CI (minutes, needs Chrome).** `@lhci/cli` is **not** a dependency of the project. Adding it needs an ADR (`.claude/rules/git-practices.md`: dependency changes need a reason, a compatibility check and a recorded decision), so run it through a pinned `npx`, which installs into npm's cache and leaves `package.json` and the lockfile untouched. About 300 transitive packages resolve to their newest in-range versions at run time (no lockfile) and their install scripts run on your machine (S-L5, T-12), so run it from a scratch directory that holds a copy of `lighthouserc.json`, not from the project, until an ADR adopts it as a devDependency; `npm run perf:lighthouse` prints that note above the command, and the command no longer carries `-y`, so npx asks before it installs:
 
 ```
 npm run build
 npx shopify hydrogen preview --port 4900 --env-file .env.prodpreview      # separate terminal; see PLAYWRIGHT_WORKFLOW.md, "Production preview"
 export CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe"   # if Chrome is not found
-npx -y @lhci/cli@0.15.1 autorun --config=lighthouserc.json \
+npx @lhci/cli@0.15.1 autorun --config=lighthouserc.json \
   --collect.url=http://localhost:4900/ \
   --collect.url=http://localhost:4900/collections/<a-collection-handle> \
   --collect.url=http://localhost:4900/products/<a-product-handle> \

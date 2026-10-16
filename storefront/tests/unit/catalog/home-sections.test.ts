@@ -313,8 +313,40 @@ describe('parseAdminLink (T-08)', () => {
     '/collections/%2E%2E/api',
     '/pages/a%2F..%2F..%2Fapi',
     '/pages/%zz',
+    // HTML entities decode to the characters above after the check used to run (S-L1).
+    '/pages/&#46;&#46;/account/addresses',
+    '/pages/&#x2e;&#x2E;/account/addresses',
+    '/pages/a&#x2F;..&#x2F;api/x',
+    '/pages/a&#47;&#46;&#46;&#47;api/x',
+    '/pages/x&#9;y',
+    '/pages/x&#10;y',
+    '/pages/&#37;2e&#37;2e/account',
+    '/pages/&#46;%2e/account',
+    // Percent-encoded dot segments, also encoded twice.
+    '/pages/%2e%2e/account/addresses',
+    '/pages/%252e%252e/account/addresses',
+    '/pages/%25252e%25252e/account',
+    '/pages/%2e./account',
+    '/pages/.%2E/account',
+    '/pages/a%5c..%5capi',
+    '/pages/./../api',
+    // The decoded value must still be an https URL or a public path.
+    '/&#47;evil.test',
+    '/&#92;evil.test',
+    'https://exa&#9;mple.com',
   ])('rejects %j', (raw) => {
     expect(parseAdminLink(raw)).toBeNull();
+  });
+
+  it('returns the decoded value only when it is valid (S-L1)', () => {
+    expect(parseAdminLink('/pages/a&amp;b?x=1&#38;y=2')).toEqual({
+      href: '/pages/a&b?x=1&y=2',
+      external: false,
+    });
+    expect(parseAdminLink('/pages/caf&#233;')).toEqual({
+      href: '/pages/café',
+      external: false,
+    });
   });
 
   it('returns null for missing input', () => {

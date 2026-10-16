@@ -366,9 +366,12 @@ export async function planDefinitions({ spec, client }) {
     const { missing, diffs } = splitMissingFields(definition, existing);
     // Only a well-formed definition id is sent back to Shopify; anything else is reported, not changed.
     const existingId = typeof existing.id === 'string' && METAOBJECT_DEFINITION_ID.test(existing.id) ? existing.id : null;
-    const addable = existingId !== null && missing.length > 0;
+    // The id comes from Shopify's answer, so it is trusted only when that answer is for the type that was asked about:
+    // a different type means the id names some other definition and nothing may be added to it (S-L7, T-14).
+    const typeMismatch = existing.type === definition.type ? [] : [`type is "${String(existing.type)}" in Shopify, "${definition.type}" in the spec; nothing is added to it`];
+    const addable = existingId !== null && typeMismatch.length === 0 && missing.length > 0;
     const unaddable = !addable ? missing.map((field) => `field ${field.key} is missing in Shopify`) : [];
-    const allDiffs = [...unaddable, ...diffs];
+    const allDiffs = [...typeMismatch, ...unaddable, ...diffs];
     const action = allDiffs.length > 0 ? 'differs' : addable ? 'add-fields' : 'exists';
     items.push({ kind: 'metaobject', label: definition.type, action, diffs: allDiffs, input, ...(addable ? { existingId, addFields: missing } : {}) });
   }

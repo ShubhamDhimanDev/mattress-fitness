@@ -381,6 +381,21 @@ test('a definition id that is not a metaobject definition gid is never sent back
   assert.equal(fake.mutations().length, 0);
 });
 
+test('a definition whose returned type is not the requested one gets nothing added, and the difference is reported (S-L7)', async () => {
+  const fake = createFakeShopify();
+  assert.equal((await run(['--live'], { fake })).code, 0);
+  dropField(fake, 'site_settings', 'support_phone');
+  fake.state.metaobjectDefinitions.get('site_settings').type = 'something_else';
+  fake.reset();
+  const result = await run(['--live'], { fake });
+  assert.equal(result.code, 1);
+  assert.match(result.out, /DIFF site_settings: type is "something_else" in Shopify, "site_settings" in the spec; nothing is added to it/);
+  assert.equal(fake.mutations().length, 0, 'no field is sent to the definition Shopify named');
+  const dry = await run([], { fake });
+  assert.equal(dry.code, 1);
+  assert.doesNotMatch(dry.out, /ADD site_settings/, 'a dry run does not promise to add fields either');
+});
+
 test('a rejected field addition is listed as failed and the exit code is non-zero', async () => {
   const fake = createFakeShopify({
     intercept: ({ operationName }) => (operationName === 'AddMetaobjectDefinitionFields'
