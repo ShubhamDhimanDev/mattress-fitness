@@ -1,6 +1,8 @@
 import {Image} from '@shopify/hydrogen';
+import {Link} from 'react-router';
 import {keyedText} from '~/lib/shopify/keys';
 import {Accordion} from '~/components/ui/Accordion';
+import type {BrandLink} from '~/lib/shopify/brand-link';
 import type {ProductPageView} from '~/lib/shopify/types';
 
 /**
@@ -8,7 +10,14 @@ import type {ProductPageView} from '~/lib/shopify/types';
  * has data, so a product without metafields shows just its description. All text is plain (see
  * lib/shopify/rich-text.ts); nothing from the admin is inserted as HTML.
  */
-export function ProductSections({product}: {product: ProductPageView}) {
+export function ProductSections({
+  product,
+  brandLink = null,
+}: {
+  product: ProductPageView;
+  /** The brand's page, when one exists; adds a link in the brand section. */
+  brandLink?: BrandLink | null;
+}) {
   const attributes = [
     ['Comfort level', product.comfortLevel],
     ['Mattress type', product.mattressType],
@@ -89,6 +98,15 @@ export function ProductSections({product}: {product: ProductPageView}) {
               <p key={paragraph.key}>{paragraph.text}</p>
             ))}
           </div>
+          {brandLink ? (
+            <Link
+              to={brandLink.to}
+              prefetch="intent"
+              className="mt-3 inline-flex min-h-touch items-center font-bold text-primary-700 underline underline-offset-4 hover:text-primary-800"
+            >
+              See all {brandLink.name} products
+            </Link>
+          ) : null}
           {product.brand.warranty.length > 0 ? (
             <div className="mt-4 max-w-prose">
               <h3 className="mb-2 text-xl font-bold">Warranty</h3>

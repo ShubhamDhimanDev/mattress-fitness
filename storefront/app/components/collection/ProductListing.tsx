@@ -78,7 +78,14 @@ export function ProductListing({
   return (
     <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
       {showFilters ? (
-        <aside aria-label="Filters" className="hidden w-64 shrink-0 lg:block">
+        <aside
+          aria-labelledby="listing-filters-heading"
+          className="hidden w-64 shrink-0 lg:block"
+        >
+          {/* The sidebar comes before the product list in the page, and its price heading is a level 3: this level 2 keeps the outline unbroken (A11Y-006). */}
+          <h2 id="listing-filters-heading" className="sr-only">
+            Filters
+          </h2>
           <FilterPanel
             groups={filterGroups}
             state={state}

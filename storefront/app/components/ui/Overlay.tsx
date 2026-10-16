@@ -97,10 +97,10 @@ const WRAPPER: Record<OverlayPlacement, string> = {
 
 const PANEL: Record<OverlayPlacement, string> = {
   center:
-    'flex max-h-full w-full max-w-dialog flex-col overflow-hidden rounded-panel bg-surface shadow-lg animate-dialog-in',
-  left: 'absolute inset-y-0 left-0 flex w-full max-w-drawer flex-col bg-surface shadow-drawer animate-drawer-in-left',
+    'flex max-h-full w-full max-w-dialog flex-col overflow-hidden rounded-panel border border-line bg-surface shadow-lg motion-safe:animate-dialog-in',
+  left: 'absolute inset-y-0 left-0 flex w-full max-w-drawer flex-col border-r border-line bg-surface shadow-drawer motion-safe:animate-drawer-in-left',
   right:
-    'absolute inset-y-0 right-0 flex w-full max-w-drawer flex-col bg-surface shadow-drawer animate-drawer-in-right',
+    'absolute inset-y-0 right-0 flex w-full max-w-drawer flex-col border-l border-line bg-surface shadow-drawer motion-safe:animate-drawer-in-right',
 };
 
 export function Overlay({open, children, ...rest}: OverlayProps) {
@@ -211,7 +211,7 @@ function OverlayContent({
     <div
       role="presentation"
       className={cn(
-        'fixed inset-0 z-50 animate-fade-in bg-ink-900/60',
+        'fixed inset-0 z-50 bg-ink-900/60 motion-safe:animate-fade-in',
         WRAPPER[placement],
       )}
       onMouseDown={(event) => {

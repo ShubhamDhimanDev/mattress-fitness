@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {TruckIcon} from '~/components/ui/Icons';
+import {zipFormPanel} from '~/components/layout/lazyPanels';
 import {ZipEntryDialog} from '~/components/layout/ZipEntryDialog';
 
 type DeliveryZipControlProps = {
@@ -56,6 +57,10 @@ export function DeliveryZipControl({
         type="button"
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
+        // The form's chunk starts downloading on intent, so it is ready when the dialog opens (P7-06).
+        onPointerEnter={() => void zipFormPanel.preload()}
+        onFocus={() => void zipFormPanel.preload()}
+        onPointerDown={() => void zipFormPanel.preload()}
         className="inline-flex min-h-touch items-center gap-2 font-bold hover:underline"
       >
         <TruckIcon className="size-5" />

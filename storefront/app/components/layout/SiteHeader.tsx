@@ -1,4 +1,4 @@
-import {Suspense, type ReactNode} from 'react';
+import {Suspense, useEffect, type ReactNode} from 'react';
 import {Await, Link} from 'react-router';
 import {
   type CartViewPayload,
@@ -11,7 +11,8 @@ import {useDeliveryZip} from '~/components/delivery/useDeliveryZip';
 import {DeliveryZipControl} from '~/components/layout/DeliveryZipControl';
 import {HeaderSearch} from '~/components/layout/HeaderSearch';
 import {MainNav} from '~/components/layout/MainNav';
-import {MobileNav} from '~/components/layout/MobileNav';
+import {LazyBoundary, PanelFailed} from '~/components/layout/LazyPanel';
+import {cartPanel, mobileMenuPanel} from '~/components/layout/lazyPanels';
 import {PromoBar} from '~/components/layout/PromoBar';
 import {ReassuranceStrip} from '~/components/layout/ReassuranceStrip';
 import {StoreSelectorLink} from '~/components/layout/StoreSelectorLink';
@@ -25,6 +26,8 @@ import {
   UserIcon,
 } from '~/components/ui/Icons';
 import {IconButton} from '~/components/ui/IconButton';
+import {Skeleton} from '~/components/ui/Skeleton';
+import {whenIdle} from '~/lib/when-idle';
 import {DELIVERY_ERROR_TEXT} from '~/lib/delivery-runtime/response';
 import {
   MAIN_NAV,
@@ -161,6 +164,10 @@ function MobileMenuButton() {
       icon={<MenuIcon />}
       aria-haspopup="dialog"
       onClick={() => open('mobile')}
+      // The menu's chunk starts downloading on intent, so it is ready when the drawer opens (P7-06).
+      onPointerEnter={() => void mobileMenuPanel.preload()}
+      onFocus={() => void mobileMenuPanel.preload()}
+      onPointerDown={() => void mobileMenuPanel.preload()}
     />
   );
 }
@@ -212,6 +219,14 @@ function CartLink({count}: {count: number}) {
   const label =
     count > 0 ? `Cart, ${count} ${count === 1 ? 'item' : 'items'}` : 'Cart';
 
+  // A shopper with items in the cart is likely to open the drawer: fetch its chunk in idle time (P7-06). An
+  // empty cart waits for intent (pointer, focus) or the open itself.
+  const hasItems = count > 0;
+  useEffect(() => {
+    if (!hasItems) return;
+    return whenIdle(() => void cartPanel.preload());
+  }, [hasItems]);
+
   return (
     // A real link to /cart, so the cart is reachable without JavaScript; with JavaScript it opens the drawer.
     <IconButton
@@ -221,6 +236,9 @@ function CartLink({count}: {count: number}) {
       badge={count}
       icon={<CartIcon />}
       aria-haspopup="dialog"
+      onPointerEnter={() => void cartPanel.preload()}
+      onFocus={() => void cartPanel.preload()}
+      onPointerDown={() => void cartPanel.preload()}
       onClick={(event) => {
         event.preventDefault();
         open('cart');
@@ -235,7 +253,12 @@ function CartLink({count}: {count: number}) {
   );
 }
 
-/** Content of the mobile menu drawer; rendered by PageLayout inside the 'mobile' aside. */
+const MobileNavPanel = mobileMenuPanel.Panel;
+
+/**
+ * Content of the mobile menu drawer; rendered by PageLayout inside the 'mobile' aside. The navigation arrives
+ * as a lazy chunk (P7-06); the fallback is about as tall as the first screen of the real list.
+ */
 export function MobileMenuContent({
   supportPhone = null,
 }: {
@@ -243,10 +266,28 @@ export function MobileMenuContent({
 }) {
   const {close} = useAside();
   return (
-    <MobileNav
-      items={NAV_ITEMS}
-      onNavigate={close}
-      supportPhone={supportPhone}
-    />
+    <LazyBoundary
+      loading={<MobileNavSkeleton />}
+      failed={
+        <PanelFailed href="/collections" linkText="Browse all products" />
+      }
+    >
+      <MobileNavPanel
+        items={NAV_ITEMS}
+        onNavigate={close}
+        supportPhone={supportPhone}
+      />
+    </LazyBoundary>
+  );
+}
+
+function MobileNavSkeleton() {
+  return (
+    <div role="status" className="flex flex-col gap-3">
+      <span className="sr-only">Loading menu</span>
+      {NAV_ITEMS.map((item) => (
+        <Skeleton key={item.id} className="h-11 w-full" />
+      ))}
+    </div>
   );
 }

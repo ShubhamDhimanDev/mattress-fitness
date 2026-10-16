@@ -7,11 +7,13 @@ import {CompareToggle} from '~/components/compare/CompareToggle';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {AddWithProtectionButton} from '~/components/extend/AddWithProtectionButton';
 import {ProtectionPanel} from '~/components/extend/ProtectionPanel';
+import {VendorName} from '~/components/product/VendorName';
 import {useProtectionOffers} from '~/components/extend/useProtectionOffers';
 import {Badge} from '~/components/ui/Badge';
 import {Price} from '~/components/ui/Price';
 import {SizeSelector} from '~/components/ui/SizeSelector';
 import {SIZE_OPTION_NAME, toSlug} from '~/lib/catalog/attributes';
+import type {BrandLink} from '~/lib/shopify/brand-link';
 import type {ProtectionMode} from '~/lib/shopify/protection-mode';
 import {savingsLabel} from '~/lib/shopify/pricing';
 import type {ProductPageView, VariantView} from '~/lib/shopify/types';
@@ -38,10 +40,13 @@ export function ProductBuyBox({
   product,
   variant,
   protection = 'off',
+  brandLink = null,
 }: {
   product: ProductPageView;
   variant: VariantView;
   protection?: ProtectionMode;
+  /** The vendor's brand page, when one exists (resolveBrandLink); otherwise the vendor is plain text. */
+  brandLink?: BrandLink | null;
 }) {
   const navigate = useNavigate();
   const {open, type: asideType} = useAside();
@@ -93,9 +98,7 @@ export function ProductBuyBox({
     <div className="flex flex-col gap-4">
       <div>
         {product.vendor ? (
-          <p className="text-sm font-bold tracking-wide text-fg-muted uppercase">
-            {product.vendor}
-          </p>
+          <VendorName vendor={product.vendor} brandLink={brandLink} />
         ) : null}
         <h1 className="text-3xl font-bold">{product.title}</h1>
         {/* TODO(P3B-12): star rating and review count render here once a reviews provider is chosen (Q-011). */}

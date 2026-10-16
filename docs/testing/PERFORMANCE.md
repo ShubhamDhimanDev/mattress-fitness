@@ -41,13 +41,13 @@ node ../scripts/perf/bundle-budget.mjs --dist dist/client --budgets ../scripts/p
 
 It reads React Router's build manifest (`dist/client/assets/manifest-*.js`), adds the entry, the root route, every parent layout and the route's own chunks (static imports only), gzips each file and compares. It follows the manifest, not the directory, because `dist/client/assets` keeps files from older builds. Lazy `import()` chunks are not counted (that is the point of lazy loading them). Unit tests: `node --test "scripts/**/*.test.mjs"` (`scripts/perf/bundle-budget.test.mjs`).
 
-**2. Lighthouse CI (minutes, needs Chrome).** `@lhci/cli` is **not** a dependency of the project. Adding it needs an ADR (`.claude/rules/git-practices.md`: dependency changes need a reason, a compatibility check and a recorded decision), so run it through a pinned `npx`, which installs into npm's cache and leaves `package.json` and the lockfile untouched:
+**2. Lighthouse CI (minutes, needs Chrome).** `@lhci/cli` is **not** a dependency of the project. Adding it needs an ADR (`.claude/rules/git-practices.md`: dependency changes need a reason, a compatibility check and a recorded decision), so run it through a pinned `npx`, which installs into npm's cache and leaves `package.json` and the lockfile untouched. About 300 transitive packages resolve to their newest in-range versions at run time (no lockfile) and their install scripts run on your machine (S-L5, T-12), so run it from a scratch directory that holds a copy of `lighthouserc.json`, not from the project, until an ADR adopts it as a devDependency; `npm run perf:lighthouse` prints that note above the command, and the command no longer carries `-y`, so npx asks before it installs:
 
 ```
 npm run build
 npx shopify hydrogen preview --port 4900 --env-file .env.prodpreview      # separate terminal; see PLAYWRIGHT_WORKFLOW.md, "Production preview"
 export CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe"   # if Chrome is not found
-npx -y @lhci/cli@0.15.1 autorun --config=lighthouserc.json \
+npx @lhci/cli@0.15.1 autorun --config=lighthouserc.json \
   --collect.url=http://localhost:4900/ \
   --collect.url=http://localhost:4900/collections/<a-collection-handle> \
   --collect.url=http://localhost:4900/products/<a-product-handle> \
@@ -103,6 +103,32 @@ The stylesheet (one Tailwind file for all routes) is 42.3 kB raw, 9.0 kB gzip. R
 - **The shell is the cost.** The entry (React, React DOM, React Router, Hydrogen runtime) is about 98 kB gzip and the root route adds about 31 kB, so every route starts at about 129 kB; a page's own code adds 0 to 12 kB. A budget fight is won in the root, not in the templates.
 - The root route's static imports include the cart drawer and cart contents (`CartMain`, `CartActionForm`), the delivery ZIP check (`DeliveryCheck`, `zip`), the accordion and the offer plan parts (`PlanParts`). They are needed only after the shopper opens the cart or the ZIP dialog, so they are the first candidates to lazy-load (P7-06 fix list, not done here: the root and header belong to other owners).
 - The quiz, compare and store pages are only 4 to 10 kB above the shell, so the "keep the quiz, comparison and maps in route-level chunks" rule holds.
+
+### Update 2026-10-16: shell panels lazy-loaded (P7-06), local build, not Lighthouse
+
+Measured by `npm run build` then `npm run perf:bundle` on branch `feat/p7-shell-weight-phase2-a11y`, Node 22, Windows; **local baseline, mock store, nothing approved (Q-012)**. The cart drawer contents (`CartMain` and the offers, line, quantity and delivery-check parts it pulls in), the mobile menu (`MobileNav`, accordion), the ZIP dialog form (`ZipForm`, input, ZIP parser) and the search suggestion list (`SuggestionGroups`: option markup, Hydrogen `Image`, `Price`) now load as their own chunks (`app/components/layout/LazyPanel.tsx`, `lazyPanels.ts`). Each starts downloading when the shopper points at, focuses or presses its control (the cart also when the cart already has items, in idle time), and the add-to-cart buttons trigger it through the aside provider. None of the four is rendered on the server (the overlays mount their content on the client), so first paint, SEO and the no-JavaScript `/cart` link are unchanged. The "before" column is the same tree measured at the start of this task; the working tree also held other agents' uncommitted design-system edits (the stylesheet grew from 42.3 to 44.5 kB raw, 9.0 to 9.2 kB gzip), so a few hundred bytes of the difference are theirs. The `/cart` route still contains the cart UI because the page itself renders it.
+
+| Route                       | Gzip kB before | Gzip kB after | Change | Budget kB (old, new) |
+| --------------------------- | -------------- | ------------- | ------ | -------------------- |
+| `_index` (home)             | 135.3          | 122.2         | -13.1  | 150, 129             |
+| `collections.$handle`       | 140.8          | 130.7         | -10.1  | 155, 138             |
+| `collections.all`           | 140.2          | 129.1         | -11.1  | 155, 138             |
+| `products.$handle`          | 138.5          | 132.9         | -5.6   | 155, 140             |
+| `cart`                      | 129.9          | 130.4         | +0.5   | 145, 137             |
+| `checkout-steps`            | 131.8          | 119.7         | -12.1  | 145, 137             |
+| `search`                    | 140.6          | 129.5         | -11.1  | 155, 136             |
+| `quiz._index`               | 139.6          | 125.9         | -13.7  | 155, 133             |
+| `compare`                   | 135.9          | 122.8         | -13.1  | 150, 129             |
+| `brands.$handle`            | 141.5          | 130.4         | -11.1  | 155, 137             |
+| `brands._index`             | 131.2          | 116.6         | -14.6  | 155, 137             |
+| `stores._index`             | 132.7          | 116.5         | -16.2  | 150, 124             |
+| `stores.$state.$city.$slug` | 133.8          | 117.6         | -16.2  | 150, 124             |
+| `account`                   | 130.8          | 114.6         | -16.2  | 145, 124             |
+| `account.orders._index`     | 133.9          | 117.7         | -16.2  | 145, 124             |
+| `pages.$handle`             | 131.7          | 115.6         | -16.1  | 145, 122             |
+| `policies.$handle`          | 131.8          | 115.7         | -16.1  | 145, 122             |
+
+What is left: React DOM (42 kB gzip), React Router (43 kB) and the Hydrogen runtime (11 kB) are about 96 kB of every route and cannot be split; the root route adds about 7 kB, the header's shared parts (icons, store selector, navigation data, drawer frame) about 10 kB. The `product` and `collection` routes carry the cart-adjacent code they use themselves (add to cart, delivery check, prices, images). `bundle-budgets.json` now sits about 5 percent above these numbers (new group values are in the table; the file is the authority); it stays PROPOSED. The "Per route group" sentence under "Proposed budgets" and next step 3 below still describe the 2026-10-15 numbers and are not rewritten here. Not re-measured: Lighthouse (LCP, TBT, transferred script size); the expectation is a smaller first-load script transfer by roughly the same 10 to 16 kB, to be confirmed with the pinned `@lhci/cli` run.
 
 ### Lighthouse 12.6.1 through `@lhci/cli` 0.15.1, production preview, mock store
 

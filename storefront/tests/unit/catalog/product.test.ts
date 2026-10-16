@@ -179,6 +179,7 @@ describe('mapProductPage content (REQ-PDP-002)', () => {
         p.brand = {
           reference: {
             id: 'gid://shopify/Metaobject/1',
+            handle: 'acme-sleep',
             fields: [
               {key: 'name', value: 'Acme Sleep', reference: null},
               {
@@ -217,6 +218,7 @@ describe('mapProductPage content (REQ-PDP-002)', () => {
     expect(view.specifications).toEqual([{label: 'Layers', value: '5'}]);
     expect(view.features).toEqual(['Cooling cover', 'Edge support']);
     expect(view.brand?.name).toBe('Acme Sleep');
+    expect(view.brand?.handle).toBe('acme-sleep');
     expect(view.brand?.about).toEqual(['Made well.']);
     expect(view.faqs).toHaveLength(1);
     expect(view.faqs[0].answer).toEqual(['It is medium.']);

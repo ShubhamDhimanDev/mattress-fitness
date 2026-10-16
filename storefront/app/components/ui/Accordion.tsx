@@ -135,7 +135,7 @@ export function Accordion({
                 )}
               >
                 <span>{item.title}</span>
-                <ChevronDownIcon className="size-5 text-fg-muted transition-transform group-aria-expanded:rotate-180" />
+                <ChevronDownIcon className="size-5 text-fg-muted motion-safe:transition-transform group-aria-expanded:rotate-180" />
               </button>
             </Heading>
             <div

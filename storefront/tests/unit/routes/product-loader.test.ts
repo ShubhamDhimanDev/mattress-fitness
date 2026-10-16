@@ -17,6 +17,17 @@ const EXTEND_ENV = {
   EXTEND_ACCESS_TOKEN: 'fixture-token-not-real',
 };
 
+// Brand entries the recorded store has: none, like the mock stores, unless a test sets some.
+let brandNodes: unknown[] = [];
+
+function brandEntry(handle: string, name: string) {
+  return {
+    id: `gid://shopify/Metaobject/${handle}`,
+    handle,
+    fields: [{key: 'name', value: name, reference: null}],
+  };
+}
+
 function answer(call: RecordedCall, category: {value: string} | null) {
   if (call.query === PRODUCT_QUERY) return productJson;
   if (call.query.includes('query CatalogProductAvailability')) {
@@ -27,6 +38,9 @@ function answer(call: RecordedCall, category: {value: string} | null) {
   }
   if (call.query.includes('query OfferOnlyProductHandles')) {
     return {products: {nodes: []}};
+  }
+  if (call.query.includes('query CatalogBrandsIndex')) {
+    return {brands: {nodes: brandNodes}};
   }
   throw new Error(`unexpected query: ${call.query.slice(0, 60)}`);
 }
@@ -49,10 +63,11 @@ const names = (calls: readonly RecordedCall[]) =>
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  brandNodes = [];
 });
 
 describe('product loader reads (review m7)', () => {
-  it('starts the product, availability, Extend category and offer-only reads before any of them has answered', async () => {
+  it('starts the product, availability, Extend category, offer-only and brand-list reads before any of them has answered', async () => {
     const releases: Array<() => void> = [];
     const {storefront, calls} = fakeStorefront(
       (call) =>
@@ -63,6 +78,7 @@ describe('product loader reads (review m7)', () => {
     const pending = run(storefront, {...EXTEND_ENV, PUBLIC_SITE_URL: SITE});
     // Nothing has resolved yet, and every read is already in flight: no read waits for another.
     expect(names(calls).sort()).toEqual([
+      'CatalogBrandsIndex',
       'CatalogProduct',
       'CatalogProductAvailability',
       'ExtendProductCategoryByHandle',
@@ -145,13 +161,16 @@ describe('product loader reads (review m7)', () => {
       if (call.query.includes('query OfferOnlyProductHandles')) {
         return {products: {nodes: []}};
       }
+      if (call.query.includes('query CatalogBrandsIndex')) {
+        return {brands: {nodes: []}};
+      }
       throw new Error(`unexpected query: ${call.query.slice(0, 60)}`);
     });
     await expect(
       run(storefront, {...EXTEND_ENV, PUBLIC_SITE_URL: SITE}),
     ).rejects.toMatchObject({status: 404});
-    // Bounded: no more than the four reads the page starts, none of them uncached.
-    expect(calls).toHaveLength(4);
+    // Bounded: no more than the five reads the page starts (the brand list is not per handle), none uncached.
+    expect(calls).toHaveLength(5);
     for (const call of calls) {
       expect(call.cache, String(names([call]))).toBeDefined();
       expect(call.cache).not.toEqual({mode: 'none'});
@@ -182,6 +201,63 @@ describe('product loader reads (review m7)', () => {
     expect(names(calls)).not.toContain('ExtendProductCategoryByHandle');
     // Nor any other per-handle read: only the shared offer-only list can be read.
     expect(calls.filter((call) => 'handle' in call.variables)).toHaveLength(0);
+  });
+});
+
+describe('product loader brand link (REQ-COL-005)', () => {
+  const env = {PUBLIC_SITE_URL: SITE};
+
+  it('links the vendor to its brand page when the brand list has it', async () => {
+    brandNodes = [brandEntry('cloudhaven-linens', 'CloudHaven Linens')];
+    const {storefront} = fakeStorefront((call) => answer(call, null));
+    const data = await run(storefront, env);
+    expect(data.brandLink).toEqual({
+      name: 'CloudHaven Linens',
+      to: '/brands/cloudhaven-linens',
+    });
+  });
+
+  it('is plain text when no brand entry matches the vendor (fixtures never match a real vendor)', async () => {
+    brandNodes = [brandEntry('acme-sleep', 'Acme Sleep')];
+    const {storefront} = fakeStorefront((call) => answer(call, null));
+    expect((await run(storefront, env)).brandLink).toBeNull();
+    // Development stand-ins (no entries at all) name fictional brands, not this vendor.
+    brandNodes = [];
+    expect((await run(storefront, env)).brandLink).toBeNull();
+  });
+
+  describe('fixture brands (a vendor named like a fictional preview brand)', () => {
+    const fixtureVendor = {
+      ...productJson,
+      product: {...productJson.product, vendor: 'Larkmoor'},
+    };
+    const storefrontFor = () =>
+      fakeStorefront((call) =>
+        call.query === PRODUCT_QUERY ? fixtureVendor : answer(call, null),
+      ).storefront;
+
+    it('links in development, where the brand pages show the same preview', async () => {
+      const data = await run(storefrontFor(), env);
+      expect(data.brandLink?.to).toBe('/brands/larkmoor');
+    });
+
+    it('never links in production', async () => {
+      vi.stubEnv('PROD', true);
+      expect((await run(storefrontFor(), env)).brandLink).toBeNull();
+    });
+  });
+
+  it('a failed brand-list read leaves plain text and does not fail the page', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const {storefront} = fakeStorefront((call) => {
+      if (call.query.includes('query CatalogBrandsIndex')) {
+        throw new Error('timeout');
+      }
+      return answer(call, null);
+    });
+    const data = await run(storefront, env);
+    expect(data.brandLink).toBeNull();
+    expect(data.product.handle).toBe(HANDLE);
   });
 });
 

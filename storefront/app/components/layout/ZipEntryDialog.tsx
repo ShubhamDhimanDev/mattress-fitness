@@ -1,8 +1,8 @@
-import {useRef, useState, type FormEvent, type RefObject} from 'react';
-import {Button} from '~/components/ui/Button';
+import {useRef} from 'react';
+import {LazyBoundary, PanelFailed} from '~/components/layout/LazyPanel';
+import {zipFormPanel} from '~/components/layout/lazyPanels';
 import {Dialog} from '~/components/ui/Dialog';
-import {Input} from '~/components/ui/Input';
-import {parseZip} from '~/lib/delivery/zip';
+import {Skeleton} from '~/components/ui/Skeleton';
 import {DELIVERY_ERROR_TEXT} from '~/lib/delivery-runtime/response';
 
 // The same validator and wording as the server and the product-page and cart ZIP check (P3B-11).
@@ -20,7 +20,13 @@ type ZipEntryDialogProps = {
   serverError?: string;
 };
 
-/** Delivery ZIP entry (REQ-NAV-003). Presentational: it validates the shape and reports; it stores nothing. */
+const ZipFormPanel = zipFormPanel.Panel;
+
+/**
+ * Delivery ZIP entry (REQ-NAV-003). Presentational: it validates the shape and reports; it stores nothing.
+ * The dialog frame is static; the form arrives as a lazy chunk (P7-06) that the ZIP control preloads when the
+ * shopper points at, focuses or presses its button, so it is normally ready by the time the dialog opens.
+ */
 export function ZipEntryDialog({
   open,
   onClose,
@@ -38,79 +44,29 @@ export function ZipEntryDialog({
       description="We use your ZIP code to show delivery options for your area."
       initialFocusRef={inputRef}
     >
-      <ZipForm
-        inputRef={inputRef}
-        initialZip={initialZip ?? ''}
-        onSubmit={onSubmit}
-        onClear={onClear}
-        serverError={serverError}
-      />
+      <LazyBoundary
+        loading={<ZipFormSkeleton />}
+        failed={<PanelFailed linkText="Reload the page" />}
+      >
+        <ZipFormPanel
+          inputRef={inputRef}
+          initialZip={initialZip ?? ''}
+          onSubmit={onSubmit}
+          onClear={onClear}
+          serverError={serverError}
+        />
+      </LazyBoundary>
     </Dialog>
   );
 }
 
-// Mounted only while the dialog is open, so every opening starts with a clean error state.
-function ZipForm({
-  inputRef,
-  initialZip,
-  onSubmit,
-  onClear,
-  serverError,
-}: {
-  inputRef: RefObject<HTMLInputElement>;
-  initialZip: string;
-  onSubmit: (zip: string) => void;
-  onClear: () => void;
-  serverError?: string;
-}) {
-  const [value, setValue] = useState(initialZip);
-  const [error, setError] = useState<string | undefined>(undefined);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const parsed = parseZip(value);
-    if (!parsed.ok) {
-      setError(ZIP_ERROR_MESSAGE);
-      inputRef.current?.focus();
-      return;
-    }
-    setError(undefined);
-    onSubmit(parsed.zip);
-  }
-
+// About the height of the real form (label, field and hint, then the button), so the dialog does not jump.
+function ZipFormSkeleton() {
   return (
-    <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Input
-        ref={inputRef}
-        label="ZIP code"
-        name="zip"
-        inputMode="numeric"
-        autoComplete="postal-code"
-        maxLength={5}
-        value={value}
-        error={error ?? serverError}
-        hint="For example, 5 digits like 12345."
-        onChange={(event) => {
-          setValue(event.target.value.replace(/\D/g, ''));
-          if (error) setError(undefined);
-        }}
-      />
-      <div className="flex flex-col gap-2 sm:flex-row-reverse">
-        <Button type="submit" variant="pill" fullWidth>
-          Save ZIP code
-        </Button>
-        {initialZip ? (
-          <Button
-            type="button"
-            variant="secondary"
-            shape="pill"
-            fullWidth
-            onClick={onClear}
-          >
-            Clear ZIP code
-          </Button>
-        ) : null}
-      </div>
-    </form>
+    <div role="status" className="flex flex-col gap-4">
+      <span className="sr-only">Loading</span>
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-12 w-full" />
+    </div>
   );
 }

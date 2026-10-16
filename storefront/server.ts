@@ -2,8 +2,18 @@ import * as serverBuild from 'virtual:react-router/server-build';
 import {createRequestHandler, storefrontRedirect} from '@shopify/hydrogen';
 import {createHydrogenRouterContext} from '~/lib/context';
 import {errorFields, logError} from '~/lib/logging/logger';
-import {withSecurityHeaders} from '~/lib/security-headers';
-import {appendSetCookie} from '~/lib/server-safety';
+import {
+  withSecurityHeaders,
+  type SecurityHeaderInput,
+} from '~/lib/security-headers';
+import {finishResponse} from '~/lib/server-safety';
+
+function securityHeaderInput(request: Request): SecurityHeaderInput {
+  return {
+    requestUrl: request.url,
+    forwardedProto: request.headers.get('X-Forwarded-Proto'),
+  };
+}
 
 async function respond(
   request: Request,
@@ -27,12 +37,13 @@ async function respond(
       getLoadContext: () => hydrogenContext,
     });
 
-    const response = await handleRequest(request);
-
-    if (hydrogenContext.session.isPending) {
-      // Append, never set: a route may already have written the cart or ZIP cookie on this response (N-L4).
-      appendSetCookie(response, await hydrogenContext.session.commit());
-    }
+    // Security headers first, then the session cookie: a response with immutable headers (a redirect or a fetched
+    // response) is copied before the cookie is appended, so a pending session cannot throw (server-safety.ts).
+    const response = await finishResponse(
+      await handleRequest(request),
+      hydrogenContext.session,
+      securityHeaderInput(request),
+    );
 
     if (response.status === 404) {
       /**
@@ -72,9 +83,6 @@ export default {
     // The single exit for every response: documents, resource routes (/api/*, /webhooks/*, cart JSON), redirects from
     // `storefrontRedirect` and the error response above all get the host-independent security headers here
     // (P-L6). A server entry other than this one (an own-server deployment, Q-003) must make the same call.
-    return withSecurityHeaders(response, {
-      requestUrl: request.url,
-      forwardedProto: request.headers.get('X-Forwarded-Proto'),
-    });
+    return withSecurityHeaders(response, securityHeaderInput(request));
   },
 };

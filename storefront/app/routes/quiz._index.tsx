@@ -11,6 +11,7 @@ import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {QuizIntro} from '~/components/quiz/QuizIntro';
 import {QuizQuestion} from '~/components/quiz/QuizQuestion';
 import {QuizResults, type ResultClick} from '~/components/quiz/QuizResults';
+import {track} from '~/lib/analytics';
 import {getLocalStorage} from '~/lib/pages/browser-storage';
 import {previewRobotsMeta} from '~/lib/pages/head';
 import {
@@ -33,7 +34,6 @@ import {
   seeAllMatchesPath,
 } from '~/lib/pages/quiz-view';
 import {getQuizConfigRaw, getQuizProducts} from '~/lib/pages/data-source';
-import {track} from '~/lib/pages/track';
 import {resolveQuizConfig} from '~/lib/quiz/default-config';
 import {
   buildQuizCompleteEvent,

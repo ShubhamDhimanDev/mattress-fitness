@@ -1,0 +1,55 @@
+// The single place every analytics event passes through (P2-08; REQ-QZ-006 for the quiz events, REQ-ANL-001 for
+// page views and ecommerce events). The provider and the consent gate arrive in Phase 7: until then no sink is
+// registered, so nothing leaves the browser. Registering the sink there is the only change needed for events to
+// reach Google Analytics, and that sink is responsible for sending nothing without analytics consent (NFR-011).
+//
+// Privacy (threat T-05): parameters are counts, handles, sizes and a fixed vocabulary. Never names, emails, ZIP
+// codes, customer ids or free text. Each builder (see `~/lib/quiz/events`) documents and caps its own parameters.
+
+import type {QuizEventName} from '~/lib/quiz/events';
+
+/**
+ * GA4 recommended names reserved for the ecommerce events Phase 7 emits. They are listed now so call sites are
+ * type-checked from the start; the parameters of each are documented where its builder is written (P7-01).
+ */
+export type EcommerceEventName =
+  | 'view_item_list'
+  | 'select_item'
+  | 'view_item'
+  | 'add_to_cart'
+  | 'remove_from_cart'
+  | 'view_cart'
+  | 'begin_checkout'
+  | 'search';
+
+export type AnalyticsEventName =
+  'page_view' | EcommerceEventName | QuizEventName;
+
+export type AnalyticsParamValue = string | number;
+
+export type AnalyticsEvent = {
+  readonly name: AnalyticsEventName;
+  readonly params: Readonly<Record<string, AnalyticsParamValue>>;
+};
+
+export type TrackSink = (event: AnalyticsEvent) => void;
+
+let sink: TrackSink | null = null;
+
+/** Phase 7 registers the consent-aware sender here; tests register a spy. Pass null to unregister. */
+export function setTrackSink(next: TrackSink | null): void {
+  sink = next;
+}
+
+/** Sends an event to the registered sink, if any. Never throws: analytics must not break the page (NFR-013). */
+export function track(event: AnalyticsEvent): void {
+  try {
+    sink?.(event);
+  } catch {
+    // Swallowed on purpose; see above.
+  }
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console -- development-only visibility until the provider exists
+    console.debug('[track]', event.name, event.params);
+  }
+}

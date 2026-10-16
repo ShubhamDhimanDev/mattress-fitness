@@ -11,7 +11,10 @@ export function Skeleton({className}: SkeletonProps) {
   return (
     <div
       aria-hidden="true"
-      className={cn('animate-pulse rounded-choice bg-ink-200', className)}
+      className={cn(
+        'rounded-choice bg-ink-200 motion-safe:animate-pulse',
+        className,
+      )}
     />
   );
 }
@@ -34,7 +37,7 @@ export function SkeletonText({
         <div
           key={row.id}
           className={cn(
-            'h-4 animate-pulse rounded-choice bg-ink-200',
+            'h-4 rounded-choice bg-ink-200 motion-safe:animate-pulse',
             row.short ? 'w-2/3' : 'w-full',
           )}
         />

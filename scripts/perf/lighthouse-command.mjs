@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Prints the exact Lighthouse CI command for the local production preview (P7-06, NFR-002). It runs nothing and
 // installs nothing: `@lhci/cli` is not a project dependency (an ADR is needed to add it), so the command goes
-// through a pinned `npx`. The URLs are passed as flags rather than kept in `lighthouserc.json` because two of
-// them need a handle that exists in the store being measured; the config holds only the thresholds.
+// through a pinned `npx`, printed after a note to run it from a scratch directory. The URLs are passed as flags
+// rather than kept in `lighthouserc.json` because two of them need a handle that exists in the store being
+// measured; the config holds only the thresholds.
 //
 //   npm run perf:lighthouse -- --collection <handle> --product <handle> [--port 4900]
 //
@@ -25,14 +26,23 @@ export function lighthouseUrls({ port, collection, product }) {
   return [`${origin}/`, `${origin}/collections/${collection}`, `${origin}/products/${product}`, `${origin}/cart`, `${origin}/quiz`, `${origin}/search`, `${origin}/compare`];
 }
 
+export const LHCI_NOTE = [
+  '# Note: npx fetches @lhci/cli and about 300 unlocked transitive packages and runs their install scripts.',
+  '# Run it from a scratch directory (copy lighthouserc.json there) and not from the project, until an ADR',
+  '# adopts @lhci/cli as a devDependency (docs/testing/PERFORMANCE.md).',
+];
+
 /**
  * @param {{ port: number, collection: string, product: string }} args
  * @returns {string}
  */
 export function lighthouseCommand(args) {
   const urls = lighthouseUrls(args).map((url) => `  --collect.url=${url}`);
+  // The note is part of the output on purpose (S-L5, T-12): about 300 transitive packages resolve to the newest
+  // in-range versions at run time with no lockfile, and their install scripts run on the machine that types this.
+  // `-y` is not printed, so npx asks before it installs anything.
   // A trailing backslash continues the command on the next line in Git Bash and other POSIX shells.
-  return [`npx -y @lhci/cli@${LHCI_VERSION} autorun --config=lighthouserc.json \\`, ...urls.map((line, index) => (index < urls.length - 1 ? `${line} \\` : line))].join('\n');
+  return [...LHCI_NOTE, `npx @lhci/cli@${LHCI_VERSION} autorun --config=lighthouserc.json \\`, ...urls.map((line, index) => (index < urls.length - 1 ? `${line} \\` : line))].join('\n');
 }
 
 const USAGE = `Usage: npm run perf:lighthouse -- --product <handle> [--collection <handle>] [--port ${DEFAULT_PORT}]

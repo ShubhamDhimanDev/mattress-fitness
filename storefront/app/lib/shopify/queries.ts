@@ -316,6 +316,7 @@ export const PRODUCT_QUERY = `#graphql
         reference {
           ... on Metaobject {
             id
+            handle
             fields {
               key
               value

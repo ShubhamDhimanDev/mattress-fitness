@@ -186,6 +186,15 @@ export function AlertIcon(props: IconProps) {
   );
 }
 
+export function InfoIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5M12 7.5v.5" />
+    </Svg>
+  );
+}
+
 export function StarIcon({className, ...rest}: IconProps) {
   return (
     <svg
@@ -203,7 +212,7 @@ export function StarIcon({className, ...rest}: IconProps) {
 
 export function SpinnerIcon(props: IconProps) {
   return (
-    <Svg {...props} className={cn('animate-spin', props.className)}>
+    <Svg {...props} className={cn('motion-safe:animate-spin', props.className)}>
       <path d="M12 3a9 9 0 1 0 9 9" />
     </Svg>
   );

@@ -29,7 +29,7 @@ jobs:
   framework:
     name: Framework and docs
     runs-on: ubuntu-latest
-    # The history scan is commits x 5 patterns of `git grep` (about 220 greps for 44 commits); 30 minutes leaves
+    # The history scan is commits x 9 patterns of `git grep` (about 500 greps for 56 commits); 30 minutes leaves
     # room for a history that is ten times longer.
     timeout-minutes: 30
     steps:
@@ -49,10 +49,26 @@ jobs:
           status=0
           count=0
           # git grep exits 0 on a match, 1 on none and above 1 on an error; an error must fail the step, not pass it.
+          # Keep this list identical to checkSecrets() in scripts/validate-framework.mjs; [.] stands for a dot in both.
+          patterns=(
+            'shp(at|ss|ca|pa)_[a-fA-F0-9]{16,}'
+            '(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}'
+            '-----BEGIN [A-Z ]*PRIVATE KEY-----'
+            'Bearer[[:space:]]+[A-Za-z0-9._~+/-]{24,}'
+            '(^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}([^A-Za-z0-9]|$)'
+            'sk_live_[A-Za-z0-9]{16,}'
+            'gh[pousr]_[A-Za-z0-9]{30,}'
+            'github_pat_[A-Za-z0-9_]{30,}'
+            'eyJ[A-Za-z0-9_-]{10,}[.]eyJ[A-Za-z0-9_-]{10,}[.][A-Za-z0-9_-]{10,}'
+          )
           for commit in $(git rev-list --all); do
             count=$((count + 1))
-            for re in 'shp(at|ss|ca|pa)_[a-fA-F0-9]{16,}' '(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}' '-----BEGIN [A-Z ]*PRIVATE KEY-----' 'Bearer[[:space:]]+[A-Za-z0-9._~+/-]{24,}' '(^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}([^A-Za-z0-9]|$)'; do
-              hits=$(git grep -I -l -E -e "$re" "$commit" -- . ':!scripts/validate-framework.mjs')
+            for re in "${patterns[@]}"; do
+              # Two files are excluded by pathspec, and only these: the validator (its own pattern list is source
+              # text) and the redaction test, whose early commits hold synthetic sk_live_, ghp_ and JWT sample
+              # strings that history cannot lose (the current file builds them at run time, and the validator's
+              # tree scan still covers it, so a real token added there would fail that check).
+              hits=$(git grep -I -l -E -e "$re" "$commit" -- . ':!scripts/validate-framework.mjs' ':!storefront/app/lib/logging/redact.test.ts')
               rc=$?
               if [ "$rc" -gt 1 ]; then echo "git grep failed (exit $rc) at $commit"; exit 2; fi
               if [ "$rc" -eq 0 ]; then echo "possible secret (pattern $re) in: $hits"; status=1; fi
@@ -218,6 +234,8 @@ jobs:
   # is one, this job reports but cannot block: `continue-on-error` keeps a red run from failing the workflow, and the
   # job is not in the required checks. Promote it (remove continue-on-error, add it to branch protection) after a few
   # consecutive green runs, and delete the projects that stay flaky for browser reasons rather than hiding them.
+  # Because `continue-on-error` shows a red run as green, the last step of the job writes the real Playwright result
+  # (passed, FAILED, or did not run) into the run summary and as an annotation, so a failure is never silent.
   #
   # Decision: it uses the dev server, like the required job, not the production preview (E2E_PROD_PREVIEW). Same
   # server means a difference between the two jobs is the browser and nothing else. The preview would avoid the cold
@@ -257,6 +275,7 @@ jobs:
           DELIVERY_COOKIE_SECRET=ci-placeholder-delivery-cookie-secret-0123456789
           EOF
       - name: End-to-end tests (mock store, WebKit and Firefox)
+        id: crossbrowser
         run: >
           npx playwright test
           --project=desktop-webkit --project=mobile-webkit --project=desktop-firefox
@@ -272,3 +291,26 @@ jobs:
             storefront/playwright-report
             storefront/test-results
           retention-days: 7
+      # `continue-on-error` on the job reports a red run as green, so a failure here would go unnoticed. This last step
+      # states the real result in the run summary (and as an annotation) whatever happened before it. It never fails
+      # the job: the job stays informational until it has a baseline of green runs.
+      - name: Report the real result (the job is not required)
+        if: always()
+        env:
+          PLAYWRIGHT_OUTCOME: ${{ steps.crossbrowser.outcome }}
+        run: |
+          case "$PLAYWRIGHT_OUTCOME" in
+            success)
+              echo "### WebKit and Firefox e2e: passed" >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            failure)
+              echo "### WebKit and Firefox e2e: FAILED" >> "$GITHUB_STEP_SUMMARY"
+              echo "WARNING: the Playwright step failed. The job shows green only because it is not required (continue-on-error). See the playwright-report-crossbrowser artefact." >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=WebKit and Firefox e2e failed::The job is not required, so the run stays green. See the playwright-report-crossbrowser artefact."
+              ;;
+            *)
+              echo "### WebKit and Firefox e2e: did not run to a result (${PLAYWRIGHT_OUTCOME:-unknown})" >> "$GITHUB_STEP_SUMMARY"
+              echo "WARNING: an earlier step failed or the run was cancelled, so there is no cross-browser result for this commit." >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning title=WebKit and Firefox e2e did not run::An earlier step failed or the run was cancelled."
+              ;;
+          esac

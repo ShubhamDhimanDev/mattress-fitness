@@ -17,6 +17,7 @@ import type {
 } from 'storefrontapi.generated';
 import {cleanText} from '~/lib/catalog/text';
 import {normalizeFilterState, type FilterState} from '~/lib/filters';
+import {brandPath, normalizeBrandSlug} from '~/lib/shopify/brand-path';
 import {catalogCache} from '~/lib/shopify/cache';
 import {fieldRecord, mapImage} from '~/lib/shopify/common';
 import {BRAND_FIELDS, PRIMARY_COLLECTION_HANDLE} from '~/lib/shopify/config';
@@ -103,6 +104,9 @@ export const BRAND_PAGE_QUERY = `#graphql
 type BrandNode = NonNullable<CatalogBrandPageQuery['brand']>;
 type IndexNode = CatalogBrandsIndexQuery['brands']['nodes'][number];
 
+// Re-exported so existing callers keep one import path.
+export {brandPath, normalizeBrandSlug};
+
 /** A brand with the handle its page lives at. */
 export type BrandPageView = BrandView & {readonly handle: string};
 
@@ -112,20 +116,6 @@ export type BrandSummary = {
   readonly logo: ImageView | null;
   readonly to: string;
 };
-
-const HANDLE_LIKE = /^[a-z0-9][a-z0-9-]{0,99}$/;
-
-/** The handle of a brand's page, or null when the stored slug cannot be used in a URL. */
-export function normalizeBrandSlug(
-  raw: string | null | undefined,
-): string | null {
-  const slug = (raw ?? '').trim().toLowerCase();
-  return HANDLE_LIKE.test(slug) ? slug : null;
-}
-
-export function brandPath(handle: string): string {
-  return `/brands/${encodeURIComponent(handle)}`;
-}
 
 function logoOf(node: BrandNode | IndexNode): ImageView | null {
   const field = node.fields.find((f) => f.key === BRAND_FIELDS.logo);

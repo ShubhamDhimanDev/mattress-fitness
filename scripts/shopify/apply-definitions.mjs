@@ -5,6 +5,11 @@
 // metaobject definition is ADDING a field the spec has and the store lacks (a definition created from an
 // older spec, for example site_settings before support_phone existed); nothing is ever altered or deleted.
 //
+// Exit codes (also in USAGE): 0 the store is in sync, or --live applied everything; 1 a dry run that still has
+// definitions to create or fields to add (it prints PENDING CHANGES), differences, or failures; 2 usage or file
+// problem; 3 refused by the guard. --offline reads no store, so it claims nothing about one and exits 0 when the spec
+// is valid.
+//
 //   node scripts/shopify/apply-definitions.mjs --offline            plan only, no network
 //   node scripts/shopify/apply-definitions.mjs --store x.myshopify.com   dry run: reads the store
 //   node scripts/shopify/apply-definitions.mjs --store x.myshopify.com --live
@@ -361,9 +366,12 @@ export async function planDefinitions({ spec, client }) {
     const { missing, diffs } = splitMissingFields(definition, existing);
     // Only a well-formed definition id is sent back to Shopify; anything else is reported, not changed.
     const existingId = typeof existing.id === 'string' && METAOBJECT_DEFINITION_ID.test(existing.id) ? existing.id : null;
-    const addable = existingId !== null && missing.length > 0;
+    // The id comes from Shopify's answer, so it is trusted only when that answer is for the type that was asked about:
+    // a different type means the id names some other definition and nothing may be added to it (S-L7, T-14).
+    const typeMismatch = existing.type === definition.type ? [] : [`type is "${String(existing.type)}" in Shopify, "${definition.type}" in the spec; nothing is added to it`];
+    const addable = existingId !== null && typeMismatch.length === 0 && missing.length > 0;
     const unaddable = !addable ? missing.map((field) => `field ${field.key} is missing in Shopify`) : [];
-    const allDiffs = [...unaddable, ...diffs];
+    const allDiffs = [...typeMismatch, ...unaddable, ...diffs];
     const action = allDiffs.length > 0 ? 'differs' : addable ? 'add-fields' : 'exists';
     items.push({ kind: 'metaobject', label: definition.type, action, diffs: allDiffs, input, ...(addable ? { existingId, addFields: missing } : {}) });
   }
@@ -433,7 +441,9 @@ const USAGE = `Usage: node scripts/shopify/apply-definitions.mjs [options]
   --spec <file>    definitions file (default scripts/shopify/definitions.json)
   --live           CREATE the missing definitions and ADD fields the spec has to existing metaobject
                    definitions (nothing is altered or deleted). Default is a dry run. Needs SHOPIFY_ALLOWED_STORES.
-Exit code: 0 in sync, 1 differences or failures, 2 usage or file problem, 3 refused by the guard.`;
+Exit code: 0 in sync (or everything applied by --live); 1 a dry run with changes still pending (it prints
+           PENDING CHANGES), differences or failures; 2 usage or file problem; 3 refused by the guard.
+           --offline reads no store and exits 0 when the spec is valid.`;
 
 /**
  * @param {readonly string[]} argv
@@ -500,6 +510,15 @@ export async function main(argv, env, { out = (text) => console.log(text), err =
   const adding = plan.items.reduce((sum, item) => sum + (item.addFields?.length ?? 0), 0);
   if (adding > 0) out(`${adding} missing field(s) in ${counts['add-fields'] + plan.items.filter((item) => item.action === 'differs' && item.addFields).length} existing metaobject definition(s) would be added (existing fields are never changed or removed).`);
 
+  // A dry run that still has something to create or add is not "in sync": it exits 1 so a script or a person reading
+  // only the exit code cannot take it for a clean store. --offline plans against an empty store by design and says so.
+  const pendingCreates = counts.create;
+  const pending = !live && !offline && (pendingCreates > 0 || adding > 0);
+  if (offline) out('OFFLINE: no store was read, so this plan says nothing about the state of any store; the exit code only reports that the spec is valid.');
+  if (pending) {
+    out(`PENDING CHANGES: ${pendingCreates} definition(s) to create and ${adding} field(s) to add. This was a dry run and wrote nothing; run again with --live to apply them.`);
+  }
+
   let failures = 0;
   if (live && client) {
     const result = await applyDefinitions({ items: plan.items, client });
@@ -508,7 +527,7 @@ export async function main(argv, env, { out = (text) => console.log(text), err =
     for (const failure of result.failed) err(`FAILED ${failure.label}: ${failure.message}`);
     failures = result.failed.length;
   }
-  return counts.differs > 0 || failures > 0 ? EXIT_FAILED : EXIT_OK;
+  return counts.differs > 0 || failures > 0 || pending ? EXIT_FAILED : EXIT_OK;
 }
 
 if (isMainModule(import.meta.url)) {

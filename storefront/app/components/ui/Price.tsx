@@ -1,4 +1,9 @@
-import {formatCents, formatMoney, toCents, type MoneyV2Like} from '~/lib/money';
+import {
+  formatCents,
+  formatMoney,
+  toCents,
+  type MoneyV2Like,
+} from '~/lib/format';
 import {cn} from '~/components/ui/cn';
 
 export type PriceSize = 'sm' | 'md' | 'lg';

@@ -8,7 +8,7 @@ import {
   type SupportPhone,
 } from '~/lib/navigation';
 
-type MobileNavProps = {
+export type MobileNavProps = {
   items: readonly MainNavItem[];
   /** Called when any link is followed, so the drawer can close. */
   onNavigate: () => void;

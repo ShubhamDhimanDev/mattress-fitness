@@ -11,6 +11,8 @@ import {ProductGallery} from '~/components/product/ProductGallery';
 import {ProductSections} from '~/components/product/ProductSections';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {buildBreadcrumbJsonLd, buildProductJsonLd} from '~/lib/shopify/jsonld';
+import {loadBrandsIndex} from '~/lib/shopify/brand-data';
+import {resolveBrandLink} from '~/lib/shopify/brand-link';
 import {loadProductPage} from '~/lib/shopify/product-data';
 import {loadExtendEligibilityByHandle} from '~/lib/shopify/protection-load';
 import {
@@ -95,10 +97,13 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   // the same handle cost nothing upstream. The alternative, starting the category read only after the product
   // exists, would put a serial round trip in front of every real product page to save a bounded, cached cost on
   // pages nobody should be requesting (review m7). A malformed handle never reaches any read (`isValidHandle`).
-  const [result, protection, offerOnlyHandles] = await Promise.all([
+  const [result, protection, offerOnlyHandles, brands] = await Promise.all([
     loadProductPage(context.storefront, handle),
     protectionModeOf(context, request, handle),
     loadOfferOnlyHandles(context.storefront),
+    // Cached for the long catalog window and never rejects (an empty list on failure): the brand link is an extra.
+    // Fixtures are offered only where the brand pages themselves would show them, never in production.
+    loadBrandsIndex(context.storefront, {allowFixtures: !import.meta.env.PROD}),
   ]);
   if (result.status === 'not-found') {
     throw new Response('Product not found', {status: 404});
@@ -113,6 +118,12 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   return {
     product,
     offerOnly: offerOnlyHandles.has(product.handle),
+    // A link to the brand page, or null for plain text; it needs a brand entry behind it (REQ-COL-005).
+    brandLink: resolveBrandLink({
+      vendor: product.vendor,
+      brand: product.brand,
+      index: brands.brands,
+    }),
     // The Extend flag and the product's own eligibility (P5A-05): the same for every shopper, so neither touches a
     // cache key. 'off' costs the page no request and no reserved space (NFR-002).
     protection,
@@ -130,7 +141,7 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
 }
 
 export default function Product() {
-  const {product, protection} = useLoaderData<typeof loader>();
+  const {product, protection, brandLink} = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
 
   // The same pure functions the server used, so the first render and later switches always agree.
@@ -164,9 +175,10 @@ export default function Product() {
           product={product}
           variant={variant}
           protection={protection}
+          brandLink={brandLink}
         />
       </div>
-      <ProductSections product={product} />
+      <ProductSections product={product} brandLink={brandLink} />
       <Analytics.ProductView
         data={{
           products: [

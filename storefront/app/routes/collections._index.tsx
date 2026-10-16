@@ -80,14 +80,15 @@ function CollectionItem({
     >
       {collection?.image && (
         <Image
-          alt={collection.image.altText || collection.title}
+          // The title is the link's text right below; repeating it as alt text makes a screen reader say it twice.
+          alt=""
           aspectRatio="1/1"
           data={collection.image}
           loading={index < 3 ? 'eager' : undefined}
           sizes="(min-width: 45em) 400px, 100vw"
         />
       )}
-      <h5>{collection.title}</h5>
+      <h2 className="text-base font-bold">{collection.title}</h2>
     </Link>
   );
 }

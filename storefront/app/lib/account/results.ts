@@ -5,6 +5,7 @@
 // now a code from a closed list with a fixed message written here. The cause is logged by the route, class
 // name only, through the redacting logger.
 
+import {safeRedirectPath} from '~/lib/cart/input';
 import {PRIVATE_NO_STORE_HEADERS} from '~/lib/pages/private-response';
 
 export const ACCOUNT_ERROR_MESSAGES = {
@@ -64,6 +65,89 @@ export function withAccountNoStore(response: Response): Response {
     statusText: response.statusText,
     headers,
   });
+}
+
+/** Where a refused post-sign-in target goes instead. */
+export const ACCOUNT_HOME = '/account';
+
+/**
+ * True when a redirect target resolves to this request's own origin over http(s). Hydrogen's customer account
+ * client stores `return_to`, else the `Referer`, at login and redirects there from the callback without a
+ * same-origin check (S-M1, T-08, T-11). Refused: protocol-relative `//host`, a backslash (browsers read it as
+ * a slash), control characters (browsers strip tabs and newlines inside a URL), `javascript:` and any other
+ * scheme, and an absolute URL on another origin.
+ */
+export function isSameOriginLocation(
+  location: string,
+  requestUrl: string,
+): boolean {
+  if (location === '' || location.length > 2048) return false;
+  for (const char of location) {
+    const code = char.codePointAt(0) ?? 0;
+    if (char === '\\' || code <= 0x20 || (code >= 0x7f && code <= 0x9f)) {
+      return false;
+    }
+  }
+  if (location.startsWith('//')) return false;
+  try {
+    const base = new URL(requestUrl);
+    const target = new URL(location, base);
+    return (
+      (target.protocol === 'https:' || target.protocol === 'http:') &&
+      target.origin === base.origin
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A redirect response whose `Location` stays on this site: a cross-origin or malformed one is replaced with
+ * the account home. Status and every other header, `Set-Cookie` included, are kept, so the session the
+ * callback just set is not lost.
+ */
+export function withSameOriginRedirect(
+  response: Response,
+  requestUrl: string,
+): Response {
+  const location = response.headers.get('Location');
+  if (location === null || isSameOriginLocation(location, requestUrl)) {
+    return response;
+  }
+  const headers = new Headers(response.headers);
+  headers.set('Location', ACCOUNT_HOME);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
+ * The sign-in URL cleaned of any post-sign-in target that is not a path on this site, or null when it is
+ * already clean. `return_to` and `redirect` are the two parameters Hydrogen reads; an absent one is fine.
+ * With neither present Hydrogen falls back to the `Referer`, so a Referer from another origin also forces
+ * `return_to=/account`.
+ */
+export function cleanLoginUrl(request: Request): URL | null {
+  const url = new URL(request.url);
+  const params = url.searchParams;
+  const requested = [params.get('return_to'), params.get('redirect')].filter(
+    (value): value is string => value !== null && value !== '',
+  );
+  const unsafeTarget = requested.some(
+    (value) => safeRedirectPath(value, '') === '',
+  );
+  const referer = request.headers.get('Referer');
+  const unsafeReferer =
+    requested.length === 0 &&
+    referer !== null &&
+    referer !== '' &&
+    !isSameOriginLocation(referer, request.url);
+  if (!unsafeTarget && !unsafeReferer) return null;
+  params.delete('redirect');
+  params.set('return_to', ACCOUNT_HOME);
+  return url;
 }
 
 /**

@@ -44,6 +44,7 @@ import {
 } from '~/lib/offers-runtime/protection-steps';
 import {offerRuntimeOf} from '~/lib/offers-runtime/runtime';
 import {errorFields, logError} from '~/lib/logging/logger';
+import {requestLogFields} from '~/lib/logging/request-context';
 
 export const meta: Route.MetaFunction = () => [
   {title: formatPageTitle('Your cart')},
@@ -219,7 +220,10 @@ export async function action({request, context}: Route.ActionArgs) {
     offers = checked.view;
     notices = [...(checked.view?.notices ?? [])];
   } catch (error) {
-    logError('cart.revalidation_failed', errorFields(error));
+    logError('cart.revalidation_failed', {
+      ...errorFields(error),
+      ...requestLogFields(request),
+    });
   }
 
   const cartId = finalCart?.id;
@@ -258,7 +262,10 @@ export async function loader({context, request}: Route.LoaderArgs) {
       {headers: noStoreHeaders()},
     );
   } catch (error) {
-    logError('cart.revalidation_failed', errorFields(error));
+    logError('cart.revalidation_failed', {
+      ...errorFields(error),
+      ...requestLogFields(request),
+    });
     return data({cart: current, offers: null}, {headers: noStoreHeaders()});
   }
 }

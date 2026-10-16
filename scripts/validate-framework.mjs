@@ -342,6 +342,11 @@ function checkSecrets() {
     [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, 'private key'],
     [/Bearer\s+[A-Za-z0-9._~+/-]{24,}/, 'bearer token'],
     [/\bAKIA[0-9A-Z]{16}\b/, 'AWS access key'],
+    // Keep this list identical to the loop in .github/workflows/ci.yml (the history scan); [.] stands for a dot in both.
+    [/sk_live_[A-Za-z0-9]{16,}/, 'Stripe-style live secret key'],
+    [/gh[pousr]_[A-Za-z0-9]{30,}/, 'GitHub token'],
+    [/github_pat_[A-Za-z0-9_]{30,}/, 'GitHub fine-grained token'],
+    [/eyJ[A-Za-z0-9_-]{10,}[.]eyJ[A-Za-z0-9_-]{10,}[.][A-Za-z0-9_-]{10,}/, 'JWT'],
   ];
   for (const rel of walk('')) {
     if (!/\.(md|json|mjs|js|ts|tsx|yml|yaml|toml|env|example|txt)$/.test(rel) && !rel.endsWith('.gitignore')) continue;

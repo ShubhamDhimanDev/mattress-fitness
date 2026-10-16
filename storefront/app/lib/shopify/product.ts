@@ -14,6 +14,7 @@ import {
   SLEEP_POSITIONS,
 } from '~/lib/catalog/attributes';
 import {cleanText} from '~/lib/catalog/text';
+import {normalizeBrandSlug} from '~/lib/shopify/brand-path';
 import {BRAND_FIELDS, FAQ_FIELDS} from '~/lib/shopify/config';
 import {centsOf, fieldRecord, mapImage, mapMoney} from '~/lib/shopify/common';
 import {
@@ -124,6 +125,8 @@ function mapBrand(product: ProductSource): BrandView | null {
     slug: fields[BRAND_FIELDS.slug]
       ? cleanText(fields[BRAND_FIELDS.slug])
       : null,
+    // The metaobject's own handle is what the brand page is served by; the slug field is documented to equal it.
+    handle: normalizeBrandSlug(reference.handle),
     logo:
       logoReference && 'image' in logoReference
         ? mapImage(logoReference.image)

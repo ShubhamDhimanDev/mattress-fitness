@@ -16,8 +16,8 @@ const ALLOWED: Readonly<Record<string, string>> = {
   'app/lib/logging/logger.ts': 'the sink: the only place that touches console',
   'app/components/ui/Price.tsx':
     'client-side component; logs a fixed currency message that tests and e2e match on (no personal data)',
-  'app/lib/pages/track.ts':
-    'development-only debug of quiz events until the analytics sink exists (P7-01)',
+  'app/lib/analytics.ts':
+    'development-only debug of tracked events until the analytics sink exists (P7-01)',
 };
 
 function sourceFiles(dir: string): string[] {

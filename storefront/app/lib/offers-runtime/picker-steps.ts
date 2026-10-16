@@ -102,6 +102,12 @@ async function judge(
  * abandoned if Shopify's version of it moved on, so a paid add-on or bundle is not added twice (K-L5). A request that
  * lands in the few milliseconds between this read and the add is still possible; the cart gate repairs what it can and
  * the shopper sees the lines.
+ *
+ * Narrowed, not closed: this is a compare-then-act on `updatedAt`, not an atomic step, and Shopify offers no
+ * conditional cart mutation. Whether `Cart.updatedAt` has a fine enough resolution (it could be whole seconds, so two
+ * writes in the same tick would compare equal) and whether every cart change moves it are UNVERIFIED (V-27: a
+ * development-store check, not yet listed there as its own item). Until that is checked, treat this as best effort and
+ * rely on the gate and the detective check for the rest.
  */
 async function cartUnchanged(
   runtime: OfferRuntime,

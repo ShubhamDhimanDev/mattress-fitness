@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {
   REDACTED,
   isSensitiveKey,
+  mustRedactValue,
   redactString,
   redactValue,
 } from '~/lib/logging/redact';
@@ -149,12 +150,13 @@ describe('redactString: tokens, secrets and cart keys (T-04)', () => {
     ['basic', 'Basic dXNlcjpwYXNzd29yZDEyMw=='],
     [
       'jwt',
-      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVPmB92K27uhbUJU1p1r_wW1gFWFOEjXk',
+      // Built at run time so the source holds no token shape (the secret scan in CI and the validator, S-L3).
+      `${'ey'}JhbGciOiJIUzI1NiJ9.${'ey'}JzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVPmB92K27uhbUJU1p1r_wW1gFWFOEjXk`,
     ],
     ['shopify admin token', `${'shp'}at_0123456789abcdef0123456789abcdef`],
     ['shopify storefront secret', `${'shp'}ss_abcdefabcdefabcdefabcdef`],
-    ['stripe style key', 'sk_live_abcdefghijklmnop0123'],
-    ['github token', 'ghp_abcdefghijklmnopqrstuvwxyz0123456789'],
+    ['stripe style key', `${'sk_'}live_abcdefghijklmnop0123`],
+    ['github token', `${'gh'}p_abcdefghijklmnopqrstuvwxyz0123456789`],
     ['aws key id', `${'AKI'}AIOSFODNN7EXAMPLE`],
     ['32+ character random token', 'a8F3k2Lq9ZxW7mN4pR6tY1uV5bC0dE8g'],
     [
@@ -578,5 +580,309 @@ describe('attribute pairs and more key names (security review K-L1)', () => {
     // Not over-redacted: five digits without a label are left alone (counts, ids, sizes).
     expect(redactString('No delivery to 90210')).toBe('No delivery to 90210');
     expect(redactString('loaded 12345 rows')).toBe('loaded 12345 rows');
+  });
+});
+
+// A backslash and a double quote, named so the escaped-JSON cases below read clearly: JSON text that was put inside
+// a string has each of its quotes written as BS + Q.
+const BS = String.fromCharCode(92);
+const Q = '"';
+const SQ = "'";
+const EQ = BS + Q;
+const join = (...parts: string[]) => parts.join('');
+
+describe('pair mode judges the other fields, counters pass, escaped JSON (review minor notes)', () => {
+  it('redacts the other fields of a {key, value} pair by their own names', () => {
+    expect(
+      redactValue({key: 'k', value: 'v', firstName: 'Jane', zip: '90210'}),
+    ).toEqual({key: 'k', value: 'v', firstName: REDACTED, zip: REDACTED});
+    // Two extra fields at most still counts as a pair; the label keeps deciding the value.
+    expect(
+      redactValue({key: 'delivery_zip', value: '90210', email: 'a@b.io'}),
+    ).toEqual({key: 'delivery_zip', value: REDACTED, email: REDACTED});
+    expect(
+      redactValue({
+        key: 'delivery_choice',
+        value: 'in-home',
+        phone: 3125550142,
+      }),
+    ).toEqual({key: 'delivery_choice', value: 'in-home', phone: REDACTED});
+    // A harmless extra field stays.
+    expect(redactValue({key: 'size', value: 'queen', sessionCount: 3})).toEqual(
+      {key: 'size', value: 'queen', sessionCount: 3},
+    );
+  });
+
+  it('keeps the label text scanned and a boolean extra field as it is', () => {
+    expect(redactValue({key: 'a@b.io', value: 'x', zip: true})).toEqual({
+      key: '[email]',
+      value: 'x',
+      zip: true,
+    });
+  });
+
+  it('passes a whole number under a counter-style key but redacts the same key as a string', () => {
+    expect(
+      redactValue({
+        sessionCount: 3,
+        tokenCount: 0,
+        addressCount: 2,
+        emailTotal: 40,
+        zipLength: 5,
+      }),
+    ).toEqual({
+      sessionCount: 3,
+      tokenCount: 0,
+      addressCount: 2,
+      emailTotal: 40,
+      zipLength: 5,
+    });
+    expect(
+      redactValue({
+        sessionCount: 'abc123',
+        tokenCount: 'shpat',
+        addressCount: '12 Oak Lane',
+      }),
+    ).toEqual({
+      sessionCount: REDACTED,
+      tokenCount: REDACTED,
+      addressCount: REDACTED,
+    });
+  });
+
+  it('still redacts a number under an exact or a non-counter sensitive key', () => {
+    expect(
+      redactValue({
+        zip: 90210,
+        phone: 3125550142,
+        shippingZip: 90210,
+        phoneNumber: 3125550142,
+        session: 123456,
+        token: 424242,
+        name: 7,
+        count: 3,
+      }),
+    ).toEqual({
+      zip: REDACTED,
+      phone: REDACTED,
+      shippingZip: REDACTED,
+      phoneNumber: REDACTED,
+      session: REDACTED,
+      token: REDACTED,
+      name: REDACTED,
+      count: 3,
+    });
+  });
+
+  it('does not let a counter key carry a phone-sized, negative, fractional or non-finite number', () => {
+    expect(
+      redactValue({
+        tokenCount: 3125550142,
+        sessionCount: -1,
+        addressCount: 1.5,
+        zipCount: Number.POSITIVE_INFINITY,
+      }),
+    ).toEqual({
+      tokenCount: REDACTED,
+      sessionCount: REDACTED,
+      addressCount: REDACTED,
+      zipCount: REDACTED,
+    });
+  });
+
+  it.each([
+    ['counter number', 'sessionCount', 3, false],
+    ['counter string', 'sessionCount', '3', true],
+    ['exact key number', 'zip', 90210, true],
+    ['boolean', 'zip', false, false],
+    ['null', 'zip', null, false],
+    ['harmless key', 'count', 'x', false],
+  ])('mustRedactValue: %s', (_label, key, value, expected) => {
+    expect(mustRedactValue(key, value)).toBe(expected);
+  });
+
+  const BS3Q = BS.repeat(3) + Q;
+  it.each([
+    [
+      join(
+        '{',
+        EQ,
+        'firstName',
+        EQ,
+        ':',
+        EQ,
+        'Jane',
+        EQ,
+        ',',
+        EQ,
+        'status',
+        EQ,
+        ':',
+        EQ,
+        'failed',
+        EQ,
+        '}',
+      ),
+      ['Jane'],
+      'failed',
+    ],
+    [
+      join(
+        '{',
+        EQ,
+        'zip',
+        EQ,
+        ': ',
+        EQ,
+        '90210',
+        EQ,
+        ', ',
+        EQ,
+        'n',
+        EQ,
+        ': 2}',
+      ),
+      ['90210'],
+      ': 2}',
+    ],
+    [
+      // Escaped twice (JSON inside JSON inside a string).
+      join('{', BS3Q, 'email', BS3Q, ':', BS3Q, 'a.b@x.io', BS3Q, '}'),
+      ['a.b@x.io'],
+      '',
+    ],
+    [
+      // Single quotes, escaped.
+      join(
+        '{',
+        BS,
+        SQ,
+        'phone',
+        BS,
+        SQ,
+        ':',
+        BS,
+        SQ,
+        '3125550142',
+        BS,
+        SQ,
+        '}',
+      ),
+      ['3125550142'],
+      '',
+    ],
+    [
+      join(
+        'payload={"inner":"{',
+        EQ,
+        'lastName',
+        EQ,
+        ':',
+        EQ,
+        'Public',
+        EQ,
+        '}"}',
+      ),
+      ['Public'],
+      'payload',
+    ],
+  ])(
+    'redacts a value inside JSON escaped in a string: case %#',
+    (text, leaked, kept) => {
+      const out = redactString(text);
+      for (const word of leaked) expect(out).not.toContain(word);
+      expect(out).toContain(REDACTED);
+      if (kept) expect(out).toContain(kept);
+    },
+  );
+
+  it('closes an escaped quote exactly once and keeps the next pair', () => {
+    const input = join(
+      '{',
+      EQ,
+      'firstName',
+      EQ,
+      ':',
+      EQ,
+      'Jane',
+      EQ,
+      ',',
+      EQ,
+      'status',
+      EQ,
+      ':',
+      EQ,
+      'ok',
+      EQ,
+      '}',
+    );
+    const expected = join(
+      '{',
+      EQ,
+      'firstName',
+      EQ,
+      ':',
+      EQ,
+      REDACTED,
+      EQ,
+      ',',
+      EQ,
+      'status',
+      EQ,
+      ':',
+      EQ,
+      'ok',
+      EQ,
+      '}',
+    );
+    expect(redactString(input)).toBe(expected);
+  });
+
+  it('stops an unterminated escaped value at the end of the line', () => {
+    const input = join(
+      '{',
+      EQ,
+      'firstName',
+      EQ,
+      ':',
+      EQ,
+      'Jane Public\nnext line stays',
+    );
+    expect(redactString(input)).toBe(
+      join('{', EQ, 'firstName', EQ, ':', EQ, REDACTED, '\nnext line stays'),
+    );
+  });
+
+  it('is fast on hostile escape and quote input (ReDoS)', () => {
+    const inputs = [
+      BS.repeat(4_000),
+      (Q + BS).repeat(2_000),
+      ('firstName=' + EQ).repeat(300),
+      ('a:' + BS.repeat(4) + EQ).repeat(500),
+      join('{', EQ, 'firstName', EQ, ':', EQ).repeat(200),
+      ('zip=' + EQ.repeat(40) + ' ').repeat(80),
+      ('x' + EQ).repeat(1_300) + ':',
+      ('{' + EQ + 'a' + EQ + ':' + BS.repeat(5)).repeat(500),
+      ('name=' + BS.repeat(3)).repeat(1_000),
+    ];
+    const started = Date.now();
+    for (const input of inputs) {
+      expect(redactString(input).length).toBeLessThanOrEqual(501);
+    }
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+
+  it('redacts a large hostile list of pairs within the time budget', () => {
+    const started = Date.now();
+    const out = redactValue(
+      Array.from({length: 5_000}, (_, n) => ({
+        key: `k${n}`,
+        value: 'v',
+        zip: '90210',
+      })),
+    );
+    expect(out).toHaveLength(25);
+    expect(JSON.stringify(out)).not.toContain('90210');
+    expect(Date.now() - started).toBeLessThan(500);
   });
 });

@@ -60,7 +60,7 @@ export function buttonStyles({
 }: StyleProps & {inert?: boolean} = {}): string {
   const pill = shape === 'pill' || variant === 'pill';
   return cn(
-    'inline-flex items-center justify-center gap-2 border-2 text-center font-bold tracking-wide transition-colors',
+    'inline-flex items-center justify-center gap-2 border-2 text-center font-bold tracking-wide motion-safe:transition-colors',
     variant !== 'ghost' && 'uppercase',
     pill ? 'rounded-pill' : 'rounded-choice',
     VARIANT[variant],

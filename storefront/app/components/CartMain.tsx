@@ -1,5 +1,5 @@
 import {useOptimisticCart} from '@shopify/hydrogen';
-import {useRef, type ReactNode} from 'react';
+import {useEffect, useId, useRef, type ReactNode, type RefObject} from 'react';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
 import {CartMessages} from '~/components/cart/CartMessages';
@@ -73,16 +73,23 @@ export function CartMain({
     active: layout === 'page' || asideType === 'cart',
   });
   const linesRegion = useRef<HTMLDivElement>(null);
+  const headingId = useId();
+  // True once this cart view has shown items, so an empty state that follows a removal can take focus (A11Y-002).
+  const hadItems = useRef(false);
   const lines = cart?.lines?.nodes ?? [];
   const hasItems = (cart?.totalQuantity ?? 0) > 0 && lines.length > 0;
   const childrenMap = getLineItemChildrenMap(lines);
   const Heading = layout === 'page' ? 'h2' : 'h3';
 
+  useEffect(() => {
+    if (hasItems) hadItems.current = true;
+  }, [hasItems]);
+
   if (!hasItems) {
     return (
       <>
         <CartMessages />
-        <CartEmpty layout={layout} />
+        <CartEmpty layout={layout} takeFocus={hadItems} />
       </>
     );
   }
@@ -97,8 +104,13 @@ export function CartMain({
       <div>
         <CartMessages />
         {/* After a line is removed its buttons are gone; focus lands here so keyboard users keep their place. */}
-        <div ref={linesRegion} tabIndex={-1}>
-          <Heading className="sr-only">
+        <div
+          ref={linesRegion}
+          tabIndex={-1}
+          role="region"
+          aria-labelledby={headingId}
+        >
+          <Heading id={headingId} className="sr-only">
             Items in your cart ({cart?.totalQuantity})
           </Heading>
           <ul aria-label="Cart items">
@@ -141,12 +153,25 @@ export function CartMain({
   );
 }
 
-function CartEmpty({layout}: {layout: CartLayout}) {
+function CartEmpty({
+  layout,
+  takeFocus,
+}: {
+  layout: CartLayout;
+  /** Holds true when the shopper just emptied the cart: the removed button took focus with it. */
+  takeFocus: RefObject<boolean>;
+}) {
   const {close} = useAside();
   const Heading = layout === 'page' ? 'h2' : 'h3';
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (takeFocus.current) heading.current?.focus();
+  }, [takeFocus]);
   return (
     <div className="flex flex-col items-start gap-4 py-6">
-      <Heading className="text-xl font-bold">Your cart is empty</Heading>
+      <Heading ref={heading} tabIndex={-1} className="text-xl font-bold">
+        Your cart is empty
+      </Heading>
       <p className="text-base text-fg-muted">
         You haven&rsquo;t added anything yet. Browse our mattresses, or take the
         sleep quiz and we will suggest a match.

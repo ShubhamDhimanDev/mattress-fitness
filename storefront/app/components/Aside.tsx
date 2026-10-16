@@ -48,10 +48,24 @@ export function Aside({
 
 const AsideContext = createContext<AsideContextValue | null>(null);
 
-Aside.Provider = function AsideProvider({children}: {children: ReactNode}) {
+Aside.Provider = function AsideProvider({
+  children,
+  preload,
+}: {
+  children: ReactNode;
+  /** Called with the panel being opened, before it opens: the place to start downloading its lazy code. */
+  preload?: Partial<Record<Exclude<AsideType, 'closed'>, () => void>>;
+}) {
   const [type, setType] = useState<AsideType>('closed');
   const close = useCallback(() => setType('closed'), []);
-  const value = useMemo(() => ({type, open: setType, close}), [type, close]);
+  const open = useCallback(
+    (mode: AsideType) => {
+      if (mode !== 'closed') preload?.[mode]?.();
+      setType(mode);
+    },
+    [preload],
+  );
+  const value = useMemo(() => ({type, open, close}), [type, open, close]);
 
   return (
     <AsideContext.Provider value={value}>{children}</AsideContext.Provider>

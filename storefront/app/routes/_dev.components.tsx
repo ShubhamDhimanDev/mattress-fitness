@@ -27,6 +27,7 @@ import {Select} from '~/components/ui/Select';
 import {SizeSelector, type SizeOption} from '~/components/ui/SizeSelector';
 import {Skeleton, SkeletonText} from '~/components/ui/Skeleton';
 import {Tabs} from '~/components/ui/Tabs';
+import {ToastRegion, useToastQueue} from '~/components/ui/Toast';
 
 // Dev-only gallery of every shared component and state (P2-06). Not reachable in a production build.
 export function loader() {
@@ -76,6 +77,7 @@ export default function ComponentGallery() {
       <DisplaySection />
       <ComposedSection />
       <OverlaysSection />
+      <ToastsSection />
     </div>
   );
 }
@@ -475,6 +477,64 @@ function ComposedSection() {
           {id: 'reviews', label: 'Reviews', content: <p>Reviews text.</p>},
         ]}
       />
+    </Section>
+  );
+}
+
+function ToastsSection() {
+  const {toasts, show, dismiss} = useToastQueue();
+  return (
+    <Section id="g-toasts" title="Toast notifications">
+      <p className="max-w-prose text-fg-muted">
+        Info, success and warning are announced politely and an error
+        assertively. A toast closes by itself after 6 seconds (never sooner than
+        4), pauses while it is hovered or has focus, and an error stays until it
+        is dismissed with its button or Escape.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <Button
+          variant="secondary"
+          onClick={() => show({message: 'Your choice was saved.'})}
+        >
+          Show info toast
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() =>
+            show({
+              variant: 'success',
+              title: 'Added to cart',
+              message: 'Queen mattress',
+            })
+          }
+        >
+          Show success toast
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() =>
+            show({
+              variant: 'warning',
+              message: 'Only 2 left in this size.',
+            })
+          }
+        >
+          Show warning toast
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() =>
+            show({
+              variant: 'error',
+              title: 'Could not add to cart',
+              message: 'Please try again.',
+            })
+          }
+        >
+          Show error toast
+        </Button>
+      </div>
+      <ToastRegion toasts={toasts} onDismiss={dismiss} />
     </Section>
   );
 }
