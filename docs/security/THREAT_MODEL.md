@@ -68,6 +68,8 @@ Sources: [REVIEW-2026-10-13-pages](REVIEW-2026-10-13-pages.md), [REVIEW-2026-10-
 
 ### Update 2026-10-16 ([REVIEW-2026-10-16-account-ci-shell](REVIEW-2026-10-16-account-ci-shell.md), range 81a29a9..101c710)
 
+**Resolution (same day):** S-M1 and S-L1, S-L2, S-L3, S-L5, S-L7 are fixed in code with tests (DEC-066); S-L4 and S-L6 wait for the client's organisation and host rate limiting (Q-003). The sign-in flow is still not exercised on a store (V-08, Q-018), so T-08 and T-11 stay Partial. The fixes have no independent re-review.
+
 No High; verdict pass with conditions (not a gate pass). Overrides the rows above where it differs:
 
 | ID | Status 2026-10-16 | What remains |
