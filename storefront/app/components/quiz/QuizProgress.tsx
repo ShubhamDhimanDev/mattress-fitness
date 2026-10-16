@@ -25,7 +25,7 @@ export function QuizProgress({progress}: QuizProgressProps) {
         className="h-2 w-full overflow-hidden rounded-pill bg-ink-200"
       >
         <div
-          className="h-full rounded-pill bg-primary-700 transition-[width]"
+          className="h-full rounded-pill bg-primary-700 motion-safe:transition-[width]"
           style={{width: `${Math.max(progress.percent, 4)}%`}}
         />
       </div>

@@ -1,4 +1,9 @@
 import {expect, test, type Locator, type Page} from '@playwright/test';
+import {
+  firstCollectionPath,
+  firstProductPath,
+  gotoReady,
+} from './helpers/catalog';
 
 // P2-07 / NFR-001 / NFR-003: two design rules that unit tests cannot see because jsdom has no layout or media
 // queries: touch targets of at least 44 px, and no motion when the shopper asks for reduced motion. Both run on
@@ -105,14 +110,17 @@ test.describe('P2-07 touch targets (NFR-001)', () => {
 });
 
 /** Elements whose animation or transition would still last 1 ms or longer, as short descriptions. */
-async function movingElements(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
+/** `scope` is a selector list; the default is the page content, which is what the component gallery fills. */
+async function movingElements(
+  page: Page,
+  scope = 'main *, [data-overlay-host] *',
+): Promise<string[]> {
+  return page.evaluate((selector) => {
     // Computed durations are lists in seconds ("0.15s, 0.15s"; "1e-05s" once reduced motion shortens them).
     const seconds = (list: string) =>
       list.split(',').map((part) => Number.parseFloat(part));
     const moving: string[] = [];
-    const scope = document.querySelectorAll('main *, [data-overlay-host] *');
-    for (const element of Array.from(scope)) {
+    for (const element of Array.from(document.querySelectorAll(selector))) {
       const style = getComputedStyle(element);
       const animates =
         style.animationName !== 'none' &&
@@ -127,7 +135,7 @@ async function movingElements(page: Page): Promise<string[]> {
       }
     }
     return moving;
-  });
+  }, scope);
 }
 
 test.describe('P2-07 reduced motion (NFR-003, WCAG 2.3.3)', () => {
@@ -181,5 +189,58 @@ test.describe('P2-07 reduced motion (NFR-003, WCAG 2.3.3)', () => {
       page.locator('[data-toast-region="status"]').getByText('Only 2 left'),
     );
     expect(await movingElements(page), 'toast showing').toEqual([]);
+  });
+});
+
+// The same rule on the real pages outside components/ui: quiz, collection grid, product gallery and the footer
+// (the layout, quiz and listing components used to carry unguarded transition classes; the unit guard
+// tests/unit/lib/motionSafeApp.test.ts now stops that, and this checks the computed result in a browser).
+const PAGE_SCOPE = 'header *, main *, footer *, [data-overlay-host] *';
+
+test.describe('NFR-003 reduced motion on real pages (WCAG 2.3.3)', () => {
+  test('control: with no preference a collection grid does transition (so the checks below can fail)', async ({
+    page,
+  }) => {
+    await page.emulateMedia({reducedMotion: 'no-preference'});
+    await gotoReady(page, await firstCollectionPath(page));
+    expect((await movingElements(page, PAGE_SCOPE)).length).toBeGreaterThan(0);
+  });
+
+  test('with reduced motion the collection grid and the footer do not move', async ({
+    page,
+  }) => {
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await gotoReady(page, await firstCollectionPath(page));
+    await expect(page.locator('article').first()).toBeVisible();
+    expect(await movingElements(page, PAGE_SCOPE)).toEqual([]);
+  });
+
+  test('with reduced motion the product gallery does not move when the image changes', async ({
+    page,
+  }) => {
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    const product = await firstProductPath(
+      page,
+      await firstCollectionPath(page),
+    );
+    await gotoReady(page, product);
+    const next = page.getByRole('button', {name: 'Next image'});
+    if (await next.isVisible()) await next.click();
+    expect(await movingElements(page, PAGE_SCOPE)).toEqual([]);
+  });
+
+  test('with reduced motion the quiz and its progress bar do not move', async ({
+    page,
+  }) => {
+    await page.emulateMedia({reducedMotion: 'reduce'});
+    await gotoReady(page, '/quiz');
+    await page.getByRole('link', {name: 'Start the quiz'}).click();
+    const progress = page.getByRole('progressbar', {name: 'Quiz progress'});
+    await expect(progress).toHaveAttribute('aria-valuetext', 'Question 1 of 8');
+    expect(await movingElements(page, PAGE_SCOPE), 'question 1').toEqual([]);
+    // Choosing an answer moves to question 2 and the bar grows.
+    await page.getByRole('main').getByRole('link').first().click();
+    await expect(progress).toHaveAttribute('aria-valuetext', 'Question 2 of 8');
+    expect(await movingElements(page, PAGE_SCOPE), 'question 2').toEqual([]);
   });
 });

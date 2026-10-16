@@ -75,7 +75,7 @@ export function QuizQuestion({
                   if (busy) event.preventDefault();
                 }}
                 className={cn(
-                  'flex min-h-14 w-full items-center justify-between gap-3 rounded-choice border-2 px-4 py-3 text-left text-base font-bold transition-colors',
+                  'flex min-h-14 w-full items-center justify-between gap-3 rounded-choice border-2 px-4 py-3 text-left text-base font-bold motion-safe:transition-colors',
                   selected
                     ? 'border-ink-900 bg-accent-400 text-ink-900'
                     : 'border-line-strong bg-surface text-fg hover:border-ink-900',
