@@ -23,6 +23,9 @@ describe('isBlockedTelemetryRefusal (K-L7)', () => {
       `[Report Only] Refused to connect to 'https://${HOST}/v1/traces' ${DIRECTIVE}`,
     ],
     [`Refused to load the script 'https://${HOST}/x.js' ${DIRECTIVE}`],
+    // Newer Chromium words a connect-src block as "Connecting to '<url>' violates ...".
+    [`Connecting to 'https://${HOST}/v1/metrics' ${DIRECTIVE}`],
+    [`Connecting to 'https://${HOST}/v1/metrics' ${DOCUMENT}`],
     [
       `Fetch API cannot load https://${HOST}/v1/metrics. Refused to connect ${DOCUMENT}`,
     ],
@@ -41,6 +44,9 @@ describe('isBlockedTelemetryRefusal (K-L7)', () => {
     [`Refused to connect to 'https://evil.example/?next=${HOST}' ${DIRECTIVE}`],
     [`Refused to connect to 'https://evil.example/${HOST}' ${DIRECTIVE}`],
     [`Refused to connect to 'https://${HOST}@evil.example/' ${DIRECTIVE}`],
+    [`Connecting to 'https://${HOST}.attacker.example/v1' ${DIRECTIVE}`],
+    [`Connecting to 'https://evil.example/?next=${HOST}' ${DIRECTIVE}`],
+    [`Connecting to 'https://monorail-edge.shopifysvc.com/v1' ${DIRECTIVE}`],
     [`Refused to connect to 'https://evil.example#${HOST}' ${DIRECTIVE}`],
     [`Refused to connect to 'https://x-${HOST}/v1' ${DIRECTIVE}`],
     [`Refused to connect to 'https://sub.${HOST}/v1' ${DIRECTIVE}`],

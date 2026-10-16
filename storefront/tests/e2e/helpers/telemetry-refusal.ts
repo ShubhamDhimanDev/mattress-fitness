@@ -15,9 +15,11 @@ export const BLOCKED_TELEMETRY_HOST = 'otlp-http-production.shopifysvc.com';
 // with "[Report Only]" and says the same.
 const CSP_REFUSAL =
   /violates the (?:following|document's) Content Security Policy/;
-// The blocked URI is the quoted URL after "Refused to connect to", "Refused to load the script" and so on; some
+// The blocked URI is the quoted URL after "Refused to connect to", "Refused to load the script", or (newer Chromium
+// wording for a connect-src block) "Connecting to '<url>' violates ...", and so on; some
 // Chromium versions word a fetch refusal as "Fetch API cannot load <url>. Refused to connect because ...".
-const QUOTED_BLOCKED_URL = /Refus(?:ed|ing) to [^']{0,60}'([^']{1,2048})'/;
+const QUOTED_BLOCKED_URL =
+  /(?:Refus(?:ed|ing) to|Connecting to|Loading the (?:script|stylesheet|image|font))(?: [^']{0,60})?'([^']{1,2048})'/;
 const FETCH_BLOCKED_URL = /Fetch API cannot load (\S{1,2048})\.\s+Refused to/;
 
 /** The URL a browser console line says was blocked, or null when the line does not name one. */

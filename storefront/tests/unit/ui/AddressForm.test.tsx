@@ -80,6 +80,11 @@ describe('<AddressForm> on a page with several forms', () => {
         const target = document.getElementById(label.htmlFor);
         expect(target, label.textContent ?? '').not.toBeNull();
         expect(form.contains(target)).toBe(true);
+        // WCAG 2.5.3 Label in Name: the visible label is the name; an aria-label would replace it with other words.
+        expect(
+          target?.hasAttribute('aria-label'),
+          label.textContent ?? '',
+        ).toBe(false);
       }
     }
   });
@@ -97,11 +102,11 @@ describe('<AddressForm> on a page with several forms', () => {
     }
     const second = screen.getByRole('group', {name: 'Saved address 2'});
     expect(
-      within(second).getByRole('textbox', {name: 'First name'}),
+      within(second).getByRole('textbox', {name: 'First name*'}),
     ).toHaveValue('Grace');
     const first = screen.getByRole('group', {name: 'Saved address 1'});
     expect(
-      within(first).getByRole('textbox', {name: 'First name'}),
+      within(first).getByRole('textbox', {name: 'First name*'}),
     ).toHaveValue('Ada');
     expect(
       within(first).getByRole('checkbox', {name: 'Set as default address'}),

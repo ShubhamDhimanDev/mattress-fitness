@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {
+  MAX_SUGGESTIONS,
   buildSuggestionGroups,
   flattenOptions,
   moveActive,
@@ -126,6 +127,57 @@ describe('buildSuggestionGroups', () => {
       price: null,
       image: null,
     });
+  });
+
+  // A11Y-003: a long list made the panel a scroll area with nothing tabbable in it.
+  it('lists at most MAX_SUGGESTIONS rows plus view all, products first, and keeps every kind represented', () => {
+    const many = (prefix: string, n: number) =>
+      Array.from({length: n}, (_, i) => ({
+        id: `${prefix}${i}`,
+        title: `${prefix} ${i}`,
+        handle: `${prefix}-${i}`,
+      }));
+    const flood: PredictiveItems = {
+      queries: Array.from({length: 5}, (_, i) => ({text: `query ${i}`})),
+      products: many('product', 5),
+      collections: many('collection', 5),
+      pages: many('page', 5),
+      articles: many('article', 5).map((a) => ({...a, blog: {handle: 'j'}})),
+    };
+    const groups = buildSuggestionGroups(flood, 'q');
+    const options = flattenOptions(groups);
+    expect(suggestionCount(groups)).toBe(MAX_SUGGESTIONS);
+    expect(options).toHaveLength(MAX_SUGGESTIONS + 1);
+    expect(options.at(-1)?.kind).toBe('all');
+    expect(groups.map((g) => g.id)).toEqual([
+      'queries',
+      'products',
+      'collections',
+      'pages',
+      'articles',
+      'all',
+    ]);
+    expect(options.map((o) => o.index)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    // Products come first in the share-out, so they never get fewer rows than another kind.
+    const rows = (id: string) =>
+      groups.find((g) => g.id === id)?.options.length ?? 0;
+    expect(rows('products')).toBeGreaterThanOrEqual(rows('queries'));
+  });
+
+  it('gives unused rows to the kinds that have more, and never drops below what exists', () => {
+    const only: PredictiveItems = {
+      ...EMPTY,
+      products: Array.from({length: 12}, (_, i) => ({
+        id: `p${i}`,
+        title: `Product ${i}`,
+        handle: `p-${i}`,
+      })),
+      pages: [{id: 'g', title: 'Guide', handle: 'guide'}],
+    };
+    const groups = buildSuggestionGroups(only, 'p');
+    expect(groups.find((g) => g.id === 'products')?.options).toHaveLength(7);
+    expect(groups.find((g) => g.id === 'pages')?.options).toHaveLength(1);
+    expect(suggestionCount(groups)).toBe(MAX_SUGGESTIONS);
   });
 
   it('skips blank query suggestions', () => {
