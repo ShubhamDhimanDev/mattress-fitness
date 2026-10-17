@@ -7,7 +7,9 @@ import {
 
 // P2-07 / NFR-001 / NFR-003: two design rules that unit tests cannot see because jsdom has no layout or media
 // queries: touch targets of at least 44 px, and no motion when the shopper asks for reduced motion. Both run on
-// the dev-only component gallery (/components), which shows every shared component in each state.
+// the dev-only component gallery (/components), which shows every shared component in each state. The reduced-motion
+// checks measure the computed result; the `motion-safe:` classes themselves are enforced by the unit guard
+// tests/unit/lib/motionSafeApp.test.ts (see movingElements below).
 
 async function gotoGallery(page: Page) {
   await page.goto('/components');
@@ -109,8 +111,17 @@ test.describe('P2-07 touch targets (NFR-001)', () => {
   });
 });
 
-/** Elements whose animation or transition would still last 1 ms or longer, as short descriptions. */
-/** `scope` is a selector list; the default is the page content, which is what the component gallery fills. */
+/**
+ * Elements whose animation or transition would still last 1 ms or longer, as short descriptions.
+ *
+ * What this does and does not prove: the global reduced-motion block in app/styles/tailwind.css already shortens every
+ * duration to 0.01 ms (1e-05 s), and this check ignores anything under 1 ms. So the reduced-motion tests below would
+ * still pass if a component lost its `motion-safe:` classes; they verify the computed result a shopper gets (nothing
+ * lasts long enough to see, and the "no preference" control proves the check can fail). It is the unit guard
+ * tests/unit/lib/motionSafeApp.test.ts that enforces the classes themselves.
+ *
+ * `scope` is a selector list; the default is the page content, which is what the component gallery fills.
+ */
 async function movingElements(
   page: Page,
   scope = 'main *, [data-overlay-host] *',
@@ -192,9 +203,11 @@ test.describe('P2-07 reduced motion (NFR-003, WCAG 2.3.3)', () => {
   });
 });
 
-// The same rule on the real pages outside components/ui: quiz, collection grid, product gallery and the footer
-// (the layout, quiz and listing components used to carry unguarded transition classes; the unit guard
-// tests/unit/lib/motionSafeApp.test.ts now stops that, and this checks the computed result in a browser).
+// The same rule on the real pages outside components/ui: quiz, collection grid, product gallery and the footer.
+// The layout, quiz and listing components used to carry unguarded transition classes. The unit guard
+// tests/unit/lib/motionSafeApp.test.ts is what stops that (these checks would pass without the classes, because the
+// global reduced-motion block already zeroes the durations; see movingElements); here the computed result is measured
+// in a browser, with a "no preference" control that shows the check can fail.
 const PAGE_SCOPE = 'header *, main *, footer *, [data-overlay-host] *';
 
 test.describe('NFR-003 reduced motion on real pages (WCAG 2.3.3)', () => {

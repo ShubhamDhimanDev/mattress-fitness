@@ -418,7 +418,8 @@ test.describe('REQ-NAV-003 delivery ZIP entry', () => {
         },
       )
       .toBe(true);
-    if (await saveFailed.isVisible()) {
+    // Only skip outside CI: the text is the generic save-failed code, so in CI (whose env file sets the secret) it must fail the run.
+    if (!process.env.CI && (await saveFailed.isVisible())) {
       test.skip(
         true,
         'DELIVERY_COOKIE_SECRET is not set in this env file, so a ZIP cannot be saved (see DEV_DATA.md)',

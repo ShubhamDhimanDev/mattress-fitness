@@ -8,7 +8,7 @@ import {
 } from 'react';
 import {useFetcher, useLocation, useNavigate} from 'react-router';
 import {SearchIcon} from '~/components/ui/Icons';
-import {LazyBoundary} from '~/components/layout/LazyPanel';
+import {LazyBoundary, usePanelStatus} from '~/components/layout/LazyPanel';
 import {suggestionsPanel} from '~/components/layout/lazyPanels';
 import {SearchFormPredictive} from '~/components/SearchFormPredictive';
 import {SuggestionsUnavailable} from '~/components/layout/SuggestionsUnavailable';
@@ -51,8 +51,14 @@ export function HeaderSearch() {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [panelScrolls, setPanelScrolls] = useState(false);
-  // True while the suggestions chunk could not be downloaded and the listbox offers only "view all" (QA-P7-L2).
-  const [unavailable, setUnavailable] = useState(false);
+  // The suggestions chunk's download status. It is read from the panel itself, in the same render that draws the
+  // listbox, so the live text never says "N suggestions" or "No suggestions" for a moment before it says that
+  // suggestions are unavailable (QA-P7-L2). Failed means: the listbox offers only "view all".
+  const chunk = usePanelStatus(suggestionsPanel);
+  // The other way to end up with only "view all": the chunk arrived but the panel threw while rendering. Only the
+  // boundary knows that, so its failure message reports it (and withdraws the report when it goes away).
+  const [renderFailed, setRenderFailed] = useState(false);
+  const unavailable = chunk === 'failed' || renderFailed;
 
   const term = value.trim();
   const ready = term.length >= MIN_PREDICTIVE_TERM_LENGTH;
@@ -80,10 +86,17 @@ export function HeaderSearch() {
     setActiveIndex(-1);
   }, [location.pathname, location.search]);
 
-  // A new result set starts again from the text field, not from a position in the old list.
+  // Opening the listbox asks for the chunk too (a no-op once it is loaded, and at most one request per retry delay
+  // after a failure), so reopening it is how a shopper whose first download failed gets suggestions back.
+  useEffect(() => {
+    if (visible) void suggestionsPanel.preload();
+  }, [visible]);
+
+  // A new result set, or the options changing to or from the "view all" fallback, starts again from the text field,
+  // not from a position in the old list (aria-activedescendant must name an option that is on screen).
   useEffect(() => {
     setActiveIndex(-1);
-  }, [fetcher.data]);
+  }, [fetcher.data, unavailable]);
 
   // A tap or click on anything outside the field closes the suggestions. Blur alone is not enough: pressing a
   // non-focusable area (page background, a heading) gives the blur event no related target, so the panel
@@ -260,7 +273,14 @@ export function HeaderSearch() {
 
       {/* Always in the DOM: a live region that appears together with its text is often not announced. */}
       <p id={statusId} role="status" aria-live="polite" className="sr-only">
-        {visible ? suggestionAnnouncement({count, loading, unavailable}) : ''}
+        {visible
+          ? suggestionAnnouncement({
+              count,
+              // Options that are not on screen yet are not announced; the text follows once the chunk has arrived.
+              loading: loading || chunk === 'pending',
+              unavailable,
+            })
+          : ''}
       </p>
 
       {visible ? (
@@ -300,26 +320,38 @@ export function HeaderSearch() {
             aria-label="Search suggestions"
             className="flex flex-col gap-4"
           >
-            {/* The options arrive as a lazy chunk; the field's focus handler has already started the download. */}
-            <LazyBoundary
-              loading={null}
-              failed={
-                <SuggestionsUnavailable
-                  groups={groups}
-                  activeIndex={activeIndex}
-                  optionPrefix={optionPrefix}
-                  onChoose={choose}
-                  onUnavailableChange={setUnavailable}
-                />
-              }
-            >
-              <SuggestionGroupsPanel
+            {/* The options arrive as a lazy chunk; the field's focus handler has already started the download. While the
+                download is failed the boundary is not mounted at all: the "view all" option is drawn directly, in the same
+                commit that the status changes, and stays while a later attempt downloads. When that attempt succeeds the
+                boundary mounts again with the chunk in hand. */}
+            {chunk === 'failed' ? (
+              <SuggestionsUnavailable
                 groups={groups}
                 activeIndex={activeIndex}
                 optionPrefix={optionPrefix}
                 onChoose={choose}
               />
-            </LazyBoundary>
+            ) : (
+              <LazyBoundary
+                loading={null}
+                failed={
+                  <SuggestionsUnavailable
+                    groups={groups}
+                    activeIndex={activeIndex}
+                    optionPrefix={optionPrefix}
+                    onChoose={choose}
+                    onUnavailableChange={setRenderFailed}
+                  />
+                }
+              >
+                <SuggestionGroupsPanel
+                  groups={groups}
+                  activeIndex={activeIndex}
+                  optionPrefix={optionPrefix}
+                  onChoose={choose}
+                />
+              </LazyBoundary>
+            )}
           </div>
         </div>
       ) : null}

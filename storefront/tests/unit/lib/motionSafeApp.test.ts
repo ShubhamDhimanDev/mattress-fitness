@@ -36,23 +36,68 @@ function withoutComments(source: string): string {
     .replace(/\s\/\/\s.*$/gm, ' ');
 }
 
-const MOTION_UTILITY =
-  /^(?:animate-[\w-]+|transition(?:-[\w[\]-]+)?|duration-[\w[\]-]+|delay-[\w[\]-]+|ease-[\w[\]-]+|scroll-smooth)$/;
-const HOVER_MOVE =
-  /(?:^|[:-])hover:(?:-?(?:scale|translate|rotate|skew)(?:-[\w[\]/.-]+)?)$/;
+// A class is found by its own text, not by splitting the file into words: variants and arbitrary values contain colons,
+// brackets and parentheses, and copy such as "delay-free" must not look like a utility. Rules:
+//  - it starts after whitespace, a quote or a backtick (or at the start), possibly behind variants ("hover:", "md:");
+//  - it ends before whitespace, a quote, a backtick or the end of the text;
+//  - the utility itself is one of Tailwind's motion utilities with a value Tailwind knows (a number, a keyword, an
+//    arbitrary [value] or a (--variable)), so a word that merely starts like one is left alone.
+// Known gaps, on purpose: class names assembled at run time (`transition-${name}`), and motion set through
+// inline styles or the Web Animations API (style={{transition: ...}}, element.animate). Neither can be told from other
+// code by reading text; the e2e checks in tests/e2e/design-rules.spec.ts measure the computed result in a browser. The
+// bare word "transition" in visible copy would be flagged as a false positive; rephrase the copy.
+// What ends a class name in source: whitespace, a quote or a backtick.
+const EDGE = '\\s"\'`';
+const ARBITRARY = `\\[[^\\]${EDGE}]+\\]`;
+const VARIABLE = `\\([^)${EDGE}]+\\)`;
+const MOTION_UTILITIES = [
+  // Named and arbitrary animations; "animate-none" switches one off and is allowed.
+  'animate-(?!none(?![\\w-]))[a-z][\\w-]*',
+  `animate-${ARBITRARY}`,
+  `animate-${VARIABLE}`,
+  // "transition-none" is allowed for the same reason (it is what "motion-reduce:" pairs with).
+  `transition(?:-(?:all|colors|opacity|shadow|transform|discrete)|-${ARBITRARY}|-${VARIABLE})?`,
+  `(?:duration|delay)-(?:\\d+|initial|${ARBITRARY}|${VARIABLE})`,
+  `ease-(?:linear|in-out|in|out|initial|${ARBITRARY}|${VARIABLE})`,
+  'scroll-smooth',
+  // Arbitrary properties: [transition:opacity_.2s], [animation:spin_1s_linear_infinite], [scroll-behavior:smooth].
+  `\\[(?:transition|animation)(?:-[a-z-]+)?:(?!none\\])[^\\]${EDGE}]*\\]`,
+  '\\[scroll-behavior:smooth\\]',
+];
+const HOVER_MOVE_UTILITY =
+  '-?(?:scale|translate|rotate|skew)(?:-[\\w[\\]/.%-]+)?';
+
+function classPattern(utility: string): RegExp {
+  return new RegExp(
+    `(?<![^${EDGE}])(?<variants>(?:[^${EDGE}:]+:)*)!?(?:${utility})!?(?![^${EDGE}])`,
+    'g',
+  );
+}
+
+const MOTION_CLASS = classPattern(MOTION_UTILITIES.join('|'));
+const HOVER_MOVE_CLASS = classPattern(HOVER_MOVE_UTILITY);
+
+function variantsOf(match: RegExpMatchArray): string[] {
+  return (match.groups?.variants ?? '').split(':').filter(Boolean);
+}
 
 /**
- * Class tokens that move something without a `motion-safe:` variant. A token is a whitespace- or quote-separated
- * run, so `hover:motion-safe:transition-colors` counts as guarded and `group-hover:scale-105` does not.
+ * Class tokens that move something without a `motion-safe:` variant: animations, transitions, durations, delays,
+ * easing, smooth scrolling and (with a hover variant) scale, translate, rotate and skew. So
+ * `hover:motion-safe:transition-colors` counts as guarded and `group-hover:scale-105` does not.
  */
 export function unguardedMotionClasses(source: string): string[] {
-  return withoutComments(source)
-    .split(/[\s"'`{}()]+/)
-    .filter((token) => {
-      if (token.includes('motion-safe:')) return false;
-      const utility = token.slice(token.lastIndexOf(':') + 1);
-      return MOTION_UTILITY.test(utility) || HOVER_MOVE.test(token);
-    });
+  const text = withoutComments(source);
+  const found: string[] = [];
+  for (const match of text.matchAll(MOTION_CLASS)) {
+    if (!variantsOf(match).includes('motion-safe')) found.push(match[0]);
+  }
+  for (const match of text.matchAll(HOVER_MOVE_CLASS)) {
+    const variants = variantsOf(match);
+    const hovers = variants.some((variant) => /(?:^|-)hover$/.test(variant));
+    if (hovers && !variants.includes('motion-safe')) found.push(match[0]);
+  }
+  return found;
 }
 
 /** Script-driven scrolling that names a behaviour other than the helper's answer. */
@@ -90,6 +135,28 @@ describe('every app source keeps motion behind motion-safe (NFR-003)', () => {
       unguardedMotionClasses(text).map((token) => `${file}: ${token}`),
     );
     expect(violations).toEqual([]);
+  });
+
+  // The guard must be able to fail: stripping the prefix from each file that uses it has to produce a violation in that
+  // file. (Mutation check; the classes of the six files that were fixed in 12034ce are among them.)
+  it('flags each file that uses motion-safe: once the prefix is taken out', () => {
+    const users = sources.filter(({text}) =>
+      withoutComments(text).includes('motion-safe:'),
+    );
+    expect(users.map(({file}) => file)).toEqual(
+      expect.arrayContaining([
+        'components/ProductItem.tsx',
+        'components/collection/PromoTileCard.tsx',
+        'components/layout/SiteFooter.tsx',
+        'components/layout/MainNav.tsx',
+        'components/quiz/QuizQuestion.tsx',
+        'components/quiz/QuizProgress.tsx',
+      ]),
+    );
+    for (const {file, text} of users) {
+      const mutated = text.replaceAll('motion-safe:', '');
+      expect(unguardedMotionClasses(mutated), file).not.toEqual([]);
+    }
   });
 
   it('sends every script-driven scroll behaviour through scrollBehavior()', () => {
@@ -152,6 +219,63 @@ describe('the guards themselves', () => {
       unguardedMotionClasses(
         'x="motion-safe:transition-transform motion-safe:group-hover:scale-105 hover:motion-safe:transition-colors"',
       ),
+    ).toEqual([]);
+  });
+
+  it('accept the classes that switch motion off', () => {
+    expect(
+      unguardedMotionClasses(
+        'x="motion-reduce:transition-none animate-none transition-none motion-reduce:animate-none"',
+      ),
+    ).toEqual([]);
+  });
+
+  it('flag arbitrary values and arbitrary properties, with or without variants', () => {
+    expect(
+      unguardedMotionClasses(
+        'x="animate-[wiggle_1s_ease-in-out_infinite] md:transition-[width] duration-[300ms] ease-[cubic-bezier(0.4,0,0.2,1)] delay-(--wait) animate-(--spin)"',
+      ),
+    ).toEqual([
+      'animate-[wiggle_1s_ease-in-out_infinite]',
+      'md:transition-[width]',
+      'duration-[300ms]',
+      'ease-[cubic-bezier(0.4,0,0.2,1)]',
+      'delay-(--wait)',
+      'animate-(--spin)',
+    ]);
+    expect(
+      unguardedMotionClasses(
+        'x="[transition:opacity_.2s] hover:[transition-property:opacity] [animation:spin_1s_linear_infinite] [scroll-behavior:smooth]"',
+      ),
+    ).toEqual([
+      '[transition:opacity_.2s]',
+      'hover:[transition-property:opacity]',
+      '[animation:spin_1s_linear_infinite]',
+      '[scroll-behavior:smooth]',
+    ]);
+    expect(
+      unguardedMotionClasses(
+        'x="motion-safe:animate-[wiggle_1s_infinite] motion-safe:[transition:opacity_.2s] hover:motion-safe:ease-[linear] [transition:none] [animation:none]"',
+      ),
+    ).toEqual([]);
+  });
+
+  it('flag the important modifier too', () => {
+    expect(
+      unguardedMotionClasses('x="!transition-colors duration-200!"'),
+    ).toEqual(['!transition-colors', 'duration-200!']);
+  });
+
+  it('do not read words that only look like a utility', () => {
+    // Visible copy and identifiers: not preceded and followed by class edges, or not a value Tailwind knows.
+    expect(
+      unguardedMotionClasses(
+        '<p>A delay-free checkout with ease-of-use and a duration-less plan. transition-ready, animate_me</p>',
+      ),
+    ).toEqual([]);
+    expect(unguardedMotionClasses('const x = a.transition-1;')).toEqual([]);
+    expect(
+      unguardedMotionClasses('x="ease-in-place duration-fast delay-"'),
     ).toEqual([]);
   });
 

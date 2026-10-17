@@ -592,16 +592,21 @@ test.describe('P7-06 lazy panels on a production build', () => {
     // helper hands out a fresh lazy component after a failure; "Try again" mounts the panel again in place, and so does
     // closing and reopening the drawer. Before the fix the first reopening still failed and recovery within four
     // reopenings was not guaranteed (Minor defect found by QA on 2026-10-16).
-    async function failCartOnce(page: Page) {
+    async function failPanelOnce(
+      page: Page,
+      panel: Panel,
+      dialogName: string,
+      trigger: (page: Page) => Locator,
+    ) {
       await openHome(page);
       let chunkUrl = '';
       const failing = (route: Route) => {
         chunkUrl = route.request().url();
         return route.abort('failed');
       };
-      await page.route(CHUNK.cart, failing);
-      const drawer = dialogNamed(page, 'Cart');
-      await cartLink(page).click();
+      await page.route(CHUNK[panel], failing);
+      const drawer = dialogNamed(page, dialogName);
+      await trigger(page).click();
       await expect(
         drawer.getByRole('alert').filter({hasText: 'could not be loaded'}),
       ).toBeVisible();
@@ -610,7 +615,7 @@ test.describe('P7-06 lazy panels on a production build', () => {
         // Releases the failure and proves the network is back before the shopper tries again (the unroute reaches the
         // browser asynchronously).
         restore: async () => {
-          await page.unroute(CHUNK.cart, failing);
+          await page.unroute(CHUNK[panel], failing);
           await expect
             .poll(() =>
               page.evaluate(
@@ -623,6 +628,9 @@ test.describe('P7-06 lazy panels on a production build', () => {
       };
     }
 
+    const failCartOnce = (page: Page) =>
+      failPanelOnce(page, 'cart', 'Cart', cartLink);
+
     test('recovery: "Try again" shows the cart contents in place, without a page reload, once the network is back', async ({
       page,
     }) => {
@@ -633,6 +641,9 @@ test.describe('P7-06 lazy panels on a production build', () => {
       await restore();
       await drawer.getByRole('button', {name: 'Try again'}).click();
       await expect(drawer.getByText(/added anything yet/)).toBeVisible();
+      // The pressed button is gone; focus goes to the first tabbable element of the drawer, not to the page behind it
+      // and not left on the drawer container (WCAG 2.4.3).
+      await expect(drawer.getByRole('button', {name: 'Close'})).toBeFocused();
       await expect(
         drawer.getByRole('alert').filter({hasText: 'could not be loaded'}),
       ).toHaveCount(0);
@@ -642,6 +653,26 @@ test.describe('P7-06 lazy panels on a production build', () => {
         ),
         'the document was not reloaded',
       ).toBe(true);
+      await expect(rootErrorHeading(page)).toHaveCount(0);
+    });
+
+    test('recovery: "Try again" in the ZIP dialog shows the form in place and focus lands in the ZIP field', async ({
+      page,
+    }) => {
+      const {drawer: dialog, restore} = await failPanelOnce(
+        page,
+        'zip',
+        'Delivery ZIP code',
+        zipButton,
+      );
+      await restore();
+      await dialog.getByRole('button', {name: 'Try again'}).click();
+      await expect(
+        dialog.getByRole('textbox', {name: 'ZIP code'}),
+      ).toBeFocused();
+      await expect(
+        dialog.getByRole('alert').filter({hasText: 'could not be loaded'}),
+      ).toHaveCount(0);
       await expect(rootErrorHeading(page)).toHaveCount(0);
     });
 
