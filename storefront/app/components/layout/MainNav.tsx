@@ -236,7 +236,7 @@ export function MainNav({items}: MainNavProps) {
                 )}
               >
                 {item.label}
-                <ChevronDownIcon className="size-4 transition-transform group-aria-expanded:rotate-180" />
+                <ChevronDownIcon className="size-4 motion-safe:transition-transform group-aria-expanded:rotate-180" />
               </button>
               <div
                 id={panelId}

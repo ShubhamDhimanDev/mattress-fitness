@@ -44,7 +44,7 @@ export function ProductItem({product, loading, index}: ProductItemProps) {
             data={product.image}
             loading={loading}
             sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 46vw"
-            className="size-full object-cover transition-transform group-hover:scale-105"
+            className="size-full object-cover motion-safe:transition-transform motion-safe:group-hover:scale-105"
           />
         ) : null}
         <div className="absolute top-2 left-2 flex flex-col items-start gap-1">

@@ -5,10 +5,8 @@ import {
   type SuggestionGroup,
   type SuggestionOption,
 } from '~/components/layout/searchCombobox';
+import {SUGGESTION_OPTION_CLASSES as OPTION_CLASSES} from '~/components/layout/SuggestionsUnavailable';
 import {Price} from '~/components/ui/Price';
-
-const OPTION_CLASSES =
-  'flex min-h-touch items-center gap-3 rounded-choice p-1 text-base text-fg hover:bg-surface-muted aria-selected:bg-surface-muted aria-selected:outline-2 aria-selected:outline-offset-[-2px] aria-selected:outline-primary-700';
 
 export type SuggestionGroupsProps = {
   groups: readonly SuggestionGroup[];

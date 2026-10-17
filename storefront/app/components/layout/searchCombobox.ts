@@ -272,11 +272,18 @@ export function moveActive(
   return current <= 0 ? count - 1 : current - 1;
 }
 
+/** Spoken once when the suggestions could not be loaded; the "view all" option and Enter still search. */
+export const SUGGESTIONS_UNAVAILABLE_ANNOUNCEMENT =
+  'Suggestions are unavailable. Press Enter to search.';
+
 /** The text a screen reader hears when suggestions change. Empty while loading, so nothing is read twice. */
 export function suggestionAnnouncement(args: {
   count: number;
   loading: boolean;
+  /** The suggestions chunk failed to download (QA-P7-L2); the wording is constant so it is announced only once. */
+  unavailable?: boolean;
 }): string {
+  if (args.unavailable) return SUGGESTIONS_UNAVAILABLE_ANNOUNCEMENT;
   if (args.loading) return '';
   if (args.count === 0) return 'No suggestions. Press Enter to search.';
   return `${args.count} ${args.count === 1 ? 'suggestion' : 'suggestions'} available. Use the up and down arrow keys to review, Enter to select.`;

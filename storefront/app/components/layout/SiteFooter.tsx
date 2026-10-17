@@ -56,7 +56,7 @@ function FooterGroups({
                 className="group flex min-h-touch w-full items-center justify-between text-left text-sm font-bold tracking-wide text-white uppercase"
               >
                 {group.heading}
-                <ChevronDownIcon className="size-5 transition-transform group-aria-expanded:rotate-180" />
+                <ChevronDownIcon className="size-5 motion-safe:transition-transform group-aria-expanded:rotate-180" />
               </button>
             </h2>
             <ul

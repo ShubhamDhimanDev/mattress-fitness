@@ -18,7 +18,7 @@ export function PromoTileCard({tile}: {tile: PromoTileView}) {
             aspectRatio="1/1"
             sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 46vw"
             loading="lazy"
-            className="size-full object-cover transition-transform group-hover:scale-105"
+            className="size-full object-cover motion-safe:transition-transform motion-safe:group-hover:scale-105"
           />
         ) : (
           <span className="px-4 text-center text-xl font-bold text-primary-800">
