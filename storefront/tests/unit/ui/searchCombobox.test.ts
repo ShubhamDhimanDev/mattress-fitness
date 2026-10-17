@@ -232,6 +232,14 @@ describe('suggestionAnnouncement', () => {
       /^5 suggestions available/,
     );
   });
+  it('says once, in constant wording, that suggestions are unavailable (QA-P7-L2), even while loading', () => {
+    expect(
+      suggestionAnnouncement({count: 0, loading: false, unavailable: true}),
+    ).toBe('Suggestions are unavailable. Press Enter to search.');
+    expect(
+      suggestionAnnouncement({count: 0, loading: true, unavailable: true}),
+    ).toBe('Suggestions are unavailable. Press Enter to search.');
+  });
   it('tells the shopper what to do when there are none', () => {
     expect(suggestionAnnouncement({count: 0, loading: false})).toBe(
       'No suggestions. Press Enter to search.',

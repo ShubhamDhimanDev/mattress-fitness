@@ -588,15 +588,11 @@ test.describe('P7-06 lazy panels on a production build', () => {
       expect(unexpectedFailureLines(lines, 'suggestions')).toEqual([]);
     });
 
-    // Measured behaviour (2026-10-16, Chromium, network verified back): the FIRST reopening after a failed download
-    // still shows the failure (React.lazy keeps its rejected result). The cart then showed on the second reopening in all
-    // desktop runs but did NOT recover within four reopenings in about half of the mobile-profile runs (QA-P7-L1, Minor).
-    // Recovery without a reload is therefore not guaranteed and is not asserted. What IS guaranteed, and asserted here:
-    // every reopening ends in either the cart contents or the failure message with the way out, never a blank panel or
-    // the root error screen.
-    test('recovery: with the network back, each reopening of the cart drawer shows the contents or the failure with a link to the cart page, never a blank panel', async ({
-      page,
-    }) => {
+    // QA-P7-L1 (fixed): a failed download no longer poisons the panel. React.lazy keeps its rejected result, so the
+    // helper hands out a fresh lazy component after a failure; "Try again" mounts the panel again in place, and so does
+    // closing and reopening the drawer. Before the fix the first reopening still failed and recovery within four
+    // reopenings was not guaranteed (Minor defect found by QA on 2026-10-16).
+    async function failCartOnce(page: Page) {
       await openHome(page);
       let chunkUrl = '';
       const failing = (route: Route) => {
@@ -604,51 +600,102 @@ test.describe('P7-06 lazy panels on a production build', () => {
         return route.abort('failed');
       };
       await page.route(CHUNK.cart, failing);
-      const trigger = cartLink(page);
       const drawer = dialogNamed(page, 'Cart');
-      const failure = drawer
-        .getByRole('alert')
-        .filter({hasText: 'could not be loaded'});
-      const contents = drawer.getByText(/added anything yet/);
-      await trigger.click();
-      await expect(failure).toBeVisible();
+      await cartLink(page).click();
+      await expect(
+        drawer.getByRole('alert').filter({hasText: 'could not be loaded'}),
+      ).toBeVisible();
+      return {
+        drawer,
+        // Releases the failure and proves the network is back before the shopper tries again (the unroute reaches the
+        // browser asynchronously).
+        restore: async () => {
+          await page.unroute(CHUNK.cart, failing);
+          await expect
+            .poll(() =>
+              page.evaluate(
+                async (url) => (await fetch(url, {cache: 'no-store'})).status,
+                chunkUrl,
+              ),
+            )
+            .toBe(200);
+        },
+      };
+    }
+
+    test('recovery: "Try again" shows the cart contents in place, without a page reload, once the network is back', async ({
+      page,
+    }) => {
+      const {drawer, restore} = await failCartOnce(page);
+      await page.evaluate(() => {
+        (window as unknown as {reloadMarker: boolean}).reloadMarker = true;
+      });
+      await restore();
+      await drawer.getByRole('button', {name: 'Try again'}).click();
+      await expect(drawer.getByText(/added anything yet/)).toBeVisible();
+      await expect(
+        drawer.getByRole('alert').filter({hasText: 'could not be loaded'}),
+      ).toHaveCount(0);
+      expect(
+        await page.evaluate(
+          () => (window as unknown as {reloadMarker?: boolean}).reloadMarker,
+        ),
+        'the document was not reloaded',
+      ).toBe(true);
+      await expect(rootErrorHeading(page)).toHaveCount(0);
+    });
+
+    test('recovery: closing and reopening the drawer after the network is back shows the cart contents the first time', async ({
+      page,
+    }) => {
+      const {drawer, restore} = await failCartOnce(page);
       await page.keyboard.press('Escape');
       await expect(drawer).toBeHidden();
+      await restore();
+      await cartLink(page).click();
+      await expect(drawer.getByText(/added anything yet/)).toBeVisible();
+      await expect(rootErrorHeading(page)).toHaveCount(0);
+    });
 
-      await page.unroute(CHUNK.cart, failing);
-      // Proof that the network is back before the shopper tries again (the unroute reaches the browser asynchronously).
-      await expect
-        .poll(() =>
-          page.evaluate(
-            async (url) => (await fetch(url, {cache: 'no-store'})).status,
-            chunkUrl,
-          ),
-        )
-        .toBe(200);
+    test('recovery: while the network is still down "Try again" shows the failure and the cart page link again, and a later try works', async ({
+      page,
+    }) => {
+      const {drawer, restore} = await failCartOnce(page);
+      await drawer.getByRole('button', {name: 'Try again'}).click();
+      await expect(
+        drawer.getByRole('alert').filter({hasText: 'could not be loaded'}),
+      ).toBeVisible();
+      await expect(
+        drawer.getByRole('link', {name: 'Open the cart page'}),
+      ).toHaveAttribute('href', '/cart');
+      // The keyboard user keeps their place on the new button.
+      await expect(
+        drawer.getByRole('button', {name: 'Try again'}),
+      ).toBeFocused();
+      await restore();
+      await drawer.getByRole('button', {name: 'Try again'}).click();
+      await expect(drawer.getByText(/added anything yet/)).toBeVisible();
+    });
 
-      let openingsUntilContents = 0;
-      for (
-        let opening = 1;
-        opening <= 4 && openingsUntilContents === 0;
-        opening += 1
-      ) {
-        await trigger.click();
-        await expect(failure.or(contents)).toBeVisible();
-        if (await contents.isVisible()) {
-          openingsUntilContents = opening;
-        } else {
-          await expect(
-            drawer.getByRole('link', {name: 'Open the cart page'}),
-          ).toHaveAttribute('href', '/cart');
-          // Give the background download a moment to finish before the next press.
-          await page.waitForLoadState('networkidle');
-        }
-        await page.keyboard.press('Escape');
-        await expect(drawer).toBeHidden();
-      }
-      report(
-        `LAZY-RECOVERY cart chunk: contents shown on reopening ${openingsUntilContents} after the network returned (0 = not within 4)`,
-      );
+    test('search suggestions: with the chunk blocked the listbox still offers "View all results" and the status says suggestions are unavailable', async ({
+      page,
+    }) => {
+      await openHome(page);
+      await page.route(CHUNK.suggestions, (route) => route.abort('failed'));
+      const search = searchField(page);
+      await search.fill('bed');
+      const listbox = page.getByRole('listbox', {name: 'Search suggestions'});
+      const viewAll = listbox.getByRole('option', {name: /View all results/});
+      await expect(viewAll).toBeVisible();
+      await expect(
+        page
+          .getByRole('status')
+          .filter({hasText: 'Suggestions are unavailable'}),
+      ).toHaveText('Suggestions are unavailable. Press Enter to search.');
+      await search.press('ArrowDown');
+      await expect(search).toHaveAttribute('aria-activedescendant', /.+/);
+      await search.press('Enter');
+      await expect(page).toHaveURL(/\/search\?.*q=bed/);
       await expect(rootErrorHeading(page)).toHaveCount(0);
     });
   });

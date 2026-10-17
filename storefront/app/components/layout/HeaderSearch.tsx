@@ -11,6 +11,7 @@ import {SearchIcon} from '~/components/ui/Icons';
 import {LazyBoundary} from '~/components/layout/LazyPanel';
 import {suggestionsPanel} from '~/components/layout/lazyPanels';
 import {SearchFormPredictive} from '~/components/SearchFormPredictive';
+import {SuggestionsUnavailable} from '~/components/layout/SuggestionsUnavailable';
 import {
   buildSuggestionGroups,
   flattenOptions,
@@ -50,6 +51,8 @@ export function HeaderSearch() {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [panelScrolls, setPanelScrolls] = useState(false);
+  // True while the suggestions chunk could not be downloaded and the listbox offers only "view all" (QA-P7-L2).
+  const [unavailable, setUnavailable] = useState(false);
 
   const term = value.trim();
   const ready = term.length >= MIN_PREDICTIVE_TERM_LENGTH;
@@ -60,11 +63,13 @@ export function HeaderSearch() {
     const items = (fetcher.data ?? {result: getEmptyPredictiveSearchResult()})
       .result.items;
     // Results for a shorter, older term would mislead; below the floor only the "view all" option shows.
+    // Without the chunk the real options cannot be drawn, so none is offered: the keyboard must never land on an option
+    // that is not on screen.
     return buildSuggestionGroups(
-      ready ? items : getEmptyPredictiveSearchResult().items,
+      ready && !unavailable ? items : getEmptyPredictiveSearchResult().items,
       term,
     );
-  }, [fetcher.data, ready, term]);
+  }, [fetcher.data, ready, term, unavailable]);
   const options = useMemo(() => flattenOptions(groups), [groups]);
   const count = suggestionCount(groups);
   const activeOption = options[activeIndex] ?? null;
@@ -255,7 +260,7 @@ export function HeaderSearch() {
 
       {/* Always in the DOM: a live region that appears together with its text is often not announced. */}
       <p id={statusId} role="status" aria-live="polite" className="sr-only">
-        {visible ? suggestionAnnouncement({count, loading}) : ''}
+        {visible ? suggestionAnnouncement({count, loading, unavailable}) : ''}
       </p>
 
       {visible ? (
@@ -274,12 +279,17 @@ export function HeaderSearch() {
           // Keep focus in the text field when the panel is pressed (a click would otherwise blur it first).
           onMouseDown={(event) => event.preventDefault()}
         >
-          {loading && count === 0 ? (
+          {unavailable ? (
+            <p aria-hidden="true" className="mb-2 text-base text-fg-muted">
+              Suggestions are unavailable.
+            </p>
+          ) : null}
+          {!unavailable && loading && count === 0 ? (
             <p aria-hidden="true" className="mb-2 text-base text-fg-muted">
               Searching…
             </p>
           ) : null}
-          {!loading && count === 0 ? (
+          {!unavailable && !loading && count === 0 ? (
             <p aria-hidden="true" className="mb-2 text-base text-fg">
               No suggestions for <q>{term}</q>
             </p>
@@ -291,7 +301,18 @@ export function HeaderSearch() {
             className="flex flex-col gap-4"
           >
             {/* The options arrive as a lazy chunk; the field's focus handler has already started the download. */}
-            <LazyBoundary loading={null} failed={null}>
+            <LazyBoundary
+              loading={null}
+              failed={
+                <SuggestionsUnavailable
+                  groups={groups}
+                  activeIndex={activeIndex}
+                  optionPrefix={optionPrefix}
+                  onChoose={choose}
+                  onUnavailableChange={setUnavailable}
+                />
+              }
+            >
               <SuggestionGroupsPanel
                 groups={groups}
                 activeIndex={activeIndex}
