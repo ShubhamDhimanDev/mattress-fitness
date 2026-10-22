@@ -591,8 +591,12 @@ test.describe('NFR-003 keyboard: full tab order of key templates (order, focus v
         contentType: 'application/json',
       });
       expect(
+        walk.trap,
+        'keyboard trap: focus returned to a stop other than the first',
+      ).toBeNull();
+      expect(
         walk.completed,
-        'focus left the page again (no keyboard trap, under 300 stops)',
+        'focus left the page or wrapped to the first stop (no keyboard trap, under 300 stops)',
       ).toBe(true);
       expect(walk.stops.length, 'tab stops').toBeGreaterThan(5);
       expect(walk.stops[0]?.label, 'first stop').toContain(

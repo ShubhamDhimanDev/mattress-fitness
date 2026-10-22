@@ -260,8 +260,10 @@ export async function describeFocus(page: Page): Promise<FocusInfo | null> {
 
 export type TabWalk = {
   stops: TabStop[];
-  /** True when focus left to the document or came back to a stop already seen. */
+  /** True when focus left the document or wrapped round to the FIRST stop (a closed loop through the whole page). */
   completed: boolean;
+  /** Set when focus returned to a stop that is not the first (a keyboard trap, WCAG 2.1.2): which stop, after which. */
+  trap: string | null;
 };
 
 /**
@@ -274,8 +276,11 @@ export async function walkTabOrder(page: Page, max = 250): Promise<TabWalk> {
     (document.activeElement as HTMLElement | null)?.blur();
     window.scrollTo(0, 0);
     document
-      .querySelectorAll('[data-a11y-seen]')
-      .forEach((node) => node.removeAttribute('data-a11y-seen'));
+      .querySelectorAll('[data-a11y-seen], [data-a11y-first]')
+      .forEach((node) => {
+        node.removeAttribute('data-a11y-seen');
+        node.removeAttribute('data-a11y-first');
+      });
   });
   const stops: TabStop[] = [];
   for (let index = 0; index < max; index += 1) {
@@ -283,14 +288,33 @@ export async function walkTabOrder(page: Page, max = 250): Promise<TabWalk> {
     const state = await page.evaluate(() => {
       const el = document.activeElement;
       if (!el || el === document.body || el === document.documentElement)
-        return 'end';
-      if (el.hasAttribute('data-a11y-seen')) return 'repeat';
+        return {kind: 'end' as const, label: ''};
+      const label = `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') ?? (el as HTMLElement).innerText ?? '').trim().slice(0, 40)}"`;
+      if (el.hasAttribute('data-a11y-seen'))
+        return {
+          kind: el.hasAttribute('data-a11y-first')
+            ? ('wrap' as const)
+            : ('repeat' as const),
+          label,
+        };
       el.setAttribute('data-a11y-seen', '1');
-      return 'new';
+      // The first element focused is the one a wrap-around has to come back to.
+      if (!document.querySelector('[data-a11y-first]'))
+        el.setAttribute('data-a11y-first', '1');
+      return {kind: 'new' as const, label};
     });
-    if (state !== 'new') return {stops, completed: true};
+    if (state.kind === 'end' || state.kind === 'wrap')
+      return {stops, completed: true, trap: null};
+    if (state.kind === 'repeat') {
+      const previous = stops[stops.length - 1];
+      return {
+        stops,
+        completed: false,
+        trap: `Tab after stop #${previous?.index ?? '?'} (${previous?.label ?? 'none'}) returned to ${state.label}, a stop already visited that is not the first`,
+      };
+    }
     const info = await describeFocus(page);
     if (info) stops.push({index, ...info});
   }
-  return {stops, completed: false};
+  return {stops, completed: false, trap: null};
 }
