@@ -62,7 +62,7 @@ Validates agents, skills, rules, settings, MCP config, requirement traceability 
 
 ## Environment and secrets
 
-Copy `.env.example` (it lists names only) to `storefront/.env` and fill it locally, or use the mock-store values in `storefront/DEV_DATA.md`. Never commit real values; every `.env*` file except `.env.example` is git-ignored. Variable names, origins and what fails without each one: [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md).
+To run against a demo store with no third-party services, follow [docs/deployment/DEMO_STORE_SETUP.md](docs/deployment/DEMO_STORE_SETUP.md) (`node scripts/setup/demo-env.mjs --mock` writes the environment file for you). Otherwise copy `.env.example` (it lists names only) to `storefront/.env` and fill it locally, or use the mock-store values in `storefront/DEV_DATA.md`. Never commit real values; every `.env*` file except `.env.example` is git-ignored. Variable names, origins and what fails without each one: [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md).
 
 ## Contributing
 
