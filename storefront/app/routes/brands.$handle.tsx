@@ -90,7 +90,9 @@ export default function BrandPage() {
             {label: 'Brands', to: '/brands'},
           ]}
         />
-        <h1 className="mt-2 text-3xl font-bold">Brand</h1>
+        <h1 className="mt-2 border-b border-line pb-4 type-display text-3xl">
+          Brand
+        </h1>
         <p className="mt-6 text-base text-fg-muted">
           This brand is not available right now. Please try again in a moment.
         </p>

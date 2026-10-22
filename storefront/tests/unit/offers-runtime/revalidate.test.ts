@@ -1,4 +1,4 @@
-import {describe, expect, it, vi} from 'vitest';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {fakeStorefront} from '../catalog/fake-storefront';
 import {decideCheckout} from '~/lib/cart/checkout';
@@ -12,6 +12,7 @@ import {
   type MutationOutcome,
 } from '~/lib/offers-runtime/revalidate';
 import {
+  resetOfferConfigLogsForTests,
   revalidateCartOffers,
   type OfferRuntime,
 } from '~/lib/offers-runtime/server';
@@ -275,6 +276,7 @@ describe('REQ-PRE-006 revalidation of a Shopify cart (tamper cases)', () => {
   });
 
   describe('missing configuration (fail closed in production, REQ-PRE-006)', () => {
+    beforeEach(resetOfferConfigLogsForTests); // a problem is logged once per isolate (RS-01)
     const lines = [{...GIFT_LINE}, OTHER_LINE];
 
     it.each([

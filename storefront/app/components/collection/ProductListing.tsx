@@ -5,6 +5,7 @@ import {PromoTileCard} from '~/components/collection/PromoTileCard';
 import {useLoadMore} from '~/components/collection/useLoadMore';
 import {ProductItem} from '~/components/ProductItem';
 import {Button} from '~/components/ui/Button';
+import {cn} from '~/components/ui/cn';
 import {Drawer} from '~/components/ui/Drawer';
 import {Select} from '~/components/ui/Select';
 import {
@@ -80,7 +81,7 @@ export function ProductListing({
       {showFilters ? (
         <aside
           aria-labelledby="listing-filters-heading"
-          className="hidden w-64 shrink-0 lg:block"
+          className="hidden w-72 shrink-0 lg:block"
         >
           {/* The sidebar comes before the product list in the page, and its price heading is a level 3: this level 2 keeps the outline unbroken (A11Y-006). */}
           <h2 id="listing-filters-heading" className="sr-only">
@@ -96,38 +97,38 @@ export function ProductListing({
       ) : null}
 
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <p role="status" className="text-sm text-fg-muted">
+        {/* Below 1024 px the count, the Filters button and the sort are stacked; from there the sort sits at the right of the count. */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <p role="status" className="text-lg font-bold text-fg">
             {list.products.length}{' '}
             {list.products.length === 1 ? 'product' : 'products'}
             {list.hasMore ? ' shown' : ''}
           </p>
-          <div className="flex items-end gap-3">
-            {showFilters ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="lg:hidden"
-                aria-haspopup="dialog"
-                onClick={() => setDrawerOpen(true)}
-              >
-                Filters{active > 0 ? ` (${active})` : ''}
-              </Button>
-            ) : null}
-            <Select
-              label="Sort by"
-              value={state.sort}
-              options={sortOptions}
-              onChange={(event) => {
-                const next = sortKeys.find((key) => key === event.target.value);
-                if (next) {
-                  void navigate(hrefForSort(pathname, state, next, base), {
-                    preventScrollReset: true,
-                  });
-                }
-              }}
-            />
-          </div>
+          {showFilters ? (
+            <Button
+              variant="secondary"
+              fullWidth
+              className="lg:hidden"
+              aria-haspopup="dialog"
+              onClick={() => setDrawerOpen(true)}
+            >
+              Filters{active > 0 ? ` (${active})` : ''}
+            </Button>
+          ) : null}
+          <Select
+            label="Sort by"
+            className="lg:w-64"
+            value={state.sort}
+            options={sortOptions}
+            onChange={(event) => {
+              const next = sortKeys.find((key) => key === event.target.value);
+              if (next) {
+                void navigate(hrefForSort(pathname, state, next, base), {
+                  preventScrollReset: true,
+                });
+              }
+            }}
+          />
         </div>
 
         {showFilters ? (
@@ -155,7 +156,14 @@ export function ProductListing({
         ) : (
           <>
             <h2 className="sr-only">Products</h2>
-            <ul className="mt-4 grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 xl:grid-cols-4">
+            <ul
+              className={cn(
+                'mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-6',
+                showFilters
+                  ? 'lg:grid-cols-2 xl:grid-cols-3'
+                  : 'xl:grid-cols-4',
+              )}
+            >
               {placePromoTiles(list.products, promoTiles, list.hasMore).map(
                 (item) =>
                   item.kind === 'tile' ? (
@@ -167,6 +175,7 @@ export function ProductListing({
                       <ProductItem
                         product={item.product}
                         index={item.productIndex}
+                        layout="row"
                         loading={item.productIndex < 4 ? 'eager' : 'lazy'}
                       />
                     </li>
