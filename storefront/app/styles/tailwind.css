@@ -246,8 +246,10 @@
 /* Heavy uppercase display type echoing the blocky all-caps logo wordmark (UXD-13). For short labels only:
  * headings, strips, navigation, button labels. Never for product names, body copy, prices, form labels, error
  * messages or admin-supplied headings over 40 characters (use sentence case there). System-ui at weight 800 resolves
- * to the heaviest installed face. */
+ * to the heaviest installed face. `overflow-wrap: anywhere` (not `break-word`) so a single long admin word can also
+ * shrink the box it sits in (centred or start-aligned flex columns) instead of widening the page (BV-004, WCAG 1.4.10). */
 @utility type-display {
+  overflow-wrap: anywhere;
   font-family: var(--font-display);
   font-weight: 800;
   text-transform: uppercase;

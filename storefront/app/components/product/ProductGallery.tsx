@@ -116,7 +116,9 @@ export function ProductGallery({
       </p>
 
       {count > 1 ? (
-        <ul className="flex gap-2 overflow-x-auto pb-1">
+        // The strip scrolls (overflow clips), so it carries 6 px of padding for the 3 px focus ring plus its 2 px offset, and
+        // the matching negative margin keeps the layout unchanged (BV-002).
+        <ul className="-m-1.5 flex gap-2 overflow-x-auto p-1.5">
           {images.map((image, position) => (
             <li key={image.url} className="shrink-0">
               <button

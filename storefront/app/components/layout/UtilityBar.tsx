@@ -13,7 +13,11 @@ type UtilityBarProps = {
 const LINK_CLASSES =
   'inline-flex min-h-touch items-center gap-1 hover:underline';
 
-/** Grey bar above the main row. The right-hand links are hidden below 768 px and appear in the mobile menu. */
+/**
+ * Grey bar above the main row. The right-hand links need about 870 px beside the ZIP and store controls, so they show
+ * from 1024 px (where the menu button gives way to the full navigation); below that they are in the mobile menu, which
+ * always lists them, and the bar stays one line at 768 px (BV-006).
+ */
 export function UtilityBar({children, supportPhone = null}: UtilityBarProps) {
   return (
     <div className="bg-surface-muted text-sm text-ink-700">
@@ -21,7 +25,7 @@ export function UtilityBar({children, supportPhone = null}: UtilityBarProps) {
         <div className="flex min-w-0 flex-wrap items-center gap-x-4">
           {children}
         </div>
-        <ul className="hidden shrink-0 items-center gap-x-4 md:flex">
+        <ul className="hidden shrink-0 items-center gap-x-4 lg:flex">
           {UTILITY_LINKS.map((link) => (
             <li key={link.id}>
               <Link to={link.to} className={LINK_CLASSES}>

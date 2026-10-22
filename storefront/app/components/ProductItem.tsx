@@ -54,7 +54,7 @@ export function ProductItem({
     <article
       data-product-index={index}
       className={cn(
-        'group relative flex h-full flex-col gap-2 rounded-card border border-line bg-surface p-3 motion-safe:transition-shadow hover:shadow-md',
+        'group relative flex h-full flex-col gap-2 rounded-card border border-line bg-surface p-2.5 md:p-3 motion-safe:transition-shadow hover:shadow-md',
         layout === 'row' &&
           'max-md:grid max-md:grid-cols-5 max-md:items-start max-md:gap-3',
       )}
@@ -98,19 +98,22 @@ export function ProductItem({
           layout === 'row' && 'max-md:col-span-3 max-md:self-stretch',
         )}
       >
+        {/* break-words: a single long vendor name wraps inside the card instead of crossing its border (BV-005). */}
         {product.vendor ? (
-          <p className="text-xs font-extrabold tracking-wide text-fg-muted uppercase">
+          <p className="text-xs font-extrabold tracking-wide break-words text-fg-muted uppercase">
             {product.vendor}
           </p>
         ) : null}
-        <h3 className="text-base font-bold text-fg md:line-clamp-4 md:text-lg">
-          {/* The link's ::after covers the card, so the full card is the target without nesting links. The focus ring is the global one on this link (the e2e tab-walk checks the focused element paints it). */}
+        <h3 className="text-base font-bold text-fg md:text-lg">
+          {/* The link's ::after covers the card, so the full card is the target without nesting links. The focus ring is the global one on this link (the e2e tab-walk checks the focused element paints it). The four-line clamp sits on the span INSIDE the link, not on the heading: an `overflow: hidden` ancestor would cut the 3 px ring off (BV-001). The link is a block so the ring surrounds the whole title box. */}
           <Link
             to={`/products/${product.handle}`}
             prefetch="intent"
-            className="after:absolute after:inset-0 hover:underline"
+            className="group/title block after:absolute after:inset-0"
           >
-            {product.title}
+            <span className="group-hover/title:underline md:line-clamp-4">
+              {product.title}
+            </span>
           </Link>
         </h3>
         {product.rating ? (
@@ -131,7 +134,8 @@ export function ProductItem({
             compareAt={product.compareAt}
             prefix={product.priceIsFrom ? 'From' : undefined}
             size="md"
-            className="mt-auto pt-1"
+            // The price block sits at the bottom of equal-height cards; its parts wrap as a row, tighter in narrow cards (BV-008).
+            className="mt-auto gap-x-1.5 pt-1 md:gap-x-2"
           />
         ) : null}
         {/* Above the cover link (z-10) so it can be pressed; it is not part of the card link (REQ-CMP-001). */}

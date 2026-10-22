@@ -63,7 +63,7 @@ export function BannerSection({section, asPageTitle}: BannerSectionProps) {
               section.type === 'hero'
                 ? cn(
                     displayHeadingClass(section.heading),
-                    'text-4xl md:text-5xl xl:text-display',
+                    'text-3xl sm:text-4xl md:text-5xl xl:text-display',
                   )
                 : cn(displayHeadingClass(section.heading), 'text-2xl'),
             )}

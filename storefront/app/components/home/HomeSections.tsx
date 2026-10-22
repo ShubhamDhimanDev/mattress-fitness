@@ -126,7 +126,7 @@ function PlaceholderHero() {
     >
       <h1
         id="home-hero-heading"
-        className="mx-auto max-w-prose type-display text-4xl text-balance md:text-5xl xl:text-display"
+        className="mx-auto max-w-prose type-display text-3xl text-balance sm:text-4xl md:text-5xl xl:text-display"
       >
         Find the mattress that fits you
       </h1>

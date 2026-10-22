@@ -98,7 +98,9 @@ export function CartMain({
     <div
       className={cn(
         'flex flex-col gap-6',
-        layout === 'page' && 'lg:grid lg:grid-cols-[1fr_22rem] lg:items-start',
+        // The page title above has a rule under it; without this the first line and the summary card touch it (BV-007).
+        layout === 'page' &&
+          'pt-4 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start',
       )}
     >
       <div>

@@ -68,7 +68,8 @@ export function Tabs({tabs, label, defaultTabId, className}: TabsProps) {
               onClick={() => setSelectedId(tab.id)}
               onKeyDown={(event) => onKeyDown(event, index)}
               className={cn(
-                'min-h-touch shrink-0 border-b-4 px-4 text-base font-bold whitespace-nowrap',
+                // The tab list scrolls, so it clips an outside ring; the ring is drawn inside the tab instead (BV-003).
+                'min-h-touch shrink-0 -outline-offset-3 border-b-4 px-4 text-base font-bold whitespace-nowrap',
                 selected
                   ? 'border-primary-700 text-primary-700'
                   : 'border-transparent text-fg-muted hover:text-fg',
