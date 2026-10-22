@@ -22,7 +22,8 @@ export function UtilityBar({children, supportPhone = null}: UtilityBarProps) {
   return (
     <div className="bg-surface-muted text-sm text-ink-700">
       <div className="mx-auto flex max-w-page items-center justify-between gap-4 px-4 md:px-6">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-4">
+        {/* Below lg the group may wrap to a second row; from lg it stays on one row and the store name truncates (BV-013). */}
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 lg:flex-nowrap">
           {children}
         </div>
         <ul className="hidden shrink-0 items-center gap-x-4 lg:flex">

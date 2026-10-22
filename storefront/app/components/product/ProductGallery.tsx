@@ -66,7 +66,10 @@ export function ProductGallery({
       aria-roledescription="carousel"
       aria-label={`${title} images`}
       onKeyDown={onKeyDown}
-      className="flex flex-col gap-3"
+      // min-w-0: this section is a grid item, whose automatic minimum width is its content's. Without it five or more
+      // thumbnails widen the column and the page scrolls sideways at 360 px (BV-014, WCAG 1.4.10); with it the strip scrolls
+      // inside its own box.
+      className="flex min-w-0 flex-col gap-3"
     >
       <div
         className="relative aspect-square touch-pan-y overflow-hidden rounded-card bg-surface-muted"

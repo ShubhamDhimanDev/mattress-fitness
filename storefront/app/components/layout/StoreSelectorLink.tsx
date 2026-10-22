@@ -18,15 +18,18 @@ export function StoreSelectorLink({
   storeName,
   to = STORE_LOCATOR_PATH,
 }: StoreSelectorLinkProps) {
+  const label = storeName ? `My store: ${storeName}` : 'Select your store';
+
+  // The text truncates with an ellipsis when the bar is full (BV-013); the DOM text stays whole, so the accessible name
+  // is the full label, and the title shows it to pointer users.
   return (
     <Link
       to={to}
-      className="inline-flex min-h-touch min-w-0 items-center gap-2 font-bold underline underline-offset-2 hover:no-underline"
+      title={label}
+      className="inline-flex max-w-xs min-h-touch min-w-0 items-center gap-2 font-bold underline underline-offset-2 hover:no-underline"
     >
-      <MapPinIcon className="size-5" />
-      <span className="truncate">
-        {storeName ? `My store: ${storeName}` : 'Select your store'}
-      </span>
+      <MapPinIcon className="size-5 shrink-0" />
+      <span className="truncate">{label}</span>
     </Link>
   );
 }

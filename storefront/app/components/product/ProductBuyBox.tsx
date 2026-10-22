@@ -95,7 +95,9 @@ export function ProductBuyBox({
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    // min-w-0: a grid item must be allowed to shrink below its content, or a long unbroken title or option row widens the
+    // column and the page scrolls sideways (BV-014).
+    <div className="flex min-w-0 flex-col gap-4">
       <div>
         {product.vendor ? (
           <VendorName vendor={product.vendor} brandLink={brandLink} />
