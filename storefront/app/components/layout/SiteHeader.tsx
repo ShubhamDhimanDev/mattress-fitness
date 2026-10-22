@@ -9,6 +9,7 @@ import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
 import {useDeliveryZip} from '~/components/delivery/useDeliveryZip';
 import {DeliveryZipControl} from '~/components/layout/DeliveryZipControl';
+import {HeaderLogo} from '~/components/layout/BrandLogo';
 import {HeaderSearch} from '~/components/layout/HeaderSearch';
 import {MainNav} from '~/components/layout/MainNav';
 import {LazyBoundary, PanelFailed} from '~/components/layout/LazyPanel';
@@ -18,20 +19,13 @@ import {ReassuranceStrip} from '~/components/layout/ReassuranceStrip';
 import {StoreSelectorLink} from '~/components/layout/StoreSelectorLink';
 import {TopStrip} from '~/components/layout/TopStrip';
 import {UtilityBar} from '~/components/layout/UtilityBar';
-import {
-  CartIcon,
-  MapPinIcon,
-  MenuIcon,
-  MoonIcon,
-  UserIcon,
-} from '~/components/ui/Icons';
+import {CartIcon, MapPinIcon, MenuIcon, UserIcon} from '~/components/ui/Icons';
 import {IconButton} from '~/components/ui/IconButton';
 import {Skeleton} from '~/components/ui/Skeleton';
 import {whenIdle} from '~/lib/when-idle';
 import {DELIVERY_ERROR_TEXT} from '~/lib/delivery-runtime/response';
 import {
   MAIN_NAV,
-  SITE_NAME,
   SLEEP_QUIZ_LINK,
   STORE_LOCATOR_PATH,
   type MainNavItem,
@@ -100,7 +94,7 @@ export function SiteHeader({
       <div className="border-b border-line">
         <div className="relative mx-auto grid max-w-page grid-cols-[auto_1fr_auto_auto] items-center gap-x-1 gap-y-1 px-4 py-2 md:px-6 lg:grid-cols-[auto_1fr_auto_auto_auto] lg:gap-x-4">
           <div className="col-span-2 col-start-1 row-start-1 lg:col-span-1">
-            <Logo />
+            <HeaderLogo />
           </div>
           <div className="col-span-2 col-start-3 row-start-1 justify-self-end lg:hidden">
             <Link
@@ -139,20 +133,6 @@ export function SiteHeader({
 
       <ReassuranceStrip />
     </header>
-  );
-}
-
-/** Wordmark placeholder until the logo arrives (CLR-013). */
-function Logo() {
-  return (
-    <Link
-      to="/"
-      prefetch="intent"
-      className="inline-flex min-h-touch items-center gap-2 text-xl font-bold tracking-tight text-primary-700"
-    >
-      <MoonIcon className="size-7" />
-      <span>{SITE_NAME}</span>
-    </Link>
   );
 }
 

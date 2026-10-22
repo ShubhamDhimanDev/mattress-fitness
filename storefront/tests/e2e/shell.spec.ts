@@ -85,7 +85,65 @@ test.describe('REQ-NAV-001 shell: landmarks, skip link and title', () => {
   test('the home page has the descriptive site title', async ({page}) => {
     await gotoReady(page);
     await expect(page).toHaveTitle(
-      'Mattress Store | Mattresses, bases and bedding',
+      'Mattress Fitness | Mattresses, bases and bedding',
+    );
+  });
+
+  test('the header shows the client logo as the home link, with no layout shift', async ({
+    page,
+  }) => {
+    await gotoReady(page, '/collections');
+    const home = page
+      .getByRole('banner')
+      .getByRole('link', {name: 'Mattress Fitness home'});
+    await expect(home).toHaveAttribute('href', '/');
+    const logo = home.getByRole('img', {name: 'Mattress Fitness'});
+    await expect(logo).toBeVisible();
+    await expect(logo).toHaveAttribute('width', '56');
+    await expect(logo).toHaveAttribute('height', '56');
+    await expect(logo).toHaveAttribute('fetchpriority', 'high');
+    // The image decoded (the file exists and is the small one, not the 543 kB original).
+    expect(
+      await logo.evaluate((img: HTMLImageElement) => img.naturalWidth),
+    ).toBeGreaterThan(0);
+    expect(
+      await logo.evaluate((img: HTMLImageElement) => img.currentSrc),
+    ).toMatch(/\/brand\/mattress-fitness-logo-(96|180)\.png$/);
+    // Nothing is announced twice: the one image alt in the header is the logo's.
+    await expect(
+      page.getByRole('banner').getByRole('img', {name: 'Mattress Fitness'}),
+    ).toHaveCount(1);
+  });
+
+  test('the footer shows the logo and the tagline as plain text', async ({
+    page,
+  }) => {
+    await gotoReady(page);
+    const footer = page.getByRole('contentinfo');
+    await expect(
+      footer.getByRole('img', {name: 'Mattress Fitness'}),
+    ).toHaveCount(1);
+    await expect(footer.getByText('Rest. Recover. Perform.')).toBeVisible();
+  });
+
+  test('the head carries the favicon, the touch icon and the theme colour', async ({
+    page,
+  }) => {
+    await gotoReady(page);
+    await expect(page.locator('head link[rel="icon"]')).toHaveAttribute(
+      'href',
+      '/brand/mattress-fitness-logo-48.png',
+    );
+    await expect(page.locator('head link[rel="icon"]')).toHaveAttribute(
+      'sizes',
+      '48x48',
+    );
+    await expect(
+      page.locator('head link[rel="apple-touch-icon"]'),
+    ).toHaveAttribute('href', '/brand/mattress-fitness-logo-180.png');
+    await expect(page.locator('head meta[name="theme-color"]')).toHaveAttribute(
+      'content',
+      '#DE0510',
     );
   });
 });

@@ -1,6 +1,8 @@
 import {useId, useState} from 'react';
 import {Link} from 'react-router';
+import {FooterLogo} from '~/components/layout/BrandLogo';
 import {cn} from '~/components/ui/cn';
+import {BRAND_TAGLINE} from '~/lib/brand';
 import {ChevronDownIcon, PhoneIcon} from '~/components/ui/Icons';
 import {
   FOOTER_LEGAL_LINKS,
@@ -86,6 +88,11 @@ export function SiteFooter({
 }) {
   return (
     <footer className="on-dark mt-auto bg-surface-inverse text-fg-inverse">
+      <div className="mx-auto flex max-w-page items-center gap-4 px-4 pt-8 md:px-6 md:pt-12">
+        <FooterLogo />
+        {/* The client's own tagline, plain text; the logo's alt is the name only, so nothing is read twice. */}
+        <p className="text-base font-bold text-white">{BRAND_TAGLINE}</p>
+      </div>
       <nav
         aria-label="Footer"
         className="mx-auto flex max-w-page flex-col gap-8 px-4 py-8 md:px-6 md:py-12"

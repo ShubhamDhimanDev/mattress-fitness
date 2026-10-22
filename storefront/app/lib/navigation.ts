@@ -4,10 +4,11 @@
 // pages exist; the Shopify menu mapping replaces this config in P3B-02 and the layout components keep the same
 // prop shapes.
 
+import {BRAND_NAME} from '~/lib/brand';
 import {normalizeUsPhone} from '~/lib/stores/directions';
 
-/** Placeholder brand until the brand kit arrives (CLR-013). */
-export const SITE_NAME = 'Mattress Store';
+/** The store name in titles, the copyright line and the logo's accessible name: one constant (brand.ts). */
+export const SITE_NAME = BRAND_NAME;
 
 export type SupportPhone = {display: string; href: string};
 
