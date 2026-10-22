@@ -35,7 +35,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(function Radio(
           id={ids.id}
           type="radio"
           aria-describedby={describedBy(ids, {hint, error})}
-          className="size-6 shrink-0 cursor-[inherit] accent-primary-700"
+          className="size-6 shrink-0 cursor-[inherit] accent-primary-500"
         />
         <span>{label}</span>
       </label>

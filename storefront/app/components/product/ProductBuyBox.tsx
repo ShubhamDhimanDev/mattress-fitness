@@ -95,7 +95,9 @@ export function ProductBuyBox({
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    // min-w-0: a grid item must be allowed to shrink below its content, or a long unbroken title or option row widens the
+    // column and the page scrolls sideways (BV-014).
+    <div className="flex min-w-0 flex-col gap-4">
       <div>
         {product.vendor ? (
           <VendorName vendor={product.vendor} brandLink={brandLink} />
@@ -114,14 +116,15 @@ export function ProductBuyBox({
         </ul>
       ) : null}
 
+      {/* Price, saving and stock change together when the size changes, so all three sit in one live region and are
+          announced once. The saving is the badge below the price (not Price's own showSavings text), so it is not read twice. */}
       <div aria-live="polite" className="flex flex-col gap-1">
-        <Price
-          price={variant.price}
-          compareAt={variant.compareAt}
-          showSavings
-          size="lg"
-        />
-        {savings ? <Badge variant="sale">{savings}</Badge> : null}
+        <Price price={variant.price} compareAt={variant.compareAt} size="lg" />
+        {savings ? (
+          <div>
+            <Badge variant="sale">{savings}</Badge>
+          </div>
+        ) : null}
         <p className="text-sm text-fg-muted">
           {variant.available ? 'In stock' : 'Sold out'}
           {variant.sku ? ` · SKU ${variant.sku}` : ''}

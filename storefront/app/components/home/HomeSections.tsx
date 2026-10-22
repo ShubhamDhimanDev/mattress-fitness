@@ -116,32 +116,28 @@ function SectionView({
   }
 }
 
-// TODO(P3B-13): placeholder copy, shown only while the store has no `homepage_section` hero entry.
+// TODO(P3B-13): placeholder copy, shown only while the store has no `homepage_section` hero entry. Our own wording,
+// kept under 40 characters so it can use the display type (lib/display-type.ts).
 function PlaceholderHero() {
   return (
     <section
       aria-labelledby="home-hero-heading"
-      className="on-dark mt-4 rounded-panel bg-primary-800 px-6 py-12 text-white md:px-12 md:py-16"
+      className="on-dark mt-4 rounded-panel bg-primary-500 px-6 py-12 text-center text-white md:px-12 md:py-16"
     >
       <h1
         id="home-hero-heading"
-        className="max-w-prose text-4xl leading-tight font-bold md:text-5xl"
+        className="mx-auto max-w-prose type-display text-3xl text-balance sm:text-4xl md:text-5xl xl:text-display"
       >
-        Find the mattress that fits how you sleep
+        Find the mattress that fits you
       </h1>
-      <p className="mt-3 max-w-prose text-lg text-primary-100">
+      <p className="mx-auto mt-3 max-w-prose text-lg">
         Browse by size, comfort and type, or take the sleep quiz.
       </p>
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Button to={SLEEP_QUIZ_LINK.to} variant="accent" shape="pill" size="lg">
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <Button to={SLEEP_QUIZ_LINK.to} variant="inverse" size="lg">
           Take the sleep quiz
         </Button>
-        <Button
-          to={STORE_LOCATOR_PATH}
-          variant="secondary"
-          shape="pill"
-          size="lg"
-        >
+        <Button to={STORE_LOCATOR_PATH} variant="inverse-outline" size="lg">
           Find a store
         </Button>
       </div>
@@ -157,7 +153,7 @@ function PlaceholderAssurance() {
       aria-labelledby="assurance-heading"
       className="rounded-panel bg-primary-50 px-6 py-8"
     >
-      <h2 id="assurance-heading" className="text-2xl font-bold">
+      <h2 id="assurance-heading" className="type-display text-2xl">
         Buy with confidence
       </h2>
       <ul className="mt-4 grid gap-3 md:grid-cols-3">

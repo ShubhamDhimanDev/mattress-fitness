@@ -39,7 +39,7 @@ import {
   type ProductFacts,
 } from './facts';
 import type {CoveragePlan} from '~/lib/extend/offers-service';
-import {logError} from '~/lib/logging/logger';
+import {logError, logInfo, logWarn} from '~/lib/logging/logger';
 import {
   DELIVERY_STEP_FAILURE_TEXT,
   OFFERS_UNAVAILABLE_REASON,
@@ -196,6 +196,33 @@ function swapChoices(
   return result;
 }
 
+const loggedConfigProblems = new Set<string>();
+
+/** Test hook: forget which configuration problems were already logged. */
+export function resetOfferConfigLogsForTests(): void {
+  loggedConfigProblems.clear();
+}
+
+/**
+ * The configuration is judged on every cart, product and checkout request, so an unchanged problem is logged
+ * once per isolate, not once per request (RS-01: 106 error lines in one session hid real errors). Only
+ * production treats it as an error, because only production pauses checkout for it; a dev or mock store with
+ * no configuration is "offers off by design" and gets one info line. Value-free: the status and the names of
+ * dropped entries only (T-05).
+ */
+function logConfigProblemOnce(
+  production: boolean,
+  loaded: {status: string; warnings: readonly string[]},
+): void {
+  const key = `${production}|${loaded.status}|${loaded.warnings.join(',')}`;
+  if (loggedConfigProblems.has(key)) return;
+  loggedConfigProblems.add(key);
+  const fields = {status: loaded.status, warnings: loaded.warnings};
+  if (production) logError('offers.config_problem', fields);
+  else if (loaded.status === 'none') logInfo('offers.config_absent', fields);
+  else logWarn('offers.config_problem', fields);
+}
+
 type ConfigGate = {
   readonly unverified: boolean;
   readonly config: OfferConfig;
@@ -215,11 +242,7 @@ function loadConfig(runtime: OfferRuntime): ConfigGate {
   }
   const loaded = readOfferConfig(runtime.env);
   if (loaded.status !== 'ok' || loaded.warnings.length > 0) {
-    // Loud, value-free: the status and the names of dropped entries only (T-05).
-    logError('offers.config_problem', {
-      status: loaded.status,
-      warnings: loaded.warnings,
-    });
+    logConfigProblemOnce(runtime.production, loaded);
   }
   return {
     unverified: runtime.production && loaded.status !== 'ok',

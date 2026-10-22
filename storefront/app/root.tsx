@@ -11,7 +11,7 @@ import {
   useRouteLoaderData,
 } from 'react-router';
 import type {Route} from './+types/root';
-import favicon from '~/assets/favicon.svg';
+import {BRAND_HEAD_LINKS, BRAND_THEME_COLOR} from '~/lib/brand';
 import {FOOTER_QUERY, HEADER_QUERY} from '~/lib/fragments';
 import tailwindCss from './styles/tailwind.css?url';
 import {formatPageTitle} from '~/components/layout/documentTitle';
@@ -79,7 +79,7 @@ export function links() {
       rel: 'preconnect',
       href: 'https://shop.app',
     },
-    {rel: 'icon', type: 'image/svg+xml', href: favicon},
+    ...BRAND_HEAD_LINKS,
   ];
 }
 
@@ -214,6 +214,8 @@ export function Layout({children}: {children?: React.ReactNode}) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
+        {/* Here, not in `meta`: a route's own `meta` replaces the root's, and every page (errors too) needs it. */}
+        <meta name="theme-color" content={BRAND_THEME_COLOR} />
         <link rel="stylesheet" href={tailwindCss}></link>
         <Meta />
         <Links />

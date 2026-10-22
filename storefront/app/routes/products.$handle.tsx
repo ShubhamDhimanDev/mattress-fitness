@@ -163,7 +163,7 @@ export default function Product() {
           {label: product.title},
         ]}
       />
-      <div className="mt-4 grid gap-8 lg:grid-cols-2">
+      <div className="mt-4 grid gap-8 lg:grid-cols-2 lg:gap-10">
         <ProductGallery
           key={variant.image?.url ?? 'default'}
           images={product.images}

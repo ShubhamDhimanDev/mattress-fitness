@@ -6,7 +6,9 @@ import type {CartLayout} from '~/components/CartMain';
 import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {Price} from '~/components/ui/Price';
+import {Skeleton} from '~/components/ui/Skeleton';
 import {CHECKOUT_STEPS_PATH, getCheckoutHref} from '~/lib/cart/checkout';
+import {subtotalView} from '~/lib/cart/subtotal';
 import type {BlockReason} from '~/lib/offers-runtime/messages';
 
 type CartSummaryProps = {
@@ -31,7 +33,7 @@ export function CartSummary({
   freeDeliverySlot,
   blocked = [],
 }: CartSummaryProps) {
-  const subtotal = cart?.cost?.subtotalAmount;
+  const subtotal = subtotalView(cart);
   const checkoutHref = getCheckoutHref(cart, {blocked});
   const Heading = layout === 'page' ? 'h2' : 'h3';
 
@@ -47,7 +49,7 @@ export function CartSummary({
     >
       <Heading
         id={`cart-summary-heading-${layout}`}
-        className="text-lg font-bold"
+        className="type-display text-lg"
       >
         Order summary
       </Heading>
@@ -58,18 +60,25 @@ export function CartSummary({
 
       <dl className="flex items-baseline justify-between gap-2">
         <dt className="text-base font-bold">Subtotal</dt>
+        {/* While Shopify answers there is either an out-of-date amount (kept, in italic, never dimmed: dimming would drop
+            the text under 4.5:1) or none (a busy placeholder of the final size): never a bare dash that reads as a
+            missing price (RS-02). The status element is always mounted and only its text changes, so a screen reader
+            that is already watching it announces "Updating price"; `aria-busy` on the <dd> would not be announced. */}
         <dd>
-          {subtotal?.amount && subtotal.currencyCode ? (
+          {subtotal.status === 'ready' ? (
             <Price
-              price={{
-                amount: subtotal.amount,
-                currencyCode: subtotal.currencyCode,
-              }}
+              price={subtotal.amount}
               size="md"
+              stale={subtotal.updating}
             />
           ) : (
-            <span>-</span>
+            <Skeleton className="h-7 w-24" />
           )}
+          <span role="status" className="sr-only">
+            {subtotal.status === 'pending' || subtotal.updating
+              ? 'Updating price'
+              : ''}
+          </span>
         </dd>
       </dl>
       <p className="text-sm text-fg-muted">
@@ -102,7 +111,10 @@ export function CartSummary({
             </Button>
           ) : null}
         </div>
-      ) : checkoutHref ? (
+      ) : checkoutHref || cart?.isOptimistic ? (
+        // One link in both states. A first add has no checkout URL until Shopify answers; the control is the same
+        // element meanwhile (inert, with a spinner), so a keyboard user who is focused on it keeps focus when the
+        // cart arrives. Swapping a busy button for a link would drop focus to the page.
         <Button
           to={CHECKOUT_STEPS_PATH}
           reloadDocument

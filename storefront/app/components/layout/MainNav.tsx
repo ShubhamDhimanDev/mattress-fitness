@@ -9,14 +9,21 @@ import {
 import {Link, NavLink, useLocation} from 'react-router';
 import {cn} from '~/components/ui/cn';
 import {ChevronDownIcon} from '~/components/ui/Icons';
+import {displayHeadingClass, fitsDisplayType} from '~/lib/display-type';
 import type {MainNavItem, NavMenuItem} from '~/lib/navigation';
 
 type MainNavProps = {
   items: readonly MainNavItem[];
 };
 
-const TOP_CLASSES =
-  'inline-flex min-h-touch items-center gap-1 px-2 text-sm font-bold tracking-wide whitespace-nowrap text-fg uppercase hover:text-primary-700 xl:px-3';
+// Heavy uppercase display type echoes the logo's blocky wordmark (BA-04). The height is set per item below: a
+// 56 px row for the plain items, 44 px for the pill, so the pill does not grow into a tall slab.
+// Labels come from the navigation data and can be long, so each is judged on its length (lib/display-type.ts).
+const topClasses = (label: string) =>
+  cn(
+    'inline-flex items-center gap-1 px-1.5 text-sm max-xl:tracking-normal whitespace-nowrap text-fg hover:text-primary-700 xl:px-3',
+    displayHeadingClass(label),
+  );
 
 /**
  * Desktop navigation using the WAI-ARIA disclosure pattern: a top-level item with sub-links is a button
@@ -181,7 +188,7 @@ export function MainNav({items}: MainNavProps) {
 
   return (
     <nav ref={navRef} aria-label="Main">
-      <ul className="mx-auto flex max-w-page items-center justify-center px-2 md:px-6">
+      <ul className="mx-auto flex max-w-page items-center justify-center px-2 xl:px-6">
         {items.map((item) => {
           if (item.kind === 'link') {
             return (
@@ -191,10 +198,12 @@ export function MainNav({items}: MainNavProps) {
                   data-nav-top={item.id}
                   onKeyDown={(event) => onTopKeyDown(event, item)}
                   className={cn(
-                    TOP_CLASSES,
-                    'aria-[current=page]:text-primary-700 aria-[current=page]:underline aria-[current=page]:underline-offset-4',
-                    item.emphasis &&
-                      'rounded-pill bg-accent-400 px-4 text-ink-900 hover:bg-accent-300 hover:text-ink-900 xl:px-5',
+                    topClasses(item.label),
+                    'aria-[current=page]:underline aria-[current=page]:underline-offset-4',
+                    // On the amber pill the text stays ink: red text on amber is 4.27 : 1, below 4.5.
+                    item.emphasis
+                      ? 'min-h-touch rounded-pill bg-accent-400 px-3 text-ink-900 hover:bg-accent-300 hover:text-ink-900 xl:px-5'
+                      : 'min-h-14 aria-[current=page]:text-primary-700',
                   )}
                 >
                   {item.label}
@@ -231,8 +240,8 @@ export function MainNav({items}: MainNavProps) {
                 onClick={(event) => onTriggerClick(event, item.id)}
                 onKeyDown={(event) => onTopKeyDown(event, item)}
                 className={cn(
-                  TOP_CLASSES,
-                  'group aria-expanded:bg-primary-50 aria-expanded:text-primary-700',
+                  topClasses(item.label),
+                  'group min-h-14 aria-expanded:bg-primary-50 aria-expanded:text-primary-700',
                 )}
               >
                 {item.label}
@@ -242,7 +251,7 @@ export function MainNav({items}: MainNavProps) {
                 id={panelId}
                 data-nav-panel={item.id}
                 hidden={!open}
-                className="absolute inset-x-0 top-full z-40 border-t border-line bg-surface shadow-md"
+                className="absolute inset-x-0 top-full z-40 border-t-4 border-primary-500 bg-surface shadow-md"
               >
                 <div className="mx-auto grid max-w-page grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-x-8 gap-y-6 px-6 py-6">
                   {item.groups.map((group) => {
@@ -251,7 +260,11 @@ export function MainNav({items}: MainNavProps) {
                       <div key={group.id}>
                         <p
                           id={headingId}
-                          className="mb-1 text-xs font-bold tracking-wide text-fg-muted uppercase"
+                          className={cn(
+                            'mb-1 text-xs font-extrabold text-fg',
+                            fitsDisplayType(group.heading) &&
+                              'tracking-wide uppercase',
+                          )}
                         >
                           {group.heading}
                         </p>

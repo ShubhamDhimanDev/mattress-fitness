@@ -53,7 +53,7 @@ export function QuizIntro({
         <div
           role="region"
           aria-labelledby="quiz-saved-heading"
-          className="flex flex-col gap-3 rounded-card border-2 border-primary-700 bg-primary-50 p-4"
+          className="flex flex-col gap-3 rounded-card border-2 border-ink-900 bg-ink-50 p-4"
         >
           <h3 id="quiz-saved-heading" className="text-lg font-bold">
             Continue where you left off

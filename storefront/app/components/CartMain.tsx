@@ -98,7 +98,9 @@ export function CartMain({
     <div
       className={cn(
         'flex flex-col gap-6',
-        layout === 'page' && 'lg:grid lg:grid-cols-[1fr_22rem] lg:items-start',
+        // The page title above has a rule under it; without this the first line and the summary card touch it (BV-007).
+        layout === 'page' &&
+          'pt-4 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start',
       )}
     >
       <div>
@@ -169,7 +171,7 @@ function CartEmpty({
   }, [takeFocus]);
   return (
     <div className="flex flex-col items-start gap-4 py-6">
-      <Heading ref={heading} tabIndex={-1} className="text-xl font-bold">
+      <Heading ref={heading} tabIndex={-1} className="type-display text-2xl">
         Your cart is empty
       </Heading>
       <p className="text-base text-fg-muted">
@@ -177,7 +179,7 @@ function CartEmpty({
         sleep quiz and we will suggest a match.
       </p>
       <div className="flex flex-wrap gap-3">
-        <Button to="/collections" variant="primary" onClick={close}>
+        <Button to="/collections/all" variant="primary" onClick={close}>
           Continue shopping
         </Button>
         <Button to={SLEEP_QUIZ_LINK.to} variant="secondary" onClick={close}>

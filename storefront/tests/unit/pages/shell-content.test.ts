@@ -1,5 +1,9 @@
 import {describe, expect, it} from 'vitest';
 import {
+  FOOTER_QUICK_LINKS_END,
+  FOOTER_QUICK_LINKS_END_DRAFT,
+  FOOTER_QUICK_LINKS_START,
+  FOOTER_QUICK_LINKS_START_DRAFT,
   FOOTER_SUPPORT_GROUPS,
   FOOTER_SUPPORT_GROUPS_DRAFT,
   HOME_ASSURANCE_ITEMS,
@@ -56,6 +60,35 @@ describe('unsupplied claims (B-15)', () => {
         'Accessibility',
       ]),
     );
+  });
+
+  it('shows no footer link to a page that does not exist yet (quick links and support group)', () => {
+    const draft = [
+      ...FOOTER_QUICK_LINKS_START_DRAFT,
+      ...FOOTER_QUICK_LINKS_END_DRAFT,
+    ];
+    const shown = [...FOOTER_QUICK_LINKS_START, ...FOOTER_QUICK_LINKS_END];
+    // The held links stay in the draft so they come back by deleting one flag.
+    for (const to of [
+      '/track-order',
+      '/pages/delivery-and-shipping',
+      '/pages/contact',
+    ]) {
+      expect(
+        draft.map((l) => l.to),
+        to,
+      ).toContain(to);
+      expect(
+        shown.map((l) => l.to),
+        to,
+      ).not.toContain(to);
+    }
+    expect(shown.map((l) => l.id)).toEqual(['account', 'stores']);
+    // /track-order has no route (P6-08), so the support group holds it back as well.
+    const support = FOOTER_SUPPORT_GROUPS.flatMap((g) =>
+      g.links.map((l) => l.to),
+    );
+    expect(support).not.toContain('/track-order');
   });
 
   it('publishedLinks drops only entries marked awaitingContent', () => {

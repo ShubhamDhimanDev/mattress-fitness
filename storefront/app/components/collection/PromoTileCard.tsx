@@ -1,48 +1,56 @@
 import {Image} from '@shopify/hydrogen';
 import {AdminLinkAction} from '~/components/home/AdminLinkAction';
+import {buttonStyles} from '~/components/ui/Button';
+import {cn} from '~/components/ui/cn';
+import {displayHeadingClass} from '~/lib/display-type';
 import type {PromoTileView} from '~/lib/shopify/promo-placement';
 
+const SURFACE =
+  'group flex h-full min-h-48 flex-col items-center justify-center gap-3 rounded-card bg-surface-muted p-4 text-center';
+
 /**
- * A promotional tile in the product grid (REQ-COL-003). It takes one grid cell, like a product card. With a
- * valid link the whole tile is one link named by its heading; without one it is plain content, never a dead
- * link. The image is decorative: the heading says what the tile is about.
+ * A promotional tile in the product grid (REQ-COL-003). It takes one grid cell, like a product card, and stretches
+ * to the row's height. With a valid link the whole tile is one link named by its heading (the "Shop now" look-alike
+ * button is part of that link, not a second control); without one it is plain content, never a dead link. The image
+ * is decorative: the heading says what the tile is about. Every tile is grey: a red tile needs a tone field in the
+ * promo-tile metaobject that does not exist yet (BRAND_APPLICATION_SPEC 5.5).
  */
 export function PromoTileCard({tile}: {tile: PromoTileView}) {
   const body = (
     <>
-      <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-card bg-primary-50">
-        {tile.image ? (
+      {tile.image ? (
+        <div className="aspect-video w-full overflow-hidden rounded-choice bg-surface md:aspect-square">
           <Image
             data={tile.image}
             alt=""
             aspectRatio="1/1"
-            sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 46vw"
+            sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 92vw"
             loading="lazy"
             className="size-full object-cover motion-safe:transition-transform motion-safe:group-hover:scale-105"
           />
-        ) : (
-          <span className="px-4 text-center text-xl font-bold text-primary-800">
-            {tile.heading}
-          </span>
+        </div>
+      ) : null}
+      <span
+        className={cn(
+          displayHeadingClass(tile.heading),
+          'text-xl text-fg group-hover:underline',
         )}
-      </div>
-      {tile.image ? (
-        <span className="text-base font-bold text-fg group-hover:underline">
-          {tile.heading}
+      >
+        {tile.heading}
+      </span>
+      {tile.link ? (
+        <span className={buttonStyles({variant: 'primary', size: 'md'})}>
+          Shop now
         </span>
       ) : null}
     </>
   );
 
-  return (
-    <div className="group flex h-full flex-col gap-2">
-      {tile.link ? (
-        <AdminLinkAction link={tile.link} className="flex flex-col gap-2">
-          {body}
-        </AdminLinkAction>
-      ) : (
-        body
-      )}
-    </div>
+  return tile.link ? (
+    <AdminLinkAction link={tile.link} className={SURFACE}>
+      {body}
+    </AdminLinkAction>
+  ) : (
+    <div className={SURFACE}>{body}</div>
   );
 }

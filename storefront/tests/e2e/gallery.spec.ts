@@ -307,6 +307,32 @@ test.describe('component gallery: toast notifications', () => {
     await expect(toast).toBeHidden();
   });
 
+  test('an info toast is not red: its frame differs from the error toast and is neutral', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const info = politeRegion(page).getByText('Your choice was saved.');
+    const error = assertiveRegion(page).getByText('Please try again.');
+    await openUntilVisible(
+      page.getByRole('button', {name: 'Show info toast'}),
+      info,
+    );
+    await openUntilVisible(
+      page.getByRole('button', {name: 'Show error toast'}),
+      error,
+    );
+    const border = (text: typeof info) =>
+      text
+        .locator('xpath=ancestor::*[@data-toast-variant][1]')
+        .evaluate((node) => getComputedStyle(node).borderTopColor);
+    const infoBorder = await border(info);
+    const errorBorder = await border(error);
+    expect(infoBorder).not.toBe(errorBorder);
+    // Neutral: the red channel does not dominate (ink-900 is 20, 20, 20; the error frame is clearly red).
+    const [r = 0, g = 0, b = 0] = (infoBorder.match(/d+/g) ?? []).map(Number);
+    expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(10);
+  });
+
   test('a toast closes by itself after a few seconds', async ({page}) => {
     await gotoGallery(page);
     const toast = politeRegion(page).getByText('Your choice was saved.');
@@ -457,5 +483,154 @@ test.describe('component gallery: selectors, stepper and tabs keyboard', () => {
     await expect(
       page.getByRole('link', {name: 'Plain anchor'}),
     ).toHaveAttribute('href', 'tel:+18005550100');
+  });
+});
+
+// BA-01 / BA-03: the brand palette applied to the shared primitives. Colours are asserted as computed values (the
+// logo red is rgb(222, 5, 16); contrast of every pair is checked by tests/unit/ui/contrast.test.ts), because a class
+// name alone would not catch a token that resolves to the wrong value.
+test.describe('component gallery: brand states (BA-03)', () => {
+  const RED = 'rgb(222, 5, 16)';
+  const RED_HOVER = 'rgb(196, 4, 14)';
+  const RED_PRESSED = 'rgb(168, 3, 12)';
+  const FOCUS_BLUE = 'rgb(31, 79, 216)';
+  const FOCUS_YELLOW = 'rgb(255, 203, 71)';
+
+  test('the primary button is the logo red, heavier on hover and again when pressed', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'Hover and press are pointer states.');
+    await gotoGallery(page);
+    const primary = page
+      .getByRole('button', {name: 'Primary', exact: true})
+      .first();
+    await expect(primary).toHaveCSS('background-color', RED);
+    await expect(primary).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await expect(primary).toHaveCSS('text-transform', 'uppercase');
+    await expect(primary).toHaveCSS('font-weight', '800');
+    await expect(primary).toHaveCSS('border-top-left-radius', '8px');
+
+    await primary.hover();
+    await expect(primary).toHaveCSS('background-color', RED_HOVER);
+    await page.mouse.down();
+    await expect(primary).toHaveCSS('background-color', RED_PRESSED);
+    await page.mouse.up();
+  });
+
+  test('the secondary button hovers to a red tint and keeps red text', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'Hover is a pointer state.');
+    await gotoGallery(page);
+    const secondary = page
+      .getByRole('button', {name: 'Secondary', exact: true})
+      .first();
+    await expect(secondary).toHaveCSS('color', 'rgb(168, 3, 12)');
+    await secondary.hover();
+    await expect(secondary).toHaveCSS('background-color', 'rgb(255, 241, 241)');
+  });
+
+  test('a disabled button is dimmed and not focusable', async ({page}) => {
+    await gotoGallery(page);
+    const disabled = page
+      .getByRole('button', {name: 'Accent', exact: true})
+      .nth(2);
+    await expect(disabled).toBeDisabled();
+    await expect(disabled).toHaveCSS('opacity', '0.6');
+  });
+
+  test('focus-visible: a blue ring on white, a yellow ring on the red band', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const onWhite = page
+      .getByRole('button', {name: 'Primary', exact: true})
+      .first();
+    await onWhite.focus();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(onWhite).toBeFocused();
+    await expect(onWhite).toHaveCSS('outline-color', FOCUS_BLUE);
+    await expect(onWhite).toHaveCSS('outline-style', 'solid');
+
+    const band = page.getByRole('group', {name: 'Buttons on a red band'});
+    const inverse = band.getByRole('button', {name: 'Inverse', exact: true});
+    await inverse.focus();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(inverse).toBeFocused();
+    await expect(inverse).toHaveCSS('outline-color', FOCUS_YELLOW);
+  });
+
+  test('inverse buttons: white fill with red text; the outline variant is white on red and inverts on hover', async ({
+    page,
+    isMobile,
+  }) => {
+    await gotoGallery(page);
+    const band = page.getByRole('group', {name: 'Buttons on a red band'});
+    await expect(band).toHaveCSS('background-color', RED);
+    const inverse = band.getByRole('button', {name: 'Inverse', exact: true});
+    await expect(inverse).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await expect(inverse).toHaveCSS('color', 'rgb(168, 3, 12)');
+
+    const outline = band.getByRole('button', {
+      name: 'Inverse outline',
+      exact: true,
+    });
+    await expect(outline).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await expect(outline).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    if (!isMobile) {
+      await outline.hover();
+      await expect(outline).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+      await expect(outline).toHaveCSS('color', 'rgb(168, 3, 12)');
+    }
+  });
+
+  test('the cart count bubble is brand red with white text', async ({page}) => {
+    await gotoGallery(page);
+    const bubble = page
+      .getByRole('button', {name: 'Cart, 3 items'})
+      .getByText('3', {exact: true});
+    await expect(bubble).toHaveCSS('background-color', RED);
+    await expect(bubble).toHaveCSS('color', 'rgb(255, 255, 255)');
+  });
+
+  test('the sale badge is amber with near-black text; the sale price is burnt orange, not red', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const badge = page.getByText('Save $200', {exact: true});
+    await expect(badge).toHaveCSS('background-color', 'rgb(246, 180, 20)');
+    await expect(badge).toHaveCSS('color', 'rgb(20, 20, 20)');
+    const salePrice = page.locator('span.text-sale-fg').first();
+    await expect(salePrice).toHaveCSS('color', 'rgb(161, 64, 0)');
+  });
+
+  test('size selector: the selected size is red with a check icon; two columns at 320 px, three at 360 px', async ({
+    page,
+  }) => {
+    await page.setViewportSize({width: 320, height: 800});
+    await gotoGallery(page);
+    const group = page.getByRole('group', {name: /^Size: Queen$/});
+    const queen = group.locator('label', {hasText: 'Queen'});
+    await expect(queen).toHaveCSS('background-color', RED);
+    await expect(queen).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await expect(queen.locator('svg')).toHaveCount(1);
+    await expect(
+      group.locator('label', {hasText: 'Twin'}).locator('svg'),
+    ).toHaveCount(0);
+
+    const columns = () =>
+      group
+        .locator('div.grid')
+        .evaluate(
+          (grid) =>
+            getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+        );
+    expect(await columns()).toBe(2);
+    await page.setViewportSize({width: 360, height: 800});
+    await expect.poll(columns).toBe(3);
   });
 });

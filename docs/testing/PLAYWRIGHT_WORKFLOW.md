@@ -22,6 +22,17 @@ claude mcp add --scope local playwright -- cmd /c npx @playwright/mcp@0.0.83 --i
 - Do not type real customer data or real credentials into pages; use synthetic data.
 - Save useful evidence (screenshots, accessibility snapshots) under `storefront/test-results/` (ignored), and turn recurring checks into Playwright Test specs.
 
+## Browser rule (owner, 2026-10-22; DEC-073 in `progress/DECISIONS.md`)
+
+Applies to Playwright MCP and Playwright Test alike, whoever runs them:
+
+- At most **two Playwright tabs** open at once.
+- Agent runs of Playwright Test use `--workers=1` (one project at a time, for example `--project=desktop-chromium`, and one dev server).
+- **One agent uses a browser at a time.** Do not start a browser run while another agent has one open.
+- At the end of a run, close the browsers and stop the dev servers you started, and check that no `chrome-headless-shell` process is left behind.
+
+A full-suite run (1082 tests) that was stopped by this rule at 889 tests is recorded in [BRAND_VERIFICATION](BRAND_VERIFICATION.md). The CI settings further down (two workers on a runner) are a separate setting and are not changed by this rule.
+
 ## Local server
 
 ```
@@ -43,6 +54,8 @@ npx playwright show-trace test-results/<trace>.zip
 | `E2E_ALL_BROWSERS=1`      | Adds desktop WebKit, mobile WebKit (iPhone 14) and desktop Firefox to desktop and mobile (Pixel 7) Chromium. Needs `npx playwright install` for those browsers; only the CI cross-browser job sets it |
 | `E2E_PROTECTION_FLAG=on`  | Tells `protection.spec` and `resilience.spec` the server was started with `PUBLIC_EXTEND_ENABLED=true`; without it the flag-off tests run and the others skip with a stated reason                    |
 | `E2E_PROD_PREVIEW=1`      | Enables `b20-production.spec` against a production preview; without it the spec skips                                                                                                                 |
+| `E2E_REAL_STORE=1`        | Enables `real-store.spec` (read paths, cart, security headers, read-only checkout hand-off and axe on a real Shopify development store); without it every test in the spec skips with a stated reason. Use it only with a server started on a real store's env file (`.env.demo`) |
+| `E2E_ENV_FILE`            | Name of an env file, relative to `storefront/` (letters, digits, `_ . / -` only; not starting with `-`; no `..` segment, otherwise the config throws). The config adds `--env-file <it>` to the server it starts. Not read when you start the server yourself |
 | `CI`                      | Set by CI: one retry, two workers, no server reuse, `forbidOnly`                                                                                                                                      |
 
 | Env file (git-ignored, you create it) | Used with                                                                                    | Port in the docs | Specs                                                                                                                                            |
@@ -52,17 +65,19 @@ npx playwright show-trace test-results/<trace>.zip
 | `.env.delivery`                       | as above, port 3700                                                                          | 3700             | `delivery.spec` (needs `OFFER_CONFIG_JSON` with a `zone`; skips without one)                                                                     |
 | `.env.protection`                     | as above, port 3900                                                                          | 3900             | `protection.spec`, `resilience.spec` with `E2E_PROTECTION_FLAG=on`                                                                               |
 | `.env.prodpreview`                    | `npx shopify hydrogen preview --port 4400 --env-file .env.prodpreview` after `npm run build` | 4400             | `b20-production.spec` with `E2E_PROD_PREVIEW=1`                                                                                                  |
+| `.env.demo`                           | written by `node scripts/setup/demo-env.mjs` (`--store <domain> --token <public token>` for a real development store, or `--mock`); `npm run dev -- --port <port> --env-file .env.demo` or `E2E_ENV_FILE=.env.demo` | 3400 in the setup guide; the real-store runs used 6100, 6700 and 6710 | `real-store.spec` with `E2E_REAL_STORE=1`, `brand-verification.spec`, and the store-agnostic suites (catalog, cart, search, home, shell, compare, stores, quiz, brands, smoke). Holds the store domain, the public token and two generated secrets; no offer config, so offers are off. See [DEMO_STORE_SETUP](../deployment/DEMO_STORE_SETUP.md) |
 
 Contents of each file are in DEV_DATA (placeholder values only). Every file used for e2e needs `DELIVERY_COOKIE_SECRET` of 32 or more characters; production-mode files also need a `SESSION_SECRET` of 32 or more.
 
 ### What runs where, and what is evidence of what
 
-- **Vitest** (`npm run test`, Node, no browser): `app/**/*.test.ts(x)`, `tests/unit/**`, `tests/integration/**`. Recorded on 2026-10-15 by the orchestrator in `progress/STATUS.md`: 138 files, 4051 tests passing (not re-run by the writer of this document).
-- **Scripts tests** (`node --test "scripts/**/*.test.mjs"` from the repository root): importer, definitions, parity, Extend mock and reconcile, detective report. 238 passing on the same record.
-- **Playwright** (`npm run e2e`): runs on the dev server against mock stores and fixtures. Specs in `tests/e2e/`: `smoke`, `shell`, `home`, `catalog`, `search`, `brands`, `gallery`, `cart`, `pickers`, `delivery`, `protection`, `resilience`, `quiz`, `compare`, `stores`, `seo-headers`, `b20-production`. Results recorded so far are agent-reported, desktop and mobile Chromium; WebKit and Firefox have not been run locally.
-- **Mock-only evidence.** Nothing here is evidence against a real Shopify store, Extend's demo host or a real host. mock.shop and bedding.mock.shop answer no `nodes(ids)` lookups, so the picker, add-on, bundle, haul-away and delivery-choice success paths are covered only by unit tests with fakes (`tests/unit/routes/*`, `tests/unit/offers-runtime/*`) and are `test.skip`ped in e2e with that reason. The `e2e_extend_eligible` cookie that makes a product look Extend-eligible exists only in development builds.
+- **Vitest** (`npm run test`, Node, no browser): `app/**/*.test.ts(x)`, `tests/unit/**`, `tests/integration/**`. Recorded on 2026-10-22 by the orchestrator (V-E121 in `progress/TEST_RESULTS.md`): **4570 tests passing in 169 files** (not re-run by the writer of this document; the count changes with every test added).
+- **Scripts tests** (`node --test "scripts/**/*.test.mjs"` from the repository root): importer, definitions, parity, Extend mock and reconcile, detective report, demo env script. 276 passing on 2026-10-22 (V-E122).
+- **Playwright** (`npm run e2e`): runs on the dev server against mock stores and fixtures, and, for `real-store` and `brand-verification`, against the owner's development store. Specs in `tests/e2e/`: `smoke`, `shell`, `home`, `catalog`, `search`, `brands`, `gallery`, `cart`, `pickers`, `delivery`, `protection`, `resilience`, `quiz`, `compare`, `stores`, `seo-headers`, `b20-production`, `a11y-audit`, `lazy-panels`, `lazy-panels-production`, `visual`, `design-rules`, `real-store`, `brand-verification`. `real-store` skips unless `E2E_REAL_STORE=1`. `brand-verification` (BA-10: axe, keyboard-only journey, reflow at 320 px and text spacing on the restyled site) is run as `E2E_PORT=<port> E2E_ENV_FILE=.env.demo npx playwright test tests/e2e/brand-verification.spec.ts --project=desktop-chromium`, and it also ran on bedding.mock.shop. Results recorded so far are agent-reported, desktop and mobile Chromium; WebKit and Firefox have not been run locally.
+- **Real-store evidence (limited).** On 2026-10-22 `real-store.spec` ran against `mattressfitness-1iakxuvz.myshopify.com` (one product, USD, Online Store password on): read paths, cart on real Shopify carts, security headers, the read-only checkout redirect and axe at 360 and 1280 px passed; the cart-total-versus-checkout-total comparison is **BLOCKED** by the store password page. Details: [REAL_STORE_FINDINGS](REAL_STORE_FINDINGS.md). It is no evidence for Extend, offers, delivery, accounts, orders, webhooks or a real checkout total.
+- **Mock-only evidence for everything else.** Apart from the real-store runs above, nothing here is evidence against a real Shopify store, Extend's demo host or a real host. mock.shop and bedding.mock.shop answer no `nodes(ids)` lookups, so the picker, add-on, bundle, haul-away and delivery-choice success paths are covered only by unit tests with fakes (`tests/unit/routes/*`, `tests/unit/offers-runtime/*`) and are `test.skip`ped in e2e with that reason. The `e2e_extend_eligible` cookie that makes a product look Extend-eligible exists only in development builds.
 - **Known environment gap:** the delivery ZIP e2e tests (`shell.spec`) fail if the env file lacks `DELIVERY_COOKIE_SECRET` (intended fail-closed behaviour).
-- **Not yet in place:** Lighthouse and performance budgets (P7-06; a separate performance document is being written), manual screen-reader and real-device passes (P7-05, P8), and any run against a development store (B-13).
+- **Not yet in place:** Lighthouse and performance budgets (P7-06; a separate performance document is being written), manual screen-reader and real-device passes (P7-05, P8), and any run against a development store beyond the limited real-store spec above (checkout totals, offers, delivery, accounts and filters other than price stay open; B-13, B-25 to B-27).
 
 ## Projects and viewports
 

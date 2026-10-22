@@ -29,7 +29,10 @@ describe('<Rating>', () => {
     expect(container.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(
       10, // five empty stars and five (clipped) filled stars
     );
-    expect(screen.getByText('(128)')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByText('128 Reviews')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
   });
 
   it('clips the partially filled star to the fractional part', () => {

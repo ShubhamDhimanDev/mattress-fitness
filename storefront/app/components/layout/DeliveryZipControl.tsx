@@ -61,7 +61,7 @@ export function DeliveryZipControl({
         onPointerEnter={() => void zipFormPanel.preload()}
         onFocus={() => void zipFormPanel.preload()}
         onPointerDown={() => void zipFormPanel.preload()}
-        className="inline-flex min-h-touch items-center gap-2 font-bold hover:underline"
+        className="inline-flex min-h-touch shrink-0 items-center gap-2 font-bold underline underline-offset-2 hover:no-underline"
       >
         <TruckIcon className="size-5" />
         <span>

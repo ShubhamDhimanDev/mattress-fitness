@@ -77,6 +77,8 @@ export function CartDiscount({
             <Button
               type="submit"
               variant="secondary"
+              // Flex item: shrink-0 keeps "Apply" whole beside the flexible input.
+              className="shrink-0"
               loading={fetcher.state !== 'idle'}
               loadingLabel="Applying"
             >

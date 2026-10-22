@@ -2,6 +2,7 @@ import {useId, useState, type FormEvent} from 'react';
 import {Link, useNavigate} from 'react-router';
 import {Button} from '~/components/ui/Button';
 import {Checkbox} from '~/components/ui/Checkbox';
+import {ChevronDownIcon} from '~/components/ui/Icons';
 import {Input} from '~/components/ui/Input';
 import {
   FILTER_DIMENSIONS,
@@ -55,20 +56,9 @@ export function FilterPanel({groups, state, pathname, base}: FilterPanelProps) {
           open={position < 3 || group.options.some((option) => option.selected)}
           className="group border-b border-line pb-2"
         >
-          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between text-base font-bold">
+          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between text-lg font-extrabold [&::-webkit-details-marker]:hidden">
             {group.label}
-            <span
-              aria-hidden="true"
-              className="text-fg-muted group-open:hidden"
-            >
-              +
-            </span>
-            <span
-              aria-hidden="true"
-              className="hidden text-fg-muted group-open:inline"
-            >
-              &minus;
-            </span>
+            <ChevronDownIcon className="size-5 text-fg-muted motion-safe:transition-transform group-open:rotate-180" />
           </summary>
           <fieldset className="min-w-0">
             <legend className="sr-only">{group.label}</legend>
@@ -135,7 +125,7 @@ function PriceRange({
       aria-labelledby={headingId}
       className="flex flex-col gap-2"
     >
-      <h3 id={headingId} className="text-base font-bold">
+      <h3 id={headingId} className="text-lg font-extrabold">
         Price
       </h3>
       <div className="flex items-end gap-2">

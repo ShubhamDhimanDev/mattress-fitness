@@ -166,7 +166,7 @@ function AddOnList({
   const headingId = useId();
   return (
     <div className="flex flex-col gap-3">
-      <h3 id={headingId} className="text-base font-bold">
+      <h3 id={headingId} className="type-display text-base">
         {PICKER_COPY.addOns.heading}
       </h3>
       <ul aria-labelledby={headingId} className="flex flex-col gap-3">
@@ -318,7 +318,7 @@ function ProtectionOffers({lines}: {lines: readonly ProtectionLineView[]}) {
   const headingId = useId();
   return (
     <div className="flex flex-col gap-3">
-      <h3 id={headingId} className="text-base font-bold">
+      <h3 id={headingId} className="type-display text-base">
         Protect your purchase
       </h3>
       <ul aria-labelledby={headingId} className="flex flex-col gap-4">
@@ -369,6 +369,8 @@ function ProtectionPlanRow({
           type="button"
           variant="secondary"
           size="sm"
+          // Flex item: shrink-0 keeps the label from squeezing below its longest word, where .type-display would break it.
+          className="shrink-0"
           loading={pending}
           loadingLabel="Adding"
           aria-label={`Add ${plan.title} protection for ${line.productTitle}`}

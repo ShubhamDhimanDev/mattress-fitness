@@ -1,4 +1,6 @@
 import {Image} from '@shopify/hydrogen';
+import {cn} from '~/components/ui/cn';
+import {displayHeadingClass} from '~/lib/display-type';
 import {keyedText} from '~/lib/shopify/keys';
 import type {ImageView} from '~/lib/shopify/types';
 
@@ -15,7 +17,7 @@ type BrandHeaderProps = {
  */
 export function BrandHeader({name, logo, about}: BrandHeaderProps) {
   return (
-    <header className="mt-2 flex flex-col gap-4 md:flex-row md:items-center md:gap-8">
+    <header className="mt-2 flex border-b border-line pb-4 flex-col gap-4 md:flex-row md:items-center md:gap-8">
       {logo ? (
         <Image
           data={logo}
@@ -27,7 +29,7 @@ export function BrandHeader({name, logo, about}: BrandHeaderProps) {
         />
       ) : null}
       <div className="min-w-0">
-        <h1 className="text-3xl font-bold">{name}</h1>
+        <h1 className={cn(displayHeadingClass(name), 'text-3xl')}>{name}</h1>
         {about.length > 0 ? (
           <div className="mt-2 flex max-w-prose flex-col gap-2 text-base text-fg-muted">
             {keyedText(about).map((paragraph) => (

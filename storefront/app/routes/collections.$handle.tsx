@@ -6,6 +6,8 @@ import {ProductListing} from '~/components/collection/ProductListing';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {Accordion} from '~/components/ui/Accordion';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {cn} from '~/components/ui/cn';
+import {displayHeadingClass} from '~/lib/display-type';
 import {SORT_KEYS, parseFilterParams} from '~/lib/filters';
 import {buildBreadcrumbJsonLd, buildFaqJsonLd} from '~/lib/shopify/jsonld';
 import {isValidHandle, loadCollectionPage} from '~/lib/shopify/collection-data';
@@ -89,14 +91,19 @@ export default function Collection() {
           {label: collection.title},
         ]}
       />
-      <h1 className="mt-2 text-3xl font-bold">{collection.title}</h1>
-      {collection.description.length > 0 ? (
-        <div className="mt-2 max-w-prose text-base text-fg-muted">
-          {keyedText(collection.description).map((paragraph) => (
-            <p key={paragraph.key}>{paragraph.text}</p>
-          ))}
-        </div>
-      ) : null}
+      {/* The rule under the title (and the description, when there is one) separates it from the listing. */}
+      <header className="mt-2 border-b border-line pb-4">
+        <h1 className={cn(displayHeadingClass(collection.title), 'text-3xl')}>
+          {collection.title}
+        </h1>
+        {collection.description.length > 0 ? (
+          <div className="mt-2 max-w-prose text-base text-fg-muted">
+            {keyedText(collection.description).map((paragraph) => (
+              <p key={paragraph.key}>{paragraph.text}</p>
+            ))}
+          </div>
+        ) : null}
+      </header>
 
       <ProductListing
         products={data.products}
@@ -116,6 +123,7 @@ export default function Collection() {
           <Accordion
             type="multiple"
             headingLevel={3}
+            findInPage
             items={collection.faqs.map((faq) => ({
               id: faq.id,
               title: faq.question,

@@ -28,6 +28,7 @@ export function ratingText(value: number, count?: number): string {
   return `${base} from ${count} ${count === 1 ? 'review' : 'reviews'}`;
 }
 
+// Stars are near-black on a grey track (an amber star is 2.4:1 on white); the visible count carries the value.
 // Presentational adapter: the reviews provider is not chosen yet (Q-011), so this takes plain numbers.
 export function Rating({
   value,
@@ -47,26 +48,29 @@ export function Rating({
     const fill = Math.min(1, Math.max(0, rating - index));
     return {index, widthPercent: Math.round(fill * 100)};
   });
-  const countLabel = count === undefined ? null : `(${count})`;
+  const countLabel =
+    count === undefined
+      ? null
+      : `${count} ${count === 1 ? 'Review' : 'Reviews'}`;
 
   const body = (
     <>
       <span className="sr-only">{ratingText(rating, count)}</span>
       <span aria-hidden="true" className="inline-flex">
         {stars.map((star) => (
-          <span key={star.index} className="relative inline-block size-4">
-            <StarIcon className="absolute inset-0 text-ink-300" />
+          <span key={star.index} className="relative inline-block size-5">
+            <StarIcon className="absolute inset-0 size-5 text-ink-300" />
             <span
               className="absolute inset-y-0 left-0 overflow-hidden"
               style={{width: `${star.widthPercent}%`}}
             >
-              <StarIcon className="text-accent-500" />
+              <StarIcon className="size-5 text-ink-900" />
             </span>
           </span>
         ))}
       </span>
       {countLabel ? (
-        <span aria-hidden="true" className="text-sm text-fg-muted">
+        <span aria-hidden="true" className="text-sm font-bold text-fg">
           {countLabel}
         </span>
       ) : null}

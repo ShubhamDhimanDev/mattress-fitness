@@ -13,13 +13,18 @@ type PriceProps = {
   price: MoneyV2Like;
   /** Shopify's compare-at price. Only shown, and only counts as a sale, when it is above `price`. */
   compareAt?: MoneyV2Like | null;
-  /** Small label before the amount, e.g. "From". */
+  /** Small label before the amount, e.g. "From". Muted and sentence case so the bold amount leads. */
   prefix?: string;
   /** Adds "Save $200 (20%)" under a sale price. */
   showSavings?: boolean;
   /** Drops ".00" from whole-dollar amounts. */
   compact?: boolean;
   size?: PriceSize;
+  /**
+   * The amount is the last one Shopify returned and a change is in flight. Shown in italic: the cue must not dim the
+   * text, because the sale colour and the muted compare-at price are already close to the 4.5:1 minimum.
+   */
+  stale?: boolean;
   className?: string;
 };
 
@@ -84,6 +89,7 @@ export function Price({
   showSavings = false,
   compact = false,
   size = 'md',
+  stale = false,
   className,
 }: PriceProps) {
   const view = getPriceView(price, compareAt, compact);
@@ -92,18 +98,22 @@ export function Price({
 
   return (
     <div
-      className={cn('flex flex-wrap items-baseline gap-x-2 gap-y-1', className)}
+      className={cn(
+        'flex flex-wrap items-baseline gap-x-2 gap-y-1',
+        stale && 'italic',
+        className,
+      )}
     >
       {prefix ? (
-        <span className={cn('font-bold text-fg-muted uppercase', sizes.other)}>
+        <span className={cn('font-bold text-fg-muted', sizes.other)}>
           {prefix}
         </span>
       ) : null}
       <span
         className={cn(
-          'font-bold',
+          'font-extrabold',
           sizes.price,
-          view.kind === 'sale' ? 'text-error-fg' : 'text-fg',
+          view.kind === 'sale' ? 'text-sale-fg' : 'text-fg',
         )}
       >
         {view.kind === 'sale' ? (
@@ -118,7 +128,7 @@ export function Price({
             {view.compareAt}
           </s>
           {showSavings ? (
-            <span className={cn('font-bold text-error-fg', sizes.other)}>
+            <span className={cn('font-bold text-sale-fg', sizes.other)}>
               Save {view.savings} ({view.percentOff}%)
             </span>
           ) : null}

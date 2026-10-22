@@ -66,7 +66,10 @@ export function ProductGallery({
       aria-roledescription="carousel"
       aria-label={`${title} images`}
       onKeyDown={onKeyDown}
-      className="flex flex-col gap-3"
+      // min-w-0: this section is a grid item, whose automatic minimum width is its content's. Without it five or more
+      // thumbnails widen the column and the page scrolls sideways at 360 px (BV-014, WCAG 1.4.10); with it the strip scrolls
+      // inside its own box.
+      className="flex min-w-0 flex-col gap-3"
     >
       <div
         className="relative aspect-square touch-pan-y overflow-hidden rounded-card bg-surface-muted"
@@ -116,7 +119,11 @@ export function ProductGallery({
       </p>
 
       {count > 1 ? (
-        <ul className="flex gap-2 overflow-x-auto pb-1">
+        // The strip scrolls (overflow clips), so it carries 6 px of padding for the 3 px focus ring plus its 2 px offset, and
+        // the matching negative margin cancels it on every side, so the thumbnails keep their position. The old bottom padding
+        // (pb-1) is gone, so the strip is 4 px shorter than before. scroll-px keeps that room when a focused thumbnail is
+        // scrolled into view, so its ring is not clipped at the strip's edge (BV-002).
+        <ul className="-m-1.5 flex scroll-px-1.5 gap-2 overflow-x-auto p-1.5">
           {images.map((image, position) => (
             <li key={image.url} className="shrink-0">
               <button
@@ -126,7 +133,9 @@ export function ProductGallery({
                 onClick={() => setIndex(position)}
                 className={cn(
                   'size-16 overflow-hidden rounded-choice border-2 bg-surface-muted',
-                  position === index ? 'border-ink-900' : 'border-line',
+                  position === index
+                    ? 'border-primary-500'
+                    : 'border-line hover:border-line-strong',
                 )}
               >
                 <Image

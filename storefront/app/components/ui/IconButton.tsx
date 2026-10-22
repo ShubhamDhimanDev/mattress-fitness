@@ -18,7 +18,7 @@ export type IconButtonProps = OwnProps & ActionElementProps;
 
 const VARIANT = {
   ghost: 'bg-transparent text-fg hover:bg-surface-muted active:bg-ink-200',
-  solid: 'bg-primary-700 text-white hover:bg-primary-800 active:bg-primary-900',
+  solid: 'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700',
 } as const;
 
 export function IconButton({
@@ -54,7 +54,7 @@ export function IconButton({
       {showBadge ? (
         <span
           aria-hidden="true"
-          className="absolute top-0.5 right-0.5 inline-flex min-w-5 items-center justify-center rounded-pill bg-accent-400 px-1 text-xs leading-5 font-bold text-ink-900"
+          className="absolute top-0.5 right-0.5 inline-flex min-w-5 items-center justify-center rounded-pill bg-primary-500 px-1 text-xs leading-5 font-bold text-white"
         >
           {badge > 99 ? '99+' : badge}
         </span>

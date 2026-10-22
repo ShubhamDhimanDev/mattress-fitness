@@ -1,5 +1,6 @@
-import type {ReactNode} from 'react';
 import {Link} from 'react-router';
+import {cn} from '~/components/ui/cn';
+import {displayHeadingClass} from '~/lib/display-type';
 import type {PromoMessage} from '~/lib/navigation';
 
 type PromoBarProps = {
@@ -13,24 +14,29 @@ type PromoBarProps = {
 const BOX_CLASSES = 'inline-flex min-h-touch items-center';
 const LINK_CLASSES = `${BOX_CLASSES} underline underline-offset-2 hover:no-underline`;
 
+// The text is free text from Shopify admin: heavy uppercase only while it is short (lib/display-type.ts), otherwise
+// the same weight in sentence case. Each part (message, link label) is judged on its own length.
+const textClass = (text: string) => cn('text-sm', displayHeadingClass(text));
+
 /** Site paths use the router; another site opens as a plain anchor (the target is allow-listed upstream). */
 function PromoLink({
   message,
-  children,
+  label,
 }: {
   message: PromoMessage & {to: string};
-  children: ReactNode;
+  label: string;
 }) {
+  const className = cn(LINK_CLASSES, textClass(label));
   if (message.external === true) {
     return (
-      <a href={message.to} rel="noopener noreferrer" className={LINK_CLASSES}>
-        {children}
+      <a href={message.to} rel="noopener noreferrer" className={className}>
+        {label}
       </a>
     );
   }
   return (
-    <Link to={message.to} className={LINK_CLASSES}>
-      {children}
+    <Link to={message.to} className={className}>
+      {label}
     </Link>
   );
 }
@@ -44,15 +50,17 @@ export function PromoBar({message}: PromoBarProps) {
   const to = message.to;
   const linked = to === undefined ? null : {...message, to};
   return (
-    <div className="bg-accent-400 text-ink-900">
-      <p className="mx-auto flex max-w-page flex-wrap items-center justify-center gap-x-3 px-4 text-center text-sm font-bold md:px-6">
+    <div className="on-dark bg-primary-500 text-white">
+      <p className="mx-auto flex max-w-page flex-wrap items-center justify-center gap-x-3 px-4 text-center md:px-6">
         {linked && !message.linkLabel ? (
-          <PromoLink message={linked}>{message.text}</PromoLink>
+          <PromoLink message={linked} label={message.text} />
         ) : (
-          <span className={BOX_CLASSES}>{message.text}</span>
+          <span className={cn(BOX_CLASSES, textClass(message.text))}>
+            {message.text}
+          </span>
         )}
         {linked && message.linkLabel ? (
-          <PromoLink message={linked}>{message.linkLabel}</PromoLink>
+          <PromoLink message={linked} label={message.linkLabel} />
         ) : null}
       </p>
     </div>

@@ -41,6 +41,8 @@ REQ-NAV-001, NFR-001, NFR-008
 | P2-09 | Design review on staging and deviation log (Figma or brand kit versus built) | ui-ux-designer | P2-05 | `docs/design/DEVIATIONS.md` |
 | P2-10 | Phase gate review | project-manager | all | gate record |
 
+**Brand application (added 2026-10-22).** The client's logo arrived and the owner asked for the reference's structure in the client's own brand. The designer's checklist in [BRAND_APPLICATION_SPEC](../../docs/design/BRAND_APPLICATION_SPEC.md) section 6 (BA-01 to BA-11) carries that work as **sub-tasks of P2-01, P2-02, P2-03, P2-05, P2-06, P2-07 and P2-09 and of the page tasks of Phases 3B and 4** (no new requirement: NFR-001, NFR-003, NFR-007, REQ-NAV-001, REQ-HOME-001, REQ-COL-001, REQ-PDP-001, REQ-CART-001). Status of every BA row lives in [BACKLOG](../BACKLOG.md) ("Brand restyle (BA) and real-store findings (RS)"). The BA ids are deliberately not rows of the table above (task ids in this table must be `P2-NN`). Phase 2 gate unchanged: P2-10 needs the client's recorded approval of the look (CLR-013, UXD-01 to UXD-28) and a staging review (B-07).
+
 ## Dependencies and blockers
 
 Blocked by CLR-013 for final tokens; the phase can start with neutral tokens and swap values once the kit arrives, but cannot pass the gate until the client approves the look (recorded approval).

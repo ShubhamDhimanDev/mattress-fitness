@@ -2,7 +2,20 @@
 
 How to connect the storefront to a demo store and run it, with every third-party service switched off: no Extend, no Klaviyo, no Google Analytics, no Meta pixel, no Affirm, no maps, no Judge.me. Only Shopify is involved.
 
-Status (2026-10-22): the setup script (`scripts/setup/demo-env.mjs`) and **Path A** (the mock demo store) are tested. **Path B** (your own Shopify store) follows the project's documents and Shopify's references but has **not** been run end to end, because no development store exists yet. Steps marked _(verify)_ are the ones to confirm the first time you run them; report what you find so this page can be corrected.
+Status (2026-10-22): the setup script (`scripts/setup/demo-env.mjs`) and **Path A** (the mock demo store) are tested. **Path B** (your own Shopify store) has been **partly** run: the owner created the development store `mattressfitness-1iakxuvz.myshopify.com`, installed the Hydrogen sales channel, connected the storefront with a public Storefront API token (a validated 32-character public token, not a placeholder) and ran the site locally from a `.env.demo` file. It has **not** been run end to end.
+
+What was verified on that store (agent-run Chromium tests, `storefront/tests/e2e/real-store.spec.ts`, details in [REAL_STORE_FINDINGS](../testing/REAL_STORE_FINDINGS.md) and the "Real store state" section of `progress/STATUS.md`):
+
+- B1 to B3 and B8: the store, its token and the env file work; prices show in USD.
+- The home page, `/collections/all`, `/collections/frontpage`, the product page, search and the cart (add, change quantity, remove, reload) answer correctly on real Shopify data, with no console error and no axe violation at 360 and 1280 px. The hand-off from the site's `/checkout-steps` to the store's own checkout address works.
+
+What was **not** verified:
+
+- B4 to B7: the data model (`apply-definitions`), the catalog import, the `mattresses` collection and Search & Discovery filters were **not** run. The store has one product named `testing` (one variant, no image, no metafields) and no `mattresses` collection, so every link to `/collections/mattresses` is a 404 page there.
+- **Checkout totals.** The store's Online Store password page blocks checkout (the shopper ends on the store's `/password` page), so the cart total could not be compared with the checkout total. That comparison is **BLOCKED**, not passed.
+- Offers, delivery, Extend, customer accounts, orders and webhooks were not exercised, and no order was created.
+
+Steps marked _(verify)_ are the ones to confirm the first time you run them; report what you find so this page can be corrected.
 
 ## What "no third-party services" means here
 
@@ -27,7 +40,7 @@ Checkout, payments and customer accounts are Shopify's own and are not third-par
 
 ## Path A: the mock demo store (no account, about five minutes)
 
-`bedding.mock.shop` is Shopify's public demo store with bedding products. It needs no account and no password. Prices show in CAD there (the storefront logs one harmless message about it), checkout is a placeholder, and mattress-specific facts (comfort level, type, FAQs) are absent.
+`bedding.mock.shop` is Shopify's public demo store with bedding products. It needs no account and no password. Prices show in CAD there (the storefront logs one harmless message about it; that message belongs to the mock stores only, your own store is USD), checkout is a placeholder, and mattress-specific facts (comfort level, type, FAQs) are absent.
 
 ```
 node scripts/setup/demo-env.mjs --mock
@@ -41,9 +54,9 @@ Open http://localhost:3400. The script wrote `storefront/.env.demo`: store domai
 
 Use a Partner development store (free) or an existing demo store. Never point this at the client's live store.
 
-**B1. Create or choose the store.** Partner Dashboard, Stores, Add store, development store. Set the currency to USD _(verify: the storefront shows USD only)_.
+**B1. Create or choose the store.** Partner Dashboard, Stores, Add store, development store. Set the currency to USD (the storefront shows USD only; confirmed on `mattressfitness-1iakxuvz.myshopify.com`, where prices and the cart currency are USD).
 
-**B2. Get the public Storefront API token.** In the store admin install the **Headless** sales channel (or **Hydrogen**), create a storefront, and copy the **public access token** (32 letters and digits). In the storefront's API permissions allow the unauthenticated read access to products, collections, tags, inventory and metaobjects, and the cart and checkout access, whatever the channel lists _(verify the exact permission names on first use)_. The token is public by design; it still should not be pasted into chat or tickets.
+**B2. Get the public Storefront API token.** In the store admin install the **Headless** sales channel (or **Hydrogen**), create a storefront, and copy the **public access token** (32 letters and digits). In the storefront's API permissions allow the unauthenticated read access to products, collections, tags, inventory and metaobjects, and the cart and checkout access, whatever the channel lists. Verified on the owner's store with the Hydrogen channel: the token was accepted and products, collections, search and the cart can be read and written; metaobject reads were not exercised, and the exact permission names were not recorded _(verify)_. The token is public by design; it still should not be pasted into chat or tickets.
 
 **B3. Write the environment file.**
 
@@ -88,7 +101,7 @@ npm run dev -- --port 3400 --env-file .env.demo
 
 ## Check that it works
 
-Open these and expect no error page:
+Open these and expect no error page. On a store with a single product and no `mattresses` collection (the owner's store today) use `/collections/all`; `/collections/mattresses` is a clean 404 page there until the collection exists (B6).
 
 | Page                                           | What to see                                                                      |
 | ---------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -115,7 +128,8 @@ Then, in the browser's network tab, confirm nothing is requested from Extend, Kl
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | 500 error on every page                                              | `SESSION_SECRET` missing or (production build) shorter than 32 characters. Re-run the script with `--force` to regenerate.      |
 | Console error about Shopify Customer Privacy                         | Normal on mock.shop (no consent API); ignore.                                                                                      |
-| Console message "Only USD is supported, got CAD"                     | Normal on the mock store (it prices in CAD). On your own store set the store currency to USD.                                      |
+| Console message "Only USD is supported, got CAD"                     | Only on mock.shop and bedding.mock.shop (Path A), which price in CAD; ignore it there. A USD store such as `mattressfitness-1iakxuvz.myshopify.com` does not log it (0 lines in the real-store run). If you see it on your own store, its currency is not USD: change it in the store's currency settings (Settings, Store details _(verify the menu name)_). |
+| Checkout shows a password page, or the checkout total cannot be read | The store's Online Store password is on, which blocks the hosted checkout as well as the storefront channel. Remove it in admin under Online Store > Preferences (Password protection), or use a development store without one. Never type the password into an automated test or put it in a file. |
 | Empty home page or "no products"                                     | The token is wrong, the products are not Active or not available to the Headless channel, or the store domain has a typo.          |
 | Token rejected by the script                                         | It must be exactly 32 letters and digits (the public token), not the private token and not an Admin API token.                     |
 | Filters show only price or nothing                                   | Search & Discovery is not installed or filters are not enabled (B7). The mock store returns no filter groups at all.              |

@@ -1,6 +1,8 @@
 import {Link} from 'react-router';
 import {Accordion, type AccordionItem} from '~/components/ui/Accordion';
 import {ChatIcon, PhoneIcon} from '~/components/ui/Icons';
+import {cn} from '~/components/ui/cn';
+import {fitsDisplayType} from '~/lib/display-type';
 import {
   UTILITY_LINKS,
   type MainNavItem,
@@ -34,7 +36,10 @@ function MenuSection({
           <div key={group.id}>
             <p
               id={headingId}
-              className="text-xs font-bold tracking-wide text-fg-muted uppercase"
+              className={cn(
+                'text-xs font-extrabold text-fg',
+                fitsDisplayType(group.heading) && 'tracking-wide uppercase',
+              )}
             >
               {group.heading}
             </p>
@@ -84,7 +89,12 @@ export function MobileNav({
   return (
     <div className="flex flex-col gap-6">
       <nav aria-label="Mobile">
-        <Accordion items={accordionItems} type="single" headingLevel={3} />
+        <Accordion
+          items={accordionItems}
+          type="single"
+          headingLevel={3}
+          variant="menu"
+        />
       </nav>
       <nav aria-label="Help and contact">
         <ul>

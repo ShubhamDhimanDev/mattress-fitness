@@ -4,10 +4,11 @@
 // pages exist; the Shopify menu mapping replaces this config in P3B-02 and the layout components keep the same
 // prop shapes.
 
+import {BRAND_NAME} from '~/lib/brand';
 import {normalizeUsPhone} from '~/lib/stores/directions';
 
-/** Placeholder brand until the brand kit arrives (CLR-013). */
-export const SITE_NAME = 'Mattress Store';
+/** The store name in titles, the copyright line and the logo's accessible name: one constant (brand.ts). */
+export const SITE_NAME = BRAND_NAME;
 
 export type SupportPhone = {display: string; href: string};
 
@@ -335,7 +336,8 @@ export const FOOTER_SUPPORT_GROUPS_DRAFT: readonly FooterGroup[] = [
     heading: 'Customer support',
     links: [
       {label: 'Contact us', to: '/pages/contact'},
-      {label: 'Track your order', to: '/track-order'},
+      // No route until guest and account order tracking (P6-08): no link until then.
+      {label: 'Track your order', to: '/track-order', awaitingContent: true},
       {label: 'Delivery and shipping', to: '/pages/delivery-and-shipping'},
       // Financing and warranty terms are the client's to supply (REQ-CNT-001, B-15, Q-016): no link until then.
       {label: 'Financing', to: '/pages/financing', awaitingContent: true},
@@ -412,6 +414,54 @@ export const FOOTER_SHOP_GROUPS: readonly FooterGroup[] = [
   shopGroupFromMenu('mattresses-type', 'Shop by type'),
   shopGroupFromMenu('mattresses-price', 'Shop by price'),
 ];
+
+export type FooterQuickLink = {
+  id: string;
+  label: string;
+  to: string;
+  /** True while the page behind the link does not exist yet; such a link is never rendered (see `publishedLinks`). */
+  awaitingContent?: boolean;
+};
+
+/**
+ * The footer's quick-links row (BA-05) before unpublished links are removed: the pages shoppers come back for,
+ * first the order and delivery side, then the stores and help side. Only links to pages that exist are shown:
+ * `/track-order` has no route until P6-08, and `/pages/delivery-and-shipping` and `/pages/contact` are Shopify
+ * admin pages the client has not written yet (REQ-CNT-001, B-15), so those three wait behind `awaitingContent` (no
+ * page-existence data reaches the footer). Remove the flag when the page is live. The labels differ from the group
+ * links below on purpose, so a screen-reader link list does not read two identical names for the same page.
+ */
+export const FOOTER_QUICK_LINKS_START_DRAFT: readonly FooterQuickLink[] = [
+  {
+    id: 'track',
+    label: 'Order tracking',
+    to: '/track-order',
+    awaitingContent: true,
+  },
+  {
+    id: 'delivery',
+    label: 'Delivery information',
+    to: '/pages/delivery-and-shipping',
+    awaitingContent: true,
+  },
+  {id: 'account', label: 'Your account', to: '/account'},
+];
+
+export const FOOTER_QUICK_LINKS_END_DRAFT: readonly FooterQuickLink[] = [
+  {id: 'stores', label: 'Store locator', to: STORE_LOCATOR_PATH},
+  {
+    id: 'contact',
+    label: 'Get in touch',
+    to: '/pages/contact',
+    awaitingContent: true,
+  },
+];
+
+export const FOOTER_QUICK_LINKS_START: readonly FooterQuickLink[] =
+  publishedLinks(FOOTER_QUICK_LINKS_START_DRAFT);
+
+export const FOOTER_QUICK_LINKS_END: readonly FooterQuickLink[] =
+  publishedLinks(FOOTER_QUICK_LINKS_END_DRAFT);
 
 export const FOOTER_LEGAL_LINKS: readonly NavGroupLink[] = [
   {label: 'Privacy policy', to: '/pages/privacy-policy'},

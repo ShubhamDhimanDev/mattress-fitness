@@ -275,7 +275,9 @@ export default function Cart() {
 
   return (
     <div className="py-6">
-      <h1 className="text-3xl font-bold">Your cart</h1>
+      <h1 className="type-display border-b border-line pb-4 text-3xl">
+        Your cart
+      </h1>
       <CartMain layout="page" cart={cart} offers={offers} />
     </div>
   );

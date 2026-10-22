@@ -114,15 +114,29 @@ const SWATCHES: ReadonlyArray<{name: string; swatch: string; ink: string}> = [
   {name: 'primary-50', swatch: 'bg-primary-50', ink: 'text-ink-900'},
   {name: 'primary-100', swatch: 'bg-primary-100', ink: 'text-ink-900'},
   {name: 'primary-300', swatch: 'bg-primary-300', ink: 'text-ink-900'},
-  {name: 'primary-500', swatch: 'bg-primary-500', ink: 'text-white'},
+  {name: 'primary-400', swatch: 'bg-primary-400', ink: 'text-ink-900'},
+  {
+    name: 'primary-500 (logo red)',
+    swatch: 'bg-primary-500',
+    ink: 'text-white',
+  },
+  {name: 'primary-600', swatch: 'bg-primary-600', ink: 'text-white'},
   {name: 'primary-700', swatch: 'bg-primary-700', ink: 'text-white'},
+  {name: 'primary-800', swatch: 'bg-primary-800', ink: 'text-white'},
   {name: 'primary-900', swatch: 'bg-primary-900', ink: 'text-white'},
   {name: 'accent-100', swatch: 'bg-accent-100', ink: 'text-ink-900'},
   {name: 'accent-400', swatch: 'bg-accent-400', ink: 'text-ink-900'},
   {name: 'accent-700', swatch: 'bg-accent-700', ink: 'text-white'},
+  {name: 'sale-bg', swatch: 'bg-sale-bg', ink: 'text-sale-fg'},
+  {name: 'sale-fg', swatch: 'bg-sale-fg', ink: 'text-white'},
+  {name: 'ink-50', swatch: 'bg-ink-50', ink: 'text-ink-900'},
   {name: 'ink-100', swatch: 'bg-ink-100', ink: 'text-ink-900'},
+  {name: 'ink-300', swatch: 'bg-ink-300', ink: 'text-ink-900'},
   {name: 'ink-400', swatch: 'bg-ink-400', ink: 'text-ink-900'},
+  {name: 'ink-500', swatch: 'bg-ink-500', ink: 'text-white'},
+  {name: 'ink-600', swatch: 'bg-ink-600', ink: 'text-white'},
   {name: 'ink-700', swatch: 'bg-ink-700', ink: 'text-white'},
+  {name: 'ink-800', swatch: 'bg-ink-800', ink: 'text-white'},
   {name: 'ink-900', swatch: 'bg-ink-900', ink: 'text-white'},
   {name: 'success-bg', swatch: 'bg-success-bg', ink: 'text-success-fg'},
   {name: 'success-solid', swatch: 'bg-success-solid', ink: 'text-white'},
@@ -151,6 +165,9 @@ function TokensSection() {
         <p className="text-base">text-base: the quick brown fox</p>
         <p className="text-xl">text-xl: the quick brown fox</p>
         <p className="text-3xl font-bold">text-3xl: the quick brown fox</p>
+        <p className="type-display text-2xl">
+          type-display: heavy uppercase for short labels
+        </p>
       </div>
       <ul className="flex flex-wrap gap-4">
         <li className="rounded-choice border border-line-strong p-4">
@@ -178,9 +195,51 @@ function ButtonsSection() {
         <Button variant="ghost">Ghost</Button>
         <Button variant="accent">Accent</Button>
         <Button variant="pill">Pill</Button>
+        <Button variant="ghost" leadingIcon={<CheckIcon className="size-5" />}>
+          Ghost with icon
+        </Button>
         <Button variant="secondary" shape="pill">
           Secondary pill
         </Button>
+      </Sample>
+      <Sample label="On a red band (carries on-dark, so the focus ring is yellow): inverse and inverse-outline">
+        <div
+          role="group"
+          aria-label="Buttons on a red band"
+          className="on-dark flex w-full flex-wrap items-center gap-3 rounded-panel bg-primary-500 p-6 text-white"
+        >
+          <Button variant="inverse" size="lg">
+            Inverse
+          </Button>
+          <Button variant="inverse-outline" size="lg">
+            Inverse outline
+          </Button>
+          <Button variant="inverse" disabled>
+            Inverse disabled
+          </Button>
+          <Button variant="inverse-outline" disabled>
+            Outline disabled
+          </Button>
+          <Button variant="inverse" loading loadingLabel="Sending">
+            Inverse loading
+          </Button>
+          <Button variant="inverse-outline" loading loadingLabel="Sending">
+            Outline loading
+          </Button>
+        </div>
+      </Sample>
+      <Sample label="On a black band (carries on-dark): accent">
+        <div className="on-dark flex w-full flex-wrap items-center gap-3 rounded-panel bg-ink-900 p-6 text-white">
+          <Button variant="accent" size="lg">
+            Accent
+          </Button>
+          <Button variant="accent" disabled>
+            Accent disabled
+          </Button>
+          <Button variant="accent" loading loadingLabel="Sending">
+            Accent loading
+          </Button>
+        </div>
       </Sample>
       <Sample label="Sizes (all at least 44 px high)">
         <Button size="sm">Small</Button>
@@ -195,6 +254,9 @@ function ButtonsSection() {
         <Button variant="ghost" disabled>
           Ghost
         </Button>
+        <Button variant="accent" disabled>
+          Accent
+        </Button>
       </Sample>
       <Sample label="Loading (stays focusable, ignores clicks)">
         <Button loading>Add to cart</Button>
@@ -202,6 +264,15 @@ function ButtonsSection() {
           Save
         </Button>
       </Sample>
+      <p className="max-w-prose text-sm text-fg-muted">
+        States: default, disabled and loading are drawn above. Hover, pressed
+        and focus-visible need a pointer or the Tab key (primary goes to a
+        darker red on hover and darker again when pressed; the focus ring is
+        blue on white and grey surfaces and yellow inside an on-dark band);
+        gallery.spec.ts asserts them. A button has no error state: errors appear
+        on the field or group (Form controls, Selectors) as an icon, text and a
+        border, never as a red button.
+      </p>
       <Sample label="Rendered as a link (router link and plain anchor)">
         <Button to="/collections/mattresses" variant="pill">
           Router link
@@ -235,6 +306,12 @@ function ButtonsSection() {
         />
         <IconButton label="Cart, 120 items" badge={120} icon={<CartIcon />} />
         <IconButton label="Delivery" icon={<TruckIcon />} variant="solid" />
+        <IconButton
+          label="Delivery (disabled)"
+          icon={<TruckIcon />}
+          variant="solid"
+          disabled
+        />
         <IconButton label="Search (disabled)" icon={<SearchIcon />} disabled />
         <IconButton label="Home" icon={<MapPinIcon />} to="/" />
       </Sample>
@@ -298,6 +375,16 @@ function FormsSection() {
           ))}
           <Radio name="feel" value="x" label="Unavailable" disabled />
         </fieldset>
+        <fieldset className="flex flex-col">
+          <legend className="text-sm font-bold">Delivery (error)</legend>
+          <Radio
+            name="delivery-error"
+            value="home"
+            label="Home delivery"
+            error="Choose a delivery method."
+          />
+          <Radio name="delivery-error" value="store" label="Store pickup" />
+        </fieldset>
         <div className="flex flex-col">
           <Checkbox
             label="Send me sleep tips"
@@ -323,6 +410,14 @@ function DisplaySection() {
         <Badge variant="gift">Free gift</Badge>
         <Badge variant="new">New</Badge>
         <Badge>Neutral</Badge>
+      </Sample>
+      <Sample label="Badges as the tag line under a card image (size tag: sentence case)">
+        <Badge variant="sale" size="tag">
+          Save 19%
+        </Badge>
+        <Badge variant="gift" size="tag">
+          Free pillow with this mattress
+        </Badge>
       </Sample>
       <Sample label="Price: regular, from, sale, sale with savings, compact, compare-at equal to price (no sale)">
         <Price price={usd('1299.00')} />
@@ -487,9 +582,11 @@ function ToastsSection() {
     <Section id="g-toasts" title="Toast notifications">
       <p className="max-w-prose text-fg-muted">
         Info, success and warning are announced politely and an error
-        assertively. A toast closes by itself after 6 seconds (never sooner than
-        4), pauses while it is hovered or has focus, and an error stays until it
-        is dismissed with its button or Escape.
+        assertively. Info has a neutral dark frame and the info icon; an error
+        has a red frame and the alert icon, so the two never look alike. A toast
+        closes by itself after 6 seconds (never sooner than 4), pauses while it
+        is hovered or has focus, and an error stays until it is dismissed with
+        its button or Escape.
       </p>
       <div className="flex flex-wrap gap-3">
         <Button

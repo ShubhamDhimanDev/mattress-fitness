@@ -37,8 +37,10 @@ type VariantStyle = {frame: string; Icon: typeof InfoIcon};
 
 // Text and surface pairs are the documented ones in styles/tailwind.css (all at least 4.5:1).
 const VARIANT: Record<ToastVariant, VariantStyle> = {
+  // Neutral ink, not red: a red-tinted info toast looked almost the same as an error beside the brand red (UXD-19).
+  // The error toast keeps its red frame, its alert icon and its assertive role; info has the info icon and is polite.
   info: {
-    frame: 'border-primary-700 bg-primary-50 text-primary-800',
+    frame: 'border-ink-900 bg-ink-50 text-ink-900',
     Icon: InfoIcon,
   },
   success: {
