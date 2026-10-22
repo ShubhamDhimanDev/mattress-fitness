@@ -117,8 +117,10 @@ export function ProductGallery({
 
       {count > 1 ? (
         // The strip scrolls (overflow clips), so it carries 6 px of padding for the 3 px focus ring plus its 2 px offset, and
-        // the matching negative margin keeps the layout unchanged (BV-002).
-        <ul className="-m-1.5 flex gap-2 overflow-x-auto p-1.5">
+        // the matching negative margin cancels it on every side, so the thumbnails keep their position. The old bottom padding
+        // (pb-1) is gone, so the strip is 4 px shorter than before. scroll-px keeps that room when a focused thumbnail is
+        // scrolled into view, so its ring is not clipped at the strip's edge (BV-002).
+        <ul className="-m-1.5 flex scroll-px-1.5 gap-2 overflow-x-auto p-1.5">
           {images.map((image, position) => (
             <li key={image.url} className="shrink-0">
               <button

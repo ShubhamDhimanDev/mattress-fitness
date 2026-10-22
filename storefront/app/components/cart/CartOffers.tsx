@@ -369,6 +369,8 @@ function ProtectionPlanRow({
           type="button"
           variant="secondary"
           size="sm"
+          // Flex item: shrink-0 keeps the label from squeezing below its longest word, where .type-display would break it.
+          className="shrink-0"
           loading={pending}
           loadingLabel="Adding"
           aria-label={`Add ${plan.title} protection for ${line.productTitle}`}

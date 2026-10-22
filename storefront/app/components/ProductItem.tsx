@@ -134,8 +134,8 @@ export function ProductItem({
             compareAt={product.compareAt}
             prefix={product.priceIsFrom ? 'From' : undefined}
             size="md"
-            // The price block sits at the bottom of equal-height cards; its parts wrap as a row, tighter in narrow cards (BV-008).
-            className="mt-auto gap-x-1.5 pt-1 md:gap-x-2"
+            // The price block sits at the bottom of equal-height cards; its parts wrap as a row (BV-008).
+            className="mt-auto pt-1"
           />
         ) : null}
         {/* Above the cover link (z-10) so it can be pressed; it is not part of the card link (REQ-CMP-001). */}
