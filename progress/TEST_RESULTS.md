@@ -352,3 +352,10 @@ Branch tree clean at `5794a74`; `main` is at `3995d40`. V-E89 to V-E93 were **ru
 **Not verifiable here, so not claimed:** Try again recovery in WebKit and Firefox (a failed module import may be cached there; not verified); the 5-second throttle trade-off ("reopen within 5 s retries only after the window") has been looked at by no person; the first-open timing block (V-E87) was **not re-run after the retry and search fixes**; the Lighthouse run (V-E88) is from build `12034ce` and predates them; the cart on-demand timing needs a real host; everything listed under V-E59, V-E71 and V-E83 as not verifiable still stands (screen readers, real devices, forced colours and zoom on hardware, final brand contrast, pixel baselines, the CI workflow on GitHub, the dev store).
 
 **Known gaps in what was tested:** the e2e counts come from agent runs on a developer machine; one production-preview failure was not reproduced; `scripts/validate-framework.mjs` has not been re-run since this record update.
+
+## Demo store setup script (2026-10-22)
+
+| ID | Check | Command | Result | Run by |
+|---|---|---|---|---|
+| V-E97 | Demo env script unit tests | `node --test scripts/setup/demo-env.test.mjs`; `node --test "scripts/**/*.test.mjs"` | 13 pass for the script; 276 script tests pass in all | orchestrator |
+| V-E98 | Demo env script, real run on the mock store | `node scripts/setup/demo-env.mjs --mock --out .env.democheck`, then `npm run dev -- --port 5900 --env-file .env.democheck`, `curl` of `/`, `/collections/all`, `/cart`, `/webhooks/shopify` | 200, 200, 200, 503 (no secret, by design); no third-party reference in the home page HTML; temporary file deleted; Path B (own Shopify store) not run | orchestrator |

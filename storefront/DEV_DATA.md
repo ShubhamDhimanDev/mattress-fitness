@@ -1,5 +1,7 @@
 # Running the storefront against a mock store (until the development store exists)
 
+> Quick way: `node scripts/setup/demo-env.mjs --mock` writes `.env.demo` with generated secrets for the mock store (or your own demo store with `--store`), and [DEMO_STORE_SETUP](../docs/deployment/DEMO_STORE_SETUP.md) explains it step by step with every third-party service off. The manual steps below do the same by hand.
+
 The app reads its store from `PUBLIC_STORE_DOMAIN`. The default `.env` points at `mock.shop` (apparel). For mattress-like browsing use `bedding.mock.shop` (CloudHaven Linens): real Storefront API, products with a `Size` option (Twin, Full, Queen, King) and a `Color` option, collections, cart. No mattress metafields exist there, so comfort level, mattress type, benefits, specifications and FAQs are simply not shown (by design, see `app/lib/shopify/metafields.ts`). Filters other than price and size need Shopify Search and Discovery on a real store; the mock store returns no filter groups and ignores the price filter.
 
 ## What works (verified 2026-10-13)

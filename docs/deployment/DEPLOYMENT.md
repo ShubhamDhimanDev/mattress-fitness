@@ -25,6 +25,8 @@ Recommendation (as in the SOW): Option A. Under Option B, any Hydrogen adaptatio
 
 ## Environment variables
 
+To run locally against a demo store with none of the third-party variables set, use [DEMO_STORE_SETUP](DEMO_STORE_SETUP.md) (`node scripts/setup/demo-env.mjs`).
+
 Names only; values stay in the hosting platform's secret store and in git-ignored local files (`.env`, `.env.*`; only `.env.example` is tracked). The list below was cross-checked on 2026-10-15 against [.env.example](../../.env.example) and a search of `storefront/app/`, `storefront/server.ts` and `scripts/` for each name. `PUBLIC_` prefixed variables are exposed to browsers by Hydrogen's convention; everything else is server-only. Code reads variables from the request-context `env` only (ADR-0004).
 
 "Fails" says what happens in a **production build** when the variable is missing or wrong. Dev servers are more lenient where stated.

@@ -26,6 +26,12 @@ Rough "built, unverified" share: about 45% of all tasks (66 of 146, `DONE` plus 
 | P9 Launch and handover | 11 | 0 | 0 | 0 | 0 | 0 | 11 | Not started |
 | **Total** | **146** | **3** | **63** | **12** | **6** | **8** | **54** | No phase gate passed |
 
+## Demo store setup (2026-10-22, branch `feat/demo-store-setup`)
+
+- **Built:** `scripts/setup/demo-env.mjs` writes `storefront/.env.demo` (domain, checkout domain, 32-character public token, freshly generated `SESSION_SECRET` and `DELIVERY_COOKIE_SECRET`; `--mock` for `bedding.mock.shop` or `--store <shop>.myshopify.com --token ...`; `--no-offers`; refuses to overwrite without `--force`; validates domain, token and file name; never prints secrets) and sets no Extend, Klaviyo, GA4, Meta, Affirm, maps or Judge.me variable. Guide: [DEMO_STORE_SETUP](../docs/deployment/DEMO_STORE_SETUP.md).
+- **Verified (orchestrator, 2026-10-22):** 13 unit tests for the script pass (`node --test scripts/setup/demo-env.test.mjs`), 276 script tests in all pass; the script was run for real with `--mock` and the dev server started from the generated file served `/`, `/collections/all` and `/cart` with 200 and no Extend, Klaviyo, Google, Meta, Affirm, Judge.me or maps reference in the home page HTML; the webhook route answered 503 without its secret. The temporary env file was deleted.
+- **Not verified:** Path B (an own Shopify demo or development store: Headless channel token, Storefront permissions, `apply-definitions`, product import, Search & Discovery filters, test checkout) has not been run end to end because no development store exists yet (B-02); its steps are marked _(verify)_ in the guide.
+
 ## Build rounds of 2026-10-17 (12034ce, 35ac547, 2f3ecd9, 5794a74)
 
 Branch `feat/p7-motion-lighthouse-lazy-preview`, tree clean at `5794a74`. Local only; pushes remain owner-only. **These commits are not on `main` until the orchestrator merges them after this record update** (`main` is at `3995d40`). Details of every check: [TEST_RESULTS](TEST_RESULTS.md) V-E85 to V-E88 (QA) and V-E89 to V-E96 (this round's checks), [PERFORMANCE](../docs/testing/PERFORMANCE.md). Decisions: DEC-067 to DEC-071. **Everything below ran on the mock store, fixtures, route interception, a local production preview and local builds; nothing ran on a dev store, a screen reader, a real device, a real host or CDN, GitHub Actions, WebKit or Firefox.**
