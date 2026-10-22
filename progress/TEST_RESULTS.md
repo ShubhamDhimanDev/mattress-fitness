@@ -408,4 +408,16 @@ Agent-reported by `qa-engineer`; not re-run by the orchestrator. Build: the **un
 | V-E119 | phone: a11y-audit | **114 passed, 1 skipped, 0 failed** |
 | V-E120 | Visual check of BV-007, BV-008 and the 768 px bar | 5 screenshots in the session scratchpad (`bvshots`, outside the repository): cart page 360 and 1280 (16 px gap under the title), header 768 (one 44 px line, no links), home cards 360 and 768 (sale price on two rows). Remaining: vendor wraps to two lines in narrow cards; blank gap above the price in equal-height cards (design) |
 
-**Fix status:** BV-001 to BV-007 fixed, BV-008 mitigated (not eliminated), BV-012 cured; BV-009 to BV-011 open designer decisions. BV-006 deviation: utility links from 1024 px, menu button until 1024 px (UXD-28). BV-005 not re-checked on the client's dev store. **Not run:** client dev store (`real-store.spec.ts`), the rest of the suite (compare, quiz, stores, protection, delivery, resilience, seo-headers, brands, pickers, lazy panels), WebKit, Firefox, Lighthouse, hover states. TRACEABILITY not updated (no requirement row changed state).
+**Fix status:** BV-001 to BV-007 fixed, BV-008 mitigated (not eliminated), BV-012 cured; BV-009 to BV-011 open designer decisions. BV-006 deviation: utility links from 1024 px, menu button until 1024 px (UXD-28). BV-005 not re-checked on the client's dev store. **Not run:** client dev store (`real-store.spec.ts`), the rest of the suite (compare, quiz, stores, protection, delivery, resilience, seo-headers, brands, pickers, lazy panels), WebKit, Firefox, Lighthouse, hover states. TRACEABILITY was not updated in that round; it was updated in the 2026-10-22 records pass (see below).
+
+### Local checks and review, 2026-10-22 (reported to the project manager by the orchestrator and coordinator; not run by the project manager)
+
+| # | What | Result | Run by |
+|---|---|---|---|
+| V-E121 | Vitest (`npm test` in `storefront/`) | **4570 tests pass in 169 files** | orchestrator |
+| V-E122 | Script tests (`node --test` over `scripts/`) | **276 pass** | orchestrator |
+| V-E123 | typecheck, lint, Prettier, build, `perf:bundle` | all OK; the budgets are still **proposed** (Q-012) | orchestrator |
+| V-E124 | Independent code review of `f3e73f9` (BV fixes) and `4655f77` (brand-verification spec, ring helper, 1024 px test) | **APPROVED WITH NOTES**: no Blocker, no Major, 9 Minor; review notes in commit `2cd0931`. Developer-side Minors fixed (dead BV-008 `gap` class removed, gallery scroll padding, `shrink-0` on flex-item buttons). **QA test notes pending:** ring walker counts a repeated stop as complete, band rule too permissive, images behind a ring exempt, BV-006 reachability test, BV-008, BV-002 and BV-003 tests can pass vacuously. Accepted trade-off to record: the four-line title clamp from 768 px against the 1.4.12 text-spacing override | code-reviewer |
+| V-E125 | Framework validator `node scripts/validate-framework.mjs` | **Not run by the project manager (no shell).** The orchestrator or coordinator runs it after this record update; result to be entered here | orchestrator |
+
+The first real-store run (V-E99 to V-E104) and the restyle verification (V-E105 to V-E120) are the other 2026-10-22 evidence; the real-store run was on build `c758620`, before the restyle, and was repeated only for `real-store.spec.ts` on `0f1deae` (V-E105).
