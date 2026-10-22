@@ -123,6 +123,7 @@ export default function Collection() {
           <Accordion
             type="multiple"
             headingLevel={3}
+            findInPage
             items={collection.faqs.map((faq) => ({
               id: faq.id,
               title: faq.question,

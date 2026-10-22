@@ -60,21 +60,25 @@ export function CartSummary({
 
       <dl className="flex items-baseline justify-between gap-2">
         <dt className="text-base font-bold">Subtotal</dt>
-        {/* While Shopify answers there is either an out-of-date amount (kept, dimmed) or none (a busy placeholder of the
-            final size): never a bare dash that reads as a missing price (RS-02). */}
-        <dd aria-busy={subtotal.status === 'pending' || subtotal.updating}>
+        {/* While Shopify answers there is either an out-of-date amount (kept, in italic, never dimmed: dimming would drop
+            the text under 4.5:1) or none (a busy placeholder of the final size): never a bare dash that reads as a
+            missing price (RS-02). The status element is always mounted and only its text changes, so a screen reader
+            that is already watching it announces "Updating price"; `aria-busy` on the <dd> would not be announced. */}
+        <dd>
           {subtotal.status === 'ready' ? (
             <Price
               price={subtotal.amount}
               size="md"
-              className={subtotal.updating ? 'opacity-60' : undefined}
+              stale={subtotal.updating}
             />
           ) : (
-            <>
-              <Skeleton className="h-7 w-24" />
-              <span className="sr-only">Updating price</span>
-            </>
+            <Skeleton className="h-7 w-24" />
           )}
+          <span role="status" className="sr-only">
+            {subtotal.status === 'pending' || subtotal.updating
+              ? 'Updating price'
+              : ''}
+          </span>
         </dd>
       </dl>
       <p className="text-sm text-fg-muted">
@@ -107,7 +111,10 @@ export function CartSummary({
             </Button>
           ) : null}
         </div>
-      ) : checkoutHref ? (
+      ) : checkoutHref || cart?.isOptimistic ? (
+        // One link in both states. A first add has no checkout URL until Shopify answers; the control is the same
+        // element meanwhile (inert, with a spinner), so a keyboard user who is focused on it keeps focus when the
+        // cart arrives. Swapping a busy button for a link would drop focus to the page.
         <Button
           to={CHECKOUT_STEPS_PATH}
           reloadDocument
@@ -115,17 +122,6 @@ export function CartSummary({
           size="lg"
           fullWidth
           loading={Boolean(cart?.isOptimistic)}
-          loadingLabel="Updating cart"
-        >
-          Checkout
-        </Button>
-      ) : cart?.isOptimistic ? (
-        // A first add has no checkout URL until Shopify answers; saying "not available" for that second is wrong.
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          loading
           loadingLabel="Updating cart"
         >
           Checkout

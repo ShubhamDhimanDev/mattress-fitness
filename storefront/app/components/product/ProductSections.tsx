@@ -10,7 +10,8 @@ import type {ProductPageView} from '~/lib/shopify/types';
  * Specification tiles and features beside the overview, then accordions for the brand and its warranty, then FAQs
  * (REQ-PDP-002, BA-08). Each section is rendered only when it has data, so a product without metafields shows just its
  * description. All text is plain (see lib/shopify/rich-text.ts); nothing from the admin is inserted as HTML. Collapsed
- * accordion rows keep their content in the HTML (`hidden`), so crawlers and find-in-page still see it.
+ * accordion rows keep their content in the HTML (`hidden`), so crawlers see it, and they use `hidden="until-found"`
+ * once scripts run (`findInPage`), so the browser's find-in-page matches the text and opens the row.
  *
  * There is no "Delivery and shipping" row yet: its wording has to come from the client (B-15, UXD-16), and the
  * ZIP-based delivery promise already sits in the buy box (DeliveryCheck).
@@ -177,7 +178,12 @@ export function ProductSections({
           <h2 id="pdp-brand-heading" className="sr-only">
             About the brand and warranty
           </h2>
-          <Accordion type="multiple" headingLevel={3} items={brandRows} />
+          <Accordion
+            type="multiple"
+            headingLevel={3}
+            findInPage
+            items={brandRows}
+          />
         </section>
       ) : null}
 
@@ -189,6 +195,7 @@ export function ProductSections({
           <Accordion
             type="multiple"
             headingLevel={3}
+            findInPage
             items={product.faqs.map((faq) => ({
               id: faq.id,
               title: faq.question,

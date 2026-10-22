@@ -257,3 +257,29 @@ test.describe('NFR-003 reduced motion on real pages (WCAG 2.3.3)', () => {
     expect(await movingElements(page, PAGE_SCOPE), 'question 2').toEqual([]);
   });
 });
+
+// NFR-003 (WCAG 1.4.12 text spacing): a product card title must not be cut off on a phone, with or without the
+// shopper's own line, letter and word spacing. The title used to be clamped to three lines, which clipped real titles
+// at 320 px even by default (the home carousel cards are about 105 px wide).
+test.describe('NFR-003 text spacing on product cards', () => {
+  for (const path of ['/', '/collections/all']) {
+    test(`no card title is clipped at 320 px with text-spacing overrides on ${path}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({width: 320, height: 900});
+      await gotoReady(page, path);
+      await page.addStyleTag({
+        content:
+          '* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; }',
+      });
+      const clipped = await page
+        .locator('main h3')
+        .evaluateAll((headings) =>
+          headings
+            .filter((h) => h.scrollHeight > h.clientHeight + 1)
+            .map((h) => h.textContent?.trim() ?? ''),
+        );
+      expect(clipped).toEqual([]);
+    });
+  }
+});

@@ -27,7 +27,7 @@ export function HeaderLogo() {
         loading="eager"
         decoding="async"
         {...HIGH_PRIORITY}
-        className="size-12 md:size-14 lg:size-16"
+        className="size-14 lg:size-16"
       />
     </Link>
   );

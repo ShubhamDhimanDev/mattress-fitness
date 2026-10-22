@@ -307,6 +307,32 @@ test.describe('component gallery: toast notifications', () => {
     await expect(toast).toBeHidden();
   });
 
+  test('an info toast is not red: its frame differs from the error toast and is neutral', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const info = politeRegion(page).getByText('Your choice was saved.');
+    const error = assertiveRegion(page).getByText('Please try again.');
+    await openUntilVisible(
+      page.getByRole('button', {name: 'Show info toast'}),
+      info,
+    );
+    await openUntilVisible(
+      page.getByRole('button', {name: 'Show error toast'}),
+      error,
+    );
+    const border = (text: typeof info) =>
+      text
+        .locator('xpath=ancestor::*[@data-toast-variant][1]')
+        .evaluate((node) => getComputedStyle(node).borderTopColor);
+    const infoBorder = await border(info);
+    const errorBorder = await border(error);
+    expect(infoBorder).not.toBe(errorBorder);
+    // Neutral: the red channel does not dominate (ink-900 is 20, 20, 20; the error frame is clearly red).
+    const [r = 0, g = 0, b = 0] = (infoBorder.match(/d+/g) ?? []).map(Number);
+    expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(10);
+  });
+
   test('a toast closes by itself after a few seconds', async ({page}) => {
     await gotoGallery(page);
     const toast = politeRegion(page).getByText('Your choice was saved.');

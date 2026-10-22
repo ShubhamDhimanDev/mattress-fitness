@@ -1,6 +1,8 @@
 import {Link} from 'react-router';
 import {Accordion, type AccordionItem} from '~/components/ui/Accordion';
 import {ChatIcon, PhoneIcon} from '~/components/ui/Icons';
+import {cn} from '~/components/ui/cn';
+import {fitsDisplayType} from '~/lib/display-type';
 import {
   UTILITY_LINKS,
   type MainNavItem,
@@ -34,7 +36,10 @@ function MenuSection({
           <div key={group.id}>
             <p
               id={headingId}
-              className="text-xs font-extrabold tracking-wide text-fg uppercase"
+              className={cn(
+                'text-xs font-extrabold text-fg',
+                fitsDisplayType(group.heading) && 'tracking-wide uppercase',
+              )}
             >
               {group.heading}
             </p>

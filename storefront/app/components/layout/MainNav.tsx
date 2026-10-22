@@ -9,6 +9,7 @@ import {
 import {Link, NavLink, useLocation} from 'react-router';
 import {cn} from '~/components/ui/cn';
 import {ChevronDownIcon} from '~/components/ui/Icons';
+import {displayHeadingClass, fitsDisplayType} from '~/lib/display-type';
 import type {MainNavItem, NavMenuItem} from '~/lib/navigation';
 
 type MainNavProps = {
@@ -17,8 +18,12 @@ type MainNavProps = {
 
 // Heavy uppercase display type echoes the logo's blocky wordmark (BA-04). The height is set per item below: a
 // 56 px row for the plain items, 44 px for the pill, so the pill does not grow into a tall slab.
-const TOP_CLASSES =
-  'inline-flex items-center gap-1 px-1.5 type-display text-sm max-xl:tracking-normal whitespace-nowrap text-fg hover:text-primary-700 xl:px-3';
+// Labels come from the navigation data and can be long, so each is judged on its length (lib/display-type.ts).
+const topClasses = (label: string) =>
+  cn(
+    'inline-flex items-center gap-1 px-1.5 text-sm max-xl:tracking-normal whitespace-nowrap text-fg hover:text-primary-700 xl:px-3',
+    displayHeadingClass(label),
+  );
 
 /**
  * Desktop navigation using the WAI-ARIA disclosure pattern: a top-level item with sub-links is a button
@@ -193,7 +198,7 @@ export function MainNav({items}: MainNavProps) {
                   data-nav-top={item.id}
                   onKeyDown={(event) => onTopKeyDown(event, item)}
                   className={cn(
-                    TOP_CLASSES,
+                    topClasses(item.label),
                     'aria-[current=page]:underline aria-[current=page]:underline-offset-4',
                     // On the amber pill the text stays ink: red text on amber is 4.27 : 1, below 4.5.
                     item.emphasis
@@ -235,7 +240,7 @@ export function MainNav({items}: MainNavProps) {
                 onClick={(event) => onTriggerClick(event, item.id)}
                 onKeyDown={(event) => onTopKeyDown(event, item)}
                 className={cn(
-                  TOP_CLASSES,
+                  topClasses(item.label),
                   'group min-h-14 aria-expanded:bg-primary-50 aria-expanded:text-primary-700',
                 )}
               >
@@ -255,7 +260,11 @@ export function MainNav({items}: MainNavProps) {
                       <div key={group.id}>
                         <p
                           id={headingId}
-                          className="mb-1 text-xs font-extrabold tracking-wide text-fg uppercase"
+                          className={cn(
+                            'mb-1 text-xs font-extrabold text-fg',
+                            fitsDisplayType(group.heading) &&
+                              'tracking-wide uppercase',
+                          )}
                         >
                           {group.heading}
                         </p>

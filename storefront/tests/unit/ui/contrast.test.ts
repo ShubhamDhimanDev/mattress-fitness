@@ -1,6 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, it} from 'vitest';
+import {BRAND_THEME_COLOR} from '~/lib/brand';
 
 // BA-01 / BA-03, NFR-003 (WCAG 2.2 AA, pending approval Q-012): every foreground/background pair the design
 // system relies on, recomputed from the custom properties in app/styles/tailwind.css, so a palette edit cannot
@@ -168,6 +169,25 @@ const UI_PAIRS: readonly Pair[] = [
   ['focus-inverse', 'primary-800', 'yellow ring on dark red'],
 ];
 
+/** Contrast of white text on a colour drawn at `alpha` over a solid backdrop (the category-tile label overlay). */
+function whiteOnOverlay(
+  overlay: string,
+  alpha: number,
+  backdrop: string,
+): number {
+  const over = toRgb(hexOf(overlay));
+  const under = toRgb(hexOf(backdrop));
+  const mix = (a: number, b: number) => Math.round(a * alpha + b * (1 - alpha));
+  const blended: Rgb = [
+    mix(over[0], under[0]),
+    mix(over[1], under[1]),
+    mix(over[2], under[2]),
+  ];
+  return (
+    (luminance(toRgb(hexOf('white'))) + 0.05) / (luminance(blended) + 0.05)
+  );
+}
+
 describe('design tokens: contrast (NFR-003)', () => {
   it('parses the palette from tailwind.css', () => {
     expect(colors.get('primary-500')).toBe('#de0510'); // the logo red
@@ -206,6 +226,17 @@ describe('design tokens: contrast (NFR-003)', () => {
     const ratio = contrast(fg, bg);
     const minimum = fg === 'focus' ? UI : TEXT;
     expect(ratio).toBeLessThan(minimum);
+  });
+
+  // CatalogSections: label on `bg-ink-900/60` over a photo. The photo is unknown, so the worst case is a white one.
+  it('category tile label: white on ink-900 at 60% over white is at least 4.5:1 (4.81)', () => {
+    const ratio = whiteOnOverlay('ink-900', 0.6, 'white');
+    expect(ratio).toBeGreaterThanOrEqual(TEXT);
+    expect(ratio).toBeCloseTo(4.81, 2);
+  });
+
+  it('the browser theme colour is the --color-primary-500 value in tailwind.css (one logo red, two places)', () => {
+    expect(BRAND_THEME_COLOR.toLowerCase()).toBe(colors.get('primary-500'));
   });
 
   it('flips the focus ring to the inverse colour on .on-dark surfaces', () => {

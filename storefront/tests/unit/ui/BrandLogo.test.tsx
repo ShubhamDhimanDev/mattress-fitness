@@ -83,6 +83,19 @@ describe('HeaderLogo', () => {
     expect(img).toHaveAttribute('height', '56');
   });
 
+  it('renders 56 px below lg and 64 px from lg (BRAND_APPLICATION_SPEC 3: working minimum 56)', () => {
+    renderIn(<HeaderLogo />);
+    const img = screen.getByRole('img', {name: BRAND_NAME});
+    const classes = img.className.split(' ').filter(Boolean);
+    expect(classes).toContain('size-14');
+    expect(classes).toContain('lg:size-16');
+    // No smaller step below the working minimum.
+    expect(classes).not.toContain('size-12');
+    expect(classes.filter((name) => /^(md:)?size-1[0-3]$/.test(name))).toEqual(
+      [],
+    );
+  });
+
   it('loads eagerly at high priority, as it is above the fold', () => {
     renderIn(<HeaderLogo />);
     const img = screen.getByRole('img', {name: BRAND_NAME});

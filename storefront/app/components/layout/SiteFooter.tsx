@@ -3,6 +3,7 @@ import {Link} from 'react-router';
 import {FooterLogo} from '~/components/layout/BrandLogo';
 import {cn} from '~/components/ui/cn';
 import {BRAND_TAGLINE} from '~/lib/brand';
+import {displayHeadingClass} from '~/lib/display-type';
 import {ChevronDownIcon, PhoneIcon} from '~/components/ui/Icons';
 import {
   FOOTER_LEGAL_LINKS,
@@ -24,7 +25,7 @@ const LINK_CLASSES =
  * 768 px every group is open and its heading is plain text. The links are always in the HTML, so crawlers
  * and assistive technology see them whether or not a section is collapsed.
  */
-function FooterGroups({
+export function FooterGroups({
   groups,
   className,
 }: {
@@ -49,7 +50,12 @@ function FooterGroups({
         const listId = `${baseId}-${group.id}`;
         return (
           <div key={group.id} className="border-b border-ink-300 md:border-b-0">
-            <h2 className="hidden pb-2 type-display text-sm text-fg md:block">
+            <h2
+              className={cn(
+                'hidden pb-2 text-sm text-fg md:block',
+                displayHeadingClass(group.heading),
+              )}
+            >
               {group.heading}
             </h2>
             <h2 className="md:hidden">
@@ -58,7 +64,10 @@ function FooterGroups({
                 aria-expanded={open}
                 aria-controls={listId}
                 onClick={() => toggle(group.id)}
-                className="group flex min-h-touch w-full items-center justify-between text-left type-display text-sm text-fg"
+                className={cn(
+                  'group flex min-h-touch w-full items-center justify-between text-left text-sm text-fg',
+                  displayHeadingClass(group.heading),
+                )}
               >
                 {group.heading}
                 <ChevronDownIcon className="size-5 motion-safe:transition-transform group-aria-expanded:rotate-180" />
@@ -85,6 +94,7 @@ function FooterGroups({
 
 /** One side of the quick-links row: bold links, 44 px high, wrapping on a narrow screen. */
 function QuickLinks({links}: {links: readonly FooterQuickLink[]}) {
+  if (links.length === 0) return null;
   return (
     <ul className="flex flex-wrap items-center gap-x-6">
       {links.map((link) => (

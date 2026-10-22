@@ -55,6 +55,43 @@ function advance(ms: number) {
   });
 }
 
+describe('<ToastRegion> variant frames', () => {
+  const frameOf = (message: string) =>
+    screen.getByText(message).closest('[data-toast-variant]');
+
+  it('draws info in a neutral ink frame, not in the brand red used by errors', () => {
+    showToasts([
+      {message: 'Your choice was saved.', variant: 'info'},
+      {message: 'Could not add', variant: 'error'},
+    ]);
+    const info = frameOf('Your choice was saved.');
+    const error = frameOf('Could not add');
+    expect(info).toHaveClass('border-ink-900', 'bg-ink-50', 'text-ink-900');
+    expect(info?.className).not.toMatch(/primary|error/);
+    expect(error).toHaveClass('border-error-fg', 'bg-error-bg');
+    // Still told apart by more than colour: icon (not asserted here, see below) and live region.
+    expect(
+      within(screen.getByRole('status')).getByText('Your choice was saved.'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('alert')).getByText('Could not add'),
+    ).toBeInTheDocument();
+  });
+
+  it('gives info the info icon and error the alert icon (different shapes)', () => {
+    showToasts([
+      {message: 'Your choice was saved.', variant: 'info'},
+      {message: 'Could not add', variant: 'error'},
+    ]);
+    const svgMarkup = (message: string) =>
+      frameOf(message)?.querySelector('svg')?.innerHTML ?? '';
+    expect(svgMarkup('Your choice was saved.')).not.toBe('');
+    expect(svgMarkup('Your choice was saved.')).not.toBe(
+      svgMarkup('Could not add'),
+    );
+  });
+});
+
 describe('<ToastRegion> live regions', () => {
   it('keeps both live regions mounted while empty so a screen reader is already watching', () => {
     render(<Harness inputs={[]} />);

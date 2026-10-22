@@ -582,9 +582,11 @@ function ToastsSection() {
     <Section id="g-toasts" title="Toast notifications">
       <p className="max-w-prose text-fg-muted">
         Info, success and warning are announced politely and an error
-        assertively. A toast closes by itself after 6 seconds (never sooner than
-        4), pauses while it is hovered or has focus, and an error stays until it
-        is dismissed with its button or Escape.
+        assertively. Info has a neutral dark frame and the info icon; an error
+        has a red frame and the alert icon, so the two never look alike. A toast
+        closes by itself after 6 seconds (never sooner than 4), pauses while it
+        is hovered or has focus, and an error stays until it is dismissed with
+        its button or Escape.
       </p>
       <div className="flex flex-wrap gap-3">
         <Button

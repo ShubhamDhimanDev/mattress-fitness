@@ -117,7 +117,7 @@ export function CartLineItem({
             price={line.cost?.totalAmount ?? merchandise.price}
             compareAt={lineCompareAt(line)}
             size="md"
-            className={pending ? 'opacity-60' : undefined}
+            stale={pending}
           />
           {promotions.length > 0 ? (
             <ul className="text-sm text-fg-muted">

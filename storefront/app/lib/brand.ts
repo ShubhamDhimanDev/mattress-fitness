@@ -1,8 +1,9 @@
 // The client's logo and the head tags that come from it. Pure data, no framework imports.
 //
 // Provenance: the artwork is the client's own logo, supplied by the owner. `mattress-fitness-logo-original.png`
-// (1254 px, 543 kB) is kept in the repository as the master and is never served to browsers; the other sizes are
-// resized copies of the same artwork in `public/brand/`.
+// (1254 px, 543 kB) is kept in the repository as the master in `storefront/brand-source/`, outside `public/`, so
+// it is not part of the build and never reaches a browser; the other sizes are resized copies of the same artwork
+// in `public/brand/`.
 
 export const BRAND_NAME = 'Mattress Fitness';
 
@@ -19,7 +20,7 @@ export function logoPath(size: 48 | 96 | 180 | 256 | 512): string {
 }
 
 /**
- * Header logo: the 96 px file at 1x and the 180 px file at 2x for a display size of 48 to 56 CSS px. The explicit
+ * Header logo: the 96 px file at 1x and the 180 px file at 2x for a display size of 56 to 64 CSS px. The explicit
  * width and height reserve the space, so the logo causes no layout shift (CLS).
  */
 export const HEADER_LOGO = {

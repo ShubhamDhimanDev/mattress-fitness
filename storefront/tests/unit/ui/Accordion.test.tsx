@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import {cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {act, cleanup, fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 import {afterEach, describe, expect, it} from 'vitest';
 import {Accordion, type AccordionItem} from '~/components/ui/Accordion';
@@ -17,6 +17,52 @@ const ITEMS: AccordionItem[] = [
 function trigger(name: string) {
   return screen.getByRole('button', {name});
 }
+
+// Find-in-page (m8): collapsed panels are findable, and the browser's `beforematch` event opens the row.
+describe('<Accordion findInPage>', () => {
+  const panelOf = (name: string) =>
+    document.getElementById(trigger(name).getAttribute('aria-controls') ?? '');
+
+  it('marks collapsed panels hidden="until-found" (React 18 would render hidden="")', () => {
+    render(<Accordion items={ITEMS} findInPage defaultOpenIds={['b']} />);
+    expect(panelOf('Delivery')).toHaveAttribute('hidden', 'until-found');
+    expect(panelOf('Warranty')).not.toHaveAttribute('hidden');
+    // The text is still in the DOM.
+    expect(panelOf('Delivery')).toHaveTextContent('Delivery text');
+  });
+
+  it('opens the row when the browser reveals a match (beforematch), keeping aria-expanded in step', () => {
+    render(<Accordion items={ITEMS} type="multiple" findInPage />);
+    const panel = panelOf('Brand');
+    expect(trigger('Brand')).toHaveAttribute('aria-expanded', 'false');
+    act(() => {
+      panel?.dispatchEvent(new Event('beforematch'));
+    });
+    expect(trigger('Brand')).toHaveAttribute('aria-expanded', 'true');
+    expect(panelOf('Brand')).not.toHaveAttribute('hidden');
+  });
+
+  it('becomes findable again after it is closed, and a single-mode reveal closes the other row', () => {
+    render(<Accordion items={ITEMS} findInPage defaultOpenIds={['a']} />);
+    act(() => {
+      panelOf('Warranty')?.dispatchEvent(new Event('beforematch'));
+    });
+    expect(trigger('Delivery')).toHaveAttribute('aria-expanded', 'false');
+    expect(panelOf('Delivery')).toHaveAttribute('hidden', 'until-found');
+    expect(trigger('Warranty')).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(trigger('Warranty'));
+    expect(panelOf('Warranty')).toHaveAttribute('hidden', 'until-found');
+  });
+
+  it('keeps the plain hidden attribute when the prop is off (menus)', () => {
+    render(<Accordion items={ITEMS} />);
+    expect(panelOf('Delivery')).toHaveAttribute('hidden', '');
+    act(() => {
+      panelOf('Delivery')?.dispatchEvent(new Event('beforematch'));
+    });
+    expect(trigger('Delivery')).toHaveAttribute('aria-expanded', 'false');
+  });
+});
 
 describe('<Accordion>', () => {
   it('starts collapsed, with every trigger wired to its panel', () => {

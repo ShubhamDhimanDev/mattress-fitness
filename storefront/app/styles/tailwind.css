@@ -33,8 +33,10 @@
   /* ---------- Palette (brand red from the client's logo; greys, sale and status colours are PLACEHOLDERS, CLR-013) ----------
    * primary-500 is the logo's sampled red; the other steps are lightness steps of the same hue made by this project.
    * The neutrals, the burnt-orange sale text and the amber accent are not in the logo and are placeholders.
-   * Ratios use the WCAG 2.2 formula (ratio : minimum needed). tests/unit/ui/contrast.test.ts recomputes every
-   * pair below from the values in this block and fails when one drops under its minimum, so keep both in step.
+   * Ratios use the WCAG 2.2 formula (ratio : minimum needed). tests/unit/ui/contrast.test.ts recomputes the pairs
+   * it lists (most of those below, plus the category-tile overlay) from the values in this block and fails when one
+   * drops under its minimum. A ratio quoted here that the test does not list is documentation only: add it to the
+   * test before relying on it, and keep both in step.
    *
    * Brand red (docs/design/BRAND_APPLICATION_SPEC.md section 2.2)
    *   white on primary-500            5.08 : 4.5   primary button, promo bar, count bubble, selected size
@@ -55,6 +57,7 @@
    *   ink-400 on white                3.36 : 3.0   control borders (non-text UI); on ink-100 use ink-500 (4.43)
    *   white on ink-900               18.42 : 4.5   black promo band; ink-100 on ink-900 16.02 (fg-inverse)
    *   white on ink-800               15.13 : 4.5   category tile without an image
+   *   white on ink-900 at 60% over white  4.81 : 4.5   category tile label over a photo (worst case, a white photo)
    *
    * Sale and accent (never the brand red, so a saving is not mistaken for the brand or for an error)
    *   sale-fg on white                6.46 : 4.5   sale price and "Save $x"; on sale-bg 5.82, on ink-100 5.62

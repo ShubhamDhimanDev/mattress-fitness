@@ -103,7 +103,7 @@ export function ProductItem({
             {product.vendor}
           </p>
         ) : null}
-        <h3 className="line-clamp-3 text-base font-bold text-fg md:text-lg">
+        <h3 className="text-base font-bold text-fg md:line-clamp-4 md:text-lg">
           {/* The link's ::after covers the card, so the full card is the target without nesting links. The focus ring is the global one on this link (the e2e tab-walk checks the focused element paints it). */}
           <Link
             to={`/products/${product.handle}`}
