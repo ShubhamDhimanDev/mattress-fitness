@@ -178,7 +178,8 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
     ).toHaveCount(1); // one per breakpoint: the main row on a phone, the navigation on desktop (the other is display:none)
 
     if (isMobile) {
-      // Right-hand utility links move into the menu drawer below 768 px.
+      // Right-hand utility links move into the menu drawer below 1024 px (they need about 870 px beside the ZIP and
+      // store controls; BV-006: at 768 px they wrapped the bar to two lines). The phone project is 412 px wide.
       await expect(
         header.getByRole('link', {name: 'Track order'}),
       ).toBeHidden();
