@@ -33,6 +33,8 @@ Earlier runs of the same day found test-design faults only (animation measured m
 
 **Automated verdict: no serious or critical axe violation on any route or overlay at either width, against the placeholder palette.** That is a statement about this build and this mock data only.
 
+**Update 2026-10-22: the "placeholder palette" in that verdict no longer exists.** The brand palette (the logo red) replaced it in the restyle. This audit's results were not re-run against it and still describe the earlier build. For the restyled site: colour contrast is enforced by `storefront/tests/unit/ui/contrast.test.ts` (about 65 foreground and background pairs read from `tailwind.css`: text pairs at 4.5:1, non-text and focus-ring pairs at 3:1, and four documented unsafe pairs that must stay below their minimum), and [BRAND_VERIFICATION](BRAND_VERIFICATION.md) (BA-10) records the keyboard-only journey, axe, reflow and text-spacing checks on the restyled build, with the defects it found and their status. Those results are in that document, not repeated here. The contrast test checks the token pairs, not every rendered combination, and none of this replaces the manual and assistive-technology checks listed in this audit.
+
 ## Route inventory and axe results
 
 Columns are critical / serious / moderate / minor WCAG violations; "+n bp" is axe best-practice findings (not WCAG), named. 0/0/0/0 means axe reported nothing. HTTP is the status of the mock-store response.
