@@ -104,8 +104,13 @@ export function ProductBuyBox({
         {/* TODO(P3B-12): star rating and review count render here once a reviews provider is chosen (Q-011). */}
       </div>
 
-      {attributeBadges.length > 0 ? (
+      {attributeBadges.length > 0 || savings ? (
         <ul className="flex flex-wrap gap-1">
+          {savings ? (
+            <li>
+              <Badge variant="sale">{savings}</Badge>
+            </li>
+          ) : null}
           {attributeBadges.map((badge) => (
             <li key={badge}>
               <Badge variant="neutral">{badge}</Badge>
@@ -115,13 +120,7 @@ export function ProductBuyBox({
       ) : null}
 
       <div aria-live="polite" className="flex flex-col gap-1">
-        <Price
-          price={variant.price}
-          compareAt={variant.compareAt}
-          showSavings
-          size="lg"
-        />
-        {savings ? <Badge variant="sale">{savings}</Badge> : null}
+        <Price price={variant.price} compareAt={variant.compareAt} size="lg" />
         <p className="text-sm text-fg-muted">
           {variant.available ? 'In stock' : 'Sold out'}
           {variant.sku ? ` · SKU ${variant.sku}` : ''}

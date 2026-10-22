@@ -7,6 +7,7 @@ import {CartSizeSelect} from '~/components/cart/CartSizeSelect';
 import {useCartSubmit} from '~/components/cart/useCartSubmit';
 import type {CartLayout, LineItemChildrenMap} from '~/components/CartMain';
 import {Button} from '~/components/ui/Button';
+import {cn} from '~/components/ui/cn';
 import {Price} from '~/components/ui/Price';
 import {QuantityStepper} from '~/components/ui/QuantityStepper';
 import {MAX_LINE_QUANTITY} from '~/lib/cart/input';
@@ -75,7 +76,7 @@ export function CartLineItem({
       className="flex flex-col gap-3 border-b border-line py-4 first:pt-0 last:border-b-0"
     >
       <div className="flex gap-3">
-        <div className="size-24 shrink-0 overflow-hidden rounded-card bg-surface-muted">
+        <div className="size-24 shrink-0 overflow-hidden rounded-card border border-line bg-surface-muted">
           {image ? (
             <Image
               alt=""
@@ -115,7 +116,7 @@ export function CartLineItem({
           <Price
             price={line.cost?.totalAmount ?? merchandise.price}
             compareAt={lineCompareAt(line)}
-            size="sm"
+            size="md"
             className={pending ? 'opacity-60' : undefined}
           />
           {promotions.length > 0 ? (
@@ -140,7 +141,13 @@ export function CartLineItem({
         />
       ) : null}
 
-      <div className="flex items-center justify-between gap-2">
+      {/* In the narrow drawer the remove action sits at the far edge; on the wide page it stays beside the stepper. */}
+      <div
+        className={cn(
+          'flex items-center gap-4',
+          layout === 'aside' && 'justify-between',
+        )}
+      >
         <LineQuantity line={line} title={product.title} />
         <RemoveButton
           lineId={id}
@@ -210,6 +217,7 @@ function RemoveButton({
         type="submit"
         variant="ghost"
         size="sm"
+        className="underline underline-offset-2"
         disabled={disabled}
         aria-label={`Remove ${title} from cart`}
         onClick={onRemove}

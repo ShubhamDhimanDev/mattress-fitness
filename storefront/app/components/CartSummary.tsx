@@ -6,7 +6,9 @@ import type {CartLayout} from '~/components/CartMain';
 import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {Price} from '~/components/ui/Price';
+import {Skeleton} from '~/components/ui/Skeleton';
 import {CHECKOUT_STEPS_PATH, getCheckoutHref} from '~/lib/cart/checkout';
+import {subtotalView} from '~/lib/cart/subtotal';
 import type {BlockReason} from '~/lib/offers-runtime/messages';
 
 type CartSummaryProps = {
@@ -31,7 +33,7 @@ export function CartSummary({
   freeDeliverySlot,
   blocked = [],
 }: CartSummaryProps) {
-  const subtotal = cart?.cost?.subtotalAmount;
+  const subtotal = subtotalView(cart);
   const checkoutHref = getCheckoutHref(cart, {blocked});
   const Heading = layout === 'page' ? 'h2' : 'h3';
 
@@ -47,7 +49,7 @@ export function CartSummary({
     >
       <Heading
         id={`cart-summary-heading-${layout}`}
-        className="text-lg font-bold"
+        className="type-display text-lg"
       >
         Order summary
       </Heading>
@@ -58,17 +60,20 @@ export function CartSummary({
 
       <dl className="flex items-baseline justify-between gap-2">
         <dt className="text-base font-bold">Subtotal</dt>
-        <dd>
-          {subtotal?.amount && subtotal.currencyCode ? (
+        {/* While Shopify answers there is either an out-of-date amount (kept, dimmed) or none (a busy placeholder of the
+            final size): never a bare dash that reads as a missing price (RS-02). */}
+        <dd aria-busy={subtotal.status === 'pending' || subtotal.updating}>
+          {subtotal.status === 'ready' ? (
             <Price
-              price={{
-                amount: subtotal.amount,
-                currencyCode: subtotal.currencyCode,
-              }}
+              price={subtotal.amount}
               size="md"
+              className={subtotal.updating ? 'opacity-60' : undefined}
             />
           ) : (
-            <span>-</span>
+            <>
+              <Skeleton className="h-7 w-24" />
+              <span className="sr-only">Updating price</span>
+            </>
           )}
         </dd>
       </dl>
@@ -110,6 +115,17 @@ export function CartSummary({
           size="lg"
           fullWidth
           loading={Boolean(cart?.isOptimistic)}
+          loadingLabel="Updating cart"
+        >
+          Checkout
+        </Button>
+      ) : cart?.isOptimistic ? (
+        // A first add has no checkout URL until Shopify answers; saying "not available" for that second is wrong.
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          loading
           loadingLabel="Updating cart"
         >
           Checkout

@@ -28,7 +28,7 @@ export function AddToCartButton({
       {(fetcher) => (
         <Button
           type="submit"
-          variant="accent"
+          variant="primary"
           size="lg"
           fullWidth
           disabled={disabled}

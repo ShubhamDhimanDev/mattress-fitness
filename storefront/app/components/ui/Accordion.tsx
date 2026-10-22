@@ -35,11 +35,20 @@ type AccordionProps = {
   defaultOpenIds?: readonly string[];
   /** Level of the heading around each trigger; pick the one that fits the page outline. */
   headingLevel?: HeadingLevel;
+  /**
+   * `default` is a content row (heavy sentence case, 44 px). `menu` is a navigation row in the mobile menu:
+   * 56 px, heavy uppercase display type like the desktop navigation items.
+   */
+  variant?: 'default' | 'menu';
   className?: string;
 };
 
-const ROW_CLASSES =
-  'flex min-h-touch w-full items-center justify-between gap-3 px-4 py-3 text-left text-base font-bold text-fg hover:bg-surface-muted';
+const ROW_BASE =
+  'flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-fg hover:bg-surface-muted';
+const ROW_VARIANT = {
+  default: 'min-h-touch text-base font-extrabold',
+  menu: 'min-h-14 type-display text-base',
+} as const;
 
 function isLinkItem(item: AccordionItem): item is AccordionLinkItem {
   return 'to' in item;
@@ -55,8 +64,10 @@ export function Accordion({
   type = 'single',
   defaultOpenIds = [],
   headingLevel = 3,
+  variant = 'default',
   className,
 }: AccordionProps) {
+  const rowClasses = cn(ROW_BASE, ROW_VARIANT[variant]);
   const baseId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [openIds, setOpenIds] = useState<readonly string[]>(defaultOpenIds);
@@ -105,7 +116,7 @@ export function Accordion({
                 data-accordion-row=""
                 onClick={item.onNavigate}
                 onKeyDown={onRowKeyDown}
-                className={ROW_CLASSES}
+                className={rowClasses}
               >
                 <span>{item.title}</span>
                 <ChevronRightIcon className="size-5 text-fg-muted" />
@@ -130,7 +141,7 @@ export function Accordion({
                 onClick={() => toggle(item.id)}
                 onKeyDown={onRowKeyDown}
                 className={cn(
-                  ROW_CLASSES,
+                  rowClasses,
                   'group disabled:cursor-not-allowed disabled:text-fg-muted',
                 )}
               >

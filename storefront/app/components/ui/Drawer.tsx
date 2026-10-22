@@ -37,7 +37,7 @@ export function Drawer({
       initialFocusRef={initialFocusRef}
     >
       <div className="flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-line pr-2 pl-4">
-        <h2 id={titleId} className="text-lg leading-7 font-bold uppercase">
+        <h2 id={titleId} className="type-display text-2xl">
           {title}
         </h2>
         <IconButton label={closeLabel} icon={<CloseIcon />} onClick={onClose} />

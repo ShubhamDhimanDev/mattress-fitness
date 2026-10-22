@@ -1,14 +1,19 @@
 import {Image} from '@shopify/hydrogen';
 import {Link} from 'react-router';
 import {keyedText} from '~/lib/shopify/keys';
-import {Accordion} from '~/components/ui/Accordion';
+import {Accordion, type AccordionPanelItem} from '~/components/ui/Accordion';
 import type {BrandLink} from '~/lib/shopify/brand-link';
+import {splitSpecifications} from '~/lib/shopify/spec-tiles';
 import type {ProductPageView} from '~/lib/shopify/types';
 
 /**
- * Overview, features, specifications, brand and FAQs (REQ-PDP-002). Each section is rendered only when it
- * has data, so a product without metafields shows just its description. All text is plain (see
- * lib/shopify/rich-text.ts); nothing from the admin is inserted as HTML.
+ * Specification tiles and features beside the overview, then accordions for the brand and its warranty, then FAQs
+ * (REQ-PDP-002, BA-08). Each section is rendered only when it has data, so a product without metafields shows just its
+ * description. All text is plain (see lib/shopify/rich-text.ts); nothing from the admin is inserted as HTML. Collapsed
+ * accordion rows keep their content in the HTML (`hidden`), so crawlers and find-in-page still see it.
+ *
+ * There is no "Delivery and shipping" row yet: its wording has to come from the client (B-15, UXD-16), and the
+ * ZIP-based delivery promise already sits in the buy box (DeliveryCheck).
  */
 export function ProductSections({
   product,
@@ -18,83 +23,28 @@ export function ProductSections({
   /** The brand's page, when one exists; adds a link in the brand section. */
   brandLink?: BrandLink | null;
 }) {
-  const attributes = [
-    ['Comfort level', product.comfortLevel],
-    ['Mattress type', product.mattressType],
-    ['Sleep positions', product.sleepPositions.join(', ') || null],
-    ['Benefits', product.benefits.join(', ') || null],
-    ['Product line', product.productLine],
-    [
-      'Height',
-      product.heightInches === null ? null : `${product.heightInches} in`,
-    ],
-  ].flatMap(([label, value]) => (label && value ? [{label, value}] : []));
-  const specifications = [...attributes, ...product.specifications];
-
-  return (
-    <div className="mt-12 flex max-w-prose flex-col gap-10 lg:max-w-none">
-      {product.description.length > 0 ? (
-        <section aria-labelledby="pdp-overview-heading">
-          <h2 id="pdp-overview-heading" className="mb-3 text-2xl font-bold">
-            Overview
-          </h2>
-          <div className="flex max-w-prose flex-col gap-3 text-base">
-            {keyedText(product.description).map((paragraph) => (
-              <p key={paragraph.key}>{paragraph.text}</p>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {product.features.length > 0 ? (
-        <section aria-labelledby="pdp-features-heading">
-          <h2 id="pdp-features-heading" className="mb-3 text-2xl font-bold">
-            Features
-          </h2>
-          <ul className="max-w-prose list-disc pl-6 text-base">
-            {product.features.map((feature) => (
-              <li key={feature}>{feature}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {specifications.length > 0 ? (
-        <section aria-labelledby="pdp-specs-heading">
-          <h2 id="pdp-specs-heading" className="mb-3 text-2xl font-bold">
-            Specifications
-          </h2>
-          <table className="w-full max-w-prose border-collapse text-left text-base">
-            <tbody>
-              {specifications.map((row) => (
-                <tr key={row.label} className="border-b border-line">
-                  <th scope="row" className="w-2/5 py-2 pr-4 font-bold">
-                    {row.label}
-                  </th>
-                  <td className="py-2">{row.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      ) : null}
-
-      {product.brand &&
-      (product.brand.about.length > 0 || product.brand.warranty.length > 0) ? (
-        <section aria-labelledby="pdp-brand-heading">
-          <h2 id="pdp-brand-heading" className="mb-3 text-2xl font-bold">
-            About {product.brand.name}
-          </h2>
-          {product.brand.logo ? (
+  const {tiles, rows} = splitSpecifications(product);
+  const hasOverview = product.description.length > 0;
+  const hasSpecs = tiles.length > 0 || rows.length > 0;
+  const hasFeatures = product.features.length > 0;
+  const brand = product.brand;
+  const brandRows: AccordionPanelItem[] = [];
+  if (brand && brand.about.length > 0) {
+    brandRows.push({
+      id: 'brand',
+      title: `About ${brand.name}`,
+      content: (
+        <div className="flex flex-col gap-3">
+          {brand.logo ? (
             <Image
-              data={product.brand.logo}
-              alt={product.brand.logo.altText ?? product.brand.name}
+              data={brand.logo}
+              alt={brand.logo.altText ?? brand.name}
               sizes="160px"
-              className="mb-3 h-auto max-h-16 w-auto"
+              className="h-auto max-h-16 w-auto self-start"
             />
           ) : null}
           <div className="flex max-w-prose flex-col gap-3 text-base">
-            {keyedText(product.brand.about).map((paragraph) => (
+            {keyedText(brand.about).map((paragraph) => (
               <p key={paragraph.key}>{paragraph.text}</p>
             ))}
           </div>
@@ -102,27 +52,138 @@ export function ProductSections({
             <Link
               to={brandLink.to}
               prefetch="intent"
-              className="mt-3 inline-flex min-h-touch items-center font-bold text-primary-700 underline underline-offset-4 hover:text-primary-800"
+              className="inline-flex min-h-touch w-fit items-center font-bold text-primary-700 underline underline-offset-4 hover:text-primary-800"
             >
               See all {brandLink.name} products
             </Link>
           ) : null}
-          {product.brand.warranty.length > 0 ? (
-            <div className="mt-4 max-w-prose">
-              <h3 className="mb-2 text-xl font-bold">Warranty</h3>
-              <div className="flex flex-col gap-3 text-base">
-                {keyedText(product.brand.warranty).map((paragraph) => (
+        </div>
+      ),
+    });
+  }
+  if (brand && brand.warranty.length > 0) {
+    brandRows.push({
+      id: 'warranty',
+      title: 'Warranty',
+      content: (
+        <div className="flex max-w-prose flex-col gap-3 text-base">
+          {keyedText(brand.warranty).map((paragraph) => (
+            <p key={paragraph.key}>{paragraph.text}</p>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  return (
+    <div className="mt-12 flex flex-col gap-10">
+      {hasOverview || hasSpecs || hasFeatures ? (
+        // The overview comes first in the HTML (a phone shopper reads it first). From lg the specification column sits on
+        // the left and the overview on the right, placed by the grid and not by reordering the markup.
+        <div className="grid gap-10 lg:grid-cols-3">
+          {hasOverview ? (
+            <section
+              aria-labelledby="pdp-overview-heading"
+              className={
+                hasSpecs || hasFeatures
+                  ? 'lg:col-span-2 lg:col-start-2 lg:row-start-1'
+                  : 'lg:col-span-3'
+              }
+            >
+              <h2
+                id="pdp-overview-heading"
+                className="mb-3 text-2xl font-extrabold"
+              >
+                Overview
+              </h2>
+              <div className="flex max-w-prose flex-col gap-3 text-base">
+                {keyedText(product.description).map((paragraph) => (
                   <p key={paragraph.key}>{paragraph.text}</p>
                 ))}
               </div>
+            </section>
+          ) : null}
+
+          {hasSpecs || hasFeatures ? (
+            <div className="flex min-w-0 flex-col gap-10 lg:col-start-1 lg:row-start-1">
+              {hasSpecs ? (
+                <section aria-labelledby="pdp-specs-heading">
+                  <h2
+                    id="pdp-specs-heading"
+                    className="mb-3 text-2xl font-extrabold"
+                  >
+                    Specifications
+                  </h2>
+                  {tiles.length > 0 ? (
+                    <dl className="mb-4 grid grid-cols-2 border-t border-l border-line">
+                      {tiles.map((tile) => (
+                        <div
+                          key={tile.label}
+                          className="flex flex-col items-center justify-center gap-1 border-r border-b border-line p-3 text-center"
+                        >
+                          <dt className="text-xs font-extrabold tracking-wide text-fg-muted uppercase">
+                            {tile.label}
+                          </dt>
+                          <dd className="text-lg font-bold break-words">
+                            {tile.value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : null}
+                  {rows.length > 0 ? (
+                    <table className="w-full border-collapse text-left text-base">
+                      <tbody>
+                        {rows.map((row) => (
+                          <tr key={row.label} className="border-b border-line">
+                            <th
+                              scope="row"
+                              className="w-2/5 py-2 pr-4 font-bold"
+                            >
+                              {row.label}
+                            </th>
+                            <td className="py-2">{row.value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : null}
+                </section>
+              ) : null}
+
+              {hasFeatures ? (
+                <section aria-labelledby="pdp-features-heading">
+                  <h2
+                    id="pdp-features-heading"
+                    className="mb-3 text-2xl font-extrabold"
+                  >
+                    Features
+                  </h2>
+                  <ul className="list-disc pl-6 text-base">
+                    {product.features.map((feature) => (
+                      <li key={feature}>{feature}</li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {brandRows.length > 0 ? (
+        <section aria-labelledby="pdp-brand-heading">
+          {/* The accordion triggers are h3: this heading gives them an h2 parent in the outline. */}
+          <h2 id="pdp-brand-heading" className="sr-only">
+            About the brand and warranty
+          </h2>
+          <Accordion type="multiple" headingLevel={3} items={brandRows} />
         </section>
       ) : null}
 
       {product.faqs.length > 0 ? (
         <section aria-labelledby="pdp-faq-heading">
-          <h2 id="pdp-faq-heading" className="mb-3 text-2xl font-bold">
+          <h2 id="pdp-faq-heading" className="mb-3 text-2xl font-extrabold">
             Frequently asked questions
           </h2>
           <Accordion

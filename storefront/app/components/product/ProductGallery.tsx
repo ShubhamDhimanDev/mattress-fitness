@@ -126,7 +126,9 @@ export function ProductGallery({
                 onClick={() => setIndex(position)}
                 className={cn(
                   'size-16 overflow-hidden rounded-choice border-2 bg-surface-muted',
-                  position === index ? 'border-ink-900' : 'border-line',
+                  position === index
+                    ? 'border-primary-500'
+                    : 'border-line hover:border-line-strong',
                 )}
               >
                 <Image

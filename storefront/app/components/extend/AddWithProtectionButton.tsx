@@ -29,7 +29,7 @@ export function AddWithProtectionButton({
       {(fetcher) => (
         <Button
           type="submit"
-          variant="accent"
+          variant="primary"
           size="lg"
           fullWidth
           disabled={disabled}

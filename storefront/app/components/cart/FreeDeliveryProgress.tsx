@@ -25,7 +25,7 @@ export function FreeDeliveryProgress({progress}: {progress: Progress}) {
         className="h-2 w-full overflow-hidden rounded-pill bg-ink-200"
       >
         <div
-          className="h-full rounded-pill bg-primary-700 motion-safe:transition-[width]"
+          className="h-full rounded-pill bg-primary-500 motion-safe:transition-[width]"
           style={{width: `${progress.percent}%`}}
         />
       </div>
