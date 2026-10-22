@@ -203,16 +203,18 @@ Files (provenance in BRAND_TOKENS): the served copies `mattress-fitness-logo-512
 
 | Place | Rendered size | `src` and `srcSet` | `sizes` | Classes |
 | --- | --- | --- | --- | --- |
-| Header, below `lg` | 56 px | `-96.png`; `srcSet` `-96.png 96w, -180.png 180w` | `(min-width: 1024px) 64px, 56px` | `size-14 rounded-full` |
+| Header, below `lg` | 56 px | `-96.png`; `srcSet` `-96.png 1x, -180.png 2x`; `width` and `height` attributes 56 | none (density descriptors) | `size-14` (as built: not clipped round, the header is white) |
 | Header, `lg` and up | 64 px | same | same | `lg:size-16` |
-| Footer, below `md` | 96 px | `-180.png`; `srcSet` `-180.png 180w, -256.png 256w` | `(min-width: 768px) 112px, 96px` | `size-24 rounded-full` |
+| Footer, below `md` | 96 px | `-256.png`; `srcSet` `-256.png 256w, -512.png 512w`; `width` and `height` attributes 112 | `112px` | `size-24 shrink-0 rounded-full`, lazy |
 | Footer, `md` and up | 112 px | same | same | `md:size-28` |
+
+The table matches `app/lib/brand.ts` and `BrandLogo.tsx` as read on 2026-10-22; the first draft of this section said the header was clipped round and the footer used the 180 and 256 files, which is not what was built.
 | Favicon | 48 px | `<link rel="icon" type="image/png" sizes="48x48" href="/brand/mattress-fitness-logo-48.png">` | | in `root.tsx` links (replaces the template SVG) |
 | Touch icon | 180 px | `<link rel="apple-touch-icon" sizes="180x180" href="/brand/mattress-fitness-logo-180.png">` | | `root.tsx` |
 
-Notes. Use a plain `<img>` with `width` and `height` attributes (64 and 64, or 112 and 112) so no layout shift occurs; Hydrogen's `Image` is for Shopify CDN data, this is a static project asset (same reasoning as the ADR-0010 note). `alt="Mattress Fitness"`; the link to `/` has no other label. From `md` up a wordmark text (`type-display text-lg leading-none text-fg`, two lines "Mattress" and "Fitness", `aria-hidden="true"`) sits to the right of the disc to compensate for the small mark (at 56 px the logo's name letters are about 6 px tall and the tagline is unreadable; the tagline is decorative). Do not draw a second tagline. Working clear-space rule (client has not supplied one): at least one quarter of the diameter on every side (14 px at 56, 16 px at 64). Working minimum size 56 px. The logo link keeps the 44 px target (it is larger).
+Notes. Use a plain `<img>` with `width` and `height` attributes (as built 56 and 56 for the header, 112 and 112 for the footer) so no layout shift occurs; Hydrogen's `Image` is for Shopify CDN data, this is a static project asset (same reasoning as the ADR-0010 note). `alt="Mattress Fitness"`; the link to `/` has no other label. From `md` up a wordmark text (`type-display text-lg leading-none text-fg`, two lines "Mattress" and "Fitness", `aria-hidden="true"`) sits to the right of the disc to compensate for the small mark (at 56 px the logo's name letters are about 6 px tall and the tagline is unreadable; the tagline is decorative). Do not draw a second tagline. Working clear-space rule (client has not supplied one): at least one quarter of the diameter on every side (14 px at 56, 16 px at 64). Working minimum size 56 px. The logo link keeps the 44 px target (it is larger).
 
-The 512 px and original files are not used by the page (open graph image and print only, if the owner wants them; 512 is the right size for a share image).
+The 512 px file is used by the footer `srcSet`; the 1254 px original is not served (it is in `storefront/brand-source/`). 512 would also suit a share image if the owner wants one.
 
 ---
 
@@ -419,7 +421,7 @@ Checked by reading the code at HEAD (not by running tests). Commits on `feat/bra
 | BA-07 card and listing | 396baf4 | Built | Row and stack card, tag under image, sidebar 288 px, grey promo tiles |
 | BA-08 product page | 0f1deae | Partly built | Two columns, specification tiles, brand and warranty accordions; no "Delivery and shipping" row (no supplied wording, B-15) |
 | BA-09 cart | 0f1deae | Built | Tokens, titles and empty state button |
-| BA-10 verification | in progress | Open | axe, four-width screenshots, keyboard journey, e2e assertions |
+| BA-10 verification | 42dfae0, f3e73f9, 4655f77, d20f25c, 2cd0931 (after 6366e20) | Done (independent QA run), designer decisions open | QA run recorded in [BRAND_VERIFICATION](../testing/BRAND_VERIFICATION.md). BV-001 to BV-007 and BV-012 fixed in f3e73f9; review notes in 2cd0931; the code-reviewer approved f3e73f9 and 4655f77 with notes and no Blocker or Major (as reported by the coordinator; the review report was not read here); BV-008 mitigated (card padding `p-2.5 md:p-3`); BV-009 to BV-011 are open designer decisions. The QA run used Chromium only (no WebKit, Firefox, real device or assistive technology) |
 | BA-11 | none | Blocked | Signup, social, financing, fulfilment tiles, carousels: need client content or other tasks |
 
 Review-fix commit 6366e20 on this branch (the code was re-read on 2026-10-22; the commit hash itself was not checked with git, it is as given by the coordinator), changes against this spec:

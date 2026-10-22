@@ -60,7 +60,7 @@ Headless Chrome screenshots of the home, a collection and a product page at desk
 
 **Visual language to reproduce as structure, not as brand:** heavy use of bold uppercase for strips and buttons; high-contrast accent colour on white; pill buttons for navigation-level calls to action and rectangular buttons for choices; generous tap targets; a restrained, single sans-serif typeface.
 
-**Our tokens until the brand kit arrives (CLR-013):** a neutral placeholder palette deliberately different from the reference site's, one sans-serif system font stack, 8 px spacing scale, 44 px minimum targets. Swapping to the client's palette, logo and fonts must be a one-file token change.
+**Our tokens (updated 2026-10-22):** the brand red `#DE0510` and white are taken from the client's own logo supplied that day; the greys, amber accent, sale and status colours are still placeholders until the brand kit arrives (CLR-013). One sans-serif system font stack (heavy uppercase display utility for short labels), 8 px spacing scale, 44 px minimum targets. No colour is sampled from or matched to the reference site (NFR-007); the similarity of hue comes from the client's logo. Swapping in the rest of the client's palette and fonts remains a one-file token change. Values: [BRAND_TOKENS](BRAND_TOKENS.md). (This paragraph previously described a teal placeholder palette.)
 
 ## Observation pass of 2026-10-22 (live pages, observer only)
 
