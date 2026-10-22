@@ -1,4 +1,4 @@
-import type {Page} from '@playwright/test';
+import type {Locator, Page} from '@playwright/test';
 import {describeFocus, type FocusInfo} from './a11y';
 
 // Helpers for the brand restyle verification (BA-10). Measurements only: nothing here changes the page. The ring is
@@ -27,6 +27,16 @@ export type RingInfo = FocusInfo & {
   contrast: number;
   /** Ancestor that clips the ring (overflow not visible and the ring rect crosses its edge), with the sides. */
   clippedBy: string | null;
+  /** True when the element that carries the ring is `position: fixed` (floats over unrelated content). */
+  fixed: boolean;
+  /** The rectangle the ring covers, in viewport CSS pixels (control box grown by offset plus width). */
+  box: {left: number; top: number; right: number; bottom: number};
+  /**
+   * Worst contrast of the ring colour against the PAINTED pixels just outside the ring (a viewport screenshot read back
+   * on a canvas), or null when it was not sampled. Taken for rings over a gradient or image (where the CSS colour model
+   * is only a guess) and for fixed controls without a band. See `samplePaintedContrast`.
+   */
+  pixelContrast: number | null;
 };
 
 /** Measures the focus ring of the focused element (or, for a hidden native input, of its visible stand-in). */
@@ -151,7 +161,9 @@ export async function describeRing(page: Page): Promise<RingInfo | null> {
     let contrast = ratio(ringOver, acc);
 
     // A solid, blur-free box-shadow band wider than the ring offset lies under the inner part of the ring (the
-    // skip link: ink band, yellow ring). The ring then touches the band, and the band touches the surround.
+    // skip link: ink band, yellow ring). The ring then touches the band, and the band touches the surround. A band
+    // counts only when it reaches (nearly) the ring's outer edge: spread >= offset + width - 1. A thinner shadow leaves
+    // part of the ring (and a gap) on the bare surround, so it must not lift the judgement above ring vs surround.
     let band: [number, number, number] | null = null;
     const bandPattern =
       /(rgba?\([^)]*\))\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+([\d.]+)px\s+(-?[\d.]+)px(?!\s+inset)/g;
@@ -161,7 +173,8 @@ export async function describeRing(page: Page): Promise<RingInfo | null> {
         parseFloat(v ?? '0'),
       );
       if (dx !== 0 || dy !== 0 || blur !== 0) continue;
-      if ((spread ?? 0) <= ringOffset || colour[3] < 0.99) continue;
+      if ((spread ?? 0) < ringOffset + ringWidth - 1 || colour[3] < 0.99)
+        continue;
       band = [colour[0], colour[1], colour[2]];
       break;
     }
@@ -209,25 +222,118 @@ export async function describeRing(page: Page): Promise<RingInfo | null> {
       band: band ? `rgb(${r(band[0])},${r(band[1])},${r(band[2])})` : null,
       contrast: Math.round(contrast * 100) / 100,
       clippedBy,
+      fixed: style.position === 'fixed',
+      box: {
+        left: ringRect.left,
+        top: ringRect.top,
+        right: ringRect.right,
+        bottom: ringRect.bottom,
+      },
+      pixelContrast: null,
     };
   });
   if (!measured) return null;
   return {...focus, ...measured};
 }
 
+/**
+ * Contrast of the ring colour against what is really painted just outside the ring: a viewport screenshot (CSS pixel
+ * scale) is decoded on a canvas and three 5 x 5 pixel blocks per side, 3 px beyond the ring rectangle, are averaged. The
+ * worst block decides. Used where the CSS colour model cannot know the backdrop (a photo, a gradient, a fixed control).
+ * Returns null when no sample point lies inside the viewport.
+ */
+export async function samplePaintedContrast(
+  page: Page,
+  ring: Pick<RingInfo, 'ring' | 'box'>,
+): Promise<number | null> {
+  const shot = await page.screenshot({scale: 'css', type: 'png'});
+  return page.evaluate(
+    async ({data, box, colour}) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${data}`;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d', {willReadFrequently: true});
+      if (!ctx) return null;
+      ctx.drawImage(image, 0, 0);
+      const scale = image.width / document.documentElement.clientWidth;
+      const lum = (r: number, g: number, b: number) => {
+        const f = (v: number) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      };
+      const ringRgb = (colour.match(/\d+/g) ?? ['0', '0', '0']).map(Number);
+      const ringLum = lum(ringRgb[0] ?? 0, ringRgb[1] ?? 0, ringRgb[2] ?? 0);
+      const gap = 3;
+      const spanX = box.right - box.left;
+      const spanY = box.bottom - box.top;
+      const points: [number, number][] = [];
+      for (const t of [0.25, 0.5, 0.75]) {
+        points.push(
+          [box.left - gap, box.top + spanY * t],
+          [box.right + gap, box.top + spanY * t],
+          [box.left + spanX * t, box.top - gap],
+          [box.left + spanX * t, box.bottom + gap],
+        );
+      }
+      let worst: number | null = null;
+      for (const [x, y] of points) {
+        const px = Math.round(x * scale) - 2;
+        const py = Math.round(y * scale) - 2;
+        if (px < 0 || py < 0 || px + 5 > canvas.width || py + 5 > canvas.height)
+          continue;
+        const d = ctx.getImageData(px, py, 5, 5).data;
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          r += d[i] ?? 0;
+          g += d[i + 1] ?? 0;
+          b += d[i + 2] ?? 0;
+        }
+        const n = d.length / 4;
+        const l = lum(r / n, g / n, b / n);
+        const ratio =
+          (Math.max(l, ringLum) + 0.05) / (Math.min(l, ringLum) + 0.05);
+        if (worst === null || ratio < worst) worst = ratio;
+      }
+      return worst === null ? null : Math.round(worst * 100) / 100;
+    },
+    {data: shot.toString('base64'), box: ring.box, colour: ring.ring},
+  );
+}
+
+export type RingStop = RingInfo & {index: number};
+
 export type RingWalk = {
-  stops: (RingInfo & {index: number})[];
+  stops: RingStop[];
+  /**
+   * True when focus left the document, or wrapped round to the FIRST stop (a closed loop through the whole page). False
+   * when the walk hit `max` stops, or focus went back to a stop that was not the first (a keyboard trap), see `trap`.
+   */
   completed: boolean;
+  /** Describes the trap (which stop focus returned to, after which stop), or null. */
+  trap: string | null;
 };
 
-/** Tab through the page from the top, measuring each stop. Ends when focus leaves the document or repeats. */
+/**
+ * Tab through the page from the top, measuring each stop. Ends when focus leaves the document or wraps to the first stop
+ * (completed), when it returns to any other stop already visited (a trap: A to B to C to B), or at `max` stops.
+ */
 export async function walkRings(page: Page, max = 250): Promise<RingWalk> {
   await page.evaluate(() => {
     (document.activeElement as HTMLElement | null)?.blur();
     window.scrollTo(0, 0);
     document
-      .querySelectorAll('[data-ring-seen]')
-      .forEach((node) => node.removeAttribute('data-ring-seen'));
+      .querySelectorAll('[data-ring-seen], [data-ring-first]')
+      .forEach((node) => {
+        node.removeAttribute('data-ring-seen');
+        node.removeAttribute('data-ring-first');
+      });
   });
   const stops: RingWalk['stops'] = [];
   for (let index = 0; index < max; index += 1) {
@@ -235,21 +341,52 @@ export async function walkRings(page: Page, max = 250): Promise<RingWalk> {
     const state = await page.evaluate(() => {
       const el = document.activeElement;
       if (!el || el === document.body || el === document.documentElement)
-        return 'end';
-      if (el.hasAttribute('data-ring-seen')) return 'repeat';
+        return {kind: 'end' as const, label: ''};
+      const label = `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') ?? (el as HTMLElement).innerText ?? '').trim().slice(0, 40)}"`;
+      if (el.hasAttribute('data-ring-seen'))
+        return {
+          kind: el.hasAttribute('data-ring-first')
+            ? ('wrap' as const)
+            : ('repeat' as const),
+          label,
+        };
       el.setAttribute('data-ring-seen', '1');
-      return 'new';
+      // The first element focused is the one a wrap-around has to come back to.
+      if (!document.querySelector('[data-ring-first]'))
+        el.setAttribute('data-ring-first', '1');
+      return {kind: 'new' as const, label};
     });
-    if (state !== 'new') return {stops, completed: true};
+    if (state.kind === 'end' || state.kind === 'wrap')
+      return {stops, completed: true, trap: null};
+    if (state.kind === 'repeat') {
+      const previous = stops[stops.length - 1];
+      return {
+        stops,
+        completed: false,
+        trap: `Tab after stop #${previous?.index ?? '?'} (${previous?.label ?? 'none'}) returned to ${state.label}, a stop already visited that is not the first`,
+      };
+    }
     const info = await describeRing(page);
-    if (info) stops.push({index, ...info});
+    if (info) {
+      // Rings over a photo or gradient, and fixed controls without a band, are judged on painted pixels too.
+      const pixels =
+        info.surroundIsImage || (info.fixed && info.band === null)
+          ? await samplePaintedContrast(page, info)
+          : null;
+      stops.push({index, ...info, pixelContrast: pixels});
+    }
   }
-  return {stops, completed: false};
+  return {stops, completed: false, trap: null};
+}
+
+/** Stops whose ring sits over a gradient or image, where only the painted-pixel sample can say anything. */
+export function stopsOverImages(stops: readonly RingStop[]): RingStop[] {
+  return stops.filter((s) => s.surroundIsImage);
 }
 
 /** Stops that break the focus-visible expectations, as readable lines. */
 export function ringProblems(
-  stops: readonly (RingInfo & {index: number})[],
+  stops: readonly RingStop[],
   minContrast = 3,
 ): string[] {
   const problems: string[] = [];
@@ -260,12 +397,48 @@ export function ringProblems(
       problems.push(`#${s.index} ${s.label}: obscured by another element`);
     if (s.clippedBy)
       problems.push(`#${s.index} ${s.label}: ring clipped by ${s.clippedBy}`);
+    // Over an image the colour model is a guess, so only the painted pixels can fail the stop.
     if (s.indicator && !s.surroundIsImage && s.contrast < minContrast)
       problems.push(
         `#${s.index} ${s.label}: ring ${s.ring} on ${s.surround} is ${s.contrast}:1 (< ${minContrast})`,
       );
+    if (
+      s.indicator &&
+      s.pixelContrast !== null &&
+      s.pixelContrast < minContrast
+    )
+      problems.push(
+        `#${s.index} ${s.label}: ring ${s.ring} on painted pixels is ${s.pixelContrast}:1 (< ${minContrast})`,
+      );
   }
   return problems;
+}
+
+/**
+ * Words that the browser has broken across two lines inside the matching elements (a word with no break opportunity that
+ * a narrow box splits mid-word). Measured per word with a Range: two client rects on different lines mean a split.
+ */
+export async function midWordBreaks(scope: Locator): Promise<string[]> {
+  return scope.evaluateAll((roots) => {
+    const out: string[] = [];
+    for (const root of roots) {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const text = n.textContent ?? '';
+        for (const m of text.matchAll(/\S+/g)) {
+          const range = document.createRange();
+          range.setStart(n, m.index ?? 0);
+          range.setEnd(n, (m.index ?? 0) + m[0].length);
+          const rects = Array.from(range.getClientRects()).filter(
+            (r) => r.width > 0,
+          );
+          const tops = new Set(rects.map((r) => Math.round(r.top / 4)));
+          if (tops.size > 1) out.push(m[0]);
+        }
+      }
+    }
+    return out;
+  });
 }
 
 // ---------------------------------------------------------------------------------------------------------------
