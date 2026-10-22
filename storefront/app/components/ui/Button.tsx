@@ -4,11 +4,21 @@ import {cn} from '~/components/ui/cn';
 import {SpinnerIcon} from '~/components/ui/Icons';
 
 /**
- * `pill` is shorthand for the primary look in the pill shape, the navigation-level call to action.
- * Any other variant can take the pill shape with `shape="pill"`; choice buttons keep the 4 px radius.
+ * `pill` is shorthand for the primary look in the pill shape. Any other variant can take the pill shape with
+ * `shape="pill"`; choice buttons keep the 8 px radius (`rounded-choice`).
+ *
+ * `inverse` and `inverse-outline` are for the red hero band only. They sit inside an `on-dark` surface, which
+ * turns the focus ring yellow (blue on red is 1.31:1). `accent` is for black bands. Hover and pressed shades are
+ * chosen so the label contrast rises, never relying on the fill change alone (spec section 2.2, rule 3).
  */
 export type ButtonVariant =
-  'primary' | 'secondary' | 'ghost' | 'accent' | 'pill';
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'accent'
+  | 'pill'
+  | 'inverse'
+  | 'inverse-outline';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 export type ButtonShape = 'default' | 'pill';
 
@@ -33,14 +43,18 @@ export type ButtonProps = OwnProps & ActionElementProps;
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
-    'border-primary-700 bg-primary-700 text-white hover:border-primary-800 hover:bg-primary-800 active:bg-primary-900',
-  pill: 'border-primary-700 bg-primary-700 text-white hover:border-primary-800 hover:bg-primary-800 active:bg-primary-900',
+    'border-primary-500 bg-primary-500 text-white hover:border-primary-600 hover:bg-primary-600 active:border-primary-700 active:bg-primary-700',
+  pill: 'border-primary-500 bg-primary-500 text-white hover:border-primary-600 hover:bg-primary-600 active:border-primary-700 active:bg-primary-700',
   secondary:
-    'border-primary-700 bg-surface text-primary-700 hover:bg-primary-50 active:bg-primary-100',
+    'border-primary-500 bg-surface text-primary-700 hover:bg-primary-50 active:bg-primary-100',
   ghost:
     'border-transparent bg-transparent text-primary-700 hover:bg-primary-50 active:bg-primary-100',
   accent:
-    'border-accent-400 bg-accent-400 text-ink-900 hover:border-accent-300 hover:bg-accent-300 active:bg-accent-500',
+    'border-accent-400 bg-accent-400 text-ink-900 hover:border-accent-300 hover:bg-accent-300 active:border-accent-500 active:bg-accent-500',
+  inverse:
+    'border-white bg-white text-primary-700 hover:border-primary-50 hover:bg-primary-50 active:border-primary-100 active:bg-primary-100',
+  'inverse-outline':
+    'border-white bg-transparent text-white hover:bg-white hover:text-primary-700 active:bg-primary-50 active:text-primary-700',
 };
 
 // Every size is at least the 44 px touch target (NFR-001).
@@ -60,8 +74,9 @@ export function buttonStyles({
 }: StyleProps & {inert?: boolean} = {}): string {
   const pill = shape === 'pill' || variant === 'pill';
   return cn(
-    'inline-flex items-center justify-center gap-2 border-2 text-center font-bold tracking-wide motion-safe:transition-colors',
-    variant !== 'ghost' && 'uppercase',
+    'inline-flex items-center justify-center gap-2 border-2 text-center motion-safe:transition-colors',
+    // Heavy uppercase labels echo the logo wordmark; ghost actions read as text, so they stay sentence case.
+    variant === 'ghost' ? 'font-bold' : 'type-display',
     pill ? 'rounded-pill' : 'rounded-choice',
     VARIANT[variant],
     SIZE[size],

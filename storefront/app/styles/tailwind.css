@@ -30,38 +30,63 @@
   --inset-shadow-*: initial;
   --drop-shadow-*: initial;
 
-  /* ---------- Palette (placeholder brand: deep teal, warm amber, neutral ink) ----------
-   * Contrast pairs verified with the WCAG formula (ratio : minimum needed).
-   *   white on primary-700            8.47 : 4.5   body text on buttons
-   *   white on primary-500            4.87 : 4.5   (found by axe: the earlier #1f8580 gave 4.44)
-   *   white on primary-600            6.30 : 4.5
-   *   primary-700 on white            8.47 : 4.5   link and secondary-button text
-   *   primary-800 on primary-50      10.07 : 4.5   reassurance strip, gift badge
-   *   ink-900 on accent-400           9.47 : 4.5   selected size, accent button, promo bar
+  /* ---------- Palette (brand red from the client's logo; greys, sale and status colours are PLACEHOLDERS, CLR-013) ----------
+   * primary-500 is the logo's sampled red; the other steps are lightness steps of the same hue made by this project.
+   * The neutrals, the burnt-orange sale text and the amber accent are not in the logo and are placeholders.
+   * Ratios use the WCAG 2.2 formula (ratio : minimum needed). tests/unit/ui/contrast.test.ts recomputes every
+   * pair below from the values in this block and fails when one drops under its minimum, so keep both in step.
+   *
+   * Brand red (docs/design/BRAND_APPLICATION_SPEC.md section 2.2)
+   *   white on primary-500            5.08 : 4.5   primary button, promo bar, count bubble, selected size
+   *   white on primary-600            6.23 : 4.5   button hover
+   *   white on primary-700            7.83 : 4.5   button pressed
+   *   primary-500 on white            5.08 : 4.5   red text, white surfaces ONLY (4.42 on ink-100, 4.62 on primary-50)
+   *   primary-700 on white            7.83 : 4.5   links, secondary button text
+   *   primary-700 on ink-100          6.81 : 4.5   red text on a grey surface (primary-50 7.12, primary-100 6.16)
+   *   primary-800 on primary-50       9.12 : 4.5   chips, tag text on a tint (on white 10.03)
+   *   primary-400 on ink-900          5.25 : 4.5   red text on black; primary-400 on white is 3.51 (icons only)
+   *   Never use primary-500 against primary-600 or -700 to show a state (1.23, 1.54): selection also uses an icon.
+   *
+   * Neutrals and text
+   *   ink-900 on white               18.42 : 4.5   body text (fg)
+   *   ink-600 on white                7.57 : 4.5   muted text (fg-muted); 6.59 on ink-100
+   *   ink-700 on ink-100              9.45 : 4.5   utility bar and footer links
+   *   ink-500 on white                5.10 : 4.5   placeholder text; on ink-100 it is 4.43, so use ink-600 there
+   *   ink-400 on white                3.36 : 3.0   control borders (non-text UI); on ink-100 use ink-500 (4.43)
+   *   white on ink-900               18.42 : 4.5   black promo band; ink-100 on ink-900 16.02 (fg-inverse)
+   *   white on ink-800               15.13 : 4.5   category tile without an image
+   *
+   * Sale and accent (never the brand red, so a saving is not mistaken for the brand or for an error)
+   *   sale-fg on white                6.46 : 4.5   sale price and "Save $x"; on sale-bg 5.82, on ink-100 5.62
+   *   ink-600 on sale-bg              6.82 : 4.5   sale callout panel
+   *   ink-900 on accent-400          10.05 : 4.5   sale badge, Sale nav pill, accent button (accent-300 12.18, accent-500 7.71)
    *   accent-700 on white             5.93 : 4.5   amber text on a light surface
-   *   ink-900 on white               17.36 : 4.5   body text
-   *   ink-600 on white                6.84 : 4.5   muted text
-   *   ink-500 on white                4.71 : 4.5   placeholder text (never smaller than text-sm)
-   *   ink-400 on white                3.10 : 3.0   control borders (non-text UI)
-   *   ink-100 on ink-900             15.19 : 4.5   footer text
-   *   ink-300 on ink-900             10.38 : 4.5   footer links
+   *
+   * Status
    *   success-fg on success-bg        7.15 : 4.5   white on success-solid 5.37
    *   warning-fg on warning-bg        8.05 : 4.5
    *   error-fg on error-bg            6.76 : 4.5   error-fg on white 7.83; white on error-solid 6.57
-   *   focus on white                  6.63 : 3.0   focus ring; focus-inverse on ink-900 11.48
+   *   Error red and brand red are the same family (UXD-19): errors are always icon + text in an error-bg box.
+   *
+   * Focus ring (drawn in the gap beside the control, so the surface behind it is what counts; needs 3.0)
+   *   focus on white / ink-50 / ink-100 / ink-200   6.63 / 6.19 / 5.76 / 4.93   blue ring on light surfaces
+   *   focus on primary-500                          1.31   FAILS: red bands carry .on-dark (yellow ring)
+   *   focus on ink-900                              2.78   FAILS: black bands carry .on-dark
+   *   focus-inverse on ink-900                     12.18   yellow ring on black
+   *   focus-inverse on primary-500 / -600 / -700 / -800    3.36 / 4.12 / 5.17 / 6.63   yellow ring on red
    */
   --color-white: #ffffff;
 
-  --color-primary-50: #e8f5f4;
-  --color-primary-100: #c9e8e6;
-  --color-primary-200: #9bd3cf;
-  --color-primary-300: #66b9b4;
-  --color-primary-400: #3a9c97;
-  --color-primary-500: #1c7e79;
-  --color-primary-600: #146b68;
-  --color-primary-700: #0f5654;
-  --color-primary-800: #0b4240;
-  --color-primary-900: #082f2e;
+  --color-primary-50: #fff1f1;
+  --color-primary-100: #ffdcdd;
+  --color-primary-200: #ffb8ba;
+  --color-primary-300: #ff868a;
+  --color-primary-400: #f9454d;
+  --color-primary-500: #de0510; /* the logo red */
+  --color-primary-600: #c4040e;
+  --color-primary-700: #a8030c;
+  --color-primary-800: #8a020a;
+  --color-primary-900: #5e0107;
 
   --color-accent-50: #fff7e0;
   --color-accent-100: #ffecb3;
@@ -72,16 +97,21 @@
   --color-accent-600: #b87800;
   --color-accent-700: #8a5a00;
 
-  --color-ink-50: #f7f8f8;
-  --color-ink-100: #eef0f1;
-  --color-ink-200: #dde1e3;
-  --color-ink-300: #c3c9cd;
-  --color-ink-400: #8a949a;
-  --color-ink-500: #6b757c;
-  --color-ink-600: #525c63;
-  --color-ink-700: #3b444a;
-  --color-ink-800: #272e33;
-  --color-ink-900: #161b1e;
+  /* Pure greys (the logo has none, so these are placeholders): a neutral scale lets the red read clean. */
+  --color-ink-50: #f7f7f7;
+  --color-ink-100: #efefef;
+  --color-ink-200: #dedede;
+  --color-ink-300: #c4c4c4;
+  --color-ink-400: #8c8c8c;
+  --color-ink-500: #6e6e6e;
+  --color-ink-600: #545454;
+  --color-ink-700: #3d3d3d;
+  --color-ink-800: #262626;
+  --color-ink-900: #141414;
+
+  /* Sale: burnt orange text and a pale tint. Deliberately far from the brand red (hue 24 vs 357 degrees). */
+  --color-sale-fg: #a14000;
+  --color-sale-bg: #fff1e0;
 
   --color-success-bg: #e6f4ec;
   --color-success-fg: #0e5c2f;
@@ -98,6 +128,11 @@
 
   /* ---------- Type: one system sans-serif stack, nothing loaded from a third party ---------- */
   --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  /* The display face is the same stack today (no font is loaded, no third-party font request). It exists so one
+   * brand font can replace it in this single place later; see the `type-display` utility below. */
+  --font-display:
     system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
   --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -130,17 +165,19 @@
   --breakpoint-xl: 80rem; /* 1280 */
   --breakpoint-2xl: 96rem; /* 1536 */
 
-  /* ---------- Shape: pill for navigation-level CTAs, 4 px for choice buttons ---------- */
-  --radius-choice: 0.25rem;
+  /* ---------- Shape: 8 px for choice controls (buttons, size options, inputs, tags); pill for chips, the count
+   * bubble and carousel arrows only ---------- */
+  --radius-choice: 0.5rem;
   --radius-card: 0.5rem;
   --radius-panel: 0.75rem;
   --radius-pill: 9999px;
 
   /* ---------- Elevation ---------- */
-  --shadow-sm: 0 1px 2px 0 rgb(22 27 30 / 0.08);
-  --shadow-md: 0 4px 12px -2px rgb(22 27 30 / 0.12);
-  --shadow-lg: 0 12px 28px -6px rgb(22 27 30 / 0.2);
-  --shadow-drawer: 0 0 48px rgb(22 27 30 / 0.28);
+  /* Tinted with ink-900 (20 20 20) so shadows stay neutral next to the grey scale. */
+  --shadow-sm: 0 1px 2px 0 rgb(20 20 20 / 0.08);
+  --shadow-md: 0 4px 12px -2px rgb(20 20 20 / 0.12);
+  --shadow-lg: 0 12px 28px -6px rgb(20 20 20 / 0.2);
+  --shadow-drawer: 0 0 48px rgb(20 20 20 / 0.28);
 
   /* ---------- Layout widths and the touch target ---------- */
   --container-page: 81.25rem; /* 1300 */
@@ -201,6 +238,18 @@
   --color-fg-inverse: var(--color-ink-100);
   --color-line: var(--color-ink-200);
   --color-line-strong: var(--color-ink-400);
+}
+
+/* Heavy uppercase display type echoing the blocky all-caps logo wordmark (UXD-13). For short labels only:
+ * headings, strips, navigation, button labels. Never for product names, body copy, prices, form labels, error
+ * messages or admin-supplied headings over 40 characters (use sentence case there). System-ui at weight 800 resolves
+ * to the heaviest installed face. */
+@utility type-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
 }
 
 @layer base {

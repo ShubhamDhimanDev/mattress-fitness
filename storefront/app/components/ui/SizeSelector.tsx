@@ -1,6 +1,7 @@
 import {useId} from 'react';
 import {cn} from '~/components/ui/cn';
 import {FieldError} from '~/components/ui/Field';
+import {CheckIcon} from '~/components/ui/Icons';
 
 export type SizeOption = {
   /** Stable id, e.g. the option value from the URL (`?Size=Queen`). */
@@ -26,10 +27,11 @@ type SizeSelectorProps = {
 };
 
 /**
- * Size choice as a radio group drawn as bordered rectangular buttons in three columns. Native radios give
- * the arrow-key behaviour and form support; the selected size is filled with the accent colour and also
- * gets a heavier border, so selection never depends on colour alone. Sold-out sizes are disabled and say why
- * in their label. Whether a size is available is decided by the caller from Shopify data.
+ * Size choice as a radio group drawn as bordered rectangular buttons, two columns below 360 px and three from
+ * 360 px up. Native radios give the arrow-key behaviour and form support; the selected size is filled with the
+ * brand red and shows a check icon before its label, so selection never depends on colour alone (WCAG 1.4.1).
+ * Sold-out sizes are disabled and say why in their label. Whether a size is available is decided by the caller
+ * from Shopify data.
  */
 export function SizeSelector({
   options,
@@ -58,7 +60,7 @@ export function SizeSelector({
           ? (selected.dimensions ?? '')
           : 'Select a size to see its dimensions.'}
       </p>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {options.map((option) => {
           const inputId = `${baseId}-${option.id}`;
           return (
@@ -79,13 +81,21 @@ export function SizeSelector({
               <label
                 htmlFor={inputId}
                 className={cn(
-                  'flex min-h-touch flex-col items-center justify-center rounded-choice border-2 px-2 py-2 text-center text-sm font-bold motion-safe:transition-colors peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus',
+                  'flex min-h-14 flex-col items-center justify-center rounded-choice border-2 px-2 py-2 text-center text-sm font-bold motion-safe:transition-colors peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus',
                   option.available
-                    ? 'cursor-pointer border-line-strong bg-surface text-fg hover:border-ink-900 peer-checked:border-ink-900 peer-checked:bg-accent-400 peer-checked:text-ink-900'
+                    ? 'cursor-pointer border-line-strong bg-surface text-fg hover:border-primary-500 peer-checked:border-primary-700 peer-checked:bg-primary-500 peer-checked:text-white'
                     : 'cursor-not-allowed border-line bg-surface-muted text-fg-muted',
                 )}
               >
-                <span className={option.available ? undefined : 'line-through'}>
+                <span
+                  className={cn(
+                    'inline-flex items-center justify-center gap-1',
+                    !option.available && 'line-through',
+                  )}
+                >
+                  {option.id === value && option.available ? (
+                    <CheckIcon className="size-4" />
+                  ) : null}
                   {option.label}
                 </span>
                 {option.available ? null : (
