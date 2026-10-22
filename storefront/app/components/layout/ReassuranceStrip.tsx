@@ -29,7 +29,7 @@ export function ReassuranceStrip({
   if (shown.length === 0) return null;
 
   return (
-    <div className="border-b border-line bg-primary-50 text-primary-800">
+    <div className="border-b border-line bg-surface text-fg">
       <ul className="mx-auto flex max-w-page px-2 md:px-6">
         {shown.map((item) => {
           const Icon = ICONS[item.icon];
@@ -37,9 +37,9 @@ export function ReassuranceStrip({
             <li key={item.id} className="flex flex-1">
               <Link
                 to={item.to}
-                className="flex min-h-touch w-full flex-col items-center justify-center gap-1 px-1 py-2 text-center text-xs leading-4 font-bold tracking-wide uppercase hover:underline md:flex-row md:gap-2 md:text-sm md:leading-5"
+                className="flex min-h-touch w-full flex-col items-center justify-center gap-1 px-1 py-2 text-center type-display text-xs hover:underline md:flex-row md:gap-2 md:text-sm"
               >
-                <Icon className="size-5 md:size-6" />
+                <Icon className="size-6 text-primary-500" />
                 <span>{item.text}</span>
               </Link>
             </li>

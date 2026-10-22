@@ -27,7 +27,7 @@ export function HeaderLogo() {
         loading="eager"
         decoding="async"
         {...HIGH_PRIORITY}
-        className="size-12 md:size-14"
+        className="size-12 md:size-14 lg:size-16"
       />
     </Link>
   );
@@ -45,7 +45,8 @@ export function FooterLogo() {
       alt={BRAND_NAME}
       loading="lazy"
       decoding="async"
-      className="size-24 shrink-0 md:size-28"
+      // The PNG has opaque white corners; the round clip keeps them from showing on the footer's grey surface.
+      className="size-24 shrink-0 rounded-full md:size-28"
     />
   );
 }

@@ -44,8 +44,8 @@ export function PromoBar({message}: PromoBarProps) {
   const to = message.to;
   const linked = to === undefined ? null : {...message, to};
   return (
-    <div className="bg-accent-400 text-ink-900">
-      <p className="mx-auto flex max-w-page flex-wrap items-center justify-center gap-x-3 px-4 text-center text-sm font-bold md:px-6">
+    <div className="on-dark bg-primary-500 text-white">
+      <p className="mx-auto flex max-w-page flex-wrap items-center justify-center gap-x-3 px-4 text-center type-display text-sm md:px-6">
         {linked && !message.linkLabel ? (
           <PromoLink message={linked}>{message.text}</PromoLink>
         ) : (

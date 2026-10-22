@@ -21,7 +21,7 @@ export function StoreSelectorLink({
   return (
     <Link
       to={to}
-      className="inline-flex min-h-touch min-w-0 items-center gap-2 font-bold hover:underline"
+      className="inline-flex min-h-touch min-w-0 items-center gap-2 font-bold underline underline-offset-2 hover:no-underline"
     >
       <MapPinIcon className="size-5" />
       <span className="truncate">

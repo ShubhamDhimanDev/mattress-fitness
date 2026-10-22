@@ -257,13 +257,13 @@ export function HeaderSearch() {
                 setExpanded(true);
               }}
               onKeyDown={onKeyDown}
-              className="min-h-touch min-w-0 flex-1 rounded-l-pill border-2 border-r-0 border-line-strong bg-surface pl-4 text-base text-fg"
+              className="min-h-touch min-w-0 flex-1 rounded-l-choice border-2 border-r-0 border-line-strong bg-surface pl-4 text-base text-fg"
             />
             <button
               type="submit"
               onClick={goToSearch}
               aria-label="Search"
-              className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-r-pill border-2 border-primary-700 bg-primary-700 text-white hover:border-primary-800 hover:bg-primary-800"
+              className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-r-choice border-2 border-primary-500 bg-primary-500 text-white hover:border-primary-600 hover:bg-primary-600"
             >
               <SearchIcon />
             </button>

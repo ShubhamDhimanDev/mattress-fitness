@@ -414,6 +414,28 @@ export const FOOTER_SHOP_GROUPS: readonly FooterGroup[] = [
   shopGroupFromMenu('mattresses-price', 'Shop by price'),
 ];
 
+export type FooterQuickLink = {id: string; label: string; to: string};
+
+/**
+ * The footer's quick-links row (BA-05): the pages shoppers come back for, first the order and delivery side, then
+ * the stores and help side. Pages that already exist only; the labels differ from the group links below on
+ * purpose, so a screen-reader link list does not read two identical names for the same page.
+ */
+export const FOOTER_QUICK_LINKS_START: readonly FooterQuickLink[] = [
+  {id: 'track', label: 'Order tracking', to: '/track-order'},
+  {
+    id: 'delivery',
+    label: 'Delivery information',
+    to: '/pages/delivery-and-shipping',
+  },
+  {id: 'account', label: 'Your account', to: '/account'},
+];
+
+export const FOOTER_QUICK_LINKS_END: readonly FooterQuickLink[] = [
+  {id: 'stores', label: 'Store locator', to: STORE_LOCATOR_PATH},
+  {id: 'contact', label: 'Get in touch', to: '/pages/contact'},
+];
+
 export const FOOTER_LEGAL_LINKS: readonly NavGroupLink[] = [
   {label: 'Privacy policy', to: '/pages/privacy-policy'},
   {label: 'Terms', to: '/pages/terms'},

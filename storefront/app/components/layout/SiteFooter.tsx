@@ -6,15 +6,18 @@ import {BRAND_TAGLINE} from '~/lib/brand';
 import {ChevronDownIcon, PhoneIcon} from '~/components/ui/Icons';
 import {
   FOOTER_LEGAL_LINKS,
+  FOOTER_QUICK_LINKS_END,
+  FOOTER_QUICK_LINKS_START,
   FOOTER_SHOP_GROUPS,
   FOOTER_SUPPORT_GROUPS,
   SITE_NAME,
   type FooterGroup,
+  type FooterQuickLink,
   type SupportPhone,
 } from '~/lib/navigation';
 
 const LINK_CLASSES =
-  'inline-flex min-h-touch items-center text-sm text-ink-300 hover:text-white hover:underline';
+  'inline-flex min-h-touch items-center text-sm text-ink-700 hover:text-primary-700 hover:underline';
 
 /**
  * Footer link groups. Below 768 px each group is a collapsible section (a button inside a heading); from
@@ -45,8 +48,8 @@ function FooterGroups({
         const open = openIds.includes(group.id);
         const listId = `${baseId}-${group.id}`;
         return (
-          <div key={group.id} className="border-b border-ink-700 md:border-b-0">
-            <h2 className="hidden pb-2 text-sm font-bold tracking-wide text-white uppercase md:block">
+          <div key={group.id} className="border-b border-ink-300 md:border-b-0">
+            <h2 className="hidden pb-2 type-display text-sm text-fg md:block">
               {group.heading}
             </h2>
             <h2 className="md:hidden">
@@ -55,7 +58,7 @@ function FooterGroups({
                 aria-expanded={open}
                 aria-controls={listId}
                 onClick={() => toggle(group.id)}
-                className="group flex min-h-touch w-full items-center justify-between text-left text-sm font-bold tracking-wide text-white uppercase"
+                className="group flex min-h-touch w-full items-center justify-between text-left type-display text-sm text-fg"
               >
                 {group.heading}
                 <ChevronDownIcon className="size-5 motion-safe:transition-transform group-aria-expanded:rotate-180" />
@@ -80,6 +83,24 @@ function FooterGroups({
   );
 }
 
+/** One side of the quick-links row: bold links, 44 px high, wrapping on a narrow screen. */
+function QuickLinks({links}: {links: readonly FooterQuickLink[]}) {
+  return (
+    <ul className="flex flex-wrap items-center gap-x-6">
+      {links.map((link) => (
+        <li key={link.id}>
+          <Link
+            to={link.to}
+            className="inline-flex min-h-touch items-center text-base font-bold text-fg hover:text-primary-700 hover:underline"
+          >
+            {link.label}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function SiteFooter({
   supportPhone = null,
 }: {
@@ -87,28 +108,34 @@ export function SiteFooter({
   supportPhone?: SupportPhone | null;
 }) {
   return (
-    <footer className="on-dark mt-auto bg-surface-inverse text-fg-inverse">
+    // Light grey with one red rule on top, the only brand accent in the footer (BA-05). No signup band and no
+    // social icons: the providers, wording and URLs do not exist yet (REQ-CNT-001, B-15, P7-02).
+    <footer className="mt-auto border-t-4 border-primary-500 bg-surface-muted text-fg">
       <div className="mx-auto flex max-w-page items-center gap-4 px-4 pt-8 md:px-6 md:pt-12">
         <FooterLogo />
         {/* The client's own tagline, plain text; the logo's alt is the name only, so nothing is read twice. */}
-        <p className="text-base font-bold text-white">{BRAND_TAGLINE}</p>
+        <p className="text-base font-bold text-fg">{BRAND_TAGLINE}</p>
       </div>
       <nav
         aria-label="Footer"
-        className="mx-auto flex max-w-page flex-col gap-8 px-4 py-8 md:px-6 md:py-12"
+        className="mx-auto flex max-w-page flex-col gap-8 px-4 pt-2 pb-8 md:px-6 md:pt-4 md:pb-12"
       >
+        <div className="flex flex-col gap-x-8 border-b border-ink-300 pb-6 md:flex-row md:items-center md:justify-between">
+          <QuickLinks links={FOOTER_QUICK_LINKS_START} />
+          <QuickLinks links={FOOTER_QUICK_LINKS_END} />
+        </div>
         <FooterGroups
           groups={FOOTER_SUPPORT_GROUPS}
           className="grid gap-0 md:grid-cols-3 md:gap-8"
         />
         <FooterGroups
           groups={FOOTER_SHOP_GROUPS}
-          className="grid gap-0 border-t-0 md:grid-cols-3 md:gap-8 md:border-t md:border-ink-700 md:pt-8 lg:grid-cols-5"
+          className="grid gap-0 border-t-0 md:grid-cols-3 md:gap-8 md:border-t md:border-ink-300 md:pt-8 lg:grid-cols-5"
         />
       </nav>
-      <div className="border-t border-ink-700">
+      <div className="border-t border-ink-300">
         <div className="mx-auto flex max-w-page flex-col gap-2 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
-          <p className="text-sm text-ink-300">
+          <p className="text-sm text-ink-700">
             &copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
           </p>
           <ul className="flex flex-wrap items-center gap-x-4">
