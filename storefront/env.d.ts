@@ -17,5 +17,11 @@ declare global {
      * Unset, blank, `none` or invalid keeps the fixed navigation and makes no menu request.
      */
     PUBLIC_NAV_MENU_HANDLE?: string;
+    /** `opt-in` (default, stricter) or `opt-out`: whether analytics waits for the shopper's agreement (P7-01, NFR-011). */
+    PUBLIC_CONSENT_MODE?: string;
+    /** Google Analytics 4 measurement id (`G-XXXXXXXX`). Unset: nothing loads, no CSP host is added (REQ-ANL-001). */
+    PUBLIC_GA4_MEASUREMENT_ID?: string;
+    /** Meta pixel id (digits). Unset: nothing loads, no CSP host is added (REQ-ANL-002). */
+    PUBLIC_META_PIXEL_ID?: string;
   }
 }

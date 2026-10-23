@@ -27,9 +27,34 @@ export type AnalyticsEventName =
 
 export type AnalyticsParamValue = string | number;
 
+/**
+ * One product line of an ecommerce event. Money is an integer in cents (Shopify's amounts are converted once, in
+ * `~/lib/analytics/hydrogen-events`); the provider adapters turn it into dollars through the shared money helper.
+ * `id` is the numeric Shopify product id: it is the same in every event, so provider reports join up.
+ */
+export type AnalyticsItem = {
+  readonly id: string;
+  readonly name: string;
+  readonly brand?: string;
+  readonly variant?: string;
+  readonly category?: string;
+  readonly priceCents: number;
+  readonly quantity: number;
+  readonly index?: number;
+};
+
+/** Everything an ecommerce event adds to the flat `params`. Currency is always USD (NFR-008). */
+export type EcommerceData = {
+  readonly valueCents?: number;
+  readonly items: readonly AnalyticsItem[];
+  readonly listId?: string;
+  readonly listName?: string;
+};
+
 export type AnalyticsEvent = {
   readonly name: AnalyticsEventName;
   readonly params: Readonly<Record<string, AnalyticsParamValue>>;
+  readonly ecommerce?: EcommerceData;
 };
 
 export type TrackSink = (event: AnalyticsEvent) => void;

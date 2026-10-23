@@ -6,6 +6,8 @@
 // resource type explicitly. The directive-by-directive reasoning and the rule for adding a third-party origin
 // are in docs/security/SECURITY_HEADERS.md.
 
+import {GA4_CSP, META_CSP, type ProviderCsp} from '~/lib/analytics/hosts';
+
 const LOOPBACK_NAMES: ReadonlySet<string> = new Set(['localhost']);
 const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
@@ -116,7 +118,24 @@ export type ReportOnlyCspOptions = {
   readonly checkoutDomain?: string | undefined;
   /** The dev server serves scripts and HMR from localhost; production never lists those origins. */
   readonly development: boolean;
+  /** Providers that are configured (an id is set). Omitted or false adds no host at all (P7-01, T-10). */
+  readonly analytics?: AnalyticsCspInput | undefined;
 };
+
+export type AnalyticsCspInput = {
+  readonly ga4?: boolean;
+  readonly meta?: boolean;
+};
+
+/** The hosts of the configured providers only, merged per directive. */
+export function analyticsCspHosts(
+  input: AnalyticsCspInput | undefined,
+): ProviderCsp {
+  const used = [input?.ga4 ? GA4_CSP : null, input?.meta ? META_CSP : null];
+  const pick = (key: keyof ProviderCsp): string[] =>
+    used.flatMap((provider) => (provider ? provider[key] : []));
+  return {script: pick('script'), img: pick('img'), connect: pick('connect')};
+}
 
 function httpsHost(value: string | undefined): string | null {
   return value && HOSTNAME.test(value)
@@ -131,6 +150,27 @@ function compact(values: readonly (string | null)[]): string[] {
 const SHOPIFY_CDN = 'https://cdn.shopify.com';
 const SHOPIFY_TELEMETRY = 'https://monorail-edge.shopifysvc.com';
 const SHOPIFY_ACCOUNT = 'https://shopify.com';
+
+/**
+ * Extra directives for Hydrogen's ENFORCED policy (`createContentSecurityPolicy`), empty when no provider is
+ * configured so that policy stays exactly as it was. Hydrogen's script and image sources fall back to
+ * `default-src` (self, its nonce, the Shopify CDN and shopify.com); naming `script-src` or `img-src` replaces that
+ * fallback, so the same Shopify sources are repeated here and only the provider hosts are added (the nonce is
+ * appended by Hydrogen). `connect-src` is merged by Hydrogen itself, so only the new hosts go in.
+ */
+export function enforcedCspExtras(input: AnalyticsCspInput | undefined): {
+  scriptSrc?: string[];
+  imgSrc?: string[];
+  connectSrc?: string[];
+} {
+  const hosts = analyticsCspHosts(input);
+  if (hosts.script.length === 0) return {};
+  return {
+    scriptSrc: ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...hosts.script],
+    imgSrc: ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...hosts.img],
+    connectSrc: [...hosts.connect],
+  };
+}
 
 /**
  * The tightened policy, delivered report-only: it never blocks, it only shows in the browser console what an
@@ -155,12 +195,13 @@ export function buildReportOnlyCsp(
   const devSockets = options.development
     ? ['ws://localhost:*', 'ws://127.0.0.1:*']
     : [];
+  const provider = analyticsCspHosts(options.analytics);
 
   const directives: ReadonlyArray<readonly [string, readonly string[]]> = [
     ['default-src', ["'self'"]],
     ['base-uri', ["'self'"]],
     ['object-src', ["'none'"]],
-    ['script-src', ["'self'", nonce, SHOPIFY_CDN, ...dev]],
+    ['script-src', ["'self'", nonce, SHOPIFY_CDN, ...provider.script, ...dev]],
     ['script-src-attr', ["'none'"]],
     [
       'style-src',
@@ -172,7 +213,7 @@ export function buildReportOnlyCsp(
       ],
     ],
     ['style-src-attr', ["'unsafe-inline'"]],
-    ['img-src', ["'self'", 'data:', SHOPIFY_CDN, ...dev]],
+    ['img-src', ["'self'", 'data:', SHOPIFY_CDN, ...provider.img, ...dev]],
     ['font-src', ["'self'", SHOPIFY_CDN, ...dev]],
     ['media-src', ["'self'", SHOPIFY_CDN, ...dev]],
     [
@@ -182,6 +223,7 @@ export function buildReportOnlyCsp(
         SHOPIFY_CDN,
         SHOPIFY_TELEMETRY,
         ...compact([checkout, store]),
+        ...provider.connect,
         ...dev,
         ...devSockets,
       ],
