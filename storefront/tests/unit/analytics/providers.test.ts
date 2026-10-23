@@ -6,7 +6,7 @@ import {
   type ProviderAdapter,
   type ScriptLoader,
 } from '~/lib/analytics/adapter';
-import {buildExpiredCookies} from '~/lib/analytics/cookies';
+import {buildExpiredCookies, hostSuffixes} from '~/lib/analytics/cookies';
 import {createGa4Adapter, ga4ScriptUrl, toGa4Call} from '~/lib/analytics/ga4';
 import {
   createMetaAdapter,
@@ -435,12 +435,43 @@ describe('cookie clearing on withdrawal', () => {
       ['_ga', 'bad name;x'],
       'shop.example.com',
     );
-    expect(lines).toHaveLength(3);
+    // host-only, then each of the two suffixes with and without the leading dot
+    expect(lines).toHaveLength(5);
     expect(lines[0]).toContain('_ga=;');
     expect(
       lines.some((line) => line.includes('Domain=.shop.example.com')),
     ).toBe(true);
     expect(lines.join('\n')).not.toContain('bad name');
     expect(buildExpiredCookies(['_ga'], 'bad host;x')).toHaveLength(1);
+  });
+
+  it('also expires on every parent suffix of two labels or more, where GA4 and the pixel really set them (review L-2)', () => {
+    const lines = buildExpiredCookies(['_fbp'], 'www.shop.example.com');
+    const domains = lines
+      .map((line) => /Domain=([^;]+)/.exec(line)?.[1])
+      .filter((domain) => domain !== undefined);
+    expect(domains).toEqual([
+      'www.shop.example.com',
+      '.www.shop.example.com',
+      'shop.example.com',
+      '.shop.example.com',
+      'example.com',
+      '.example.com',
+    ]);
+    // Never the bare top-level label.
+    expect(domains).not.toContain('com');
+    expect(domains).not.toContain('.com');
+  });
+
+  it.each([
+    ['www.example.com', ['www.example.com', 'example.com']],
+    ['example.com', ['example.com']],
+    ['a.b.co.uk', ['a.b.co.uk', 'b.co.uk', 'co.uk']],
+    ['localhost', []],
+    ['127.0.0.1', []],
+    ['bad host;x', []],
+    ['', []],
+  ])('suffixes of %j', (hostname, expected) => {
+    expect(hostSuffixes(hostname)).toEqual(expected);
   });
 });

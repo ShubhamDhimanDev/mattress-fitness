@@ -7,7 +7,7 @@
 //  - no id, no provider: an unset or malformed id means nothing loads, no script is added to the page and no host is
 //    added to the Content Security Policy;
 //  - an unknown PUBLIC_CONSENT_MODE means 'opt-in', the stricter behaviour (nothing is sent before the shopper
-//    agrees). 'opt-out' is chosen only by the exact value. Which of the two the law requires for this client is a
+//    agrees). 'opt-out' is chosen only by the exact value `opt-out` (no trimming, no case folding). Which of the two the law requires for this client is a
 //    legal decision this code does not make (Q-012, T-16); the switch exists so the answer is a configuration change.
 
 export const CONSENT_MODES = ['opt-in', 'opt-out'] as const;
@@ -38,7 +38,9 @@ function clean(value: string | undefined): string {
 }
 
 export function parseConsentMode(value: string | undefined): ConsentMode {
-  return clean(value).toLowerCase() === 'opt-out' ? 'opt-out' : 'opt-in';
+  // Exact match on purpose (review I-1): the looser behaviour is chosen only by writing exactly `opt-out`. A value
+  // with different case, spaces or a typo keeps the stricter `opt-in`.
+  return value === 'opt-out' ? 'opt-out' : 'opt-in';
 }
 
 export function parseGa4MeasurementId(

@@ -1,7 +1,8 @@
+import {useSyncExternalStore} from 'react';
 import {Link} from 'react-router';
-import {useConsent} from '~/components/consent/consent-context';
 import {Button} from '~/components/ui/Button';
-import {hasProviders} from '~/lib/analytics/config';
+import {hasProviders, type PublicAnalyticsConfig} from '~/lib/analytics/config';
+import type {ConsentStore} from '~/lib/analytics/consent-store';
 
 export const CONSENT_BANNER_LABEL = 'Privacy choices';
 const PRIVACY_POLICY_PATH = '/policies/privacy-policy';
@@ -13,10 +14,18 @@ const PRIVACY_POLICY_PATH = '/policies/privacy-policy';
  * early. "Accept all" and "Reject all" are the same size and both one press, so refusing is as easy as agreeing.
  * It shows only when a provider is configured and the shopper has not decided.
  */
-export function ConsentBanner() {
-  const consent = useConsent();
-  if (!consent?.store) return null;
-  const {config, snapshot, store} = consent;
+export function ConsentBanner({
+  config,
+  store,
+}: {
+  config: PublicAnalyticsConfig;
+  store: ConsentStore;
+}) {
+  const snapshot = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot,
+  );
   if (snapshot.decided || !hasProviders(config)) return null;
 
   const optOut = config.consentMode === 'opt-out';
@@ -28,8 +37,8 @@ export function ConsentBanner() {
     >
       <p className="text-sm text-fg">
         {optOut
-          ? 'We use cookies to see how the site is used and to measure our advertising. You can turn them off at any time. '
-          : 'We would like to use cookies to see how the site is used and to measure our advertising. Nothing is sent until you agree. '}
+          ? 'We use analytics and advertising tools from Google and Meta to see how the site is used and to measure our advertising. You can turn them off at any time. '
+          : 'We only load analytics and advertising tools from Google and Meta after you agree. '}
         <Link
           to={PRIVACY_POLICY_PATH}
           className="font-bold underline hover:text-primary-700"

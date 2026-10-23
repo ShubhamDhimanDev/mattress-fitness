@@ -11,6 +11,9 @@
 //     fixed vocabulary (no shopper data) and skipped. It never throws into the page and never retries in a loop.
 //  5. Consent withdrawn mid-visit stops sending at once, asks the adapter to revoke and drops its queue; consent
 //     given again re-enables the loaded adapter without loading the script a second time.
+//  6. The safe-page guard (`page-context.ts`): on a page that fails the check (the private area, a personal-looking
+//     address) no event is sent, no script is loaded and a loaded Google tag is paused; the next safe page resumes.
+//     On a safe page the adapters get the reduced address, title and referrer (`setPage`).
 
 import type {AnalyticsEvent} from '~/lib/analytics';
 import type {
@@ -20,6 +23,7 @@ import type {
   ProviderId,
 } from '~/lib/analytics/adapter';
 import type {ConsentSnapshot} from '~/lib/analytics/consent-store';
+import type {PageContext, PageDecision} from '~/lib/analytics/page-context';
 
 export const MAX_QUEUED_EVENTS = 25;
 
@@ -31,6 +35,8 @@ type Entry = {
   queue: AnalyticsEvent[];
   /** The consent last applied to this adapter. */
   active: boolean;
+  /** The adapter was told the current page sends nothing. */
+  paused: boolean;
   cancelSchedule: (() => void) | null;
 };
 
@@ -42,6 +48,8 @@ export type RuntimeOptions = {
   };
   /** Runs the callback when the browser is idle and returns the canceller (see `whenIdle`). */
   readonly schedule: (callback: () => void) => () => void;
+  /** The safety verdict for the page the shopper is on now. Omitted: every page is safe (unit tests only). */
+  readonly page?: () => PageDecision;
   readonly onFailure?: (
     provider: ProviderId,
     reason: ProviderFailureReason,
@@ -56,6 +64,9 @@ export type AnalyticsRuntime = {
   readonly states: () => Readonly<Record<string, ProviderState>>;
 };
 
+const ANY_PAGE: PageDecision = {safe: true, context: null};
+const UNKNOWN_PAGE: PageDecision = {safe: false, reason: 'unreadable'};
+
 export function createAnalyticsRuntime(
   options: RuntimeOptions,
 ): AnalyticsRuntime {
@@ -64,9 +75,11 @@ export function createAnalyticsRuntime(
     state: 'idle',
     queue: [],
     active: false,
+    paused: false,
     cancelSchedule: null,
   }));
   let lastPageView: AnalyticsEvent | null = null;
+  let lastContext: PageContext | null = null;
   let unsubscribe: (() => void) | null = null;
   let stopped = false;
 
@@ -75,6 +88,27 @@ export function createAnalyticsRuntime(
       action();
     } catch {
       // A provider error must never reach the page (NFR-013).
+    }
+  }
+
+  function currentPage(): PageDecision {
+    if (!options.page) return ANY_PAGE;
+    try {
+      return options.page();
+    } catch {
+      return UNKNOWN_PAGE;
+    }
+  }
+
+  /** Aligns a loaded adapter with the page: paused on a page that sends nothing, resumed on a safe one. */
+  function applyPageState(entry: Entry, safe: boolean): void {
+    if (entry.state !== 'ready' || !entry.active) return;
+    if (!safe && !entry.paused) {
+      entry.paused = true;
+      safely(() => entry.adapter.pause?.());
+    } else if (safe && entry.paused) {
+      entry.paused = false;
+      safely(() => entry.adapter.resume?.());
     }
   }
 
@@ -106,32 +140,54 @@ export function createAnalyticsRuntime(
       return;
     }
     entry.state = 'ready';
-    // Consent may have been withdrawn while the script loaded.
-    if (entry.active) {
-      flush(entry);
-    } else {
+    // Consent may have been withdrawn, or the shopper may have moved to a private page, while the script loaded.
+    if (!entry.active) {
       entry.queue = [];
       safely(() => entry.adapter.revoke());
-    }
-  }
-
-  function activate(entry: Entry): void {
-    entry.active = true;
-    if (entry.state === 'ready') {
-      safely(() => entry.adapter.grant());
       return;
     }
+    if (!currentPage().safe) {
+      entry.queue = [];
+      applyPageState(entry, false);
+      return;
+    }
+    flush(entry);
+  }
+
+  /**
+   * Schedules the load for idle time. The page the shopper is on is reported once they agree, so its page_view
+   * seeds the queue (unless it is the event being tracked right now, which the caller queues itself).
+   */
+  function startLoad(entry: Entry, current?: AnalyticsEvent): void {
     if (entry.state !== 'idle') return;
-    // The page the shopper is on is reported once they agree; nothing older than that.
-    if (lastPageView) entry.queue.push(lastPageView);
+    if (lastContext) {
+      const context = lastContext;
+      safely(() => entry.adapter.setPage?.(context));
+    }
+    if (lastPageView && lastPageView !== current) {
+      entry.queue.push(lastPageView);
+    }
     entry.state = 'scheduled';
     entry.cancelSchedule = options.schedule(() => {
       void load(entry);
     });
   }
 
+  function activate(entry: Entry): void {
+    entry.active = true;
+    entry.paused = false;
+    if (entry.state === 'ready') {
+      safely(() => entry.adapter.grant());
+      applyPageState(entry, currentPage().safe);
+      return;
+    }
+    // On a page that sends nothing the script stays unloaded; the next safe page_view starts it.
+    if (currentPage().safe) startLoad(entry);
+  }
+
   function deactivate(entry: Entry): void {
     entry.active = false;
+    entry.paused = false;
     entry.queue = [];
     if (entry.state === 'scheduled') {
       entry.cancelSchedule?.();
@@ -155,9 +211,29 @@ export function createAnalyticsRuntime(
 
   function track(event: AnalyticsEvent): void {
     if (stopped) return;
-    if (event.name === 'page_view') lastPageView = event;
+    const page = currentPage();
+    if (!page.safe) {
+      // Nothing is sent from this page, nothing is remembered for it, and a loaded Google tag stops its own hits.
+      lastPageView = null;
+      lastContext = null;
+      for (const entry of entries) {
+        entry.queue = [];
+        applyPageState(entry, false);
+      }
+      return;
+    }
+    if (event.name === 'page_view') {
+      lastPageView = event;
+      lastContext = page.context;
+    }
     for (const entry of entries) {
       if (!entry.active || entry.state === 'failed') continue;
+      applyPageState(entry, true);
+      const context = page.context;
+      if (event.name === 'page_view' && context) {
+        safely(() => entry.adapter.setPage?.(context));
+      }
+      startLoad(entry, event);
       if (entry.state === 'ready') {
         safely(() => entry.adapter.send(event));
       } else if (entry.queue.length < MAX_QUEUED_EVENTS) {

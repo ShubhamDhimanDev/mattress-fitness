@@ -12,7 +12,7 @@ import {
 } from 'react-router';
 import type {Route} from './+types/root';
 import {BRAND_HEAD_LINKS, BRAND_THEME_COLOR} from '~/lib/brand';
-import {ConsentAnalytics} from '~/components/consent/ConsentAnalytics';
+import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
 import {FOOTER_QUERY} from '~/lib/fragments';
 import tailwindCss from './styles/tailwind.css?url';
@@ -225,7 +225,7 @@ export default function App() {
   }
 
   return (
-    <ConsentAnalytics
+    <AnalyticsGate
       cart={data.cart}
       shop={data.shop}
       consent={data.consent}
@@ -242,7 +242,7 @@ export default function App() {
       >
         <Outlet />
       </PageLayout>
-    </ConsentAnalytics>
+    </AnalyticsGate>
   );
 }
 
@@ -323,7 +323,7 @@ export function ErrorBoundary() {
   }
 
   return (
-    <ConsentAnalytics
+    <AnalyticsGate
       cart={data.cart}
       shop={data.shop}
       consent={data.consent}
@@ -340,6 +340,6 @@ export function ErrorBoundary() {
       >
         {content}
       </PageLayout>
-    </ConsentAnalytics>
+    </AnalyticsGate>
   );
 }

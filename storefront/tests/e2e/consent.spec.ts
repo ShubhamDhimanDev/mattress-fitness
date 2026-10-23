@@ -262,6 +262,20 @@ test.describe('providers configured, opt-in mode', () => {
     await expect(page.getByRole('main')).toBeVisible();
   });
 
+  test('consent given on a private page loads no script there; the next safe page does (review L-4)', async ({
+    page,
+  }) => {
+    const requests = await stubProviders(page);
+    await gotoReady(page, '/track-order');
+    await banner(page).getByRole('button', {name: 'Accept all'}).click();
+    await page.waitForLoadState('networkidle');
+    expect(requests).toEqual([]);
+    await page.goto('/cart');
+    await expect
+      .poll(() => requests.some((url) => GA_HOST.test(url)))
+      .toBe(true);
+  });
+
   test('consent can be withdrawn from the footer link, and sending stops', async ({
     page,
   }) => {

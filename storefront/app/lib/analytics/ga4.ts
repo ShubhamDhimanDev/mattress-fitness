@@ -18,7 +18,8 @@ import type {
   ScriptLoader,
 } from '~/lib/analytics/adapter';
 import {FORWARDED_EVENT_NAMES} from '~/lib/analytics/event-names';
-import {ANALYTICS_CURRENCY} from '~/lib/analytics/hydrogen-events';
+import {ANALYTICS_CURRENCY} from '~/lib/analytics/item-basics';
+import type {PageContext} from '~/lib/analytics/page-context';
 import {dollarsFromCents} from '~/lib/analytics/money';
 import {sanitizeParams} from '~/lib/analytics/privacy';
 
@@ -94,18 +95,35 @@ export type Ga4AdapterOptions = {
 export function createGa4Adapter(options: Ga4AdapterOptions): ProviderAdapter {
   const {measurementId, globals, loadScript, clearCookies} = options;
   const disableFlag = `ga-disable-${measurementId}`;
+  // `gtag` exists from the start of `load` (calls queue on the data layer); `ready` flips when the script is in.
   let gtag: Gtag | null = null;
+  let ready = false;
   let granted = true;
+  let paused = false;
+  let page: PageContext | null = null;
+
+  function applyPage(call: Gtag): void {
+    if (!page) return;
+    // Sanitised address, referrer and title; every later event, the automatic ones included, should inherit them.
+    // Whether GA4 applies them to its automatic events is UNVERIFIED (DebugView).
+    call('set', {
+      page_location: page.pageLocation,
+      page_referrer: page.pageReferrer,
+      page_title: page.pageTitle,
+    });
+  }
 
   return {
     id: 'ga4',
     category: 'analytics',
     async load(): Promise<ProviderLoadResult> {
       try {
-        // Google's documented opt-out flag, cleared before the tag starts.
-        globals.set(disableFlag, false);
+        // Google's documented opt-out flag, cleared before the tag starts (unless this page sends nothing).
+        globals.set(disableFlag, paused);
         const call = ensureGtag(globals);
+        gtag = call;
         call('js', new Date());
+        applyPage(call);
         call('config', measurementId, {
           send_page_view: false,
           allow_google_signals: false,
@@ -115,14 +133,14 @@ export function createGa4Adapter(options: Ga4AdapterOptions): ProviderAdapter {
         if (result.status === 'failed') {
           return {status: 'failed', reason: result.reason};
         }
-        gtag = call;
+        ready = true;
         return {status: 'ready'};
       } catch {
         return {status: 'failed', reason: 'unavailable'};
       }
     },
     send(event) {
-      if (!granted) return;
+      if (!granted || paused || !ready) return;
       try {
         const call = toGa4Call(event);
         if (call && gtag) gtag('event', call.name, call.params);
@@ -130,9 +148,25 @@ export function createGa4Adapter(options: Ga4AdapterOptions): ProviderAdapter {
         // A provider error must never reach the page (NFR-013).
       }
     },
+    setPage(context) {
+      page = context;
+      try {
+        if (gtag) applyPage(gtag);
+      } catch {
+        // See above.
+      }
+    },
+    pause() {
+      paused = true;
+      globals.set(disableFlag, true);
+    },
+    resume() {
+      paused = false;
+      if (granted) globals.set(disableFlag, false);
+    },
     grant() {
       granted = true;
-      globals.set(disableFlag, false);
+      globals.set(disableFlag, paused);
     },
     revoke() {
       granted = false;

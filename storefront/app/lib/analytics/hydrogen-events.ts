@@ -3,122 +3,41 @@
 // name, checked and capped, and nothing is spread. That matters for the cart, whose Hydrogen object also holds the
 // buyer's email, name and phone (T-05): none of those fields is ever read here.
 //
-// Money: Shopify amounts are decimal strings. They are converted to integer cents once, with the shared helper
-// (`~/lib/format`), and only USD is accepted (NFR-008). A line or event with an unusable price is dropped, never
-// guessed.
+// The reading helpers, the item builders and the select_item attributes live in `item-basics.ts` (small, imported
+// by product cards); this module holds the event mappers, which reach the browser only inside the consent chunk.
+// Money: see `item-basics.ts`. A line or event with an unusable price is dropped, never guessed.
 
 import type {AnalyticsEvent, AnalyticsItem} from '~/lib/analytics';
-import {toCents} from '~/lib/format';
+import {
+  buildItem,
+  centsFrom,
+  get,
+  itemFromProductPayload,
+  quantityOf,
+  text,
+} from '~/lib/analytics/item-basics';
 import {
   sanitizePageLocation,
   sanitizeSearchTerm,
 } from '~/lib/analytics/privacy';
 
-export const ANALYTICS_CURRENCY = 'USD';
+// Re-exported so existing imports and tests keep one place to look.
+export {
+  ANALYTICS_CURRENCY,
+  SELECT_ITEM_ATTRIBUTE,
+  centsFrom,
+  itemFromProductPayload,
+  mapCollectionViewed,
+  productIdFrom,
+  selectItemValue,
+  type SelectItemInput,
+} from '~/lib/analytics/item-basics';
 
 const MAX_ITEMS = 50;
-const MAX_QUANTITY = 99;
-const MAX_NAME_LENGTH = 100;
-const PRODUCT_GID = /^gid:\/\/shopify\/Product\/(\d{1,20})$/;
-const PLAIN_ID = /^\d{1,20}$/;
 const HANDLE = /^[a-z0-9][a-z0-9-]{0,99}$/;
-
-// --- reading untrusted input ---------------------------------------------------------------------------------
-
-function get(value: unknown, ...path: readonly string[]): unknown {
-  let current = value;
-  for (const key of path) {
-    if (typeof current !== 'object' || current === null) return undefined;
-    current = Reflect.get(current, key);
-  }
-  return current;
-}
-
-function text(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim().slice(0, MAX_NAME_LENGTH);
-  return trimmed === '' ? undefined : trimmed;
-}
 
 function list(value: unknown): readonly unknown[] {
   return Array.isArray(value) ? value : [];
-}
-
-function quantityOf(value: unknown, fallback: number): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
-  return Math.min(MAX_QUANTITY, Math.max(0, Math.floor(value)));
-}
-
-/** "gid://shopify/Product/123" or "123" gives "123"; anything else is not an id we send. */
-export function productIdFrom(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const gid = PRODUCT_GID.exec(value);
-  if (gid?.[1]) return gid[1];
-  return PLAIN_ID.test(value) ? value : null;
-}
-
-/**
- * A price as integer cents. Accepts a MoneyV2 object (`{amount, currencyCode}`) or a bare amount string, which is
- * read as USD because the store sells in dollars only. A different currency, a negative or malformed amount, or
- * anything that is not a string gives null.
- */
-export function centsFrom(value: unknown): number | null {
-  const amount = typeof value === 'string' ? value : get(value, 'amount');
-  const currency =
-    typeof value === 'string' ? undefined : get(value, 'currencyCode');
-  if (typeof amount !== 'string') return null;
-  if (currency !== undefined && currency !== ANALYTICS_CURRENCY) return null;
-  try {
-    return toCents(amount);
-  } catch {
-    return null;
-  }
-}
-
-// --- items ---------------------------------------------------------------------------------------------------
-
-function variantLabel(value: unknown): string | undefined {
-  const title = text(value);
-  // Shopify's name for a product with no options; not a useful variant.
-  return title === undefined || title === 'Default Title' ? undefined : title;
-}
-
-function buildItem(fields: {
-  readonly id: unknown;
-  readonly name: unknown;
-  readonly brand: unknown;
-  readonly variant: unknown;
-  readonly priceCents: number | null;
-  readonly quantity: number;
-}): AnalyticsItem | null {
-  const id = productIdFrom(fields.id);
-  const name = text(fields.name);
-  if (id === null || name === undefined || fields.priceCents === null) {
-    return null;
-  }
-  if (fields.quantity < 1) return null;
-  const brand = text(fields.brand);
-  const variant = variantLabel(fields.variant);
-  return {
-    id,
-    name,
-    ...(brand ? {brand} : {}),
-    ...(variant ? {variant} : {}),
-    priceCents: fields.priceCents,
-    quantity: fields.quantity,
-  };
-}
-
-/** An item from the `products[]` entries of Analytics.ProductView. */
-export function itemFromProductPayload(product: unknown): AnalyticsItem | null {
-  return buildItem({
-    id: get(product, 'id'),
-    name: get(product, 'title'),
-    brand: get(product, 'vendor'),
-    variant: get(product, 'variantTitle'),
-    priceCents: centsFrom(get(product, 'price')),
-    quantity: quantityOf(get(product, 'quantity'), 1),
-  });
 }
 
 /** An item from a cart line, for `quantity` units (default: the line's own quantity). */
@@ -162,20 +81,6 @@ export function mapProductViewed(payload: unknown): AnalyticsEvent | null {
     name: 'view_item',
     params: {},
     ecommerce: {items, valueCents: valueOf(items)},
-  };
-}
-
-/**
- * view_item_list from the collection view. Hydrogen's payload carries the collection's id and handle but not the
- * products shown, so `items` is empty: the event says which list was viewed, not which products it held.
- */
-export function mapCollectionViewed(payload: unknown): AnalyticsEvent | null {
-  const handle = get(payload, 'collection', 'handle');
-  if (typeof handle !== 'string' || !HANDLE.test(handle)) return null;
-  return {
-    name: 'view_item_list',
-    params: {},
-    ecommerce: {items: [], listId: handle, listName: handle},
   };
 }
 
@@ -246,63 +151,35 @@ function cartEvent(
 
 // --- select_item ---------------------------------------------------------------------------------------------
 
-/** The data attributes a product link carries so a click can be reported without the page knowing analytics. */
-export const SELECT_ITEM_ATTRIBUTE = 'data-analytics-select-item';
-
-export type SelectItemInput = {
-  readonly productId: string;
-  readonly name: string;
-  readonly priceCents: number;
-  readonly brand?: string;
-  readonly listId?: string;
-  /** Zero-based position in the list. */
-  readonly index?: number;
-};
-
 /**
- * Attributes for the element wrapping a product link in a list. Spread them onto the link or its card:
- * `<a {...selectItemAttributes(input)}>`. The click listener reads them back through `parseSelectItemAttributes`.
+ * Reads a card's `data-si` value (`gid|price cents|position|list id`) and the link's text (the title) into a
+ * select_item event. Anything required that is wrong (a malformed id, a price that is not whole cents, no title, a
+ * value with more or fewer parts) gives null; a bad position or list id is left out and the item is kept.
  */
-export function selectItemAttributes(
-  input: SelectItemInput,
-): Record<string, string> {
-  return {
-    [SELECT_ITEM_ATTRIBUTE]: '',
-    'data-analytics-id': input.productId,
-    'data-analytics-name': input.name,
-    'data-analytics-price-cents': String(input.priceCents),
-    ...(input.brand ? {'data-analytics-brand': input.brand} : {}),
-    ...(input.listId ? {'data-analytics-list': input.listId} : {}),
-    ...(input.index === undefined
-      ? {}
-      : {'data-analytics-index': String(input.index)}),
-  };
-}
-
-/** Reads attribute values (as strings, from the DOM) into a select_item event; null when anything required is wrong. */
 export function mapSelectItem(
-  read: (name: string) => string | null,
+  value: string | null,
+  label: string | null,
 ): AnalyticsEvent | null {
-  const price = read('data-analytics-price-cents');
+  if (value === null || value.length > 300) return null;
+  const parts = value.split('|');
+  if (parts.length !== 4) return null;
+  const [gid, price, position, list] = parts;
   const priceCents =
-    price !== null && /^\d{1,9}$/.test(price) ? Number(price) : null;
-  const listText = text(read('data-analytics-list'));
-  const indexText = read('data-analytics-index');
+    price !== undefined && /^\d{1,9}$/.test(price) ? Number(price) : null;
   const index =
-    indexText !== null && /^\d{1,4}$/.test(indexText)
-      ? Number(indexText)
+    position !== undefined && /^\d{1,4}$/.test(position)
+      ? Number(position)
       : undefined;
   const item = buildItem({
-    id: read('data-analytics-id'),
-    name: read('data-analytics-name'),
-    brand: read('data-analytics-brand'),
+    id: gid,
+    name: label?.replace(/\s+/g, ' '),
+    brand: undefined,
     variant: undefined,
     priceCents,
     quantity: 1,
   });
   if (item === null) return null;
-  const listId =
-    listText !== undefined && HANDLE.test(listText) ? listText : undefined;
+  const listId = list !== undefined && HANDLE.test(list) ? list : undefined;
   return {
     name: 'select_item',
     params: {},

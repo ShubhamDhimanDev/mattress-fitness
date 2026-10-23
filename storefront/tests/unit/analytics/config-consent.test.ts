@@ -28,8 +28,11 @@ describe('PUBLIC_CONSENT_MODE (NFR-011)', () => {
     [undefined, 'opt-in'],
     ['', 'opt-in'],
     ['opt-in', 'opt-in'],
-    ['OPT-OUT', 'opt-out'],
-    [' opt-out ', 'opt-out'],
+    ['opt-out', 'opt-out'],
+    // Exact match only (review I-1): case, spaces and typos keep the stricter mode.
+    ['OPT-OUT', 'opt-in'],
+    [' opt-out ', 'opt-in'],
+    ['opt-out\n', 'opt-in'],
     ['optout', 'opt-in'],
     ['false', 'opt-in'],
     ['opt-out; drop table', 'opt-in'],

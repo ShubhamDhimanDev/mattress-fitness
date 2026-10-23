@@ -47,8 +47,8 @@ function Harness({
   return (
     <MemoryRouter>
       <ConsentContext.Provider value={{config, store, snapshot}}>
-        <ConsentBanner />
-        <ConsentPreferences />
+        <ConsentBanner config={config} store={store} />
+        <ConsentPreferences config={config} store={store} />
         <PrivacyChoicesButton />
         <output data-testid="state">{JSON.stringify(snapshot.choice)}</output>
       </ConsentContext.Provider>
@@ -86,10 +86,12 @@ describe('<ConsentBanner>', () => {
     expect(region.className).toContain('fixed');
   });
 
-  it('opt-in wording says nothing is sent until the shopper agrees; opt-out wording says it can be turned off', () => {
+  it('opt-in wording says the Google and Meta tools wait for the shopper (not that nothing is sent: Shopify has its own); opt-out wording says it can be turned off', () => {
     const {unmount} = render(<Harness env={BOTH} mode="opt-in" />);
     expect(
-      screen.getByText(/Nothing is sent until you agree/),
+      screen.getByText(
+        /only load analytics and advertising tools from Google and Meta after you agree/,
+      ),
     ).toBeInTheDocument();
     unmount();
     render(<Harness env={BOTH} mode="opt-out" />);

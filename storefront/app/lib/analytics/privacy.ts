@@ -1,7 +1,8 @@
-// What may leave the browser (threat T-05, REQ-ANL-002 "no PII"). Every event passes through these checks on its
-// way to a provider, so a careless call site cannot send a name, an email, a phone number, a ZIP code or an order
-// number. Allow-lists first, patterns second: a value is sent because it is known to be safe, and a pattern only
-// catches the mistakes the allow-list cannot see.
+// What may leave the browser (threat T-05, REQ-ANL-002 "no PII"). Every event parameter passes through these checks
+// on its way to a provider, so a careless call site cannot send a name, an email, a phone number, a ZIP code or an
+// order number as a parameter. Allow-lists first, patterns second: a value is sent because it is known to be safe,
+// and a pattern only catches the mistakes the allow-list cannot see. What the providers' own scripts read from the
+// page (address, title, referrer) is handled in `page-context.ts`.
 
 import type {AnalyticsParamValue} from '~/lib/analytics';
 
@@ -14,7 +15,7 @@ const PARAM_NAME = /^[a-z][a-z0-9_]{0,39}$/;
 // A parameter whose name suggests personal data is dropped even if a caller tries to send it.
 const PII_PARAM_NAME =
   /email|e_mail|phone|mobile|zip|postal|postcode|address|street|first_?name|last_?name|full_?name|customer|order_?(id|number|name)|card|password|token|secret/;
-const EMAIL = /[^\s@]+@[^\s@]+/;
+export const EMAIL = /[^\s@]+@[^\s@]+/;
 // Seven or more digits in a row (allowing the usual separators) looks like a phone number, card or order number.
 const LONG_DIGITS = /(?:\d[\s().-]*){7,}/;
 
@@ -65,8 +66,8 @@ export function sanitizeSearchTerm(raw: unknown): string | null {
   return term;
 }
 
-// The only query parameters that reach a provider: campaign tags and ad-click ids, which attribution needs.
-// Everything else (search words, filters, a ZIP) stays out of the page address we report.
+// The only query parameters in the address we report: campaign tags and ad-click ids, which attribution needs.
+// Everything else (search words, filters, a ZIP) stays out of it.
 const ALLOWED_QUERY_KEYS: ReadonlySet<string> = new Set([
   'utm_source',
   'utm_medium',
@@ -77,19 +78,47 @@ const ALLOWED_QUERY_KEYS: ReadonlySet<string> = new Set([
   'fbclid',
 ]);
 
-// Paths whose address names a person's record or a secret: reported as the section only.
-const PRIVATE_PATH_PREFIXES = ['/account', '/discount', '/checkout-steps'];
+// Pages that show or collect a person's data, or whose address holds a secret: the order and account area, the
+// guest order lookup, the delivery ZIP form, the pre-checkout steps and discount links. Nothing is sent from them
+// (see `evaluatePage`), and as a referrer or a reported address they are cut to the section (T-05, T-10).
+export const PRIVATE_PATH_PREFIXES: readonly string[] = [
+  '/account',
+  '/track-order',
+  '/delivery',
+  '/checkout-steps',
+  '/discount',
+];
 
-function reportedPath(pathname: string): string {
-  for (const prefix of PRIVATE_PATH_PREFIXES) {
-    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return prefix;
+/** The path as the router would match it: decoded, lower-cased, repeated slashes collapsed. */
+function normalizedPath(pathname: string): string {
+  let decoded = pathname;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    // A malformed escape is compared as written.
   }
-  return pathname;
+  return decoded.toLowerCase().replace(/\/{2,}/g, '/');
+}
+
+/** The private prefix a path falls under, or null. `/account` and `/account/orders/1`, not `/accounting`. */
+export function privatePathSection(pathname: string): string | null {
+  const path = normalizedPath(pathname);
+  for (const prefix of PRIVATE_PATH_PREFIXES) {
+    if (path === prefix || path.startsWith(`${prefix}/`)) return prefix;
+  }
+  return null;
+}
+
+export function isPrivatePath(pathname: string): boolean {
+  return privatePathSection(pathname) !== null;
 }
 
 /**
- * The page address to report: origin and path, plus campaign parameters. Account, discount-code and checkout-step
- * paths are cut to their section. Returns null for anything that is not an http(s) URL.
+ * The page address to report: origin and path, plus campaign parameters only. Search words, filters and every other
+ * query value are dropped; private paths are cut to their section. Returns null for anything that is not an
+ * http(s) URL. This is the address WE choose to send (the `page_location` parameter and the GA4 `set`); it cannot
+ * change what a provider's own script reads from the document, which is why `evaluatePage` also stops events
+ * from pages that fail the safety check.
  */
 export function sanitizePageLocation(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
@@ -114,5 +143,6 @@ export function sanitizePageLocation(raw: unknown): string | null {
     }
   }
   const query = kept.toString();
-  return `${url.origin}${reportedPath(url.pathname)}${query ? `?${query}` : ''}`;
+  const path = privatePathSection(url.pathname) ?? url.pathname;
+  return `${url.origin}${path}${query ? `?${query}` : ''}`;
 }

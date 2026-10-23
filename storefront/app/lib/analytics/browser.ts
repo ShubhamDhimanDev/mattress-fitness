@@ -15,6 +15,11 @@ import {
 } from '~/lib/analytics/consent-store';
 import {buildExpiredCookies} from '~/lib/analytics/cookies';
 import {createGa4Adapter} from '~/lib/analytics/ga4';
+import {
+  evaluatePage,
+  readPageInput,
+  type PageDecision,
+} from '~/lib/analytics/page-context';
 import {createMetaAdapter} from '~/lib/analytics/meta';
 import {globalsOf, type ProviderAdapter} from '~/lib/analytics/adapter';
 import {createScriptLoader} from '~/lib/analytics/script-loader';
@@ -73,6 +78,41 @@ export function createBrowserConsentStore(
     storage: createBrowserConsentStorage(win),
     gpc: () => readGlobalPrivacyControl(win),
   });
+}
+
+/**
+ * Applies a decision made in another tab (L-6): re-reads the store on a `storage` event (localStorage changes) and
+ * whenever this tab becomes visible or gets focus, because the cookie, the primary store, emits no event. So a
+ * withdrawal elsewhere stops sending here the next time the shopper looks at this tab. Returns the remover.
+ */
+export function attachConsentRefresh(
+  store: {readonly refresh: () => void},
+  win: Window,
+): () => void {
+  const refresh = () => {
+    try {
+      store.refresh();
+    } catch {
+      // Re-reading must never break the page.
+    }
+  };
+  const onVisibility = () => {
+    if (win.document.visibilityState === 'visible') refresh();
+  };
+  win.addEventListener('storage', refresh);
+  win.addEventListener('focus', refresh);
+  win.document.addEventListener('visibilitychange', onVisibility);
+  return () => {
+    win.removeEventListener('storage', refresh);
+    win.removeEventListener('focus', refresh);
+    win.document.removeEventListener('visibilitychange', onVisibility);
+  };
+}
+
+/** The safety verdict for the page in `win` right now (see `page-context.ts`); unreadable counts as unsafe. */
+export function evaluateCurrentPage(win: Window): PageDecision {
+  const input = readPageInput(win);
+  return input ? evaluatePage(input) : {safe: false, reason: 'unreadable'};
 }
 
 /** Expires the named cookies on this host; used when consent is withdrawn after a provider ran. */

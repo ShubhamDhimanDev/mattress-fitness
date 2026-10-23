@@ -83,12 +83,40 @@ describe('report-only policy and analytics hosts', () => {
     expect(directive(policy, 'script-src-attr')).toEqual(["'none'"]);
   });
 
-  it('wildcards appear only for the documented Google subdomains in image and connect sources', () => {
+  it('wildcards appear only for the two Google analytics domains, in image and connect sources (owner approval pending)', () => {
     const policy =
       buildReportOnlyCsp({...BASE, analytics: {ga4: true, meta: true}}) ?? '';
     const wild = (policy.match(/https:\/\/\*\.[^\s;]+/g) ?? []).sort();
     expect(new Set(wild)).toEqual(
-      new Set(['https://*.google-analytics.com', 'https://*.google.com']),
+      new Set([
+        'https://*.google-analytics.com',
+        'https://*.analytics.google.com',
+      ]),
+    );
+    for (const name of ['script-src', 'default-src', 'frame-src']) {
+      expect(directive(policy, name).join(' ')).not.toContain('*');
+    }
+  });
+
+  it('no longer allows all of google.com for connections (review L-1): only the named analytics hosts', () => {
+    const policy = buildReportOnlyCsp({...BASE, analytics: {ga4: true}}) ?? '';
+    const connect = directive(policy, 'connect-src');
+    expect(connect).not.toContain('https://*.google.com');
+    expect(connect).toEqual(
+      expect.arrayContaining([
+        'https://www.google.com',
+        'https://analytics.google.com',
+        'https://*.analytics.google.com',
+      ]),
+    );
+    expect(
+      (policy.match(/https?:\/\/[^\s;]*google\.com/g) ?? []).sort(),
+    ).toEqual(
+      [
+        'https://*.analytics.google.com',
+        'https://analytics.google.com',
+        'https://www.google.com',
+      ].sort(),
     );
   });
 });

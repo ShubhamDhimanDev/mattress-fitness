@@ -11,18 +11,19 @@ import type {ProductCardView} from '~/lib/shopify/types';
 type ProductItemProps = {
   product: ProductCardView;
   loading?: 'eager' | 'lazy';
-  /** Position in the list, used by "Load more" to move focus to the first new card. */
+  /**
+   * Zero-based position among the list's products (promo tiles do not count). "Load more" uses it to move focus to
+   * the first new card, and a card that has one reports a click as select_item (REQ-ANL-001); without it the card
+   * reports nothing.
+   */
   index?: number;
+  /** The list the card belongs to, for the select_item event (a collection handle, `search`, `all`, `brand-<handle>`). */
+  listId?: string;
   /**
    * `stack` puts the image above the text. `row` puts them side by side below 768 px and stacks from there
    * (listings and search). The DOM order is the same either way, so reading and focus order never change.
    */
   layout?: 'stack' | 'row';
-  /**
-   * Where the card sits in its list, so a click is reported as select_item (REQ-ANL-001). `position` is the
-   * zero-based place among the products (promo tiles do not count). Without it the card reports nothing.
-   */
-  analytics?: {readonly listId?: string; readonly position: number};
 };
 
 // The `sizes` hint follows the layout: a row card's image is about two fifths of a phone, a stacked card's about
@@ -44,7 +45,7 @@ export function ProductItem({
   loading,
   index,
   layout = 'stack',
-  analytics,
+  listId,
 }: ProductItemProps) {
   const saleView =
     product.price && product.compareAt
@@ -117,7 +118,7 @@ export function ProductItem({
           <Link
             to={`/products/${product.handle}`}
             prefetch="intent"
-            {...(analytics ? cardSelectItemAttributes(product, analytics) : {})}
+            {...cardSelectItemAttributes(product, index, listId)}
             className="group/title block after:absolute after:inset-0"
           >
             <span className="group-hover/title:underline md:line-clamp-4">

@@ -4,6 +4,7 @@
 
 import type {AnalyticsEvent} from '~/lib/analytics';
 import type {ConsentCategory} from '~/lib/analytics/config';
+import type {PageContext} from '~/lib/analytics/page-context';
 
 export type ProviderId = 'ga4' | 'meta';
 
@@ -26,6 +27,17 @@ export type ProviderAdapter = {
   readonly grant: () => void;
   /** Consent withdrawn after the provider was loaded: stop sending and remove what it stored. */
   readonly revoke: () => void;
+  /**
+   * The reduced address, title and referrer for the page the shopper is on (see `page-context.ts`). Called on each
+   * navigation and before a load starts; a provider that can override what its script reads applies it.
+   */
+  readonly setPage?: (context: PageContext) => void;
+  /**
+   * The shopper is on a page that must send nothing (private area): stop the provider's own automatic hits too.
+   * Unlike `revoke` this keeps the cookies and the consent; `resume` undoes it on the next safe page.
+   */
+  readonly pause?: () => void;
+  readonly resume?: () => void;
 };
 
 export type ScriptLoadResult =

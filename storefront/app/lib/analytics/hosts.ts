@@ -2,9 +2,18 @@
 //
 // Google's list is quoted from "Use Google tag with a Content Security Policy"
 // (developers.google.com/tag-platform/security/guides/csp, "Analytics without Ads features", read 2026-10-23).
-// It contains wildcard subdomains because Google serves GA4 from regional hosts (for example
-// region1.google-analytics.com); this deviates from docs/security/SECURITY_HEADERS.md "never a wildcard host" and is
-// recorded as an open decision in docs/integrations/ANALYTICS.md.
+// Google's own list also names https://*.google.com for connect-src. That is NOT used: google.com serves
+// user-controlled content (script.google.com web apps, docs, sites, forms), so it would be a ready-made data sink for
+// any future script injection (security review 2026-10-24, L-1). Instead connect-src names the two Google analytics
+// hosts GA4 is expected to call with Google signals and ad personalisation off. Which of them GA4 really calls is
+// UNVERIFIED: run staging in report-only with a real id, load every template, and add only a host that is actually
+// seen blocked.
+//
+// WILDCARDS, for the owner's written approval. SECURITY_HEADERS.md says "never a wildcard host"; two wildcards are
+// used on purpose, each limited to one Google-operated, analytics-only registrable domain:
+//   https://*.google-analytics.com   (regional collectors such as region1.google-analytics.com)
+//   https://*.analytics.google.com
+// Until the owner accepts this exception in writing, the exception is proposed, not approved.
 //
 // Meta's list is UNVERIFIED: Meta's developer documentation says nothing about Content Security Policy
 // (checked 2026-10-23). The hosts are the ones the pixel library is documented to load from and report to in
@@ -22,7 +31,9 @@ export const GA4_CSP: ProviderCsp = {
   connect: [
     'https://www.googletagmanager.com',
     'https://*.google-analytics.com',
-    'https://*.google.com',
+    'https://www.google.com',
+    'https://analytics.google.com',
+    'https://*.analytics.google.com',
   ],
 };
 

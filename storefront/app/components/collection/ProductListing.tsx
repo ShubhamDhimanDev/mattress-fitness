@@ -8,18 +8,14 @@ import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {Drawer} from '~/components/ui/Drawer';
 import {Select} from '~/components/ui/Select';
-import {track} from '~/lib/analytics';
 import {
   SORT_LABELS,
   countActiveFilters,
   parseFilterParams,
   type SortKey,
 } from '~/lib/filters';
-import {
-  buildItemListEvents,
-  listIdForPath,
-  listingReportsItems,
-} from '~/lib/listing-analytics';
+import type {ReportedList} from '~/lib/listing-events';
+import {listIdForPath} from '~/lib/listing-path';
 import {
   hrefForReset,
   hrefForSort,
@@ -77,31 +73,22 @@ export function ProductListing({
       hrefForState(pathname, nextPageState(state, cursor), base),
   });
 
-  // The list id, and the products already reported for the list on screen (REQ-ANL-001). The count restarts when
-  // the filters, sort or page path change, and "Load more" reports only the products it adds, with the numbering
-  // carried on, so each product is counted once per list view (also under React's double effect in development).
+  // view_item_list (REQ-ANL-001). All of it (which products are new, the numbering, the event) lives in a module
+  // fetched here with import(), which keeps it out of the route's initial JavaScript (scripts/perf). It records what
+  // it has reported in the `reported` ref, so each product is counted once per list view, also when this effect runs twice.
+  // `track()` holds the event until the consent layer is ready and the runtime drops what consent does not allow.
   const listId = listIdForPath(pathname);
-  const reportsItems = listingReportsItems(pathname);
-  const reported = useRef({key: resetKey, count: 0});
+  const reported = useRef<ReportedList | null>(null);
   const visibleProducts = list.products;
   useEffect(() => {
-    if (!reportsItems) return;
-    const memo = reported.current;
-    if (memo.key !== resetKey) {
-      memo.key = resetKey;
-      memo.count = 0;
-    }
-    if (visibleProducts.length <= memo.count) return;
-    const firstPosition = memo.count;
-    memo.count = visibleProducts.length;
-    for (const event of buildItemListEvents(
-      visibleProducts.slice(firstPosition),
-      listId,
-      firstPosition,
-    )) {
-      track(event);
-    }
-  }, [reportsItems, resetKey, visibleProducts, listId]);
+    import('~/lib/listing-events').then(
+      (events) =>
+        events.reportListing(reported, resetKey, visibleProducts, listId),
+      () => {
+        // The chunk could not be fetched (offline, a deploy replaced it): analytics never breaks the page (NFR-013).
+      },
+    );
+  }, [resetKey, visibleProducts, listId]);
 
   const sortOptions = sortKeys.map((key) => ({
     value: key,
@@ -209,7 +196,7 @@ export function ProductListing({
                         index={item.productIndex}
                         layout="row"
                         loading={item.productIndex < 4 ? 'eager' : 'lazy'}
-                        analytics={{listId, position: item.productIndex}}
+                        listId={listId}
                       />
                     </li>
                   ),

@@ -8,7 +8,7 @@ import {
   mapSearchViewed,
   mapSelectItem,
   productIdFrom,
-  selectItemAttributes,
+  selectItemValue,
   centsFrom,
 } from '~/lib/analytics/hydrogen-events';
 import {dollarsFromCents} from '~/lib/analytics/money';
@@ -145,21 +145,14 @@ describe('view_item, view_item_list, search, view_cart', () => {
     expect(mapProductViewed(undefined)).toBeNull();
   });
 
-  it('a collection view names the list by its handle, and refuses a hostile handle', () => {
+  it("Hydrogen's collection view sends nothing: the listing code sends view_item_list with the products", () => {
     expect(
       mapCollectionViewed({collection: {id: 'x', handle: 'queen-mattresses'}}),
-    ).toEqual({
-      name: 'view_item_list',
-      params: {},
-      ecommerce: {
-        items: [],
-        listId: 'queen-mattresses',
-        listName: 'queen-mattresses',
-      },
-    });
+    ).toBeNull();
     expect(
       mapCollectionViewed({collection: {handle: 'A B<script>'}}),
     ).toBeNull();
+    expect(mapCollectionViewed(undefined)).toBeNull();
   });
 
   it('search carries the term, trimmed and capped, and never an email or a phone number', () => {
@@ -285,17 +278,15 @@ describe('begin_checkout (at hand-off)', () => {
 });
 
 describe('select_item', () => {
-  it('round-trips through the data attributes', () => {
-    const attributes = selectItemAttributes({
+  it('round-trips through the single data-si value and the link text', () => {
+    const value = selectItemValue({
       productId: '123',
-      name: 'Cloud Mattress',
       priceCents: 99900,
-      brand: 'Acme',
       listId: 'queen',
       index: 3,
     });
-    const event = mapSelectItem((name) => attributes[name] ?? null);
-    expect(event).toEqual({
+    expect(value).toBe('123|99900|3|queen');
+    expect(mapSelectItem(value, '  Cloud   Mattress\n')).toEqual({
       name: 'select_item',
       params: {},
       ecommerce: {
@@ -305,7 +296,6 @@ describe('select_item', () => {
           {
             id: '123',
             name: 'Cloud Mattress',
-            brand: 'Acme',
             priceCents: 99900,
             quantity: 1,
             index: 3,
@@ -315,33 +305,46 @@ describe('select_item', () => {
     });
   });
 
+  it('takes a Shopify gid, and an empty list id or position leaves them out', () => {
+    const event = mapSelectItem('gid://shopify/Product/55|100||', 'N');
+    expect(event?.ecommerce?.items[0]).toEqual({
+      id: '55',
+      name: 'N',
+      priceCents: 100,
+      quantity: 1,
+    });
+    expect(event?.ecommerce?.listId).toBeUndefined();
+  });
+
   it.each([
-    [
-      'a non-numeric price',
-      {
-        'data-analytics-id': '1',
-        'data-analytics-name': 'N',
-        'data-analytics-price-cents': '1e5',
-      },
-    ],
-    [
-      'no id',
-      {'data-analytics-name': 'N', 'data-analytics-price-cents': '100'},
-    ],
-    [
-      'a non-numeric id',
-      {
-        'data-analytics-id': 'abc',
-        'data-analytics-name': 'N',
-        'data-analytics-price-cents': '100',
-      },
-    ],
-  ])('refuses %s', (_label, attributes) => {
-    expect(
-      mapSelectItem(
-        (name) => (attributes as Record<string, string>)[name] ?? null,
-      ),
-    ).toBeNull();
+    ['no value', null, 'N'],
+    ['a non-numeric price', '1|1e5|0|a', 'N'],
+    ['a negative price', '1|-5|0|a', 'N'],
+    ['a price of ten digits', '1|1234567890|0|a', 'N'],
+    ['a non-numeric id', 'abc|100|0|a', 'N'],
+    ['a variant gid', 'gid://shopify/ProductVariant/1|100|0|a', 'N'],
+    ['no id', '|100|0|a', 'N'],
+    ['too few parts', '1|100|0', 'N'],
+    ['too many parts', '1|100|0|a|b', 'N'],
+    ['a list id holding the delimiter', '1|100|0|a|b', 'N'],
+    ['no title', '1|100|0|a', null],
+    ['a blank title', '1|100|0|a', '   '],
+    ['an oversized value', `1|100|0|${'a'.repeat(400)}`, 'N'],
+  ])('refuses %s', (_label, value, label) => {
+    expect(mapSelectItem(value, label)).toBeNull();
+  });
+
+  it('leaves out a hostile list id or position and keeps the item', () => {
+    const event = mapSelectItem('1|100|-1|<script>', 'N');
+    expect(event?.ecommerce?.items[0]?.index).toBeUndefined();
+    expect(event?.ecommerce?.listId).toBeUndefined();
+    expect(event?.ecommerce?.items[0]?.id).toBe('1');
+  });
+
+  it('caps the title and never carries a brand', () => {
+    const event = mapSelectItem('1|100|0|a', 'x'.repeat(300));
+    expect(event?.ecommerce?.items[0]?.name).toHaveLength(100);
+    expect(event?.ecommerce?.items[0]).not.toHaveProperty('brand');
   });
 });
 

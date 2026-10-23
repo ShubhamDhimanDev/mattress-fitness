@@ -44,17 +44,6 @@ export type ConsentStore = {
   readonly closePreferences: () => void;
 };
 
-/**
- * What the server and the first hydration pass see: decided, nothing allowed, no dialog. "Decided" keeps the
- * banner out of the server HTML (so there is no flash and no layout shift); the client snapshot replaces it
- * right after hydration.
- */
-export const SERVER_CONSENT_SNAPSHOT: ConsentSnapshot = {
-  decided: true,
-  choice: DENY_ALL,
-  preferencesOpen: false,
-};
-
 export type ConsentStoreOptions = {
   readonly mode: ConsentMode;
   readonly storage: ConsentStorage;

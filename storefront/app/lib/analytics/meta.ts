@@ -6,9 +6,14 @@
 // 2026-10-23). Meta's documentation is silent on Content Security Policy hosts, and nothing here has been seen in
 // Meta's Test Events tool (UNVERIFIED).
 //
-// No personal data: no email, phone, name, ZIP or order number is ever passed, and advanced matching (hashed
-// identifiers) is deliberately NOT implemented. `autoConfig` is turned off so the pixel does not scrape form
-// fields or buttons on its own (Meta's "Automatic Advanced Matching" and button-click autotracking).
+// No personal data is passed by US as an event parameter: no email, phone, name, ZIP or order number, and advanced
+// matching (hashed identifiers) is deliberately NOT implemented. `autoConfig` is turned off so the pixel does not
+// scrape form fields or buttons on its own (Meta's "Automatic Advanced Matching" and button-click autotracking).
+// What the pixel reads from the page itself (the document address and the referrer, which Meta's documentation does
+// not describe, UNVERIFIED) cannot be overridden from here. The control is the safe-page guard in the runtime
+// (`page-context.ts`): no event, PageView included, is sent from a private page or from a page whose address
+// looks personal. On a search page whose term passes the check, the pixel still sees `?q=<term>`; that term is
+// also sent as `search_string`, so nothing new leaves, but it is a residual risk (docs/integrations/ANALYTICS.md).
 // Quiz events, select_item, view_item_list and remove_from_cart have no standard Meta event and are not forwarded.
 
 import type {AnalyticsEvent, AnalyticsItem} from '~/lib/analytics';
@@ -19,7 +24,7 @@ import type {
   ProviderLoadResult,
   ScriptLoader,
 } from '~/lib/analytics/adapter';
-import {ANALYTICS_CURRENCY} from '~/lib/analytics/hydrogen-events';
+import {ANALYTICS_CURRENCY} from '~/lib/analytics/item-basics';
 import {dollarsFromCents} from '~/lib/analytics/money';
 import {sanitizeSearchTerm} from '~/lib/analytics/privacy';
 
