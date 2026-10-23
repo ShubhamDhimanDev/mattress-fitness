@@ -1,1 +1,0 @@
-MOVED: this file was renumbered to [ADR-0011-node-server-entry.md](ADR-0011-node-server-entry.md) on 2026-10-23 (ADR-0010 is [ui-primitives-and-design-tokens](ADR-0010-ui-primitives-and-design-tokens.md)). This stub exists only because the technical writer cannot delete files. Delete it.
