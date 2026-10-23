@@ -5,7 +5,16 @@
 // without limit on a long-lived process. Same expiry rule as Hydrogen's: max-age plus stale-while-revalidate from
 // the stored response's Cache-Control (or the `real-cache-control` Hydrogen writes).
 //
-// Per process, not shared: with one process (the VPS runbook) that is exactly the Workers behaviour per isolate.
+// Bounds, per named cache (two are opened today, so the worst case is twice the byte limit):
+//   - at most `maxEntries` entries;
+//   - at most `maxBytes` of stored size (body plus header text plus key, an estimate of the heap held, not an exact figure);
+//   - an entry larger than `maxBytes / MAX_ENTRY_FRACTION` is not stored at all (and replaces nothing), so one big
+//     response cannot flush the whole cache;
+//   - expired entries are removed by a sweep on write and by an unref'd timer, so an idle process lets go of them.
+// The oldest write is evicted first. Nothing here is shared between processes.
+
+const MAX_ENTRY_FRACTION = 8;
+const encoder = new TextEncoder();
 
 function notSupported(method) {
   return () => {
@@ -21,19 +30,59 @@ function methodOf(request) {
   return typeof request === 'string' ? 'GET' : request.method;
 }
 
+function seconds(control, directive) {
+  return Number.parseInt(control.match(new RegExp(`${directive}=(\\d+)`))?.[1] ?? '0', 10);
+}
+
+/** Rough size of what an entry keeps alive. UTF-8 length, so it never under-counts non-ASCII header text. */
+function sizeOf(key, body, headers) {
+  let bytes = encoder.encode(key).byteLength + body.byteLength;
+  for (const [name, value] of headers) bytes += encoder.encode(name).byteLength + encoder.encode(value).byteLength;
+  return bytes;
+}
+
 class MemoryCache {
   #entries = new Map();
   #maxEntries;
+  #maxBytes;
   #now;
+  #sweepEveryMs;
+  #lastSweep;
+  #bytes = 0;
 
-  constructor(maxEntries, now) {
+  constructor({ maxEntries, maxBytes, now, sweepEveryMs }) {
     this.#maxEntries = maxEntries;
+    this.#maxBytes = maxBytes;
     this.#now = now;
+    this.#sweepEveryMs = sweepEveryMs;
+    this.#lastSweep = now();
   }
 
   add = notSupported('add');
   addAll = notSupported('addAll');
   matchAll = notSupported('matchAll');
+
+  #remove(key) {
+    const entry = this.#entries.get(key);
+    if (entry === undefined) return false;
+    this.#entries.delete(key);
+    this.#bytes -= entry.size;
+    return true;
+  }
+
+  /** Removes every entry that is past max-age plus stale-while-revalidate. Returns how many went. */
+  sweep() {
+    const now = this.#now();
+    this.#lastSweep = now;
+    let removed = 0;
+    for (const [key, entry] of this.#entries) {
+      if ((now - entry.timestamp) / 1000 > entry.maxAge + entry.swr) {
+        this.#remove(key);
+        removed += 1;
+      }
+    }
+    return removed;
+  }
 
   async put(request, response) {
     if (methodOf(request) !== 'GET') throw new TypeError('Cannot cache response to non-GET request.');
@@ -41,19 +90,29 @@ class MemoryCache {
     if (response.headers.get('vary')?.includes('*'))
       throw new TypeError("Cannot cache response with 'Vary: *' header.");
     const key = keyOf(request);
-    const stored = {
-      body: new Uint8Array(await response.arrayBuffer()),
+    const body = new Uint8Array(await response.arrayBuffer());
+    const headers = [...response.headers];
+    const size = sizeOf(key, body, headers);
+    // Whatever was stored under this key is out of date now, whether or not the new answer fits.
+    this.#remove(key);
+    if (size > this.#maxBytes / MAX_ENTRY_FRACTION) return;
+    const control = response.headers.get('cache-control') || response.headers.get('real-cache-control') || '';
+    // Insertion order is write order, so a refreshed key moves to the newest end.
+    this.#entries.set(key, {
+      body,
       status: response.status,
-      headers: [...response.headers],
+      headers,
       timestamp: this.#now(),
-    };
-    // Delete first so a refreshed key moves to the newest end of the insertion order.
-    this.#entries.delete(key);
-    this.#entries.set(key, stored);
-    while (this.#entries.size > this.#maxEntries) {
+      maxAge: seconds(control, 'max-age'),
+      swr: seconds(control, 'stale-while-revalidate'),
+      size,
+    });
+    this.#bytes += size;
+    if (this.#now() - this.#lastSweep >= this.#sweepEveryMs) this.sweep();
+    while (this.#entries.size > this.#maxEntries || this.#bytes > this.#maxBytes) {
       const oldest = this.#entries.keys().next();
       if (oldest.done) break;
-      this.#entries.delete(oldest.value);
+      this.#remove(oldest.value);
     }
   }
 
@@ -62,22 +121,19 @@ class MemoryCache {
     const key = keyOf(request);
     const entry = this.#entries.get(key);
     if (entry === undefined) return undefined;
-    const headers = new Headers(entry.headers);
-    const control = headers.get('cache-control') || headers.get('real-cache-control') || '';
-    const maxAge = Number.parseInt(control.match(/max-age=(\d+)/)?.[1] ?? '0', 10);
-    const swr = Number.parseInt(control.match(/stale-while-revalidate=(\d+)/)?.[1] ?? '0', 10);
     const ageSeconds = (this.#now() - entry.timestamp) / 1000;
-    if (ageSeconds > maxAge + swr) {
-      this.#entries.delete(key);
+    if (ageSeconds > entry.maxAge + entry.swr) {
+      this.#remove(key);
       return undefined;
     }
-    headers.set('cache', ageSeconds > maxAge ? 'STALE' : 'HIT');
+    const headers = new Headers(entry.headers);
+    headers.set('cache', ageSeconds > entry.maxAge ? 'STALE' : 'HIT');
     headers.set('date', new Date(entry.timestamp).toUTCString());
     return new Response(entry.body, { status: entry.status, headers });
   }
 
   async delete(request) {
-    return this.#entries.delete(keyOf(request));
+    return this.#remove(keyOf(request));
   }
 
   async keys() {
@@ -87,25 +143,44 @@ class MemoryCache {
   get size() {
     return this.#entries.size;
   }
+
+  get bytes() {
+    return this.#bytes;
+  }
 }
 
 /**
- * @param {{maxEntries?: number, now?: () => number}} [options] `maxEntries` applies to each named cache.
- * @returns {{open: (name: string) => Promise<MemoryCache>}}
+ * @param {{maxEntries?: number, maxBytes?: number, sweepIntervalMs?: number, now?: () => number}} [options]
+ *   `maxEntries` and `maxBytes` apply to each named cache. `sweepIntervalMs` 0 turns the timer off (a sweep still runs on
+ *   every write); the timer is unref'd so it never keeps the process alive.
+ * @returns {{open: (name: string) => Promise<MemoryCache>, sweepAll: () => number, stop: () => void}}
  */
 export function createCacheStorage(options = {}) {
   const maxEntries = options.maxEntries ?? 500;
+  const maxBytes = options.maxBytes ?? 64 * 1024 * 1024;
+  const sweepIntervalMs = options.sweepIntervalMs ?? 60_000;
   const now = options.now ?? (() => Date.now());
   /** @type {Map<string, MemoryCache>} */
   const caches = new Map();
+  const sweepAll = () => {
+    let removed = 0;
+    for (const cache of caches.values()) removed += cache.sweep();
+    return removed;
+  };
+  const timer = sweepIntervalMs > 0 ? setInterval(sweepAll, sweepIntervalMs) : undefined;
+  timer?.unref();
   return {
     async open(name) {
       let cache = caches.get(name);
       if (cache === undefined) {
-        cache = new MemoryCache(maxEntries, now);
+        cache = new MemoryCache({ maxEntries, maxBytes, now, sweepEveryMs: sweepIntervalMs });
         caches.set(name, cache);
       }
       return cache;
+    },
+    sweepAll,
+    stop() {
+      if (timer !== undefined) clearInterval(timer);
     },
   };
 }

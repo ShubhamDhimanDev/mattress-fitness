@@ -74,9 +74,9 @@ Release files are world-readable on purpose (nginx and the service user read the
 ## 5. Environment file
 
 1. Create it from the template (names and placeholders only): `sudo install -m 600 -o root -g root deploy/mattressfitness.env.example /etc/mattressfitness/env` (from `/srv/mattressfitness/repo` once it is cloned, or copy the file to the server), then `sudo -e /etc/mattressfitness/env` and fill in the values from the password manager. Generate secrets on the server: `openssl rand -base64 48` (SESSION_SECRET and DELIVERY_COOKIE_SECRET must differ from each other and from any other environment).
-2. Names, exposure and what happens when one is missing: [DEPLOYMENT](DEPLOYMENT.md), "Environment variables". The required four are checked by the server at start (it refuses to start and names the missing variable; it never prints a value). Everything else fails closed inside the app; read "Production readiness: settings that fail silently or closed" there before first start.
+2. Names, exposure and what happens when one is missing: [DEPLOYMENT](DEPLOYMENT.md), "Environment variables". The required four (`SESSION_SECRET`, `PUBLIC_STORE_DOMAIN`, `PUBLIC_STOREFRONT_API_TOKEN`, `PUBLIC_CHECKOUT_DOMAIN`) are checked by the server at start (it refuses to start and names the missing variable; it never prints a value). `PUBLIC_STOREFRONT_ID` is **optional**: the storefront hands it to Hydrogen's `getShopAnalytics` (`app/root.tsx`), which uses `'0'` when it is unset, so leaving it out only costs analytics sub-channel attribution; the template has it commented out (checked in the installed `@shopify/hydrogen`, 2026-10-23). Everything else fails closed inside the app; read "Production readiness: settings that fail silently or closed" there before first start.
 3. Never set `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_ALLOWED_STORES`, a write-capable Shopify token or `EXTEND_MOCK_*` on a server. `EXTEND_API_HOST` must not be the local mock (a production build refuses it).
-4. Check without printing: `sudo stat -c '%U:%G %a' /etc/mattressfitness/env` must print `root:root 600`; `sudo grep -c '<[A-Z_]*>' /etc/mattressfitness/env` must print `0` (a placeholder left behind).
+4. Check without printing: `sudo stat -c '%U:%G %a' /etc/mattressfitness/env` must print `root:root 600`; `sudo grep -v '^[[:space:]]*#' /etc/mattressfitness/env | grep -c '<[A-Z_]*>'` must print `0` (a placeholder left behind on a line that is in use; commented-out template lines are ignored).
 5. The file is read when the service starts. **Every change needs `sudo systemctl restart mattressfitness`**. No rebuild is needed: the bundle contains no store values.
 6. `PUBLIC_*` values are sent to browsers by design; the rest never leave the server. The service user cannot read the file on disk (systemd reads it as root and hands the values to the process).
 7. Backups of the values live in the owner's password manager, not in the repository, chat or e-mail. Rotate a secret by editing the file and restarting; rotating `SESSION_SECRET` signs every shopper out.
@@ -116,10 +116,16 @@ cp package.json "$R/storefront/"        # makes Node treat dist/server/index.js 
 cp -r dist "$R/storefront/dist"
 cp -r ../scripts/node-server "$R/scripts/node-server"
 rm -f "$R"/scripts/node-server/*.test.mjs
-find "$R" -name '*.map' -delete        # source maps are not published
+find "$R" -name '*.map' -delete        # MANDATORY: source maps are not published (checked below)
 printf 'tag=%s\ncommit=%s\nbuilt=%s\nnode=%s\n' "$TAG" "$(git -C /srv/mattressfitness/repo rev-parse "$TAG^{commit}")" "$(date -u +%FT%TZ)" "$(node --version)" > "$R/RELEASE.txt"
 chmod -R a+rX "$R"
+
+# MANDATORY checks before the candidate run; stop unless both print "ok".
+test -z "$(find "$R" -name '*.map' -print -quit)" && echo "ok: no source maps in the release" || echo "FAIL: source maps present"
+test -f "$R/storefront/dist/server/index.js" && test -d "$R/storefront/dist/client/assets" && echo "ok: build output present" || echo "FAIL: build output missing"
 ```
+
+Why the source-map step is mandatory: nginx's `/assets/` and `/brand/` locations use `^~`, which makes nginx skip every regex location, so a regex guard for `.map` files would never run there. The template therefore refuses any `*.map` path with a server-level `if` (it runs before location matching), and the Node server's static handler does not serve maps either; deleting them at assembly is the first line and the check above proves it. None are built into `dist/client` today, so the check is expected to pass without anything being deleted.
 
 Local proof that this layout runs: a copy of `dist/`, `storefront/package.json` and `scripts/node-server/` without `node_modules` served the same pages (ADR-0010). On Linux it is unproven. If `npm ci` or the build fails on the server (memory, registry access, an unexpected download by the Shopify CLI), stop: the previous release keeps running. Setting `SHOPIFY_CLI_NO_ANALYTICS=1` for the build is advisable if usage reporting is unwanted (not verified).
 
@@ -136,6 +142,8 @@ curl -fsS -o /dev/null -w '%{http_code}\n' -H 'Host: <DOMAIN>' -H 'X-Forwarded-P
 sudo journalctl -u mf-candidate --no-pager | tail -20      # look for node_server.listening; no error lines
 sudo systemctl stop mf-candidate
 ```
+
+The candidate run does **not** carry the service unit's sandbox options (`SystemCallFilter`, `ProtectProc` and the rest), so it proves the release and the environment, not the unit. The unit's sandbox is first exercised when the real service starts (section 7).
 
 (The `systemd-run` flags and the precedence of `-E` over the environment file are unverified; the file must not set `PORT`, as the template does not.) `/healthz` returns `{"status":"ok"}` only to say the process is up and the build loaded; it does not test Shopify.
 
@@ -161,7 +169,19 @@ Template: [deploy/mattressfitness.service.example](../../deploy/mattressfitness.
 
 What it does: runs as the `mattressfitness` user from `/srv/mattressfitness/current`; restarts after a crash (`Restart=on-failure`) and after a reboot (`enable`); gives up after five failed starts in a minute (`systemctl reset-failed mattressfitness` to try again); stops gracefully on SIGTERM (finishes in-flight requests and background work, up to 10 s); read-only file system and no extra privileges; stdout and stderr go to the journal. Useful commands: `systemctl status mattressfitness`, `journalctl -u mattressfitness -f`, `sudo systemctl restart mattressfitness`.
 
-Host settings (set in the unit): `PORT` (3000), `BIND_HOST` (127.0.0.1), `TRUST_PROXY` (true only because of loopback binding plus nginx overwriting `X-Forwarded-Proto`), `MAX_BODY_BYTES` (1 MiB), `SHUTDOWN_TIMEOUT_MS`, `CACHE_MAX_ENTRIES` (default 500). Meaning: `scripts/node-server/config.mjs`.
+Host settings (set in the unit): `PORT` (3000), `BIND_HOST` (127.0.0.1), `TRUST_PROXY` (see below), `MAX_BODY_BYTES` (1 MiB), `SHUTDOWN_TIMEOUT_MS`, `CACHE_MAX_ENTRIES` (default 500), `CACHE_MAX_BYTES` (64 MiB, set in the unit). Meaning: `scripts/node-server/config.mjs`. All are validated at start; a bad value makes the server refuse to start and name the setting (never the value).
+
+**`TRUST_PROXY` must be `true` behind nginx.** nginx ends TLS, so Node sees plain http. With `TRUST_PROXY=false` the adapter ignores `X-Forwarded-Proto`, the request URL says `http:`, and the session and cart cookies (`app/lib/session.ts` keys `Secure` on `request.url`) would be issued **without** the `Secure` flag, and HSTS would follow the wrong scheme. So: `true` for any deployment behind TLS termination; `false` only when Node itself is the TLS endpoint or on a developer machine. `true` is safe only when nothing but the proxy can reach the port, so the server **refuses to start** with `TRUST_PROXY=true` and a `BIND_HOST` that is not loopback (`127.0.0.0/8`, `::1`). Running nginx on another machine or in another container needs a different design (for example a private network plus a firewall rule) and a recorded decision in ADR-0010; the refusal is deliberate, not a bug. `BIND_HOST` must be a literal IP address (Node's own parser decides; `999.999.999.999`, `localhost` and host names are refused).
+
+**Memory.** The in-process cache is bounded in entries (`CACHE_MAX_ENTRIES`) and in bytes (`CACHE_MAX_BYTES`: an estimate of body plus header text plus key, **per named cache**; two are opened today, the Hydrogen query cache and the webhook replay marks, so the worst case is 2 x 64 MiB). The oldest write is evicted first; an entry bigger than one eighth of the byte limit is not stored (and the old copy under that key is dropped); expired entries are swept on every write that falls after the 60-second interval and by a timer that does not keep the process alive. The unit's `MemoryMax=1G` is an **example for a 2 GB VPS, not a measurement**.
+
+**Before the first start (checklist; record the answers in the release notes):**
+
+1. `MemoryMax` in `/etc/systemd/system/mattressfitness.service` was read and set for this VPS's RAM (leave room for nginx and the OS), and `CACHE_MAX_BYTES` times two plus Node's baseline fits well under it. Tune from `systemctl status mattressfitness` and `free -h` after a week of real traffic.
+2. `sudo systemd-analyze verify /etc/systemd/system/mattressfitness.service` printed no complaint (**not run by the author**; this is the first check).
+3. After `enable --now`: `systemctl is-active mattressfitness` prints `active`, and `journalctl -u mattressfitness` shows `node_server.listening` and no `SIGSYS`, `EPERM` or `Operation not permitted`. The sandbox options in the template (`SystemCallFilter=@system-service` with `SystemCallErrorNumber=EPERM`, `ProtectProc=invisible`, `ProtectKernelLogs`, `ProtectClock`, `ProtectHostname`, `RestrictRealtime`, `UMask=0077`) are reasoned to be compatible with Node but are **untested**; if one breaks the start, remove it, note which, and keep the rest. `MemoryDenyWriteExecute` is deliberately absent: V8 needs writable and executable memory.
+
+**Rejections and exceptions (decision).** The entry logs an `unhandledRejection` as `node_server.unhandled_rejection` (error name only) and keeps serving. Node's default would end the process and drop every shopper's in-flight request over one stray promise; the storefront guards its own background work, so a rejection that reaches the top is a bug to find, not a reason to restart. Treat any `node_server.unhandled_rejection` line as an alert candidate (section 9). An uncaught exception is **not** caught: the process exits and `Restart=on-failure` brings it back. Accepted trade-off: after a swallowed rejection the process may hold half-finished state until the next restart.
 
 ## 8. Reverse proxy and TLS (nginx, certbot)
 
@@ -182,14 +202,16 @@ Templates: [deploy/nginx.conf.example](../../deploy/nginx.conf.example) and [dep
 |---|---|---|
 | TLS | TLS 1.2 and 1.3, session cache, no tickets, http redirected to https (301) | No OCSP stapling and no custom cipher list; nginx defaults. Test with an external TLS checker after step 5 |
 | HTTP/2 | `listen 443 ssl http2` | works on nginx 1.18 and newer; newer versions warn that the form is deprecated |
-| Compression | gzip for text, CSS, JS, JSON, SVG | brotli lines are commented out (needs an extra nginx module, not verified) |
-| Static assets | `/assets/` and `/brand/` straight from `current/.../dist/client`; `/assets/` immutable for a year, `/brand/` one hour; falls back to `previous` so a page loaded before a deploy keeps its lazy chunks | The Node server also serves these files, so it works without nginx |
+| Compression | gzip for text, CSS, JS, JSON, SVG and `text/x-script` | `text/x-script` is the content type React Router sets on its `.data` (single-fetch) responses, confirmed in the installed react-router source; brotli lines are commented out (needs an extra nginx module, not verified) |
+| Static assets | `/assets/` and `/brand/` straight from `current/.../dist/client`; `/assets/` immutable for a year, `/brand/` one hour; falls back to `previous` so a page loaded before a deploy keeps its lazy chunks | The Node server also serves these files, so it works without nginx. The long `Cache-Control` lines have **no `always`**, so only successful answers carry them and a 404 for a missing chunk is not cached for a year (the security headers keep `always`) |
+| Source maps | any `*.map` path answers 404 (server-level `if`, ahead of location matching); release assembly deletes and checks for them | a regex `location` would not run under the `^~` asset prefixes |
+| Probe paths | `/favicon.ico`, `/apple-touch-icon*.png`, `/.env*`, `/.git*`, `/wp-*`, `/wordpress/*`, `/phpmyadmin*`, `/cgi-bin/*`, and `*.php`, `*.asp`, `*.aspx`, `*.jsp`, `*.cgi`, `*.sql`, `*.bak`, `*.old`, `*.swp` answer 404 from nginx itself | so scanners do not cause a server render and a Storefront lookup; no rate-limit zone applies. Remove the favicon part when a favicon is added to `storefront/public`. Untested: syntax checked by eye only |
 | Request-body limit | `client_max_body_size 1m`, Node cap `MAX_BODY_BYTES` equal | B-19 |
 | Time limits | header and body read 15 s, keep-alive 30 s, upstream 5 s connect and 60 s read | slow-client protection |
 | Connection limit | 30 per client address | HTTP/2 multiplexes, so this is generous |
 | Rate limits (B-19) | see the next table | starting values, per client IP, status 429 with `Retry-After` |
 | Host filtering | port 80 and 443 answer only `<DOMAIN>`; other names get no response (444) | |
-| Proxy headers | `Host`, `X-Forwarded-Proto` (overwritten with `$scheme`), `X-Forwarded-For` (overwritten), `Forwarded` removed | the app trusts only the first `X-Forwarded-Proto` value when `TRUST_PROXY=true` |
+| Proxy headers | `Host`, `X-Forwarded-Proto` (overwritten with `$scheme`), `X-Forwarded-For` (overwritten), `Forwarded` removed | the Node adapter believes `X-Forwarded-Proto` (first value only) **only when `TRUST_PROXY=true`**; the application's own header code (`app/lib/security-headers.ts`) reads the header regardless of that setting, so a client that reached the app directly could earn an HSTS header on its own plain-http answer (browsers ignore it). `TRUST_PROXY` must be `true` behind nginx (section 7) |
 | Page caching | none (`proxy_cache` is not used) | The home document is `private, no-cache` with `Vary: Cookie`; the delivery ZIP changes it per shopper (DEC-036) |
 | Access log | one line per request without query string or cookies, rotated by the packaged logrotate | `$uri` instead of `$request` keeps search text out (T-05) |
 | `/healthz` | loopback only | external monitors use `/` |
@@ -225,7 +247,7 @@ Still open from B-19 after this document: promote the report-only Content-Securi
 - Site: an external uptime check on `https://<DOMAIN>/` expecting 200 (and `/robots.txt`), with alerts to the owner. A service choice and its data handling are the owner's decision; none is configured.
 - Certificate: alert at 21 days before expiry.
 - Disk, memory and restarts: check `systemctl status` and `free -h` after each release for the first week; set the unit's `MemoryMax` from what you see.
-- Log events and alert candidates: [RUNBOOKS](../handover/RUNBOOKS.md) section 11. Nothing is wired to a tool. In the journal, search for `config.secret_unusable`, `offers.config_problem`, `webhook.rejected`, `request.unhandled`, `render.failed` and `node_server.` events.
+- Log events and alert candidates: [RUNBOOKS](../handover/RUNBOOKS.md) section 11. Nothing is wired to a tool. In the journal, search for `config.secret_unusable`, `offers.config_problem`, `webhook.rejected`, `request.unhandled`, `render.failed`, `node_server.unhandled_rejection` (the entry swallows these on purpose, section 7, so this line is the only signal) and other `node_server.` events.
 
 ## 10. Logs and rotation
 
@@ -273,13 +295,13 @@ Run from your own machine against the public name. None of these places an order
 
 ## 13. What is NOT done and NOT verified
 
-Verified locally (2026-10-23, Windows, Node 22.23.3, [ADR-0010](../decisions/ADR-0010-node-server-entry.md) section "Verification"): the Node adapter's 30 tests pass; the built storefront served the pages listed there on a plain Node server against `bedding.mock.shop` with placeholder values; a release folder without `node_modules` also worked.
+Verified locally (2026-10-23, Windows, Node 22.23.3, [ADR-0010](../decisions/ADR-0010-node-server-entry.md) section "Verification"): the Node adapter's tests pass (42 after the review round: settings validation, the loopback rule for `TRUST_PROXY`, the cache byte and sweep bounds); the built storefront served the pages listed there on a plain Node server against `bedding.mock.shop` with placeholder values; a release folder without `node_modules` also worked.
 
 **Assumed, not verified (everything below is a draft until rehearsed):**
 
 - Every step on Ubuntu: user creation, firewall, NodeSource, apt packages, directory permissions, `npm ci` and `npm run build` on Linux (memory, registry access, anything the Shopify CLI downloads).
-- The systemd unit: it has not been loaded (`systemd-analyze verify` not run), the sandbox options (`ProtectSystem=strict`, `RestrictAddressFamilies`, `MemoryMax`) may need adjusting, `EnvironmentFile` parsing of the one-line `OFFER_CONFIG_JSON` in single quotes, SIGTERM graceful stop and restart behaviour.
-- The nginx config: `nginx -t` not run, the map/limit logic, `try_files` fallback to `previous`, named-location error pages with headers, `if ($host ...)`, HTTP/2, gzip. No load test; every rate and limit number is a guess. The `mf_cartpost` zone (A-L1) and its `$request_method$uri` map were added 2026-10-23 and were not run through `nginx -t` (no nginx on the author's machine; the Docker daemon was not running); neither the 429 split in smoke test step 10 nor the `.data` POST path shape of the router's client submissions has been observed.
+- The systemd unit: it has not been loaded (`systemd-analyze verify` not run), the sandbox options (`ProtectSystem=strict`, `RestrictAddressFamilies`, `SystemCallFilter=@system-service` with `SystemCallErrorNumber=EPERM`, `ProtectProc=invisible`, `ProtectKernelLogs`, `ProtectClock`, `ProtectHostname`, `RestrictRealtime`, `UMask=0077`; reasoned to suit Node and V8, never run) may need adjusting, `MemoryMax=1G` is an unmeasured example, the cache byte bound (`CACHE_MAX_BYTES`) is unit-tested but its memory effect over days is not measured, `EnvironmentFile` parsing of the one-line `OFFER_CONFIG_JSON` in single quotes, SIGTERM graceful stop and restart behaviour.
+- The nginx config: `nginx -t` not run, the map/limit logic, `try_files` fallback to `previous`, named-location error pages with headers, `if ($host ...)`, HTTP/2, gzip. No load test; every rate and limit number is a guess. The `mf_cartpost` zone (A-L1) and its `$request_method$uri` map were added 2026-10-23 and were not run through `nginx -t` (no nginx on the author's machine; the Docker daemon was not running); the review-round changes of the same day (no `always` on the long cache lines, the server-level `.map` `if`, the probe-path regex location, `text/x-script` in `gzip_types`) were not run through `nginx -t` either; neither the 429 split in smoke test step 10 nor the `.data` POST path shape of the router's client submissions has been observed.
 - certbot issuance, renewal and the reload hook; DNS; the firewall rules.
 - Responses the Node adapter makes itself (400, 413, adapter-level 500, `/healthz`) carry the five request-independent security headers but no HSTS; the storefront's own responses carry the full set.
 - Security headers behind the real proxy (SECURITY_HEADERS "Known gaps": behaviour behind a real proxy and on a production build on a real host); duplicate-header check; the promotion of the report-only Content-Security-Policy.

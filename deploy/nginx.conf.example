@@ -115,11 +115,13 @@ server {
     gzip_min_length 1024;
     gzip_vary on;
     gzip_proxied any;
-    gzip_types text/plain text/css text/javascript application/javascript application/json application/manifest+json image/svg+xml;
+    # text/x-script is the content type React Router sets on its single-fetch `.data` responses (react-router
+    # dist/*/index.js, `Content-Type", "text/x-script"`, checked in the installed 7.x); without it client navigations go uncompressed.
+    gzip_types text/plain text/css text/javascript application/javascript application/json application/manifest+json image/svg+xml text/x-script;
     # With ngx_brotli installed (libnginx-mod-http-brotli-filter on some distributions):
     #brotli on;
     #brotli_comp_level 5;
-    #brotli_types text/plain text/css text/javascript application/javascript application/json image/svg+xml;
+    #brotli_types text/plain text/css text/javascript application/javascript application/json image/svg+xml text/x-script;
 
     # ---- Answers nginx makes itself carry the security headers; proxied answers get theirs from the application ----
     error_page 413 = @mf_413;
@@ -146,32 +148,51 @@ server {
         return 503 "Temporarily unavailable\n";
     }
 
+    # ---- Source maps are never published. A server-level `if` runs before location matching, so it also covers
+    # /assets/ and /brand/ (a regex `location` would lose to the `^~` prefixes below). Release assembly deletes *.map from the
+    # release folder as well (VPS_RUNBOOK.md, "Build and assemble"); this is the second line.
+    if ($uri ~* "\.map$") {
+        return 404;
+    }
+
+    # ---- Probe and scanner paths answered by nginx alone: no Node, no server-side render, no Storefront lookup ----
+    # Regex locations beat the plain `location /` below. /assets/ and /brand/ use `^~`, so they are never matched here.
+    # /favicon.ico and the apple-touch icons: the storefront ships no such files today (storefront/public has none), so the
+    # answer is 404 without asking the app. DELETE THAT PART OF THE PATTERN when a favicon is added to storefront/public.
+    # No route of the storefront starts with wp-, .env or .git or ends in .php/.asp/.jsp/.cgi (storefront/app/routes/).
+    # Not tested on a server; syntax checked by eye only. Re-read when routes change.
+    location ~* "^/(favicon\.ico|apple-touch-icon(-precomposed)?\.png|\.env(\..*)?|\.git(/.*)?|\.ds_store|wp-.*|wordpress/.*|phpmyadmin.*|cgi-bin/.*|.*\.(php|asp|aspx|jsp|cgi|sql|bak|old|swp))$" {
+        include snippets/mattressfitness-security-headers.conf;
+        add_header Cache-Control "no-store" always;
+        default_type text/plain;
+        return 404 "Not found\n";
+    }
+
     # ---- Static build output, straight from disk. Hashed names never change, so they are cached for a year. ----
     # The fallback to the previous release keeps a page that was loaded before a deploy from losing its lazy chunks.
+    # The long Cache-Control line has NO `always` on purpose: without it nginx adds it only to successful answers (200,
+    # 206, 301, 302, 304 and similar), so a 404 for a missing chunk is never cached for a year. The security-header
+    # snippet keeps `always`, so a 404 still carries those.
     location ^~ /assets/ {
         root /srv/mattressfitness/current/storefront/dist/client;
         try_files $uri @assets_previous;
         include snippets/mattressfitness-security-headers.conf;
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header Cache-Control "public, max-age=31536000, immutable";
         access_log off;
     }
     location @assets_previous {
         root /srv/mattressfitness/previous/storefront/dist/client;
         try_files $uri =404;
         include snippets/mattressfitness-security-headers.conf;
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header Cache-Control "public, max-age=31536000, immutable";
         access_log off;
     }
-    # Not hashed: an hour, so a replaced logo shows up.
+    # Not hashed: an hour, so a replaced logo shows up. Same rule: no `always`, so a 404 is not cached for an hour.
     location ^~ /brand/ {
         root /srv/mattressfitness/current/storefront/dist/client;
         try_files $uri =404;
         include snippets/mattressfitness-security-headers.conf;
-        add_header Cache-Control "public, max-age=3600" always;
-    }
-    # Source maps are not published (none are built into dist/client today; this is a guard).
-    location ~* \.map$ {
-        return 404;
+        add_header Cache-Control "public, max-age=3600";
     }
 
     # ---- Health check for the process manager and local scripts: loopback only ----
@@ -205,7 +226,7 @@ server {
         proxy_set_header Connection "";
 
         proxy_set_header Host              $host;
-        # Overwrite, never append: a client-supplied value must not survive (the application trusts the first value, TRUST_PROXY).
+        # Overwrite, never append: a client-supplied value must not survive (the Node adapter trusts the first value when TRUST_PROXY=true, which it must be behind this proxy).
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For   $remote_addr;
         proxy_set_header X-Real-IP         $remote_addr;

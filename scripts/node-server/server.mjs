@@ -5,7 +5,7 @@
 // It loads the bundle that `shopify hydrogen build` writes (storefront/dist/server/index.js, whose default export is the
 // same `{fetch}` handler as storefront/server.ts, security headers included), serves storefront/dist/client, and reads the
 // storefront's configuration from this process's environment. Nothing in the application changes for this host.
-// Host settings (PORT, BIND_HOST, TRUST_PROXY, MAX_BODY_BYTES, SHUTDOWN_TIMEOUT_MS, CACHE_MAX_ENTRIES) are in config.mjs.
+// Host settings (PORT, BIND_HOST, TRUST_PROXY, MAX_BODY_BYTES, SHUTDOWN_TIMEOUT_MS, CACHE_MAX_ENTRIES, CACHE_MAX_BYTES) are in config.mjs.
 // Behind a reverse proxy, set TRUST_PROXY=true; see docs/deployment/VPS_RUNBOOK.md.
 
 import path from 'node:path';
@@ -33,7 +33,7 @@ async function main() {
   }
 
   // The bundle uses the Workers `caches` global at request time (app/lib/context.ts, replay-store); install the stand-in first.
-  globalThis.caches = createCacheStorage({ maxEntries: settings.cacheMaxEntries });
+  globalThis.caches = createCacheStorage({ maxEntries: settings.cacheMaxEntries, maxBytes: settings.cacheMaxBytes });
 
   const buildFile = path.join(storefrontDir, 'dist/server/index.js');
   let handler;
@@ -83,7 +83,9 @@ async function main() {
   };
   process.on('SIGTERM', () => stop('SIGTERM'));
   process.on('SIGINT', () => stop('SIGINT'));
-  // The storefront guards its own background work; this keeps one stray rejection from taking the whole site down.
+  // Decision (VPS_RUNBOOK, "Process manager"): log the error name and keep serving. The storefront guards its own
+  // background work, so a stray rejection is a bug to alert on (node_server.unhandled_rejection), not a reason to drop
+  // every shopper's in-flight request. An uncaught exception is not caught: the process exits and systemd restarts it.
   process.on('unhandledRejection', (reason) => {
     log('error', 'node_server.unhandled_rejection', { error: errorName(reason) });
   });

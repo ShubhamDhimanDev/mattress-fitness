@@ -1,12 +1,13 @@
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { createNodeServer, isValidHost, resolveScheme, resolveStaticPath, staticCacheControl } from './adapter.mjs';
 import { createCacheStorage } from './cache.mjs';
-import { DEFAULTS, readSettings, readStorefrontProblems } from './config.mjs';
+import { DEFAULTS, REQUIRED_NAMES, isLoopback, readSettings, readStorefrontProblems } from './config.mjs';
 
 // ---- config ----------------------------------------------------------------------------------------------------
 
@@ -22,20 +23,22 @@ test('readSettings: defaults bind to loopback and do not trust a proxy', () => {
 test('readSettings: valid values are used', () => {
   const { settings, problems } = readSettings({
     PORT: '3101',
-    BIND_HOST: '10.0.0.5',
+    BIND_HOST: '127.0.0.2',
     TRUST_PROXY: 'true',
     MAX_BODY_BYTES: '2048',
     SHUTDOWN_TIMEOUT_MS: '0',
     CACHE_MAX_ENTRIES: '10',
+    CACHE_MAX_BYTES: '2097152',
   });
   assert.deepEqual(problems, []);
   assert.deepEqual(settings, {
     port: 3101,
-    bindHost: '10.0.0.5',
+    bindHost: '127.0.0.2',
     trustProxy: true,
     maxBodyBytes: 2048,
     shutdownTimeoutMs: 0,
     cacheMaxEntries: 10,
+    cacheMaxBytes: 2097152,
   });
 });
 
@@ -53,6 +56,69 @@ test('readSettings: bad values are reported by name and fall back to safe defaul
   assert.ok(problems.some((problem) => problem.startsWith('MAX_BODY_BYTES ')));
   assert.equal(settings.bindHost, '127.0.0.1');
   assert.equal(settings.trustProxy, false);
+});
+
+test('readSettings: BIND_HOST must be a real address (Node parser), not just digits and dots', () => {
+  for (const bad of ['999.999.999.999', '1.2.3', '1.2.3.4.5', 'localhost', '::g', '0.0.0.0/0', '1:2:3:4:5:6:7:8:9']) {
+    const { settings, problems } = readSettings({ BIND_HOST: bad });
+    assert.ok(
+      problems.some((problem) => problem.startsWith('BIND_HOST ')),
+      bad,
+    );
+    assert.equal(settings.bindHost, '127.0.0.1', bad);
+  }
+  for (const good of ['0.0.0.0', '10.1.2.3', '::', '::1', 'fe80::1', '2001:db8::1']) {
+    assert.deepEqual(readSettings({ BIND_HOST: good }).problems, [], good);
+  }
+});
+
+test('readSettings: TRUST_PROXY=true is refused unless BIND_HOST is loopback', () => {
+  for (const host of ['0.0.0.0', '10.0.0.5', '::', '192.168.1.10', '2001:db8::1']) {
+    const { problems } = readSettings({ TRUST_PROXY: 'true', BIND_HOST: host });
+    assert.ok(
+      problems.some((problem) => problem.startsWith('TRUST_PROXY=true requires BIND_HOST')),
+      host,
+    );
+  }
+  for (const host of ['127.0.0.1', '127.5.5.5', '::1', '0:0:0:0:0:0:0:1', '::ffff:127.0.0.1']) {
+    assert.deepEqual(readSettings({ TRUST_PROXY: 'true', BIND_HOST: host }).problems, [], host);
+  }
+  // Unset BIND_HOST is the loopback default.
+  assert.deepEqual(readSettings({ TRUST_PROXY: 'true' }).problems, []);
+  // Without a trusted proxy any bind address is allowed (a developer machine, a container).
+  assert.deepEqual(readSettings({ TRUST_PROXY: 'false', BIND_HOST: '0.0.0.0' }).problems, []);
+  assert.deepEqual(readSettings({ BIND_HOST: '0.0.0.0' }).problems, []);
+});
+
+test('isLoopback: only 127.0.0.0/8, ::1 and its mapped form', () => {
+  assert.equal(isLoopback('127.0.0.1'), true);
+  assert.equal(isLoopback('::1'), true);
+  assert.equal(isLoopback('128.0.0.1'), false);
+  assert.equal(isLoopback('::'), false);
+  assert.equal(isLoopback('::2'), false);
+  assert.equal(isLoopback('::ffff:10.0.0.1'), false);
+});
+
+test('readSettings: CACHE_MAX_BYTES defaults to 64 MiB and is range checked', () => {
+  assert.equal(readSettings({}).settings.cacheMaxBytes, 64 * 1024 * 1024);
+  for (const bad of ['1000', '2000000000', 'lots']) {
+    const { settings, problems } = readSettings({ CACHE_MAX_BYTES: bad });
+    assert.ok(
+      problems.some((problem) => problem.startsWith('CACHE_MAX_BYTES ')),
+      bad,
+    );
+    assert.equal(settings.cacheMaxBytes, DEFAULTS.cacheMaxBytes);
+  }
+});
+
+test('config: PUBLIC_STOREFRONT_ID is optional (Hydrogen defaults it); four store variables are required', () => {
+  assert.ok(!REQUIRED_NAMES.includes('PUBLIC_STOREFRONT_ID'));
+  assert.deepEqual([...REQUIRED_NAMES].sort(), [
+    'PUBLIC_CHECKOUT_DOMAIN',
+    'PUBLIC_STOREFRONT_API_TOKEN',
+    'PUBLIC_STORE_DOMAIN',
+    'SESSION_SECRET',
+  ]);
 });
 
 test('readStorefrontProblems: names the missing variables and never prints a value', () => {
@@ -121,6 +187,106 @@ test('cache: is bounded and evicts the oldest entry first', async () => {
   assert.equal(cache.size, 2);
   assert.equal(await cache.match(new Request('https://example.test/a')), undefined);
   assert.equal(await (await cache.match(new Request('https://example.test/c')))?.text(), 'c');
+});
+
+test('cache: is bounded by bytes too and evicts the oldest writes first', async () => {
+  const cache = await createCacheStorage({ maxEntries: 100, maxBytes: 8000, sweepIntervalMs: 0 }).open('hydrogen');
+  const headers = { 'cache-control': 'max-age=60' };
+  for (const name of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']) {
+    // About 900 bytes of body each: under the one-eighth entry limit (1000), but ten of them exceed 8000 with overhead.
+    await cache.put(new Request(`https://example.test/${name}`), new Response(name.repeat(900), { headers }));
+  }
+  assert.ok(cache.bytes <= 8000, `bytes ${cache.bytes}`);
+  assert.ok(cache.size < 10);
+  assert.equal(await cache.match(new Request('https://example.test/a')), undefined);
+  assert.equal((await (await cache.match(new Request('https://example.test/j')))?.text())?.length, 900);
+});
+
+test('cache: an entry over one eighth of the byte limit is not stored and does not flush the others', async () => {
+  const cache = await createCacheStorage({ maxBytes: 8000, sweepIntervalMs: 0 }).open('hydrogen');
+  const headers = { 'cache-control': 'max-age=60' };
+  const small = new Request('https://example.test/small');
+  const big = new Request('https://example.test/big');
+  await cache.put(small, new Response('s', { headers }));
+  await cache.put(big, new Response('b'.repeat(2000), { headers }));
+  assert.equal(await cache.match(big), undefined);
+  assert.equal(await (await cache.match(small))?.text(), 's');
+  assert.ok(cache.bytes < 1000);
+});
+
+test('cache: a too-large replacement removes the old copy instead of serving it', async () => {
+  const cache = await createCacheStorage({ maxBytes: 8000, sweepIntervalMs: 0 }).open('hydrogen');
+  const headers = { 'cache-control': 'max-age=60' };
+  const request = new Request('https://example.test/p');
+  await cache.put(request, new Response('old', { headers }));
+  await cache.put(request, new Response('n'.repeat(2000), { headers }));
+  assert.equal(await cache.match(request), undefined);
+  assert.equal(cache.size, 0);
+  assert.equal(cache.bytes, 0);
+});
+
+test('cache: byte count follows put, replace, delete and expiry back to zero', async () => {
+  let now = 0;
+  const cache = await createCacheStorage({ now: () => now, sweepIntervalMs: 0 }).open('hydrogen');
+  const headers = { 'cache-control': 'max-age=1' };
+  const request = new Request('https://example.test/p');
+  await cache.put(request, new Response('abc', { headers }));
+  const one = cache.bytes;
+  assert.ok(one > 3);
+  await cache.put(request, new Response('abc', { headers }));
+  assert.equal(cache.bytes, one);
+  await cache.delete(request);
+  assert.equal(cache.bytes, 0);
+  await cache.put(request, new Response('abc', { headers }));
+  now = 5000;
+  assert.equal(await cache.match(request), undefined);
+  assert.equal(cache.bytes, 0);
+});
+
+test('cache: a write sweeps expired entries that nobody asked for again', async () => {
+  let now = 0;
+  const cache = await createCacheStorage({ now: () => now, sweepIntervalMs: 1000 }).open('hydrogen');
+  const headers = { 'cache-control': 'max-age=1' };
+  await cache.put(new Request('https://example.test/old'), new Response('o', { headers }));
+  await cache.put(new Request('https://example.test/old2'), new Response('o', { headers }));
+  assert.equal(cache.size, 2);
+  now = 10_000;
+  await cache.put(
+    new Request('https://example.test/new'),
+    new Response('n', { headers: { 'cache-control': 'max-age=100' } }),
+  );
+  assert.equal(cache.size, 1);
+  assert.equal(await cache.match(new Request('https://example.test/old')), undefined);
+});
+
+test('cache: sweepAll removes expired entries in every named cache without a write; the timer can be stopped', async () => {
+  let now = 0;
+  const store = createCacheStorage({ now: () => now, sweepIntervalMs: 60_000 });
+  const cache = await store.open('hydrogen');
+  const other = await store.open('replay');
+  const headers = { 'cache-control': 'max-age=1' };
+  await cache.put(new Request('https://example.test/a'), new Response('a', { headers }));
+  await other.put(new Request('https://example.test/b'), new Response('b', { headers }));
+  now = 10_000;
+  assert.equal(store.sweepAll(), 2);
+  assert.equal(cache.size + other.size, 0);
+  store.stop();
+});
+
+test('cache: the sweep timer does not keep the process alive', () => {
+  // A child process creates a storage with the default timer and must exit by itself well within the timeout.
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `import { createCacheStorage } from ${JSON.stringify(new URL('./cache.mjs', import.meta.url).href)};
+       const store = createCacheStorage(); await store.open('x');`,
+    ],
+    { timeout: 10_000 },
+  );
+  assert.equal(result.status, 0);
+  assert.equal(result.error, undefined);
 });
 
 test('cache: refuses what the Workers cache refuses', async () => {
@@ -225,12 +391,7 @@ after(() => {
 
 async function withServer(handler, overrides = {}, run) {
   const logs = [];
-  const settings = {
-    trustProxy: false,
-    maxBodyBytes: 1024,
-    shutdownTimeoutMs: 500,
-    ...overrides,
-  };
+  const settings = { trustProxy: false, maxBodyBytes: 1024, shutdownTimeoutMs: 500, ...overrides };
   const instance = createNodeServer({
     handler: { fetch: handler },
     env: { PUBLIC_STORE_DOMAIN: 'example.test' },
