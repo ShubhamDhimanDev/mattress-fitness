@@ -1,6 +1,6 @@
 # Response security headers and Content Security Policy
 
-Task P7-07 (finding P-L6 of [REVIEW-2026-10-13-pages](REVIEW-2026-10-13-pages.md); threats T-07 and T-10 in [THREAT_MODEL](THREAT_MODEL.md)). Decision: DEC-044. Code: `storefront/app/lib/security-headers.ts` (pure, unit-tested), applied in `storefront/app/entry.server.tsx`. Status 2026-10-15: **built, verified on the dev server; not yet verified on a real host** (Q-003). The host-independent set below is enforced; the tightened CSP is **report-only**.
+Task P7-07 (finding P-L6 of [REVIEW-2026-10-13-pages](REVIEW-2026-10-13-pages.md); threats T-07 and T-10 in [THREAT_MODEL](THREAT_MODEL.md)). Decision: DEC-044. Code: `storefront/app/lib/security-headers.ts` (pure, unit-tested), applied in `storefront/app/entry.server.tsx`. Status 2026-10-15: **built, verified on the dev server; not yet verified on a real host** (Q-003). The host-independent set below is enforced; the tightened CSP is **report-only**. Updated 2026-10-23 for the analytics layer (P7-01): providers' hosts now enter both policies when an id is set, see "Third-party policy: analytics and Meta"; unit-tested only, never seen in a browser, GA4 or Meta tooling.
 
 ## What is sent
 
@@ -56,9 +56,25 @@ Violations show in the browser console only. There is no collector: adding `repo
 3. Replace Hydrogen's header with the tightened one in `entry.server.tsx` (keep the nonce), keep `frame-ancestors 'none'`.
 4. Keep the report-only header for one release carrying any stricter next step.
 
-## Third-party allow-list policy (T-10)
+## Third-party policy: analytics and Meta (P7-01, T-10; added 2026-10-23)
 
-**Today no third-party origin is allowed**: only the site itself and Shopify (`cdn.shopify.com`, `shopify.com`, `monorail-edge.shopifysvc.com`, the store and checkout domains). A test fails if the report-only policy gains any other origin.
+**Default: no third-party origin.** With neither `PUBLIC_GA4_MEASUREMENT_ID` nor `PUBLIC_META_PIXEL_ID` set (or with a malformed value, which counts as unset), both policies contain only the site itself and Shopify (`cdn.shopify.com`, `shopify.com`, `monorail-edge.shopifysvc.com`, the store and checkout domains). A unit test (`app/lib/security-headers.test.ts`, "allows no third-party origin yet") fails if the report-only policy gains any other origin, and `tests/unit/analytics/csp.test.ts` asserts the policy is byte-for-byte unchanged with no id set.
+
+**A provider's hosts are added only when its id is set** (`parseAnalyticsConfig` in `entry.server.tsx`; `analyticsCspHosts` in `app/lib/security-headers.ts`). The list lives in one file, `storefront/app/lib/analytics/hosts.ts`, which also holds the quoted source and the open questions:
+
+| Provider (set by)         | `script-src`                       | `img-src`                                                            | `connect-src`                                                                                                                                                    |
+| ------------------------- | ---------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GA4 (`PUBLIC_GA4_MEASUREMENT_ID`) | `https://www.googletagmanager.com` | `https://www.googletagmanager.com`, `https://*.google-analytics.com` | `https://www.googletagmanager.com`, `https://*.google-analytics.com`, `https://www.google.com`, `https://analytics.google.com`, `https://*.analytics.google.com` |
+| Meta (`PUBLIC_META_PIXEL_ID`) | `https://connect.facebook.net`     | `https://www.facebook.com`                                           | `https://www.facebook.com`, `https://connect.facebook.net`                                                                                                       |
+
+- **Sources.** Google's list is taken from Google's own guide, "Use Google tag with a Content Security Policy" (developers.google.com/tag-platform/security/guides/csp, "Analytics without Ads features", read 2026-10-23), **narrowed**: Google's `https://*.google.com` for `connect-src` is deliberately not used, because `google.com` serves user-controlled content and would be a ready-made data sink after any future script injection (security review L-1). Which of the three named connect hosts GA4 really calls is **unverified**: run staging in report-only with a real id, load every template with the console open, add only a host seen blocked and remove any that is never used. **Meta's list is unverified**: Meta's documentation says nothing about Content Security Policy (checked 2026-10-23); the hosts come from community and vendor guides.
+- **The two wildcard exceptions, needing the project owner's written approval; not given.** The rule below says "never a wildcard host". Two wildcards are used on purpose, each limited to one Google-operated, analytics-only registrable domain and to `img-src` and `connect-src` only: `https://*.google-analytics.com` (regional collectors such as `region1.google-analytics.com`; an exact list would silently lose data) and `https://*.analytics.google.com`. Until the owner accepts the exception in writing it is proposed, not approved, and **an id should not be set in production** before that decision. A test asserts that these two are the only wildcards that can appear, that none is in `script-src`, `default-src` or `frame-src`, and that `https://*.google.com` never appears.
+- **Nonce, no inline.** Provider scripts are added with the page nonce and only from `https://www.googletagmanager.com` or `https://connect.facebook.net` (the script loader refuses any other origin before an element exists). No `'unsafe-inline'`, no `'unsafe-eval'`, no bare `*` in `script-src` (tested). No Subresource Integrity: both vendors serve these files at fixed, unversioned addresses that change without notice, so a pinned hash would break them; the compensating controls are the origin allow-list, per-id hosts, consent and idle gating and the nonce (review I-2, accepted). If `script-src-elem` is ever added to a policy, the provider script hosts must be added there too.
+- **Report-only and enforced get the same provider hosts.** Both are built from the same `analyticsCspHosts` function, so a host is never present in one and missing from the other. Hydrogen's enforced policy is unchanged otherwise: naming `script-src` or `img-src` replaces Hydrogen's `default-src` fallback (self, nonce, `cdn.shopify.com`, `shopify.com`), so `enforcedCspExtras` repeats those Shopify sources and adds only the provider hosts; `connect-src` is merged by Hydrogen, so only the new hosts go in. With no id set it returns nothing. The two policies still differ in everything else as described above (the report-only one is tighter; for example its `script-src` omits `shopify.com`), so a clean report-only run is the check that the enforced policy will not block a provider. Tested for the extras; **not observed** in a browser or on a production build behind a proxy.
+- **The provider code is a lazy chunk.** The consent layer, the adapters and the script loader are one chunk, `ConsentRuntime`, requested after hydration and when the browser is idle, and only when an id is set ([ARCHITECTURE](../architecture/ARCHITECTURE.md) section 4b). It is a same-origin script covered by `'self'` and the nonce policy; it needs no new host. A failed chunk download hides the consent layer and nothing else.
+- **Going from report-only to enforced for a provider** follows "Promotion to enforced" above, plus: a real id on staging, no `[Report Only]` message on any template, and the owner's written decision on the wildcards.
+
+### Rule for adding any other provider
 
 To add a provider (analytics, Meta pixel, Klaviyo, Judge.me, Shopify Inbox, a map tile server, Affirm):
 
@@ -78,5 +94,6 @@ Shopify's consent script (loaded from `cdn.shopify.com` by Hydrogen's analytics)
 
 ## Known gaps
 
+- With an analytics id set, Shopify's own consent telemetry is still blocked on purpose (DEC-045), and the provider hosts above are unverified against real traffic (Google's three connect hosts, all of Meta's list).
 - `powered-by: Shopify, Hydrogen` is added by Hydrogen after our code runs; remove it with `poweredByHeader: false` in `createRequestHandler` options (server.ts) if the client wants it gone.
 - Behaviour behind a real proxy (`X-Forwarded-Proto`, P-L5) and on a production build is unverified.

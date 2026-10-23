@@ -1,6 +1,6 @@
 # Admin guide: running the store from Shopify admin
 
-**Draft 2, dated 2026-10-15** (draft 1 was 2026-10-12; sections 1, 4.3, 6.6 and 10 updated 2026-10-23 for the menu (including tag-filtered menu items and links to other sites), the product-page add-ons box and the cache times; still no real screenshots and no non-developer test). For the client's store managers, merchandisers and customer service. Deliverable H-03 (REQ-HAND-003, NFR-005).
+**Draft 2, dated 2026-10-15** (draft 1 was 2026-10-12; sections 1, 4.3, 6.6 and 10 updated 2026-10-23 for the menu (including tag-filtered menu items and links to other sites), the product-page add-ons box and the cache times; sections 12 (order tracking page) and 13 (privacy choices) added 2026-10-23; still no real screenshots and no non-developer test). For the client's store managers, merchandisers and customer service. Deliverable H-03 (REQ-HAND-003, NFR-005).
 
 ## Read this first
 
@@ -53,7 +53,9 @@
 | Customer accounts                                               | Pages exist on Shopify's template: sign in and out, a list of the shopper's orders (20 per page, search by order name or confirmation number) and one order's details, editing first and last name, and adding, changing and deleting addresses. Error messages are fixed wording, and account pages are never cached. Not tested with a real sign-in, and the look is still the plain template. Not yet verified against a store | A development store with new customer accounts enabled (V-08); P6-07     |
 | Extend accident protection                                      | Built against a **practice copy** of Extend's documented system. **Switched off.**                                                                                                                                                                                                                                                                                                                                                | An approved Extend account and Extend's written approval                 |
 | Post-purchase and thank-you offers                              | **Not built by us.** An App Store app you would install and pay for.                                                                                                                                                                                                                                                                                                                                                              | Your decision (CR-09)                                                    |
-| Financing messages, reviews, analytics, chat, signup            | **Not built** (financing hidden until a provider is active).                                                                                                                                                                                                                                                                                                                                                                      | Provider details (CR-14) and later phases                                |
+| Order tracking page for guests                                  | Page built and tested on **made-up order data only** (section 12). Not yet seen with a real Shopify order. `BUILT, AWAITING DEV-STORE VERIFICATION`. The footer links to it stay hidden until a developer switches them on after the test; the header link "Track order" already points to it                                                                                                                                       | A development store; **your written acknowledgement of change SD-05**    |
+| Privacy choices banner and footer link                          | Built and tested without a browser (section 13). Shows **only after a developer enters the Google Analytics or Meta ID**; until then nothing appears. `BUILT, AWAITING DEV-STORE VERIFICATION`                                                                                                                                                                                                                                   | Your Google Analytics and Meta accounts; your lawyer's review of the wording |
+| Financing messages, reviews, chat, signup                       | **Not built** (financing hidden until a provider is active).                                                                                                                                                                                                                                                                                                                                                                      | Provider details (CR-14) and later phases                                |
 
 ---
 
@@ -771,10 +773,88 @@ The project covers the build and the handover. These are **not included** afterw
 
 ---
 
+## 12. Order tracking page
+
+`BUILT, AWAITING DEV-STORE VERIFICATION`. The page exists and passes automated tests on made-up orders. It has **not** been tried with a real Shopify order, and it is not for shoppers until your team has acknowledged the related change in writing (SD-05, [SOW_DEVIATIONS](../requirements/SOW_DEVIATIONS.md)) and a developer has tested it on a development store. Everything below describes what the code does, not what has been seen on your store.
+
+### 12.1 What shoppers see
+
+1. The page **Track your order** (`/track-order`), reached from the "Track order" link in the top bar. The two footer links ("Track your order", "Order tracking") stay hidden until a developer switches them on after the test.
+2. Two boxes: **Order number** ("In your confirmation email, for example #1001") and **Email address** ("The address you used when you placed the order"), and a button **Find my order**.
+3. If both match one of your orders placed in the last 60 days, the page shows:
+   - the order name and the date it was placed;
+   - the status, in plain words: Cancelled, Fulfilled, Partially fulfilled, Being prepared, On hold, Scheduled or Returned (taken from Shopify's fulfilment status; the exact wording follows Shopify's states and has not been checked on your store);
+   - the items and quantities;
+   - for each shipment: its status (for example Shipped, In transit, Out for delivery, Delivered), the carrier and tracking number, and a **Track this package** link. If nothing has shipped, "No tracking details yet. They appear here once your order has shipped."
+4. The page never shows the shopper's address, phone number, email or any price.
+
+### 12.2 What shoppers see when it does not work
+
+For **every** problem that depends on what they typed or on the order (wrong order number, wrong email, no such order, an order older than 60 days, a badly typed email, or Shopify not answering) the page gives the **same** message on purpose:
+
+> We couldn't find an order with those details. Check the order number and email, or sign in to your account. Orders older than 60 days are not available here; use the link in your confirmation email or sign in.
+
+This is a protection: if the page said "wrong email", a stranger could use it to find out which order numbers exist. It also means **you cannot tell from a shopper's screenshot which of those it was.** Look the order up in Shopify admin (Orders) and check the email on it against what the shopper says they typed.
+
+### 12.3 Limits you should know
+
+| Limit | What it means |
+| --- | --- |
+| **60 days** | Only orders placed in the last 60 days can be found. Older orders need the shopper's account or the link in the confirmation email. Shopify may also return less than 60 days of orders unless extra access is approved (unverified) |
+| **Too many tries** | After several wrong tries the shopper sees "Too many attempts. Please wait a few minutes and try again, or sign in to your account." The waiting time is up to 15 minutes. The limits are per visitor, per order number, per email address and for the whole site together |
+| **Someone else can lock one order out** | The limit per order number and per email address means another person can use up the tries for one order or one email address and block that shopper's lookup for up to 15 minutes. The shopper can still sign in or use the link in the confirmation email. This trade-off is intentional and needs your acceptance |
+| **Not a hard limit** | The counters live in the website's memory and start again when the website restarts. They slow down guessing; they are not a guarantee. A developer sets up a second limit on the server |
+| **"Not available right now"** | If the website is not connected to Shopify for order reading, the page says "Order lookup is not available right now" and shows no boxes. Call the developer if you see this on the live site |
+
+### 12.4 What your team does
+
+1. **When you ship an order in Shopify admin, enter the carrier and the tracking number** on the fulfilment `(verify on the dev store)`. The page shows what Shopify holds; it adds nothing of its own.
+2. **Links only for known carriers.** "Track this package" appears only for UPS, FedEx, USPS, DHL and OnTrac. For any other carrier, such as a freight or white-glove company, the shopper sees the carrier name and number as text. **Tell the developer which carriers you use** so their websites can be added to the list (a developer setting, `TRACKING_LINK_HOSTS`); do not add anything yourself.
+3. **If a shopper cannot find their order,** check the order in admin: is the email on it the one they used, is it within 60 days, did they type the order number as in the confirmation email? Then offer the account sign-in or the link in the confirmation email.
+4. **If many shoppers say "too many attempts",** tell the developer: it can mean the website cannot tell visitors apart (a setting) or that someone is probing.
+5. **Acknowledge the change.** Guest tracking by order number and email only works for the last 60 days and needs an Admin-level connection to your store; older orders use the account or the email link (SD-05). `[Client acknowledgement: AWAITING]`
+
+---
+
+## 13. Privacy choices link in the footer
+
+`BUILT, AWAITING DEV-STORE VERIFICATION`. Tested by automated checks only, never in a real browser with your Google Analytics or Meta accounts. The wording is a draft that your lawyer must review.
+
+### 13.1 When it appears
+
+The banner and the footer link appear **only after a developer has entered your Google Analytics measurement ID and/or your Meta pixel ID** in the website's settings. Until then there is no banner and no footer link, and no analytics or advertising tool is loaded at all. If you see neither on the live site, that is expected when no ID has been entered.
+
+### 13.2 What shoppers see
+
+1. **A banner at the bottom of the page** (on a phone across the bottom; on a wider screen in the bottom-right corner), a few seconds after the page is ready (not at once). It says which tools are involved (Google and Meta), links to your privacy policy (`/policies/privacy-policy`) and offers three buttons: **Accept all**, **Reject all** and **Choose**. Accept all and Reject all are the same size and one click each.
+2. **Choose** opens a window with one tick box for each kind of tool that is switched on: **Analytics** (Google Analytics) and **Marketing** (Meta), each with a one-line explanation. The choice is remembered on that shopper's device for 180 days, then they are asked again.
+3. **The link "Privacy choices"** sits in the bottom row of the footer next to the legal links. It reopens the same window at any time, so a shopper can withdraw consent as easily as they gave it. Switching a tool off stops it at once and removes the cookies it set.
+
+[Screenshot: footer bottom row with the "Privacy choices" link, and the banner above it]
+
+### 13.3 Two ways it can be set up (a decision for you and your lawyer)
+
+| Mode | What happens before the shopper chooses |
+| --- | --- |
+| **Opt-in** (the safer default) | Nothing from Google or Meta is loaded or sent until the shopper clicks Accept all or ticks a box in Choose |
+| **Opt-out** | Analytics runs until the shopper turns it off (and advertising too, unless their browser sends the "Global Privacy Control" signal) |
+
+Which one the law requires for your business is for your lawyer to decide; a developer changes the setting, and it stays on opt-in unless told otherwise in writing. Shoppers who already chose keep their choice.
+
+### 13.4 What your team does
+
+1. **Send the developer the IDs and your lawyer's decision** (mode and wording). `[TO BE FILLED AT HANDOVER]`
+2. **Keep the privacy policy page up to date.** The banner links to it. It must say who receives the data, what for, for how long, how to opt out, that search words typed on the site are shared with Google and Meta when analytics is on, that the delivery ZIP code is kept in a cookie but not sent to analytics, and that Shopify's own analytics runs under Shopify's privacy settings.
+3. **Know what the banner does not cover.** It controls the Google and Meta tools. Shopify's own sales analytics follows your Shopify store's privacy settings, not this banner.
+4. **Do the Google Analytics settings** your developer lists for you (a checklist of about six switches in your Google Analytics account, for example turning off site search tracking and choosing how long data is kept). You need Editor access to the property.
+5. **If a shopper complains or asks to withdraw,** point them to "Privacy choices" in the footer. Do not copy their details into an email thread or ticket; pass the date, page and what they describe to the developer and your lawyer (RUNBOOKS section 13.4).
+
+---
+
 ## References for the project team
 
 REQ-HAND-003, REQ-CAT-009, REQ-PROMO-001 to REQ-PROMO-003, REQ-PRE-002, REQ-PRE-003, REQ-PRE-005, REQ-CAT-007, REQ-CAT-008, REQ-LOC-002, REQ-HOME-001, REQ-COL-003, REQ-COL-004, REQ-QZ-004, REQ-DEL-001, REQ-EXT-003, NFR-005, EXC-13; SD-01, SD-04, SD-07, SD-08; [SHOPIFY_DATA_MODEL](../architecture/SHOPIFY_DATA_MODEL.md), [BASIC_PLAN_WORKAROUNDS](../research/BASIC_PLAN_WORKAROUNDS.md), [SOW_DEVIATIONS](../requirements/SOW_DEVIATIONS.md), [EXTEND](../integrations/EXTEND.md), [HANDOVER](HANDOVER.md).
 
-**Not covered by this guide:** how customers use their account pages (built on the template, not verified on a store, V-08), guest order lookup (not built), reviews, analytics, signup and chat (not built), financing messages, the product sheet's `copy_approved` publishing rule beyond section 2.6 (see the catalog README), and the final wording of offer steps (pending your approval).
+**Not covered by this guide:** how customers use their account pages (built on the template, not verified on a store, V-08), setting up Google Analytics and Meta themselves (section 13 lists only what your team decides and approves), reviews, signup and chat (not built), financing messages, the product sheet's `copy_approved` publishing rule beyond section 2.6 (see the catalog README), and the final wording of offer steps (pending your approval).
 
 **Before this guide is final:** capture real screenshots from a development store; run every `(verify on the dev store)` step there; have a non-developer complete each task using only this guide; replace each `TO BE CONFIRMED`; record the client's acknowledgement of the haul-away, delivery-zone and post-purchase changes.
