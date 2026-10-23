@@ -1,5 +1,6 @@
-import {useId, useState} from 'react';
+import {useId, useState, useSyncExternalStore, type ReactNode} from 'react';
 import {Link} from 'react-router';
+import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
 import {FooterLogo} from '~/components/layout/BrandLogo';
 import {cn} from '~/components/ui/cn';
 import {BRAND_TAGLINE} from '~/lib/brand';
@@ -92,6 +93,22 @@ export function FooterGroups({
   );
 }
 
+const NEVER_CHANGES = () => () => {};
+
+/**
+ * Renders its children only in the browser, from hydration on. The consent store exists on the client's first
+ * render but not on the server, so a button that depends on it would otherwise differ between the server HTML and
+ * the hydrating render. `useSyncExternalStore` uses the server value while hydrating and switches right after.
+ */
+function AfterHydration({children}: {children: ReactNode}) {
+  const hydrated = useSyncExternalStore(
+    NEVER_CHANGES,
+    () => true,
+    () => false,
+  );
+  return hydrated ? children : null;
+}
+
 /** One side of the quick-links row: bold links, 44 px high, wrapping on a narrow screen. */
 function QuickLinks({links}: {links: readonly FooterQuickLink[]}) {
   if (links.length === 0) return null;
@@ -156,6 +173,12 @@ export function SiteFooter({
                 </Link>
               </li>
             ))}
+            {/* Withdrawal of consent must be as easy as giving it (NFR-011). The button renders nothing while no analytics id is set, so `empty:hidden` removes its list item and leaves no stray gap. */}
+            <li className="empty:hidden">
+              <AfterHydration>
+                <PrivacyChoicesButton />
+              </AfterHydration>
+            </li>
             {supportPhone ? (
               <li>
                 <a

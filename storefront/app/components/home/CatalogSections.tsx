@@ -57,6 +57,11 @@ export function SizeTiles({
   );
 }
 
+/** The list a home card reports: the featured collection's handle, or a fixed id when it has none. */
+function featuredListId(handle: string | null): string {
+  return handle ?? 'featured-products';
+}
+
 export function FeaturedProducts({
   id,
   heading,
@@ -86,6 +91,10 @@ export function FeaturedProducts({
             <ProductItem
               product={product}
               loading={index < 4 ? 'eager' : 'lazy'}
+              analytics={{
+                listId: featuredListId(featured.handle),
+                position: index,
+              }}
             />
           </li>
         ))}

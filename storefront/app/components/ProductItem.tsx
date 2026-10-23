@@ -5,6 +5,7 @@ import {Badge} from '~/components/ui/Badge';
 import {cn} from '~/components/ui/cn';
 import {getPriceView, Price} from '~/components/ui/Price';
 import {Rating} from '~/components/ui/Rating';
+import {cardSelectItemAttributes} from '~/lib/listing-analytics';
 import type {ProductCardView} from '~/lib/shopify/types';
 
 type ProductItemProps = {
@@ -17,6 +18,11 @@ type ProductItemProps = {
    * (listings and search). The DOM order is the same either way, so reading and focus order never change.
    */
   layout?: 'stack' | 'row';
+  /**
+   * Where the card sits in its list, so a click is reported as select_item (REQ-ANL-001). `position` is the
+   * zero-based place among the products (promo tiles do not count). Without it the card reports nothing.
+   */
+  analytics?: {readonly listId?: string; readonly position: number};
 };
 
 // The `sizes` hint follows the layout: a row card's image is about two fifths of a phone, a stacked card's about
@@ -38,6 +44,7 @@ export function ProductItem({
   loading,
   index,
   layout = 'stack',
+  analytics,
 }: ProductItemProps) {
   const saleView =
     product.price && product.compareAt
@@ -106,9 +113,11 @@ export function ProductItem({
         ) : null}
         <h3 className="text-base font-bold text-fg md:text-lg">
           {/* The link's ::after covers the card, so the full card is the target without nesting links. The focus ring is the global one on this link (the e2e tab-walk checks the focused element paints it). The four-line clamp sits on the span INSIDE the link, not on the heading: an `overflow: hidden` ancestor would cut the 3 px ring off (BV-001). The link is a block so the ring surrounds the whole title box. */}
+          {/* On the link, not the article: the compare toggle sits inside the article and must not count as opening the product. */}
           <Link
             to={`/products/${product.handle}`}
             prefetch="intent"
+            {...(analytics ? cardSelectItemAttributes(product, analytics) : {})}
             className="group/title block after:absolute after:inset-0"
           >
             <span className="group-hover/title:underline md:line-clamp-4">

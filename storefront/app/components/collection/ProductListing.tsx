@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate, useSearchParams} from 'react-router';
 import {ActiveFilters, FilterPanel} from '~/components/collection/FilterPanel';
 import {PromoTileCard} from '~/components/collection/PromoTileCard';
@@ -8,12 +8,18 @@ import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {Drawer} from '~/components/ui/Drawer';
 import {Select} from '~/components/ui/Select';
+import {track} from '~/lib/analytics';
 import {
   SORT_LABELS,
   countActiveFilters,
   parseFilterParams,
   type SortKey,
 } from '~/lib/filters';
+import {
+  buildItemListEvents,
+  listIdForPath,
+  listingReportsItems,
+} from '~/lib/listing-analytics';
 import {
   hrefForReset,
   hrefForSort,
@@ -70,6 +76,32 @@ export function ProductListing({
     buildHref: (cursor) =>
       hrefForState(pathname, nextPageState(state, cursor), base),
   });
+
+  // The list id, and the products already reported for the list on screen (REQ-ANL-001). The count restarts when
+  // the filters, sort or page path change, and "Load more" reports only the products it adds, with the numbering
+  // carried on, so each product is counted once per list view (also under React's double effect in development).
+  const listId = listIdForPath(pathname);
+  const reportsItems = listingReportsItems(pathname);
+  const reported = useRef({key: resetKey, count: 0});
+  const visibleProducts = list.products;
+  useEffect(() => {
+    if (!reportsItems) return;
+    const memo = reported.current;
+    if (memo.key !== resetKey) {
+      memo.key = resetKey;
+      memo.count = 0;
+    }
+    if (visibleProducts.length <= memo.count) return;
+    const firstPosition = memo.count;
+    memo.count = visibleProducts.length;
+    for (const event of buildItemListEvents(
+      visibleProducts.slice(firstPosition),
+      listId,
+      firstPosition,
+    )) {
+      track(event);
+    }
+  }, [reportsItems, resetKey, visibleProducts, listId]);
 
   const sortOptions = sortKeys.map((key) => ({
     value: key,
@@ -177,6 +209,7 @@ export function ProductListing({
                         index={item.productIndex}
                         layout="row"
                         loading={item.productIndex < 4 ? 'eager' : 'lazy'}
+                        analytics={{listId, position: item.productIndex}}
                       />
                     </li>
                   ),
