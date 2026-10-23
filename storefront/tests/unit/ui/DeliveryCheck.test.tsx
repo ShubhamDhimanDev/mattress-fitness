@@ -18,6 +18,9 @@ afterEach(cleanup);
 // The router's first loads run on a jsdom main thread that is shared with the other test files in a full run; the
 // default 1 s for findBy and waitFor is too tight there (this file was flaky only under full-suite load).
 configure({asyncUtilTimeout: 5000});
+// A multi-step test waits on several of those, and Vitest's own default of 5000 ms would end the test before one
+// wait gives up, hiding which step stalled. Give each test room for three of them.
+vi.setConfig({testTimeout: 15000});
 
 // P3B-11, P5B-03: REQ-NAV-003 (validated, persisted, editable), REQ-DEL-002 (yes/no and approved wording).
 

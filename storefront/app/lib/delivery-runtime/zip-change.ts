@@ -10,6 +10,8 @@
 // the readers (the cart page, the drawer, mounted and unmounted at will) sit in different subtrees. Effects do
 // not run on the server, so nothing is written there and the server snapshot is always the empty record.
 
+import type {DeliveryView} from '~/lib/delivery/status';
+
 export type ZipChange = {
   /** Number of ZIP saves or clears that succeeded since the page loaded; 0 means none. */
   readonly epoch: number;
@@ -42,4 +44,14 @@ export function markZipChanged(cartResultSeq: number): void {
 export function resetZipChangeForTests(): void {
   latest = NO_ZIP_CHANGE;
   listeners.forEach((listener) => listener());
+}
+
+/**
+ * What a delivery answer says, reduced to a comparable string, so saving the same ZIP again (or clearing when
+ * none was saved) is not counted as a change and does not cost the cart a refresh. Kept in memory only for the
+ * comparison; it is never logged, stored or sent anywhere.
+ */
+export function deliverySignature(view: DeliveryView | null): string {
+  if (view === null) return 'none';
+  return 'zip' in view ? `${view.status}:${view.zip}` : view.status;
 }

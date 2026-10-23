@@ -5,7 +5,10 @@ import {
   readDeliverySeed,
   type DeliveryResponse,
 } from '~/lib/delivery-runtime/response';
-import {markZipChanged} from '~/lib/delivery-runtime/zip-change';
+import {
+  deliverySignature,
+  markZipChanged,
+} from '~/lib/delivery-runtime/zip-change';
 
 /** One shared fetcher: every ZIP control on a page (product page, cart, header) sees the same answer. */
 export const DELIVERY_FETCHER_KEY = 'delivery-zip';
@@ -36,6 +39,10 @@ export function useDeliveryZip(initial?: DeliveryResponse) {
   // the change, so several ZIP controls on one page do not count it more than once, and the answer to the
   // first `load('/delivery')` is never mistaken for a change.
   const awaitingAnswer = useRef(false);
+  // What the answer said when the change was sent, to tell a real change from saving the same ZIP again.
+  const answeredBefore = useRef('none');
+  const current = data ?? seed ?? null;
+  const currentSignature = deliverySignature(current?.delivery ?? null);
 
   useEffect(() => {
     if (hasSeed || data !== undefined || requested.current) return;
@@ -49,19 +56,32 @@ export function useDeliveryZip(initial?: DeliveryResponse) {
     }
     awaitingAnswer.current = false;
     // A refused change (invalid ZIP, no secret, wrong origin) leaves the cookie as it was: nothing to refresh.
-    if (data.error === null) markZipChanged(currentCartResultSeq());
+    // Saving the ZIP that was already saved changes nothing the cart depends on.
+    if (
+      data.error === null &&
+      deliverySignature(data.delivery) !== answeredBefore.current
+    ) {
+      markZipChanged(currentCartResultSeq());
+    }
   }, [state, data]);
 
   const send = useCallback(
     async (fields: Record<string, string>) => {
       awaitingAnswer.current = true;
-      await submit(fields, {
-        method: 'post',
-        action: '/delivery',
-        defaultShouldRevalidate: false,
-      });
+      answeredBefore.current = currentSignature;
+      try {
+        await submit(fields, {
+          method: 'post',
+          action: '/delivery',
+          defaultShouldRevalidate: false,
+        });
+      } catch (error) {
+        // No answer will come: do not let a later, unrelated answer be taken for this change.
+        awaitingAnswer.current = false;
+        throw error;
+      }
     },
-    [submit],
+    [submit, currentSignature],
   );
   const save = useCallback(
     (zip: string) => send({intent: 'save', zip}),
@@ -71,7 +91,7 @@ export function useDeliveryZip(initial?: DeliveryResponse) {
 
   return {
     /** null until the first answer arrives. */
-    response: data ?? seed ?? null,
+    response: current,
     pending: state !== 'idle',
     save,
     clear,
