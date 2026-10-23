@@ -1,6 +1,6 @@
 # Admin guide: running the store from Shopify admin
 
-**Draft 2, dated 2026-10-15** (draft 1 was 2026-10-12). For the client's store managers, merchandisers and customer service. Deliverable H-03 (REQ-HAND-003, NFR-005).
+**Draft 2, dated 2026-10-15** (draft 1 was 2026-10-12; sections 1, 4.3, 6.6 and 10 updated 2026-10-23 for the menu, the product-page add-ons box and the cache times; still no real screenshots and no non-developer test). For the client's store managers, merchandisers and customer service. Deliverable H-03 (REQ-HAND-003, NFR-005).
 
 ## Read this first
 
@@ -67,7 +67,7 @@ Shopify is the one place your data lives. The website reads it; it keeps no copy
 | Collections                                                                                           | **Products > Collections** `(verify on the dev store)`                            | Collections fill themselves from rules (see 2.5)      |
 | Stores, homepage sections, promo tiles, FAQs, brands, quiz, offer rules, site settings, delivery zone | **Content > Metaobjects** `(verify on the dev store)`                             | Each is a list of entries (see the table below)       |
 | Gift and bundle promotions                                                                            | **Discounts** `(verify on the dev store)`                                         | Automatic discounts only                              |
-| Menus                                                                                                 | **Online Store > Navigation** `(verify on the dev store)`                         | Drives the main menu                                  |
+| Menus                                                                                                 | **Online Store > Navigation** `(verify on the dev store)`                         | Drives the main menu only once a developer switches it on (section 6.6) |
 | Content pages (Delivery, Warranty, FAQ and so on)                                                     | **Online Store > Pages** `(verify on the dev store)`                              |                                                       |
 | Store locations and pickup                                                                            | **Settings > Locations** `(verify on the dev store)`                              | Pickup availability comes from stock at each location |
 | Delivery ZIP list and fee                                                                             | **Settings > Delivery and shipping > Local delivery** `(verify on the dev store)` | Also kept in a metaobject (see section 8)             |
@@ -344,6 +344,8 @@ The shopper is offered a protector in **the same size as the mattress** they are
 
 The website offers add-ons **matched to the mattress size**. **Today the offered add-ons come from the developer-managed setting** (a list of mattress, add-on product and variant by size). The product fields **Related foundations**, **Related protectors** and **Related bedding** exist and the importer fills them, but the cart does not read them yet. Keep them filled in anyway: they are the planned source (REQ-ADD-001).
 
+**On the product page** (`BUILT, AWAITING DEV-STORE VERIFICATION`, P4-03). For a mattress that has foundations, adjustable bases or frames in the developer-managed setting, the product page shows a box under **Add to cart** listing the ones that fit the selected size, each with Shopify's price and an **Add** button. The button adds the mattress (if it is not in the cart yet) and that item together; the shopper then sees "Added" and a **View cart** button. Changing the size on the page changes the list. Protectors, pillows and bedding are offered in the cart, not here. The box shows nothing for a size with no matching item, and a sold-out item is never listed; if the list cannot be loaded the shopper sees a short message with a **Try again** button, and the rest of the page is not affected. A price you change in Shopify shows here within about a minute (section 10.2). Which items are offered is the developer's setting, so a new foundation is a request to the developer.
+
 1. Open the mattress product. `(verify on the dev store)`
 2. In **Related foundations**, **Related protectors** and **Related bedding**, pick the products to offer, and send the developer the same list for the offer setting. `(verify on the dev store)`
 3. Make sure each add-on has a variant with the **same size name** as the mattress (Queen with Queen). A spelling difference means no offer is shown.
@@ -502,13 +504,34 @@ Open **Content > Metaobjects > Brand**. Edit the logo, about text and warranty t
 
 ### 6.6 Menus
 
-The main menu and mega menu come from Shopify's menus.
+`BUILT, AWAITING DEV-STORE VERIFICATION` (REQ-NAV-002, task P3B-02). The header and the mega menu can be built from a menu you edit in Shopify, but **only after a developer switches it on**. Until then the website shows its own designed navigation and ignores your menus, so editing **Online Store > Navigation** changes nothing. The switch is a deployment setting, `PUBLIC_NAV_MENU_HANDLE`, which names the menu to use (for example `main-menu`). It is off by default because a new store's default main menu usually holds only Home and Catalog and would replace the designed navigation. **Ask the developer which menu name is switched on** (or to switch one on once your menu is ready); changing the setting needs a restart or redeploy.
 
-1. Open **Online Store > Navigation**. `(verify on the dev store)`
-2. Open the main menu.
-3. Add, rename, move or remove menu items. Drag items under another to make a sub-menu. `(verify on the dev store)`
+**What the menu looks like on the website**
+
+| In your Shopify menu                              | On the website                                                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| A top-level item with nothing under it            | A plain link in the header row                                                                                                       |
+| A top-level item with items under it              | A header item that opens a panel (the mega menu); if the item has its own link, clicking its label also goes there                   |
+| An item under a top-level item that has items of its own | A **column heading** in the panel, with those items listed beneath it                                                         |
+| An item under a top-level item with nothing under it | A plain link in the panel (such links are listed together in one column without a heading)                                       |
+| The third level                                   | The links under a column heading. The website reads three levels; anything deeper is not read                                        |
+
+**To change the menu** (once the developer has switched it on)
+
+1. Open **Online Store > Navigation** and open the menu the developer named. `(verify on the dev store)`
+2. Add, rename, move or remove items. Drag an item under another to make a sub-menu, and an item under that for the third level. `(verify on the dev store)`
+3. For each item choose a link: pick a collection, product, page, blog post or policy from the list rather than typing an address. Picking from the list is the most reliable, because the website rebuilds the link from the item's handle.
 4. Save.
-5. After the delay in section 10.2, check the website's menu on desktop and on a phone. Click every new link. None should lead to a "not found" page.
+5. Wait for the delay in section 10.2 (**about an hour**), then check the website's menu on desktop and on a phone-sized window. Click every link. None should lead to a "not found" page.
+
+**Rules and limits the website applies** (anything over a limit is left out, without a warning to you)
+
+- **8** top-level items at most, **8** column headings per panel, **12** links per column. Keep labels short: they are cut at **60** characters. Plain text only.
+- An item that has no usable link and nothing usable under it is left out. A repeated link in one column is shown once.
+- A typed web address that is on your own store or website must lead to a public part of the website (collections, products, pages, brands, blogs, stores, the quiz, compare, search or policies, or the home page). Addresses to other sites must start with `https://` and are marked as external links. Other kinds of address (for example `http://`, or anything with spaces) get no link.
+- "Catalog" items go to all products; "Home", "Search" and the customer account page go to the matching pages.
+- The **Sleep quiz** link is added at the end by the website unless your menu already links to the quiz.
+- If the menu is empty, has nothing usable, or cannot be read, the website shows its own designed navigation again. This is by design, so the header is never empty.
 
 [Screenshot: Navigation main menu being edited]
 
@@ -698,7 +721,9 @@ Work down this list. Most problems stop at step 1 or 2.
 | Gift charged full price, or cart total differs from checkout                             | 3.7                                                                                                                                                | Discount and offer out of step                                                                                                                      |
 | Haul-away not offered                                                                    | Shopper chose in-home delivery; ZIP saved and in zone; developer's haul-away rule exists                                                           | Eligibility rule                                                                                                                                    |
 | Site says in-home delivery is available but checkout does not offer it (or the opposite) | Section 8.1                                                                                                                                        | The two ZIP lists differ                                                                                                                            |
-| Add-on not offered                                                                       | Size names match; add-on has a variant in that size                                                                                                | Spelling or missing size                                                                                                                            |
+| Add-on not offered                                                                       | Size names match; add-on has a variant in that size; the variant is in stock; the developer's setting lists it for that mattress                     | Spelling, missing size, sold out, or not in the setting                                                                                             |
+| "Delivery check unavailable" in the header on the live site                              | Tell the developer at once                                                                                                                         | The server's delivery signing secret is missing or too short. Shoppers cannot save a ZIP and carts with haul-away cannot check out until it is fixed |
+| Edited the menu but the header did not change                                            | 6.6 and 10.2                                                                                                                                       | The menu is not switched on (a developer setting), the wait of about an hour, or the menu name is not the one switched on                           |
 | Quiz gives odd or too few results                                                        | 7.3 and 7.4                                                                                                                                        | A rule was dropped or is wrong                                                                                                                      |
 | No Extend offers                                                                         | Section 9                                                                                                                                          | Feature is off, or the product is not in an eligible category, or no coverage price matches, or Extend is unreachable (offers are hidden by design) |
 | Store page wrong                                                                         | Store entry fields (5.1)                                                                                                                           | Missing latitude, longitude or hours                                                                                                                |
@@ -707,13 +732,14 @@ Work down this list. Most problems stop at step 1 or 2.
 
 ### 10.2 How long edits take to appear
 
-The website keeps copies of some Shopify data for a short time so pages load quickly. The windows below are what the code sets (decision DEC-024); they have **not been measured** on a real store, and the "long" window is Hydrogen's default whose exact length has not been re-checked here (`TO BE CONFIRMED`).
+The website keeps copies of some Shopify data for a short time so pages load quickly. The windows below are what the code sets (decision DEC-024); they have **not been measured** on a real store. The "long" window is Hydrogen's default; in the installed version (2026.4.7) the source says **1 hour fresh, then an older copy may be served for up to 23 more hours while a refresh runs**, so an edit normally shows within about an hour, and the first visit after that hour may still show the old version once. (Read from the code on 2026-10-23, not measured.)
 
 | What you changed                                                                                               | Appears on the website after                                                                                               |
 | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Prices, sale prices, stock and sold-out sizes** on product pages, collection pages, the home page and search | about 1 minute; a stale copy may be served for up to 5 more minutes while it refreshes, so allow **up to about 6 minutes** |
-| Product titles, descriptions, images, product facts and FAQs on a product page                                 | "long" cache (Hydrogen's default, in the range of an hour or more `TO BE CONFIRMED`)                                       |
-| Menus, content pages, brands, homepage sections, promo tiles, the offer-only tag list                          | "long" cache, same range                                                                                                   |
+| Product titles, descriptions, images, product facts and FAQs on a product page                                 | "long" cache (Hydrogen's default: about an hour, see the paragraph above)                                                  |
+| Menus (when switched on, 6.6), content pages, brands, homepage sections, promo tiles, the offer-only tag list  | "long" cache, same range                                                                                                   |
+| The list of foundations, bases and frames on a product page (4.3)                                              | price and stock like prices (about 1 minute; your browser may also keep the list for 1 minute)                             |
 | Shop policies (the policy pages, the policies list, and which policies the sitemap lists)                      | "long" cache, same range: all three reads use it                                                                           |
 | Site settings: promo bar text, promo bar link, support phone (6.4)                                             | like prices: about 1 minute, up to about 6 minutes (read on every page; the promo text may quote a price or a date)        |
 | Search suggestions                                                                                             | a few seconds (Hydrogen's short cache)                                                                                     |
