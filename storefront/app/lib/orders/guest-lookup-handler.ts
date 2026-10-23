@@ -27,9 +27,11 @@ import {
   buildGuestOrderLookupRequest,
   GUEST_LOOKUP_FAILURE_MESSAGE,
   matchGuestOrderFromList,
+  parseTrackingLinkHosts,
   validateGuestLookupInput,
   type GuestOrderView,
 } from '~/lib/orders/guest-lookup';
+import {resolveClientAddress} from '~/lib/orders/guest-lookup-address';
 import {
   createAdminGuestOrderClient,
   type GuestOrderAdminClient,
@@ -61,51 +63,9 @@ export type GuestLookupHttpResult = {
   readonly headers: Headers;
 };
 
-// --- Who is asking ---
-
-/**
- * Headers a deployment may name as the one its own proxy sets. Naming any other header is ignored, so the setting
- * cannot be pointed at an attacker-controlled one such as `Forwarded` by mistake.
- */
-const TRUSTABLE_ADDRESS_HEADERS: ReadonlySet<string> = new Set([
-  'cf-connecting-ip',
-  'x-real-ip',
-  'oxygen-buyer-ip',
-  'x-forwarded-for',
-  'true-client-ip',
-]);
-/** ASSUMPTION(UNVERIFIED, Q-003): Oxygen sets this header itself. Anywhere else it is absent and the shared bucket applies. */
-const DEFAULT_ADDRESS_HEADER = 'oxygen-buyer-ip';
-const UNKNOWN_ADDRESS = 'unknown';
-const ADDRESS_SHAPE = /^[0-9a-f:.]{2,45}$/i;
-
-export type ClientAddress = {
-  readonly address: string;
-  readonly source: 'header' | 'none';
-};
-
-/**
- * The caller's address as the deployment's own proxy reports it. A header the client could set itself (no trusted
- * proxy in front) only lets an attacker dodge the per-address counters; the email and overall counters do not use
- * it. With no usable header every caller shares one "unknown" bucket, which is stricter, not looser (fail safe).
- * `x-forwarded-for` takes the LAST entry, the one the nearest proxy appended.
- */
-export function resolveClientAddress(
-  headers: {get(name: string): string | null},
-  configuredHeader: string | null,
-): ClientAddress {
-  const wanted = configuredHeader?.toLowerCase() ?? '';
-  const name = TRUSTABLE_ADDRESS_HEADERS.has(wanted)
-    ? wanted
-    : DEFAULT_ADDRESS_HEADER;
-  const raw = headers.get(name);
-  if (raw === null) return {address: UNKNOWN_ADDRESS, source: 'none'};
-  const last = name === 'x-forwarded-for' ? (raw.split(',').pop() ?? '') : raw;
-  const value = last.trim();
-  return ADDRESS_SHAPE.test(value)
-    ? {address: value.toLowerCase(), source: 'header'}
-    : {address: UNKNOWN_ADDRESS, source: 'none'};
-}
+// The caller's address (security review M-1, L-5) is read only from the header the deployment names in
+// TRUSTED_CLIENT_IP_HEADER; with none, every caller shares one stricter bucket. Re-exported for the tests.
+export {resolveClientAddress};
 
 // --- The flow ---
 
@@ -117,6 +77,8 @@ export type GuestLookupDeps = {
   readonly sleep: SleepFn;
   /** The deployment's trusted address header (TRUSTED_CLIENT_IP_HEADER), if any. */
   readonly addressHeader: string | null;
+  /** Carrier domains whose tracking pages may be linked (TRACKING_LINK_HOSTS plus the built-ins). */
+  readonly trackingLinkHosts?: readonly string[];
   readonly minDurationMs?: number;
 };
 
@@ -227,6 +189,7 @@ export async function handleGuestLookup(
     upstream.candidates,
     {orderNumber, email},
     deps.now(),
+    deps.trackingLinkHosts ? {trackingLinkHosts: deps.trackingLinkHosts} : {},
   );
   logInfo('guest_lookup.completed', {
     outcome: matched.status === 'match' ? 'found' : 'no_match',
@@ -246,6 +209,7 @@ type SharedState = {
 };
 
 let shared: SharedState | null = null;
+let warnedAboutTrackingHosts = false;
 
 /**
  * The counters for this runtime instance, made on the first request (not at module load: the key hasher needs
@@ -265,6 +229,7 @@ function sharedState(): SharedState {
 /** Test-only reset of the per-instance counters. Not used by the app. */
 export function resetGuestLookupStateForTests(): void {
   shared = null;
+  warnedAboutTrackingHosts = false;
 }
 
 export function sleepFor(ms: number): Promise<void> {
@@ -284,6 +249,17 @@ export function guestLookupDepsFromEnv(
   fetchFn: FetchLike = (url, init) => fetch(url, init),
 ): GuestLookupDeps {
   const admin = adminConfigFromEnv(env);
+  const tracking = parseTrackingLinkHosts(
+    readEnvString(env, 'TRACKING_LINK_HOSTS'),
+  );
+  if (tracking.rejectedCount > 0 && !warnedAboutTrackingHosts) {
+    // Once per instance, a count only: the refused values are never logged.
+    warnedAboutTrackingHosts = true;
+    logWarn('guest_lookup.config_invalid', {
+      reason: 'tracking_link_hosts',
+      candidateCount: tracking.rejectedCount,
+    });
+  }
   return {
     client:
       admin.status === 'ready'
@@ -293,5 +269,6 @@ export function guestLookupDepsFromEnv(
     now: () => Date.now(),
     sleep: sleepFor,
     addressHeader: readEnvString(env, 'TRUSTED_CLIENT_IP_HEADER'),
+    trackingLinkHosts: tracking.hosts,
   };
 }

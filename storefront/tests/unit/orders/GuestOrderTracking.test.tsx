@@ -195,7 +195,7 @@ describe('<GuestOrderSummary>', () => {
     const link = screen.getByRole('link', {name: /Track this package/});
     expect(link).toHaveAttribute(
       'href',
-      'https://tracking.example.com/TRK123456789',
+      'https://www.ups.com/track?tracknum=TRK123456789',
     );
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link).toHaveTextContent('(opens in a new tab)');

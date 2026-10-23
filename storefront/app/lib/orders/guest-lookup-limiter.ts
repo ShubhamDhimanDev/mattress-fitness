@@ -1,21 +1,37 @@
-// SERVER ONLY. Rate limiting for guest order tracking (REQ-ACC-003, P6-08, threat T-09, risk R-27).
+// SERVER ONLY. Rate limiting for guest order tracking (REQ-ACC-003, P6-08, threat T-09, T-13, risk R-27).
 //
 // Two layers, so the shared limiter of P6-14 can replace the first without touching the second:
 //   - `RateLimitStore`: where attempts are counted. Async on purpose (a shared store such as a Cache API entry,
-//     KV or an edge service is asynchronous). This file ships ONE implementation, `createInMemoryRateLimitStore`,
-//     which lives in the memory of one runtime instance.
-//   - `createGuestLookupGate`: WHICH counters a lookup must pass (address, order number + address, email,
-//     everything), in a fixed order, failing closed.
+//     KV or an edge service is asynchronous). It has two operations: `peek` (read only) and `hit` (record). This
+//     file ships ONE implementation, `createInMemoryRateLimitStore`, which lives in the memory of one instance.
+//   - `createGuestLookupGate`: WHICH counters a lookup must pass, and in what order, failing closed.
 //
-// The in-memory store is per instance. On Oxygen each isolate has its own memory and isolates come and go, and a
-// Node deployment with several processes has one counter per process. It slows casual guessing; it is NOT a hard
-// limit. Until P6-14 swaps in a shared store, the real limits are the ones that do not depend on this store: the
-// generic failure message, the 60-day window and a matching email being needed as well as the order number.
+// Two passes (security review L-1). The gate first PEEKS at every counter, overall first, and records nothing. Only if
+// every counter allows the attempt does it HIT them all. So an attempt that any counter refuses is recorded
+// nowhere: a flood past the overall ceiling or from one blocked address cannot burn a victim's email or order
+// allowance, or fill the stores with new keys. The peek and the hits are separate awaits, so two simultaneous
+// requests can both pass the peek; a counter may then be exceeded by the number of requests in flight. A hit that
+// refuses after a passing peek is still honoured (the request is refused), and counters already hit stay recorded.
+//
+// The counters:
+//   address        per client address (IPv6 reduced to its /64): one client trying many orders.
+//   order+address  per order number and address: one client guessing emails for one order.
+//   order          per order number alone: UNSPOOFABLE by the client, so it holds even when the address is not
+//                  trustworthy. Trade-off: anyone can hold one order number's lookup shut for the window (the
+//                  owner can still sign in or use the confirmation email link); see GUEST_TRACKING.md.
+//   email          per email: the same, for one person's address from many clients.
+//   overall        everything: a ceiling that is also a single-party kill switch if it is set too low; alert on it.
+//
+// The in-memory store is per instance. On Oxygen each isolate has its own memory; a Node deployment has one counter
+// set per process and loses it on restart. It slows casual guessing; it is NOT a hard limit. The real limits that do
+// not depend on this store: the generic failure message, the 60-day window, a matching email being needed as well as
+// the order number, and the host's own per-address limit (nginx), which sees the real address.
 //
 // Keys. A counter key never holds a raw order number, email or address: the gate keyed-hashes each one first
 // (HMAC-SHA-256, random per-instance key), because a shared store's key can appear in logs, dashboards and cache
 // keys, and personal data must not (security rules, T-05). The per-instance random key means hashes cannot be
-// compared between instances; a shared store needs one shared secret, which is a P6-14 decision.
+// compared between instances or restarts; a shared store needs one shared secret (GUEST_LOOKUP_KEY_SECRET, future,
+// P6-14), derived per scope.
 
 import {
   createRateLimiter,
@@ -35,9 +51,11 @@ export type RateLimitStore = {
   /** Where the counters live, for the readiness checks and the runbook. */
   readonly kind: 'instance' | 'shared';
   /**
-   * Records one attempt for `key` under `scope` and says whether it is allowed. `key` is already hashed.
-   * A store that cannot answer must reject (or throw): the gate treats that as "block".
+   * Says whether one more attempt for `key` under `scope` would be allowed, WITHOUT recording it. `key` is already
+   * hashed. A store that cannot answer must reject (or throw): the gate treats that as "block".
    */
+  peek(scope: string, key: string, rule: LimitRule): Promise<RateLimitResult>;
+  /** Records one attempt for `key` under `scope` and says whether it was allowed. Same failure rule as `peek`. */
   hit(scope: string, key: string, rule: LimitRule): Promise<RateLimitResult>;
 };
 
@@ -52,22 +70,26 @@ export function createInMemoryRateLimitStore(options: {
   readonly maxKeys?: number;
 }): RateLimitStore {
   const limiters = new Map<string, RateLimiter>();
+  function limiterFor(scope: string, rule: LimitRule): RateLimiter {
+    const id = `${scope}|${rule.limit}|${rule.windowMs}`;
+    let limiter = limiters.get(id);
+    if (limiter === undefined) {
+      limiter = createRateLimiter({
+        limit: rule.limit,
+        windowMs: rule.windowMs,
+        now: options.now,
+        maxKeys: options.maxKeys ?? DEFAULT_MAX_KEYS_PER_SCOPE,
+      });
+      limiters.set(id, limiter);
+    }
+    return limiter;
+  }
   return {
     kind: 'instance',
-    hit(scope, key, rule) {
-      const id = `${scope}|${rule.limit}|${rule.windowMs}`;
-      let limiter = limiters.get(id);
-      if (limiter === undefined) {
-        limiter = createRateLimiter({
-          limit: rule.limit,
-          windowMs: rule.windowMs,
-          now: options.now,
-          maxKeys: options.maxKeys ?? DEFAULT_MAX_KEYS_PER_SCOPE,
-        });
-        limiters.set(id, limiter);
-      }
-      return Promise.resolve(limiter.check(key));
-    },
+    peek: (scope, key, rule) =>
+      Promise.resolve(limiterFor(scope, rule).peek(key)),
+    hit: (scope, key, rule) =>
+      Promise.resolve(limiterFor(scope, rule).check(key)),
   };
 }
 
@@ -84,20 +106,28 @@ function toHex(bytes: Uint8Array): string {
 /**
  * HMAC-SHA-256 under a random key made on first use (never at module load: some runtimes forbid random values
  * in the global scope). Returns the first 16 bytes as hex. Web Crypto only, so it runs on Oxygen and Node.
+ * A failed key import is not remembered: the next call imports again, and a failing call is retried once, so one
+ * transient failure does not switch the lookup off until a restart (security review I-2). If it still fails, the
+ * gate fails closed.
  */
 export function createKeyHasher(): KeyHasher {
   let keyPromise: Promise<CryptoKey> | null = null;
   const getKey = (): Promise<CryptoKey> => {
-    keyPromise ??= crypto.subtle.importKey(
-      'raw',
-      crypto.getRandomValues(new Uint8Array(32)),
-      {name: 'HMAC', hash: 'SHA-256'},
-      false,
-      ['sign'],
-    );
+    keyPromise ??= crypto.subtle
+      .importKey(
+        'raw',
+        crypto.getRandomValues(new Uint8Array(32)),
+        {name: 'HMAC', hash: 'SHA-256'},
+        false,
+        ['sign'],
+      )
+      .catch((error: unknown) => {
+        keyPromise = null;
+        throw error;
+      });
     return keyPromise;
   };
-  return async (scope, value) => {
+  const sign = async (scope: string, value: string): Promise<string> => {
     const signature = await crypto.subtle.sign(
       'HMAC',
       await getKey(),
@@ -106,17 +136,25 @@ export function createKeyHasher(): KeyHasher {
     );
     return toHex(new Uint8Array(signature).slice(0, 16));
   };
+  return async (scope, value) => {
+    try {
+      return await sign(scope, value);
+    } catch {
+      return sign(scope, value);
+    }
+  };
 }
 
 // --- The gate ---
 
 /**
- * ASSUMPTION (pending Q-009 and the security-engineer's review): starting numbers. A shopper who mistypes the
- * order number twice from one device still gets a third try; guessing is stopped long before it can matter.
+ * ASSUMPTION (pending Q-009 and the security review): starting numbers. A shopper who mistypes the order number
+ * twice from one device still gets a third try; guessing is stopped long before it can matter.
  */
 export type GuestLookupGateLimits = {
   readonly perAddress: LimitRule;
   readonly perOrderAddress: LimitRule;
+  readonly perOrder: LimitRule;
   readonly perEmail: LimitRule;
   readonly overall: LimitRule;
 };
@@ -127,9 +165,13 @@ export const GUEST_LOOKUP_GATE_LIMITS: GuestLookupGateLimits = {
     limit: 3,
     windowMs: GUEST_LOOKUP_LIMITS.perAddress.windowMs,
   },
+  perOrder: {limit: 10, windowMs: GUEST_LOOKUP_LIMITS.perAddress.windowMs},
   perEmail: GUEST_LOOKUP_LIMITS.perEmail,
   overall: GUEST_LOOKUP_LIMITS.overall,
 };
+
+export type LimitedBy =
+  'address' | 'order_address' | 'order' | 'email' | 'overall';
 
 export type GuestLookupGateResult =
   | {readonly allowed: true}
@@ -138,7 +180,7 @@ export type GuestLookupGateResult =
       readonly reason: 'rate_limited';
       readonly retryAfterSeconds: number;
       /** For logs only; never shown to the shopper. */
-      readonly limitedBy: 'address' | 'order_address' | 'email' | 'overall';
+      readonly limitedBy: LimitedBy;
     }
   | {
       /** The store did not answer sensibly: the lookup is refused rather than run unchecked. */
@@ -149,8 +191,8 @@ export type GuestLookupGateResult =
 export type GuestLookupGate = {
   /**
    * `address` is the caller's address as resolved by the handler (never logged). `orderNumber` and `email` are
-   * the raw form values, normalised here. Counters are checked in order, and an attempt refused by an earlier
-   * counter is not recorded on a later one, so one blocked attacker cannot use up a victim's email allowance.
+   * the raw form values, normalised here. Every counter is read before any is recorded (see the file header), so
+   * an attempt refused by one counter counts against none.
    */
   check(input: {
     readonly address: string;
@@ -160,7 +202,7 @@ export type GuestLookupGate = {
 };
 
 type Step = {
-  readonly limitedBy: 'address' | 'order_address' | 'email' | 'overall';
+  readonly limitedBy: LimitedBy;
   readonly scope: string;
   readonly value: string;
   readonly rule: LimitRule;
@@ -181,6 +223,7 @@ export function createGuestLookupGate(options: {
 }): GuestLookupGate {
   const limits = options.limits ?? GUEST_LOOKUP_GATE_LIMITS;
 
+  /** Overall first: it needs no per-request value and is the cheapest to refuse with. */
   function stepsFor(input: {
     readonly address: string;
     readonly orderNumber: unknown;
@@ -190,6 +233,12 @@ export function createGuestLookupGate(options: {
     const email = normalizeEmail(input.email);
     const steps: Step[] = [
       {
+        limitedBy: 'overall',
+        scope: 'overall',
+        value: 'all',
+        rule: limits.overall,
+      },
+      {
         limitedBy: 'address',
         scope: 'address',
         value: input.address,
@@ -198,12 +247,20 @@ export function createGuestLookupGate(options: {
     ];
     // A malformed value cannot name an order or a person, so it only counts against the address.
     if (order.status === 'ok') {
-      steps.push({
-        limitedBy: 'order_address',
-        scope: 'order-address',
-        value: `${order.number}\u0000${input.address}`,
-        rule: limits.perOrderAddress,
-      });
+      steps.push(
+        {
+          limitedBy: 'order_address',
+          scope: 'order-address',
+          value: `${order.number}\u0000${input.address}`,
+          rule: limits.perOrderAddress,
+        },
+        {
+          limitedBy: 'order',
+          scope: 'order',
+          value: order.number,
+          rule: limits.perOrder,
+        },
+      );
     }
     if (email.status === 'ok') {
       steps.push({
@@ -213,38 +270,50 @@ export function createGuestLookupGate(options: {
         rule: limits.perEmail,
       });
     }
-    steps.push({
-      limitedBy: 'overall',
-      scope: 'overall',
-      value: 'all',
-      rule: limits.overall,
-    });
     return steps;
+  }
+
+  type Pass = 'peek' | 'hit';
+
+  /** Runs one pass over the keyed steps; the first refusal (or unusable answer) ends it. */
+  async function run(
+    pass: Pass,
+    keyed: readonly (Step & {key: string})[],
+  ): Promise<GuestLookupGateResult> {
+    for (const step of keyed) {
+      const result: unknown = await options.store[pass](
+        step.scope,
+        step.key,
+        step.rule,
+      );
+      if (!isRateLimitResult(result)) {
+        return {allowed: false, reason: 'limiter_failed'};
+      }
+      if (!result.allowed) {
+        return {
+          allowed: false,
+          reason: 'rate_limited',
+          retryAfterSeconds: result.retryAfterSeconds,
+          limitedBy: step.limitedBy,
+        };
+      }
+    }
+    return {allowed: true};
   }
 
   return {
     async check(input) {
       try {
+        const keyed: (Step & {key: string})[] = [];
         for (const step of stepsFor(input)) {
-          const key = await options.hash(step.scope, step.value);
-          const result: unknown = await options.store.hit(
-            step.scope,
-            key,
-            step.rule,
-          );
-          if (!isRateLimitResult(result)) {
-            return {allowed: false, reason: 'limiter_failed'};
-          }
-          if (!result.allowed) {
-            return {
-              allowed: false,
-              reason: 'rate_limited',
-              retryAfterSeconds: result.retryAfterSeconds,
-              limitedBy: step.limitedBy,
-            };
-          }
+          keyed.push({
+            ...step,
+            key: await options.hash(step.scope, step.value),
+          });
         }
-        return {allowed: true};
+        const peeked = await run('peek', keyed);
+        if (!peeked.allowed) return peeked;
+        return await run('hit', keyed);
       } catch {
         return {allowed: false, reason: 'limiter_failed'};
       }

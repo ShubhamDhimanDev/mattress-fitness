@@ -4,6 +4,9 @@ import {mulberry32} from '~/lib/catalog/test-helpers';
 import {hasControlCharacter} from '~/lib/catalog/text';
 import type {GuestOrderCandidate} from '~/lib/orders/guest-lookup';
 import {
+  DEFAULT_TRACKING_LINK_HOSTS,
+  parseTrackingLinkHosts,
+  safeTrackingUrl,
   GUEST_LOOKUP_FAILURE_MESSAGE,
   GUEST_LOOKUP_LIMITS,
   GUEST_LOOKUP_WINDOW_DAYS,
@@ -49,7 +52,7 @@ function candidate(
           {
             company: 'Example Freight',
             number: 'TRK123456789',
-            url: 'https://tracking.example.com/TRK123456789',
+            url: 'https://www.ups.com/track?tracknum=TRK123456789',
           },
         ],
       },
@@ -443,7 +446,7 @@ describe('matching a guest order: one generic failure (REQ-ACC-003, T-09)', () =
             statusLabel: 'In transit',
             trackingCompany: 'Example Freight',
             trackingNumber: 'TRK123456789',
-            trackingUrl: 'https://tracking.example.com/TRK123456789',
+            trackingUrl: 'https://www.ups.com/track?tracknum=TRK123456789',
           },
         ],
       });
@@ -514,8 +517,12 @@ describe('matching a guest order: one generic failure (REQ-ACC-003, T-09)', () =
         url,
       });
       for (const [url, expected] of [
-        ['https://track.example.com/1', 'https://track.example.com/1'],
-        ['http://track.example.com/1', null],
+        [
+          'https://www.ups.com/track?tracknum=1',
+          'https://www.ups.com/track?tracknum=1',
+        ],
+        ['https://track.example.com/1', null],
+        ['http://www.ups.com/track?tracknum=1', null],
         ['javascript:alert(1)', null],
         ['data:text/html,x', null],
         ['//evil.example', null],
@@ -613,6 +620,193 @@ describe('matching a guest order: one generic failure (REQ-ACC-003, T-09)', () =
       expect(result.status === 'match' && result.order.items[0]?.title).toBe(
         'First',
       );
+    });
+  });
+});
+
+describe('tracking links: https, a named carrier host, nothing else (L-4, T-07, T-10)', () => {
+  it('ships the five carriers the review named', () => {
+    expect([...DEFAULT_TRACKING_LINK_HOSTS].sort()).toEqual([
+      'dhl.com',
+      'fedex.com',
+      'ontrac.com',
+      'ups.com',
+      'usps.com',
+    ]);
+  });
+
+  it.each([
+    'https://www.ups.com/track?tracknum=1Z999',
+    'https://wwwapps.ups.com/WebTracking/track?trackNums=1Z999',
+    'https://ups.com/track',
+    'https://www.fedex.com/fedextrack/?trknbr=123',
+    'https://tools.usps.com/go/TrackConfirmAction?tLabels=9400',
+    'https://www.dhl.com/us-en/home/tracking.html?tracking-id=123',
+    'https://www.ontrac.com/tracking/?number=C1',
+    'https://WWW.UPS.COM/track',
+    'https://www.ups.com:443/track',
+  ])('links %s', (url) => {
+    expect(safeTrackingUrl(url)).toBe(new URL(url).href);
+  });
+
+  it.each([
+    ['not https', 'http://www.ups.com/track'],
+    ['javascript', 'javascript:alert(1)'],
+    ['data', 'data:text/html,x'],
+    ['protocol relative', '//www.ups.com/track'],
+    ['credentials', 'https://user:pass@www.ups.com/track'],
+    ['username only', 'https://www.ups.com@evil.example/track'],
+    ['IPv4 literal', 'https://203.0.113.9/track'],
+    ['IPv6 literal', 'https://[2001:db8::1]/track'],
+    ['decimal IP', 'https://3405803785/track'],
+    ['odd port', 'https://www.ups.com:8443/track'],
+    ['port 80', 'https://www.ups.com:80/track'],
+    ['not on the list', 'https://track.example.com/1'],
+    ['look-alike suffix', 'https://evil-ups.com/track'],
+    ['look-alike prefix', 'https://ups.com.evil.example/track'],
+    ['look-alike subdomain label', 'https://ups.com-track.example/track'],
+    ['trailing dot', 'https://www.ups.com./track'],
+    ['single label host', 'https://localhost/track'],
+    ['too long', `https://www.ups.com/${'a'.repeat(2000)}`],
+    ['empty', ''],
+    ['garbage', 'not a url'],
+  ])('refuses %s', (_name, url) => {
+    expect(safeTrackingUrl(url)).toBeNull();
+  });
+
+  it('refuses null', () => {
+    expect(safeTrackingUrl(null)).toBeNull();
+  });
+
+  it('uses the list it is given, not the built-ins, when one is passed', () => {
+    expect(
+      safeTrackingUrl('https://www.ups.com/t', ['freight.example.org']),
+    ).toBeNull();
+    expect(
+      safeTrackingUrl('https://track.freight.example.org/t', [
+        'freight.example.org',
+      ]),
+    ).toBe('https://track.freight.example.org/t');
+  });
+
+  it('property: no host outside the list is ever linked (300 random URLs)', () => {
+    const random = mulberry32(24680);
+    const labels = [
+      'ups',
+      'com',
+      'evil',
+      'www',
+      'x',
+      'fedex',
+      'a-b',
+      '1',
+      'dhl',
+    ];
+    for (let i = 0; i < 300; i += 1) {
+      const host = Array.from(
+        {length: 1 + Math.floor(random() * 4)},
+        () => labels[Math.floor(random() * labels.length)],
+      ).join('.');
+      const url = safeTrackingUrl(`https://${host}/t`);
+      if (url !== null) {
+        const parsed = new URL(url);
+        expect(
+          DEFAULT_TRACKING_LINK_HOSTS.some(
+            (allowed) =>
+              parsed.hostname === allowed ||
+              parsed.hostname.endsWith(`.${allowed}`),
+          ),
+        ).toBe(true);
+      }
+    }
+  });
+});
+
+describe('TRACKING_LINK_HOSTS (L-4)', () => {
+  it('unset or empty gives the built-ins', () => {
+    for (const raw of [undefined, null, '', '  ', ',,', 42, {}]) {
+      expect(parseTrackingLinkHosts(raw)).toEqual({
+        hosts: [...DEFAULT_TRACKING_LINK_HOSTS],
+        rejectedCount: 0,
+      });
+    }
+  });
+
+  it('adds valid domains, lower-cased and de-duplicated, after the built-ins', () => {
+    const parsed = parseTrackingLinkHosts(
+      ' Freight.Example.org, white-glove.example.net ,freight.example.org,ups.com',
+    );
+    expect(parsed.hosts).toEqual([
+      ...DEFAULT_TRACKING_LINK_HOSTS,
+      'freight.example.org',
+      'white-glove.example.net',
+    ]);
+    expect(parsed.rejectedCount).toBe(0);
+  });
+
+  it.each([
+    ['a scheme', 'https://freight.example.org'],
+    ['a path', 'freight.example.org/track'],
+    ['a port', 'freight.example.org:8443'],
+    ['a wildcard', '*.example.org'],
+    ['a leading dot', '.example.org'],
+    ['a single label', 'localhost'],
+    ['an IPv4 address', '203.0.113.9'],
+    ['an IPv6 address', '[2001:db8::1]'],
+    ['credentials', 'user@freight.example.org'],
+    ['a space inside', 'freight example.org'],
+    ['a numeric top level', 'freight.123'],
+    ['an underscore', 'freight_x.example.org'],
+    ['a trailing dot', 'freight.example.org.'],
+    ['a query', 'freight.example.org?x=1'],
+  ])('refuses an entry with %s and counts it', (_name, entry) => {
+    const parsed = parseTrackingLinkHosts(`good.example.org,${entry}`);
+    expect(parsed.hosts).toEqual([
+      ...DEFAULT_TRACKING_LINK_HOSTS,
+      'good.example.org',
+    ]);
+    expect(parsed.rejectedCount).toBe(1);
+  });
+
+  it('reads at most 30 extra entries and refuses an oversized setting', () => {
+    const many = Array.from({length: 40}, (_, i) => `c${i}.example.org`).join(
+      ',',
+    );
+    const parsed = parseTrackingLinkHosts(many);
+    expect(parsed.hosts).toHaveLength(DEFAULT_TRACKING_LINK_HOSTS.length + 30);
+    expect(parsed.rejectedCount).toBe(10);
+    const huge = parseTrackingLinkHosts('a.example.org,'.repeat(1000));
+    expect(huge.hosts).toEqual([...DEFAULT_TRACKING_LINK_HOSTS]);
+    expect(huge.rejectedCount).toBe(1);
+  });
+
+  it('a listed extra domain makes its links appear in the order view', () => {
+    const order = candidate({
+      fulfillments: [
+        {
+          displayStatus: 'IN_TRANSIT',
+          tracking: [
+            {
+              company: 'Freight',
+              number: 'F1',
+              url: 'https://track.freight.example.org/F1',
+            },
+          ],
+        },
+      ],
+    });
+    const without = matchGuestOrder(order, RIGHT, NOW);
+    const withExtra = matchGuestOrder(order, RIGHT, NOW, {
+      trackingLinkHosts: parseTrackingLinkHosts('freight.example.org').hosts,
+    });
+    expect(
+      without.status === 'match' && without.order.shipments[0],
+    ).toMatchObject({trackingNumber: 'F1', trackingUrl: null});
+    expect(
+      withExtra.status === 'match' && withExtra.order.shipments[0],
+    ).toMatchObject({
+      trackingNumber: 'F1',
+      trackingUrl: 'https://track.freight.example.org/F1',
     });
   });
 });

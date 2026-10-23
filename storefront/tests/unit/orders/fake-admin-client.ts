@@ -52,7 +52,7 @@ export function fixtureOrder(
           {
             company: 'Example Freight',
             number: 'TRK123456789',
-            url: 'https://tracking.example.com/TRK123456789',
+            url: 'https://www.ups.com/track?tracknum=TRK123456789',
           },
         ],
       },

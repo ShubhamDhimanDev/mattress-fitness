@@ -279,14 +279,100 @@ export function isWithinLookupWindow(
   return age >= -CLOCK_SKEW_MS && age <= windowDays * DAY_MS;
 }
 
-function httpsUrlOrNull(value: string | null): string | null {
-  if (!value || value.length > 2000) return null;
+// --- Tracking links (L-4, T-07, T-10) ---
+
+/**
+ * Carrier domains whose pages may be linked. A host matches when it equals one of these or is a subdomain of it
+ * ("www.ups.com", "wwwapps.ups.com"). The client's own freight or white-glove carriers are not known yet (CLR) and
+ * come in through TRACKING_LINK_HOSTS. A link to any other host is not shown; the number is shown as text.
+ */
+export const DEFAULT_TRACKING_LINK_HOSTS: readonly string[] = [
+  'ups.com',
+  'fedex.com',
+  'usps.com',
+  'dhl.com',
+  'ontrac.com',
+];
+
+const MAX_TRACKING_URL_LENGTH = 2000;
+const MAX_EXTRA_TRACKING_HOSTS = 30;
+const HOST_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const IPV4_LITERAL = /^\d{1,3}(?:\.\d{1,3}){3}$/;
+
+/** A bare domain such as "example-carrier.com": 2+ labels, letters/digits/hyphens, a letter-only top level, no IP. */
+function isPlainHostname(value: string): boolean {
+  if (value.length > 253 || IPV4_LITERAL.test(value)) return false;
+  const labels = value.split('.');
+  const topLevel = labels[labels.length - 1] ?? '';
+  return (
+    labels.length >= 2 &&
+    labels.every((label) => HOST_LABEL.test(label)) &&
+    /^[a-z]{2,}$/.test(topLevel)
+  );
+}
+
+export type TrackingHostsResult = {
+  /** The built-in carriers plus every valid extra, lower-cased and de-duplicated. */
+  readonly hosts: readonly string[];
+  /** How many entries of the setting were refused (count only; a refused value is never logged). */
+  readonly rejectedCount: number;
+};
+
+/**
+ * Reads the TRACKING_LINK_HOSTS setting: comma-separated bare domains. An entry with a scheme, path, port,
+ * wildcard, space, IP address or a single label is refused, so the setting cannot widen the rule beyond "this
+ * domain and its subdomains". At most 30 extras are read. Unset or empty gives the built-in list.
+ */
+export function parseTrackingLinkHosts(raw: unknown): TrackingHostsResult {
+  const extras: string[] = [];
+  let rejectedCount = 0;
+  if (typeof raw === 'string' && raw.length <= 4000) {
+    const entries = raw
+      .split(',')
+      .map((entry) => entry.trim().toLowerCase())
+      .filter((entry) => entry !== '');
+    for (const entry of entries.slice(0, MAX_EXTRA_TRACKING_HOSTS)) {
+      if (isPlainHostname(entry)) extras.push(entry);
+      else rejectedCount += 1;
+    }
+    rejectedCount += Math.max(0, entries.length - MAX_EXTRA_TRACKING_HOSTS);
+  } else if (typeof raw === 'string') {
+    rejectedCount += 1;
+  }
+  return {
+    hosts: [...new Set([...DEFAULT_TRACKING_LINK_HOSTS, ...extras])],
+    rejectedCount,
+  };
+}
+
+/**
+ * The URL when it is safe to show as a link, otherwise null. Needs: https, no credentials, the default port, a
+ * named host (no IP literal, no trailing dot) that equals or is a subdomain of an allowed carrier domain, and a
+ * sane length. The value comes from staff or a fulfilment app, so this limits phishing through a compromised
+ * account; React already escapes the attribute.
+ */
+export function safeTrackingUrl(
+  value: string | null,
+  allowedHosts: readonly string[] = DEFAULT_TRACKING_LINK_HOSTS,
+): string | null {
+  if (!value || value.length > MAX_TRACKING_URL_LENGTH) return null;
+  let url: URL;
   try {
-    const url = new URL(value);
-    return url.protocol === 'https:' ? url.href : null;
+    url = new URL(value);
   } catch {
     return null;
   }
+  const host = url.hostname.toLowerCase();
+  const shapeOk =
+    url.protocol === 'https:' &&
+    url.username === '' &&
+    url.password === '' &&
+    url.port === '' &&
+    isPlainHostname(host);
+  const listed = allowedHosts.some(
+    (allowed) => host === allowed || host.endsWith(`.${allowed}`),
+  );
+  return shapeOk && listed ? url.href : null;
 }
 
 function shortText(value: string | null, maxLength: number): string | null {
@@ -295,7 +381,15 @@ function shortText(value: string | null, maxLength: number): string | null {
   return text !== '' ? text.slice(0, maxLength) : null;
 }
 
-function toView(candidate: GuestOrderCandidate): GuestOrderView {
+export type MatchOptions = {
+  /** Carrier domains whose tracking pages may be linked; defaults to the built-in list. */
+  readonly trackingLinkHosts?: readonly string[];
+};
+
+function toView(
+  candidate: GuestOrderCandidate,
+  trackingLinkHosts: readonly string[],
+): GuestOrderView {
   const status = deriveGuestOrderStatus(candidate);
   return {
     orderName: shortText(candidate.name, 40) ?? '',
@@ -317,7 +411,7 @@ function toView(candidate: GuestOrderCandidate): GuestOrderView {
         statusLabel: label,
         trackingCompany: shortText(entry.company, 100),
         trackingNumber: shortText(entry.number, 100),
-        trackingUrl: httpsUrlOrNull(entry.url),
+        trackingUrl: safeTrackingUrl(entry.url, trackingLinkHosts),
       }));
     }),
   };
@@ -333,6 +427,7 @@ export function matchGuestOrder(
   candidate: GuestOrderCandidate | null,
   input: {readonly orderNumber: unknown; readonly email: unknown},
   nowMs: number,
+  options: MatchOptions = {},
 ): GuestMatchResult {
   const wantedNumber = normalizeOrderNumber(input.orderNumber);
   const wantedEmail = normalizeEmail(input.email);
@@ -365,7 +460,13 @@ export function matchGuestOrder(
   // Counted rather than short-circuited, so every check is always evaluated.
   const passed = checks.reduce((total, ok) => total + (ok ? 1 : 0), 0);
   return candidate !== null && passed === checks.length
-    ? {status: 'match', order: toView(candidate)}
+    ? {
+        status: 'match',
+        order: toView(
+          candidate,
+          options.trackingLinkHosts ?? DEFAULT_TRACKING_LINK_HOSTS,
+        ),
+      }
     : NO_MATCH;
 }
 
@@ -374,12 +475,13 @@ export function matchGuestOrderFromList(
   candidates: readonly GuestOrderCandidate[],
   input: {readonly orderNumber: unknown; readonly email: unknown},
   nowMs: number,
+  options: MatchOptions = {},
 ): GuestMatchResult {
   let found: GuestMatchResult = NO_MATCH;
   // Looks at every candidate even after a match, so the work does not reveal which one matched.
   const attempts = candidates.length > 0 ? candidates : [null];
   for (const candidate of attempts) {
-    const result = matchGuestOrder(candidate, input, nowMs);
+    const result = matchGuestOrder(candidate, input, nowMs, options);
     if (found.status === 'no_match' && result.status === 'match')
       found = result;
   }
@@ -567,6 +669,8 @@ export type RateLimitResult =
 export type RateLimiter = {
   /** Records an attempt for the key and says whether it is allowed. */
   check(key: string): RateLimitResult;
+  /** The same answer `check` would give, without recording an attempt (the guard's read-only first pass). */
+  peek(key: string): RateLimitResult;
 };
 
 const DEFAULT_MAX_KEYS = 5000;
@@ -594,33 +698,54 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
     }
   }
 
+  const unusableClock = (): RateLimitResult => ({
+    allowed: false,
+    retryAfterSeconds: Math.ceil(config.windowMs / 1000),
+  });
+
+  /** The attempts still inside the window for a key, or null for an unusable clock. */
+  function recentFor(
+    rawKey: string,
+  ): {key: string; now: number; recent: number[]} | null {
+    const now = config.now();
+    if (!Number.isFinite(now)) return null;
+    const key = rawKey.slice(0, MAX_KEY_LENGTH);
+    const cutoff = now - config.windowMs;
+    // A time in the future (clock moved back) counts as now rather than blocking for longer.
+    const recent = (attempts.get(key) ?? [])
+      .map((time) => Math.min(time, now))
+      .filter((time) => time > cutoff);
+    return {key, now, recent};
+  }
+
+  function blockedResult(recent: number[], now: number): RateLimitResult {
+    const oldest = recent[0] ?? now;
+    return {
+      allowed: false,
+      retryAfterSeconds: Math.max(
+        1,
+        Math.ceil((oldest + config.windowMs - now) / 1000),
+      ),
+    };
+  }
+
   return {
+    peek(rawKey: string): RateLimitResult {
+      const state = recentFor(rawKey);
+      if (state === null) return unusableClock();
+      return state.recent.length >= config.limit
+        ? blockedResult(state.recent, state.now)
+        : {allowed: true, remaining: config.limit - state.recent.length};
+    },
     check(rawKey: string): RateLimitResult {
-      const now = config.now();
-      if (!Number.isFinite(now)) {
-        return {
-          allowed: false,
-          retryAfterSeconds: Math.ceil(config.windowMs / 1000),
-        };
-      }
-      const key = rawKey.slice(0, MAX_KEY_LENGTH);
-      const cutoff = now - config.windowMs;
-      // A time in the future (clock moved back) counts as now rather than blocking for longer.
-      const recent = (attempts.get(key) ?? [])
-        .map((time) => Math.min(time, now))
-        .filter((time) => time > cutoff);
+      const state = recentFor(rawKey);
+      if (state === null) return unusableClock();
+      const {key, now, recent} = state;
 
       if (recent.length >= config.limit) {
-        const oldest = recent[0] ?? now;
         attempts.delete(key);
         attempts.set(key, recent);
-        return {
-          allowed: false,
-          retryAfterSeconds: Math.max(
-            1,
-            Math.ceil((oldest + config.windowMs - now) / 1000),
-          ),
-        };
+        return blockedResult(recent, now);
       }
       recent.push(now);
       // Delete then set keeps the Map in least-recently-used order.

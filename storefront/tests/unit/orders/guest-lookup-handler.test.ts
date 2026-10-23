@@ -12,7 +12,6 @@ import {
   guestLookupDepsFromEnv,
   handleGuestLookup,
   resetGuestLookupStateForTests,
-  resolveClientAddress,
   type GuestLookupDeps,
   type GuestLookupHttpResult,
 } from '~/lib/orders/guest-lookup-handler';
@@ -44,6 +43,7 @@ const ADDRESS_HEADER = 'x-real-ip';
 const GENEROUS = {
   perAddress: {limit: 1000, windowMs: 60_000},
   perOrderAddress: {limit: 1000, windowMs: 60_000},
+  perOrder: {limit: 1000, windowMs: 60_000},
   perEmail: {limit: 1000, windowMs: 60_000},
   overall: {limit: 1000, windowMs: 60_000},
 };
@@ -145,7 +145,7 @@ describe('a matching lookup (REQ-ACC-003)', () => {
           {
             trackingCompany: 'Example Freight',
             trackingNumber: 'TRK123456789',
-            trackingUrl: 'https://tracking.example.com/TRK123456789',
+            trackingUrl: 'https://www.ups.com/track?tracknum=TRK123456789',
           },
         ],
       },
@@ -397,6 +397,7 @@ describe('refusals that carry no order information', () => {
   it('refuses a cross-origin POST before it reads the body or touches a counter', async () => {
     const h = harness();
     const hits = vi.spyOn(h.store, 'hit');
+    const peeks = vi.spyOn(h.store, 'peek');
     const result = await handleGuestLookup(
       post(RIGHT, {Origin: 'https://evil.example'}),
       h.deps,
@@ -404,6 +405,7 @@ describe('refusals that carry no order information', () => {
     expect(result.status).toBe(403);
     expect(h.client.calls).toHaveLength(0);
     expect(hits).not.toHaveBeenCalled();
+    expect(peeks).not.toHaveBeenCalled();
   });
 
   it('refuses a request the browser labels cross-site even with no Origin', async () => {
@@ -425,6 +427,7 @@ describe('Admin token not configured: fail closed (REQ-ACC-003)', () => {
   it('says the lookup is unavailable and fakes nothing', async () => {
     const h = harness({noClient: true});
     const hits = vi.spyOn(h.store, 'hit');
+    const peeks = vi.spyOn(h.store, 'peek');
     const result = await handleGuestLookup(post(RIGHT), h.deps);
     expect(result.status).toBe(503);
     expect(result.response).toEqual({
@@ -435,6 +438,7 @@ describe('Admin token not configured: fail closed (REQ-ACC-003)', () => {
       'Order lookup is not available right now',
     );
     expect(hits).not.toHaveBeenCalled();
+    expect(peeks).not.toHaveBeenCalled();
     expect(result.headers.get('Cache-Control')).toBe('private, no-store');
   });
 
@@ -467,6 +471,7 @@ describe('rate limiting in the flow (T-09, R-27)', () => {
   const TIGHT = {
     perAddress: {limit: 3, windowMs: 60_000},
     perOrderAddress: {limit: 2, windowMs: 60_000},
+    perOrder: {limit: 5, windowMs: 60_000},
     perEmail: {limit: 3, windowMs: 60_000},
     overall: {limit: 50, windowMs: 60_000},
   };
@@ -521,16 +526,71 @@ describe('rate limiting in the flow (T-09, R-27)', () => {
     expect(other.response.status).toBe('found');
   });
 
-  it('fails closed when the counter store is down: unavailable, no lookup', async () => {
-    const failing: RateLimitStore = {
-      kind: 'shared',
-      hit: () => Promise.reject(new Error('store down')),
-    };
-    const h = harness({store: failing});
-    const result = await handleGuestLookup(post(RIGHT), h.deps);
-    expect(result.status).toBe(503);
-    expect(result.response.status).toBe('unavailable');
-    expect(h.client.calls).toHaveLength(0);
+  it.each(['peek', 'hit'] as const)(
+    'fails closed when the counter store is down at %s: unavailable, no lookup',
+    async (operation) => {
+      const down = () => Promise.reject(new Error('store down'));
+      const up = () => Promise.resolve({allowed: true, remaining: 1} as const);
+      const failing: RateLimitStore = {
+        kind: 'shared',
+        peek: operation === 'peek' ? down : up,
+        hit: operation === 'hit' ? down : up,
+      };
+      const h = harness({store: failing});
+      const result = await handleGuestLookup(post(RIGHT), h.deps);
+      expect(result.status).toBe(503);
+      expect(result.response.status).toBe('unavailable');
+      expect(h.client.calls).toHaveLength(0);
+    },
+  );
+
+  it('a spoofed address header cannot dodge the per-address counters when another header is configured', async () => {
+    const h = harness({limits: TIGHT});
+    // The deployment trusts x-real-ip (ADDRESS_HEADER); the client also sends the ones it must never be believed on.
+    const spoofed = (n: number) =>
+      new Request(`${ORIGIN}/track-order`, {
+        method: 'POST',
+        headers: {
+          Origin: ORIGIN,
+          [ADDRESS_HEADER]: '198.51.100.50',
+          'oxygen-buyer-ip': `203.0.113.${n}`,
+          'cf-connecting-ip': `203.0.113.${100 + n}`,
+          'true-client-ip': `203.0.113.${200 + n}`,
+          'x-forwarded-for': `203.0.113.${n}`,
+        },
+        body: new URLSearchParams({
+          orderNumber: `${4000 + n}`,
+          email: `p${n}@example.com`,
+        }),
+      });
+    for (let n = 1; n <= 3; n += 1) {
+      expect((await handleGuestLookup(spoofed(n), h.deps)).status).toBe(200);
+    }
+    expect((await handleGuestLookup(spoofed(4), h.deps)).status).toBe(429);
+  });
+
+  it('with no trusted header configured, every spoofed header is ignored and callers share one bucket', async () => {
+    const h = harness({limits: TIGHT});
+    const open = {...h.deps, addressHeader: null};
+    const spoofed = (n: number) =>
+      new Request(`${ORIGIN}/track-order`, {
+        method: 'POST',
+        headers: {
+          Origin: ORIGIN,
+          'oxygen-buyer-ip': `203.0.113.${n}`,
+          'cf-connecting-ip': `203.0.113.${100 + n}`,
+          'x-real-ip': `203.0.113.${200 + n}`,
+        },
+        body: new URLSearchParams({
+          orderNumber: `${5000 + n}`,
+          email: `p${n}@example.com`,
+        }),
+      });
+    for (let n = 1; n <= 3; n += 1) {
+      expect((await handleGuestLookup(spoofed(n), open)).status).toBe(200);
+    }
+    const blocked = await handleGuestLookup(spoofed(4), open);
+    expect(blocked.status).toBe(429);
   });
 
   it('unidentified callers share one stricter bucket', async () => {
@@ -548,73 +608,6 @@ describe('rate limiting in the flow (T-09, R-27)', () => {
       expect((await handleGuestLookup(anonymous(n), h.deps)).status).toBe(200);
     }
     expect((await handleGuestLookup(anonymous(9), h.deps)).status).toBe(429);
-  });
-});
-
-describe('who is asking (resolveClientAddress)', () => {
-  const headers = (entries: Record<string, string>) => new Headers(entries);
-
-  it('uses only the configured header, from the allow-list', () => {
-    expect(
-      resolveClientAddress(headers({'x-real-ip': '198.51.100.7'}), 'x-real-ip'),
-    ).toEqual({address: '198.51.100.7', source: 'header'});
-    expect(
-      resolveClientAddress(
-        headers({
-          'x-real-ip': '198.51.100.7',
-          'cf-connecting-ip': '203.0.113.5',
-        }),
-        'CF-Connecting-IP',
-      ),
-    ).toEqual({address: '203.0.113.5', source: 'header'});
-  });
-
-  it('ignores a header that is not on the allow-list and falls back to the platform default', () => {
-    expect(
-      resolveClientAddress(
-        headers({forwarded: 'for=1.2.3.4', 'oxygen-buyer-ip': '198.51.100.8'}),
-        'forwarded',
-      ),
-    ).toEqual({address: '198.51.100.8', source: 'header'});
-    expect(
-      resolveClientAddress(headers({forwarded: 'for=1.2.3.4'}), 'forwarded'),
-    ).toEqual({address: 'unknown', source: 'none'});
-  });
-
-  it('takes the last x-forwarded-for entry, the one the nearest proxy added', () => {
-    expect(
-      resolveClientAddress(
-        headers({'x-forwarded-for': '6.6.6.6, 198.51.100.9'}),
-        'x-forwarded-for',
-      ),
-    ).toEqual({address: '198.51.100.9', source: 'header'});
-  });
-
-  it.each([
-    [''],
-    ['not an address'],
-    ['198.51.100.9; DROP'],
-    ['a'.repeat(100)],
-    ['198.51.100.9\r\nX-Evil: 1'],
-    ['fe80::1%eth0'],
-  ])('treats %j as unknown', (value) => {
-    const h = new Headers();
-    h.set('x-real-ip', value.replace(/[\r\n]/g, ''));
-    expect(resolveClientAddress(h, 'x-real-ip').address).toBe('unknown');
-  });
-
-  it('lower-cases IPv6', () => {
-    expect(
-      resolveClientAddress(headers({'x-real-ip': '2001:DB8::1'}), 'x-real-ip')
-        .address,
-    ).toBe('2001:db8::1');
-  });
-
-  it('with nothing configured and no platform header, is unknown', () => {
-    expect(resolveClientAddress(headers({}), null)).toEqual({
-      address: 'unknown',
-      source: 'none',
-    });
   });
 });
 
@@ -681,5 +674,68 @@ describe('logging: codes and counts only (T-05, T-09)', () => {
         'guest_lookup.rejected',
       ]).toContain(event);
     }
+  });
+});
+
+describe('tracking link hosts in the flow (L-4)', () => {
+  const FREIGHT = fixtureOrder({
+    fulfillments: [
+      {
+        displayStatus: 'IN_TRANSIT',
+        tracking: [
+          {
+            company: 'Freight',
+            number: 'F123',
+            url: 'https://track.freight.example.org/F123',
+          },
+        ],
+      },
+    ],
+  });
+
+  async function shipment(deps: GuestLookupDeps) {
+    const result = await handleGuestLookup(post(RIGHT), deps);
+    return result.response.status === 'found'
+      ? result.response.order.shipments[0]
+      : undefined;
+  }
+
+  it('shows an unlisted carrier as text only (the number stays, the link goes)', async () => {
+    const h = harness({candidates: [FREIGHT]});
+    expect(await shipment(h.deps)).toMatchObject({
+      trackingNumber: 'F123',
+      trackingUrl: null,
+    });
+  });
+
+  it('links it once the deployment lists the domain', async () => {
+    const h = harness({candidates: [FREIGHT]});
+    const deps = guestLookupDepsFromEnv({
+      TRACKING_LINK_HOSTS: 'freight.example.org',
+    });
+    expect(deps.trackingLinkHosts).toContain('freight.example.org');
+    expect(deps.trackingLinkHosts).toContain('ups.com');
+    expect(
+      await shipment({...h.deps, trackingLinkHosts: deps.trackingLinkHosts}),
+    ).toMatchObject({trackingUrl: 'https://track.freight.example.org/F123'});
+  });
+
+  it('an invalid setting is refused entry by entry, warns once with a count and logs no value', () => {
+    const lines: string[] = [];
+    const sink = (line: unknown) => {
+      lines.push(String(line));
+    };
+    vi.spyOn(console, 'warn').mockImplementation(sink);
+    const env = {
+      TRACKING_LINK_HOSTS: 'https://bad.example.org/x,ok.example.org',
+    };
+    expect(guestLookupDepsFromEnv(env).trackingLinkHosts).toContain(
+      'ok.example.org',
+    );
+    guestLookupDepsFromEnv(env);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('guest_lookup.config_invalid');
+    expect(lines[0]).not.toContain('bad.example.org');
+    expect(lines[0]).not.toContain('ok.example.org');
   });
 });

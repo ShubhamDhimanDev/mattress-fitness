@@ -28,6 +28,9 @@ export const NON_INDEXABLE_PREFIXES: readonly string[] = [
   ...ROBOTS_DISALLOWED_PREFIXES,
   '/search',
   '/compare',
+  // Guest order lookup (L-6): carries its own noindex. Deliberately NOT in the robots Disallow list, which would
+  // stop crawlers from ever seeing that noindex.
+  '/track-order',
   '/sitemap',
   '/sitemap.xml',
   '/robots.txt',
