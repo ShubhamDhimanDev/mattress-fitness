@@ -299,6 +299,32 @@ const MAX_EXTRA_TRACKING_HOSTS = 30;
 const HOST_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const IPV4_LITERAL = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
+const SECOND_LEVEL_WORDS: ReadonlySet<string> = new Set([
+  'co',
+  'com',
+  'org',
+  'net',
+  'gov',
+  'edu',
+  'ac',
+  'or',
+]);
+
+/**
+ * A two-label entry that is a public suffix ("co.uk", "com.au"): listing it would allow every site under it.
+ * There is no public-suffix list in the project, so this is a rule of thumb, not a full check: a second-level
+ * word followed by a two-letter country code. A suffix it does not recognise (for example "pvt.k12.ma.us" or a
+ * private suffix such as "github.io") is NOT caught; the entries are set by the site owner, not by shoppers.
+ */
+function isLikelyPublicSuffix(value: string): boolean {
+  const labels = value.split('.');
+  return (
+    labels.length === 2 &&
+    SECOND_LEVEL_WORDS.has(labels[0] ?? '') &&
+    /^[a-z]{2}$/.test(labels[1] ?? '')
+  );
+}
+
 /** A bare domain such as "example-carrier.com": 2+ labels, letters/digits/hyphens, a letter-only top level, no IP. */
 function isPlainHostname(value: string): boolean {
   if (value.length > 253 || IPV4_LITERAL.test(value)) return false;
@@ -332,8 +358,9 @@ export function parseTrackingLinkHosts(raw: unknown): TrackingHostsResult {
       .map((entry) => entry.trim().toLowerCase())
       .filter((entry) => entry !== '');
     for (const entry of entries.slice(0, MAX_EXTRA_TRACKING_HOSTS)) {
-      if (isPlainHostname(entry)) extras.push(entry);
-      else rejectedCount += 1;
+      if (isPlainHostname(entry) && !isLikelyPublicSuffix(entry)) {
+        extras.push(entry);
+      } else rejectedCount += 1;
     }
     rejectedCount += Math.max(0, entries.length - MAX_EXTRA_TRACKING_HOSTS);
   } else if (typeof raw === 'string') {

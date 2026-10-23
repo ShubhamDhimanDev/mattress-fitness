@@ -739,3 +739,69 @@ describe('tracking link hosts in the flow (L-4)', () => {
     expect(lines[0]).not.toContain('ok.example.org');
   });
 });
+
+describe('parallel lookups cannot all reach the Admin API (review M-2, T-13)', () => {
+  const LIMITS = {
+    perAddress: {limit: 10, windowMs: 900_000},
+    perOrderAddress: {limit: 3, windowMs: 900_000},
+    perOrder: {limit: 10, windowMs: 900_000},
+    perEmail: {limit: 5, windowMs: 900_000},
+    overall: {limit: 300, windowMs: 900_000},
+  };
+  const guess = (n: number, ip: string, orderNumber = '#1001') =>
+    post({orderNumber, email: `guess${n}@example.com`}, {[ADDRESS_HEADER]: ip});
+
+  it('50 parallel guesses at one order from 50 addresses reach the Admin API at most 10 times', async () => {
+    const h = harness({limits: LIMITS, candidates: []});
+    const results = await Promise.all(
+      Array.from({length: 50}, (_, i) =>
+        handleGuestLookup(guess(i, `198.51.100.${i}`), h.deps),
+      ),
+    );
+    expect(h.client.calls).toHaveLength(10);
+    expect(results.filter((r) => r.status === 429)).toHaveLength(40);
+    expect(results.filter((r) => r.status === 200)).toHaveLength(10);
+  });
+
+  it('50 parallel guesses at one order from one address reach the Admin API at most 3 times', async () => {
+    const h = harness({limits: LIMITS, candidates: []});
+    await Promise.all(
+      Array.from({length: 50}, (_, i) =>
+        handleGuestLookup(guess(i, '198.51.100.7'), h.deps),
+      ),
+    );
+    expect(h.client.calls).toHaveLength(3);
+  });
+
+  it('50 parallel guesses with one email reach the Admin API at most 5 times', async () => {
+    const h = harness({limits: LIMITS, candidates: []});
+    await Promise.all(
+      Array.from({length: 50}, (_, i) =>
+        handleGuestLookup(
+          post(
+            {orderNumber: `${2000 + i}`, email: 'victim@example.com'},
+            {[ADDRESS_HEADER]: `198.51.100.${i}`},
+          ),
+          h.deps,
+        ),
+      ),
+    );
+    expect(h.client.calls).toHaveLength(5);
+  });
+
+  it('400 parallel lookups from distinct everything reach the Admin API at most the overall ceiling (300)', async () => {
+    const h = harness({limits: LIMITS, candidates: []});
+    await Promise.all(
+      Array.from({length: 400}, (_, i) =>
+        handleGuestLookup(
+          post(
+            {orderNumber: `${10_000 + i}`, email: `p${i}@example.com`},
+            {[ADDRESS_HEADER]: `10.${i >> 8}.${i & 255}.1`},
+          ),
+          h.deps,
+        ),
+      ),
+    );
+    expect(h.client.calls).toHaveLength(300);
+  });
+});

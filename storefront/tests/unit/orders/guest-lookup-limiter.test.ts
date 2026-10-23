@@ -335,6 +335,190 @@ describe('guest lookup gate: the per-order counter (L-1, T-09)', () => {
   });
 });
 
+describe('parallel attempts: the in-memory store reserves atomically (review M-2, T-13)', () => {
+  const allowedCount = (results: {allowed: boolean}[]) =>
+    results.filter((r) => r.allowed).length;
+
+  it('50 parallel attempts for one order with different emails and addresses allow at most the per-order limit', async () => {
+    const {gate} = setup();
+    const results = await Promise.all(
+      Array.from({length: 50}, (_, i) =>
+        gate.check(
+          attempt(`198.51.100.${i}`, '#1001', `guess${i}@example.com`),
+        ),
+      ),
+    );
+    expect(allowedCount(results)).toBe(LIMITS.perOrder.limit);
+    expect(
+      results.filter(
+        (r) => !r.allowed && 'limitedBy' in r && r.limitedBy === 'order',
+      ),
+    ).toHaveLength(50 - LIMITS.perOrder.limit);
+  });
+
+  it('50 parallel attempts for one order from one address allow at most the order+address limit', async () => {
+    const {gate} = setup();
+    const results = await Promise.all(
+      Array.from({length: 50}, (_, i) =>
+        gate.check(attempt('198.51.100.1', '1001', `guess${i}@example.com`)),
+      ),
+    );
+    expect(allowedCount(results)).toBe(LIMITS.perOrderAddress.limit);
+  });
+
+  it('50 parallel attempts for one email with different orders and addresses allow at most the email limit', async () => {
+    const {gate} = setup();
+    const results = await Promise.all(
+      Array.from({length: 50}, (_, i) =>
+        gate.check(
+          attempt(`198.51.100.${i}`, `${2000 + i}`, 'victim@example.com'),
+        ),
+      ),
+    );
+    expect(allowedCount(results)).toBe(LIMITS.perEmail.limit);
+  });
+
+  it('50 parallel attempts from one address allow at most the address limit', async () => {
+    const {gate} = setup();
+    const results = await Promise.all(
+      Array.from({length: 50}, (_, i) =>
+        gate.check(attempt('203.0.113.9', `${3000 + i}`, `p${i}@example.com`)),
+      ),
+    );
+    expect(allowedCount(results)).toBe(LIMITS.perAddress.limit);
+  });
+
+  it('the overall ceiling holds under 400 parallel calls from distinct everything', async () => {
+    const {gate} = setup({
+      ...LIMITS,
+      overall: {limit: 120, windowMs: 60_000},
+    });
+    const results = await Promise.all(
+      Array.from({length: 400}, (_, i) =>
+        gate.check(attempt(`addr-${i}`, `${10_000 + i}`, `p${i}@example.com`)),
+      ),
+    );
+    expect(allowedCount(results)).toBe(120);
+  });
+
+  it('holds with the real (asynchronous) key hasher too', async () => {
+    const gate = createGuestLookupGate({
+      store: createInMemoryRateLimitStore({now: () => 0}),
+      hash: createKeyHasher(),
+      limits: LIMITS,
+    });
+    const results = await Promise.all(
+      Array.from({length: 60}, (_, i) =>
+        gate.check(attempt(`198.51.100.${i}`, '1001', `g${i}@example.com`)),
+      ),
+    );
+    expect(allowedCount(results)).toBe(LIMITS.perOrder.limit);
+  });
+
+  it('a refused parallel attempt records nowhere', async () => {
+    const {store, gate} = setup();
+    await Promise.all(
+      Array.from({length: 50}, (_, i) =>
+        gate.check(attempt('198.51.100.1', '1001', `guess${i}@example.com`)),
+      ),
+    );
+    // Only the 2 allowed attempts counted against the per-order counter (limit 4, remaining 4 - 2 = 2).
+    expect(await store.peek('order', 'order#1001', LIMITS.perOrder)).toEqual({
+      allowed: true,
+      remaining: 2,
+    });
+    expect(await store.peek('overall', 'overall#all', LIMITS.overall)).toEqual({
+      allowed: true,
+      remaining: 4,
+    });
+  });
+
+  it('uses reserve and never peek or hit when the store offers it', async () => {
+    const calls: string[] = [];
+    const store: RateLimitStore = {
+      kind: 'instance',
+      peek: () => {
+        calls.push('peek');
+        return Promise.resolve({allowed: true, remaining: 1});
+      },
+      hit: () => {
+        calls.push('hit');
+        return Promise.resolve({allowed: true, remaining: 1});
+      },
+      reserve: (steps) => {
+        calls.push(`reserve:${steps.map((s) => s.scope).join(',')}`);
+        return {allowed: true};
+      },
+    };
+    const gate = createGuestLookupGate({
+      store,
+      hash: plainHash,
+      limits: LIMITS,
+    });
+    expect(await gate.check(attempt('a', '1001', 'a@example.com'))).toEqual({
+      allowed: true,
+    });
+    expect(calls).toEqual([
+      'reserve:overall,address,order-address,order,email',
+    ]);
+  });
+
+  it('maps the refusing step of reserve to limitedBy, and fails closed on a bad answer', async () => {
+    const make = (answer: unknown): RateLimitStore => ({
+      kind: 'instance',
+      peek: () => Promise.resolve({allowed: true, remaining: 1}),
+      hit: () => Promise.resolve({allowed: true, remaining: 1}),
+      reserve: () => answer as never,
+    });
+    const check = (answer: unknown) =>
+      createGuestLookupGate({
+        store: make(answer),
+        hash: plainHash,
+        limits: LIMITS,
+      }).check(attempt('a', '1001', 'a@example.com'));
+    expect(
+      await check({allowed: false, index: 4, retryAfterSeconds: 9}),
+    ).toEqual({
+      allowed: false,
+      reason: 'rate_limited',
+      retryAfterSeconds: 9,
+      limitedBy: 'email',
+    });
+    for (const bad of [
+      undefined,
+      null,
+      'no',
+      {allowed: false},
+      {allowed: false, index: 99, retryAfterSeconds: 1},
+      {allowed: false, index: 'x', retryAfterSeconds: 1},
+      {allowed: 'yes'},
+    ]) {
+      expect(await check(bad), JSON.stringify(bad)).toEqual({
+        allowed: false,
+        reason: 'limiter_failed',
+      });
+    }
+  });
+
+  it('a store whose reserve throws fails closed', async () => {
+    const store: RateLimitStore = {
+      kind: 'instance',
+      peek: () => Promise.resolve({allowed: true, remaining: 1}),
+      hit: () => Promise.resolve({allowed: true, remaining: 1}),
+      reserve: () => {
+        throw new Error('boom');
+      },
+    };
+    expect(
+      await createGuestLookupGate({
+        store,
+        hash: plainHash,
+        limits: LIMITS,
+      }).check(attempt('a', '1001', 'a@example.com')),
+    ).toEqual({allowed: false, reason: 'limiter_failed'});
+  });
+});
+
 describe('the key hasher after a failed import (I-2)', () => {
   afterEach(() => vi.restoreAllMocks());
 

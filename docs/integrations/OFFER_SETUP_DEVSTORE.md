@@ -2,6 +2,8 @@
 
 **Status: every step below is UNVERIFIED.** Nothing in this list has been run on a Shopify store; the development store `mattressfitness-1iakxuvz.myshopify.com` has one product and no discount (REAL_STORE_FINDINGS). The Shopify admin screens are described from Shopify's help pages read on 2026-10-23 and the labels may differ; correct this page with what you find.
 
+> **DEVELOPMENT STORE ONLY. `storefront/offer-config.example.json` and everything on this page must NEVER be used in production or on the client's live store.** The offers, thresholds, titles and ids are placeholders; production rules come from the client (CLR-011, Q-020) and are set in the host environment. The example file carries the same warning in its `_WARNING_DEV_STORE_ONLY` note key (the parser ignores keys that start with an underscore).
+
 **The rules are made up.** DEC-082 (owner decision 2026-10-23, still pending the client's real rules, CLR-011, Q-020): the gift is one free pillow of the shopper's choice with a queen-or-larger mattress over $999; the bundle is mattress + protector + pillow with a 10% automatic discount. They exist only for the development store and the tests. Never show them to shoppers as a real promotion, and never copy them to the client's store.
 
 Files this page works with:

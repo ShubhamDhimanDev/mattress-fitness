@@ -768,6 +768,39 @@ describe('TRACKING_LINK_HOSTS (L-4)', () => {
     expect(parsed.rejectedCount).toBe(1);
   });
 
+  it.each([
+    ['co.uk'],
+    ['com.au'],
+    ['org.uk'],
+    ['net.au'],
+    ['gov.uk'],
+    ['edu.au'],
+    ['ac.uk'],
+    ['or.jp'],
+    ['CO.UK'],
+    ['com'],
+  ])('refuses the public suffix %s and counts it', (entry) => {
+    const parsed = parseTrackingLinkHosts(`good.example.org,${entry}`);
+    expect(parsed.hosts).toEqual([
+      ...DEFAULT_TRACKING_LINK_HOSTS,
+      'good.example.org',
+    ]);
+    expect(parsed.rejectedCount).toBe(1);
+  });
+
+  it.each([
+    ['freight.co.uk'],
+    ['shipper.com.au'],
+    ['co.example.com'],
+    ['ca.us'],
+    ['co.technology'],
+  ])('still accepts %s (a registrable name, not a suffix)', (entry) => {
+    expect(parseTrackingLinkHosts(entry)).toEqual({
+      hosts: [...DEFAULT_TRACKING_LINK_HOSTS, entry],
+      rejectedCount: 0,
+    });
+  });
+
   it('reads at most 30 extra entries and refuses an oversized setting', () => {
     const many = Array.from({length: 40}, (_, i) => `c${i}.example.org`).join(
       ',',

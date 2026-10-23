@@ -9,9 +9,14 @@
 // Two passes (security review L-1). The gate first PEEKS at every counter, overall first, and records nothing. Only if
 // every counter allows the attempt does it HIT them all. So an attempt that any counter refuses is recorded
 // nowhere: a flood past the overall ceiling or from one blocked address cannot burn a victim's email or order
-// allowance, or fill the stores with new keys. The peek and the hits are separate awaits, so two simultaneous
-// requests can both pass the peek; a counter may then be exceeded by the number of requests in flight. A hit that
-// refuses after a passing peek is still honoured (the request is refused), and counters already hit stay recorded.
+// allowance, or fill the stores with new keys.
+//
+// Atomic path (review M-2). The in-memory store offers `reserve(steps)`: the checks and the records happen in ONE
+// synchronous call after every hash has been computed, so N parallel requests cannot all pass the checks before
+// any is recorded. The gate uses it whenever the store has it. A store that cannot be atomic (a shared, remote
+// one) leaves `reserve` out and the gate does the two passes above; their awaits can interleave, so such a store
+// can overshoot a counter by the number of requests in flight (a hit that refuses after a passing peek is still
+// honoured, and counters already hit stay recorded).
 //
 // The counters:
 //   address        per client address (IPv6 reduced to its /64): one client trying many orders.
@@ -57,7 +62,30 @@ export type RateLimitStore = {
   peek(scope: string, key: string, rule: LimitRule): Promise<RateLimitResult>;
   /** Records one attempt for `key` under `scope` and says whether it was allowed. Same failure rule as `peek`. */
   hit(scope: string, key: string, rule: LimitRule): Promise<RateLimitResult>;
+  /**
+   * OPTIONAL, for a store whose state lives in this process only. Checks every step in order and, only if all
+   * allow, records all of them, in ONE synchronous call: nothing can run between the check and the record, so
+   * parallel requests cannot all pass a check before any is recorded (review M-2). A refused attempt records
+   * nowhere. A store that cannot be atomic (a shared, remote one) leaves this out and the gate falls back to the
+   * two-pass `peek` then `hit`, which can overshoot by the number of requests in flight.
+   */
+  reserve?(steps: readonly ReserveStep[]): ReserveResult;
 };
+
+export type ReserveStep = {
+  readonly scope: string;
+  readonly key: string;
+  readonly rule: LimitRule;
+};
+
+export type ReserveResult =
+  | {readonly allowed: true}
+  /** `index` is the position in `steps` of the counter that refused. */
+  | {
+      readonly allowed: false;
+      readonly index: number;
+      readonly retryAfterSeconds: number;
+    };
 
 const DEFAULT_MAX_KEYS_PER_SCOPE = 5000;
 
@@ -90,6 +118,31 @@ export function createInMemoryRateLimitStore(options: {
       Promise.resolve(limiterFor(scope, rule).peek(key)),
     hit: (scope, key, rule) =>
       Promise.resolve(limiterFor(scope, rule).check(key)),
+    // Synchronous on purpose: no await between the reads and the writes, so this is atomic in a single-threaded runtime.
+    reserve(steps) {
+      for (const [index, step] of steps.entries()) {
+        const seen = limiterFor(step.scope, step.rule).peek(step.key);
+        if (!seen.allowed) {
+          return {
+            allowed: false,
+            index,
+            retryAfterSeconds: seen.retryAfterSeconds,
+          };
+        }
+      }
+      for (const [index, step] of steps.entries()) {
+        const recorded = limiterFor(step.scope, step.rule).check(step.key);
+        // Cannot happen after the reads above in one tick; refuse rather than assume.
+        if (!recorded.allowed) {
+          return {
+            allowed: false,
+            index,
+            retryAfterSeconds: recorded.retryAfterSeconds,
+          };
+        }
+      }
+      return {allowed: true};
+    },
   };
 }
 
@@ -310,6 +363,30 @@ export function createGuestLookupGate(options: {
             ...step,
             key: await options.hash(step.scope, step.value),
           });
+        }
+        // Every hash is computed above, so from here to the record there is no await when the store can reserve.
+        if (options.store.reserve !== undefined) {
+          const reserved: unknown = options.store.reserve(keyed);
+          if (typeof reserved !== 'object' || reserved === null) {
+            return {allowed: false, reason: 'limiter_failed'};
+          }
+          if (Reflect.get(reserved, 'allowed') === true) {
+            return {allowed: true};
+          }
+          const index: unknown = Reflect.get(reserved, 'index');
+          const retry: unknown = Reflect.get(reserved, 'retryAfterSeconds');
+          const refusing = typeof index === 'number' ? keyed[index] : undefined;
+          return Reflect.get(reserved, 'allowed') === false &&
+            refusing !== undefined &&
+            typeof retry === 'number' &&
+            retry >= 0
+            ? {
+                allowed: false,
+                reason: 'rate_limited',
+                retryAfterSeconds: retry,
+                limitedBy: refusing.limitedBy,
+              }
+            : {allowed: false, reason: 'limiter_failed'};
         }
         const peeked = await run('peek', keyed);
         if (!peeked.allowed) return peeked;
