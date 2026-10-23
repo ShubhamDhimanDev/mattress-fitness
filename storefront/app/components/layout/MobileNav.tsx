@@ -1,4 +1,5 @@
 import {Link} from 'react-router';
+import {NavAnchor} from '~/components/layout/NavAnchor';
 import {Accordion, type AccordionItem} from '~/components/ui/Accordion';
 import {ChatIcon, PhoneIcon} from '~/components/ui/Icons';
 import {cn} from '~/components/ui/cn';
@@ -34,38 +35,58 @@ function MenuSection({
         const headingId = `mobile-nav-${item.id}-${group.id}`;
         return (
           <div key={group.id}>
-            <p
-              id={headingId}
-              className={cn(
-                'text-xs font-extrabold text-fg',
-                fitsDisplayType(group.heading) && 'tracking-wide uppercase',
-              )}
+            {group.heading === null ? null : (
+              <p
+                id={headingId}
+                className={cn(
+                  'text-xs font-extrabold text-fg',
+                  fitsDisplayType(group.heading) && 'tracking-wide uppercase',
+                )}
+              >
+                {group.headingTo ? (
+                  <NavAnchor
+                    to={group.headingTo}
+                    external={group.headingExternal}
+                    onClick={onNavigate}
+                    className="inline-flex min-h-touch items-center hover:text-primary-700 hover:underline"
+                  >
+                    {group.heading}
+                  </NavAnchor>
+                ) : (
+                  group.heading
+                )}
+              </p>
+            )}
+            <ul
+              aria-labelledby={group.heading === null ? undefined : headingId}
+              aria-label={group.heading === null ? item.label : undefined}
             >
-              {group.heading}
-            </p>
-            <ul aria-labelledby={headingId}>
               {group.links.map((link) => (
                 <li key={link.to}>
-                  <Link
+                  <NavAnchor
                     to={link.to}
+                    external={link.external}
                     onClick={onNavigate}
                     className={LINK_CLASSES}
                   >
                     {link.label}
-                  </Link>
+                  </NavAnchor>
                 </li>
               ))}
             </ul>
           </div>
         );
       })}
-      <Link
-        to={item.to}
-        onClick={onNavigate}
-        className="inline-flex min-h-touch items-center text-base font-bold text-primary-700 hover:underline"
-      >
-        View all {item.label.toLowerCase()}
-      </Link>
+      {item.to ? (
+        <NavAnchor
+          to={item.to}
+          external={item.external}
+          onClick={onNavigate}
+          className="inline-flex min-h-touch items-center text-base font-bold text-primary-700 hover:underline"
+        >
+          View all {item.label.toLowerCase()}
+        </NavAnchor>
+      ) : null}
     </div>
   );
 }
@@ -78,7 +99,13 @@ export function MobileNav({
 }: MobileNavProps) {
   const accordionItems: AccordionItem[] = items.map((item) =>
     item.kind === 'link'
-      ? {id: item.id, title: item.label, to: item.to, onNavigate}
+      ? {
+          id: item.id,
+          title: item.label,
+          to: item.to,
+          external: item.external,
+          onNavigate,
+        }
       : {
           id: item.id,
           title: item.label,

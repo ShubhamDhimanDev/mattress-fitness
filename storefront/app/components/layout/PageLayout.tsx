@@ -7,7 +7,7 @@ import {MAIN_CONTENT_ID} from '~/components/layout/SkipLink';
 import {MobileMenuContent, SiteHeader} from '~/components/layout/SiteHeader';
 import {SiteFooter} from '~/components/layout/SiteFooter';
 import {Skeleton} from '~/components/ui/Skeleton';
-import type {PromoMessage, SupportPhone} from '~/lib/navigation';
+import type {MainNavItem, PromoMessage, SupportPhone} from '~/lib/navigation';
 import type {MyStoreSummary} from '~/lib/pages/my-store-summary';
 
 type PageLayoutProps = {
@@ -17,6 +17,8 @@ type PageLayoutProps = {
   myStore?: MyStoreSummary | null;
   /** From the site_settings entry (lib/shopify/site-settings.ts, P3B-13); null hides the bar, nothing is invented (B-15). */
   promo?: PromoMessage | null;
+  /** The main navigation from the Shopify admin menu (REQ-NAV-002); null shows the fixed navigation. */
+  mainNav?: readonly MainNavItem[] | null;
   /** The client's number (PUBLIC_SUPPORT_PHONE or site_settings), or null: no phone link is rendered without one (REQ-CNT-001). */
   supportPhone?: SupportPhone | null;
   /** False when the deployment cannot save a ZIP; the header then offers no ZIP entry. */
@@ -33,6 +35,7 @@ export function PageLayout({
   isLoggedIn,
   myStore = null,
   promo = null,
+  mainNav = null,
   supportPhone = null,
   deliveryZipAvailable = true,
   children = null,
@@ -43,6 +46,7 @@ export function PageLayout({
         cart={cart}
         isLoggedIn={isLoggedIn}
         promo={promo}
+        mainNav={mainNav}
         storeName={myStore?.name ?? null}
         supportPhone={supportPhone}
         deliveryZipAvailable={deliveryZipAvailable}
@@ -57,7 +61,7 @@ export function PageLayout({
       <SiteFooter supportPhone={supportPhone} />
       <CartAside cart={cart} />
       <Aside type="mobile" heading="Menu" side="left">
-        <MobileMenuContent supportPhone={supportPhone} />
+        <MobileMenuContent mainNav={mainNav} supportPhone={supportPhone} />
       </Aside>
     </Aside.Provider>
   );

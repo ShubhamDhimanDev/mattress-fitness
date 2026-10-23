@@ -2,6 +2,8 @@
 
 Task P1-08, run 2026-10-12 on the committed scaffold (Hydrogen 2026.4.7, react-router 7.16.0, React 18). Purpose: prove that the same Hydrogen code can run on a plain Node.js server (SOW §3 Option B) and find out what must change. Code: [scripts/spikes/option-b-node-server.mjs](../../scripts/spikes/option-b-node-server.mjs) (a spike, not production code). The decision between Option A and B is still open (Q-003); this removes the biggest unknown about B.
 
+> **Update 2026-10-23 (P9-12).** This spike is superseded for production use. The production entry is `scripts/node-server/` (`npm run start:node` in `storefront/`), which runs the **unchanged** Oxygen build (`dist/server/index.js`) and so needs **none** of the seven changes below: no second build, no `oxygen()` plugin removal, no `react-dom/server.browser` alias, no edit to `app/lib/context.ts`. Design and evidence: [ADR-0011](../decisions/ADR-0011-node-server-entry.md) (Proposed); manual VPS procedure: [VPS_RUNBOOK](VPS_RUNBOOK.md); settings: [DEPLOYMENT](DEPLOYMENT.md), "Node server settings". Verified on a Windows developer machine only; Linux, systemd and nginx are not. The text below is kept as the record of the 2026-10-12 spike.
+
 ## Result
 
 **Works.** A scratch copy built with `react-router build` (no Oxygen plugin) and served by a 90-line Node HTTP adapter returned HTTP 200 for the home page (about 30 KB of HTML), a product page, the search route and a static asset, against mock.shop. No Hydrogen feature we need failed.
@@ -24,7 +26,7 @@ Cart and customer-account routes with a real store, HTTPS and reverse-proxy head
 
 ## What changed in the app since the spike (reviewed 2026-10-15, not re-run)
 
-The spike was run on 2026-10-12 and has **not been re-run**. The spike script bypasses `server.ts` and `createHydrogenRouterContext` (it builds its own context from `SESSION_SECRET` and `PUBLIC_STORE_DOMAIN` only), so it proves the build and the adapter, not the app as it now stands. A production Node entry must account for:
+The spike was run on 2026-10-12 and has **not been re-run**. The spike script bypasses `server.ts` and `createHydrogenRouterContext` (it builds its own context from `SESSION_SECRET` and `PUBLIC_STORE_DOMAIN` only), so it proves the build and the adapter, not the app as it now stands. A production Node entry must account for the following (all of which `scripts/node-server/` now handles; see the note at the end of this section):
 
 - **Security headers.** `server.ts` passes every response through `withSecurityHeaders`; a Node entry must make the same call on every response (documents, `/api/*`, `/webhooks/*`, redirects, the 500 page), and read the first `X-Forwarded-Proto` value (HSTS) from a proxy that sets it ([SECURITY_HEADERS](../security/SECURITY_HEADERS.md)).
 - **Cookies.** `server.ts` appends the session cookie to the response instead of replacing existing `Set-Cookie` headers (the cart and delivery ZIP cookies); the spike's `response.headers.set('Set-Cookie', ...)` does not, so the adapter must not copy that line.
@@ -34,8 +36,8 @@ The spike was run on 2026-10-12 and has **not been re-run**. The spike script by
 - **Extend sync.** It runs inside the app, not as a separate service; the SOW's "Extend sync as a service" for Option B is therefore an open interpretation (Q-003).
 - **Logs.** Events are JSON lines on `console.warn` and `console.error`; the process manager must capture both.
 
-Re-run the spike against the current build, with a real production entry, before relying on any of this.
+This question is answered by the production entry `scripts/node-server/` (ADR-0011): it calls the same handler as `server.ts`, so `withSecurityHeaders` runs on every response; it appends several `Set-Cookie` lines instead of replacing them; it reads the first `X-Forwarded-Proto` only with `TRUST_PROXY=true`; it supplies a `caches` stand-in and a `waitUntil` that shutdown waits for; and it refuses to start when required variables are missing or `SESSION_SECRET` is under 32 characters. Per-process state and logs are as listed above (rate limiting stays at the proxy). The re-run against the current build was done on 2026-10-23 on a Windows developer machine (ADR-0011, "Verification"); it has **not** been repeated on Linux, behind nginx, or after the Hydrogen 2026.10 migration (P1-12), after which ADR-0011 says to re-run it.
 
 ## Consequences for the decision
 
-Option B is feasible with roughly the seven changes above, all localised to the build config, one entry file and one cache line. Effort beyond that (server hardening, Nginx, TLS, monitoring, the sync service) is what SOW §3 already lists for Option B. Our recommendation stays Option A. Keeping `server.ts`, `app/lib/context.ts` and `vite.config.ts` as the only platform seams (ADR-0004) is confirmed as the right boundary.
+Option B is feasible; the spike needed roughly the seven changes above, and the later production entry (ADR-0011) avoids them by adapting around the unchanged build. Effort beyond that (server hardening, Nginx, TLS, monitoring, the sync service) is what SOW §3 already lists for Option B. Our recommendation stays Option A. Keeping `server.ts`, `app/lib/context.ts` and `vite.config.ts` as the only platform seams (ADR-0004) is confirmed as the right boundary.

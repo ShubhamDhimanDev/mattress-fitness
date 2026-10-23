@@ -8,7 +8,10 @@ import {
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
 import {useDeliveryZip} from '~/components/delivery/useDeliveryZip';
-import {DeliveryZipControl} from '~/components/layout/DeliveryZipControl';
+import {
+  DeliveryZipControl,
+  DeliveryZipUnavailable,
+} from '~/components/layout/DeliveryZipControl';
 import {HeaderLogo} from '~/components/layout/BrandLogo';
 import {HeaderSearch} from '~/components/layout/HeaderSearch';
 import {MainNav} from '~/components/layout/MainNav';
@@ -22,6 +25,7 @@ import {UtilityBar} from '~/components/layout/UtilityBar';
 import {CartIcon, MapPinIcon, MenuIcon, UserIcon} from '~/components/ui/Icons';
 import {IconButton} from '~/components/ui/IconButton';
 import {Skeleton} from '~/components/ui/Skeleton';
+import {mainNavWithQuizCta} from '~/lib/nav-menu';
 import {whenIdle} from '~/lib/when-idle';
 import {DELIVERY_ERROR_TEXT} from '~/lib/delivery-runtime/response';
 import {
@@ -33,9 +37,12 @@ import {
   type SupportPhone,
 } from '~/lib/navigation';
 
-const NAV_ITEMS: readonly MainNavItem[] = [...MAIN_NAV, SLEEP_QUIZ_LINK];
-
 type SiteHeaderProps = {
+  /**
+   * The navigation built from the Shopify admin menu (root loader, REQ-NAV-002). Null or empty means the fixed
+   * `MAIN_NAV` is shown instead.
+   */
+  mainNav?: readonly MainNavItem[] | null;
   cart: Promise<CartApiQueryFragment | null>;
   isLoggedIn: Promise<boolean>;
   promo?: PromoMessage | null;
@@ -43,7 +50,7 @@ type SiteHeaderProps = {
   /** Name of the shopper's chosen store, read from the validated my_store cookie by the root loader (P3B-10). */
   storeName?: string | null;
   supportPhone?: SupportPhone | null;
-  /** False in production when the ZIP cookie cannot be signed: no control that implies saving works. */
+  /** False in production when the ZIP cookie cannot be signed: a plain unavailable note replaces the control. */
   deliveryZipAvailable?: boolean;
 };
 
@@ -57,10 +64,12 @@ export function SiteHeader({
   isLoggedIn,
   promo,
   topStrip,
+  mainNav = null,
   storeName = null,
   supportPhone = null,
   deliveryZipAvailable = true,
 }: SiteHeaderProps) {
+  const navItems = mainNavWithQuizCta(mainNav, MAIN_NAV);
   // The saved ZIP lives in a signed cookie that only the server reads (P3B-11). The root loader hands the
   // answer down with the page, so the first paint is right; the hook shares it with the product-page and cart
   // delivery check, so the header and those agree.
@@ -77,7 +86,7 @@ export function SiteHeader({
       <PromoBar message={promo} />
       <TopStrip visible={Boolean(topStrip)}>{topStrip}</TopStrip>
       <UtilityBar supportPhone={supportPhone}>
-        {deliveryZipAvailable ? (
+        {deliveryZipAvailable && delivery?.status !== 'service-unavailable' ? (
           <DeliveryZipControl
             zip={zip}
             onSubmit={(next) => void save(next)}
@@ -87,7 +96,9 @@ export function SiteHeader({
               response?.error ? DELIVERY_ERROR_TEXT[response.error] : undefined
             }
           />
-        ) : null}
+        ) : (
+          <DeliveryZipUnavailable />
+        )}
         <StoreSelectorLink storeName={storeName} />
       </UtilityBar>
 
@@ -129,7 +140,7 @@ export function SiteHeader({
       </div>
 
       <div className="relative hidden border-b border-line lg:block">
-        <MainNav items={NAV_ITEMS} />
+        <MainNav items={navItems} />
       </div>
 
       <ReassuranceStrip />
@@ -241,20 +252,23 @@ const MobileNavPanel = mobileMenuPanel.Panel;
  * as a lazy chunk (P7-06); the fallback is about as tall as the first screen of the real list.
  */
 export function MobileMenuContent({
+  mainNav = null,
   supportPhone = null,
 }: {
+  mainNav?: readonly MainNavItem[] | null;
   supportPhone?: SupportPhone | null;
 }) {
   const {close} = useAside();
+  const navItems = mainNavWithQuizCta(mainNav, MAIN_NAV);
   return (
     <LazyBoundary
-      loading={<MobileNavSkeleton />}
+      loading={<MobileNavSkeleton items={navItems} />}
       failed={
         <PanelFailed href="/collections" linkText="Browse all products" />
       }
     >
       <MobileNavPanel
-        items={NAV_ITEMS}
+        items={navItems}
         onNavigate={close}
         supportPhone={supportPhone}
       />
@@ -262,11 +276,11 @@ export function MobileMenuContent({
   );
 }
 
-function MobileNavSkeleton() {
+function MobileNavSkeleton({items}: {items: readonly MainNavItem[]}) {
   return (
     <div role="status" className="flex flex-col gap-3">
       <span className="sr-only">Loading menu</span>
-      {NAV_ITEMS.map((item) => (
+      {items.map((item) => (
         <Skeleton key={item.id} className="h-11 w-full" />
       ))}
     </div>

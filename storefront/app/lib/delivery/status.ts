@@ -7,6 +7,12 @@ import {parseZip} from './zip';
 import {isInZone, promiseFor, type DeliveryZone} from './zone';
 
 export type DeliveryView =
+  /**
+   * This deployment cannot keep a ZIP (production, delivery cookie secret missing or too short, P3B-11): the
+   * ZIP control and the promise show a plain unavailable state. Distinct from `unavailable`, which is a
+   * business state (no zone configured) that the product page and cart leave unmentioned.
+   */
+  | {readonly status: 'service-unavailable'}
   /** No delivery zone is configured, so nothing can be said (fail closed: neither yes nor no is claimed). */
   | {readonly status: 'unavailable'}
   | {readonly status: 'no-zip'}

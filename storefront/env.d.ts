@@ -12,5 +12,10 @@ declare global {
     PUBLIC_SITE_URL?: string;
     /** The client's support phone (a US number, any common format); no phone link shows until it is set (REQ-CNT-001). */
     PUBLIC_SUPPORT_PHONE?: string;
+    /**
+     * Opt-in handle of the Shopify navigation menu that drives the header (REQ-NAV-002), for example `main-menu`.
+     * Unset, blank, `none` or invalid keeps the fixed navigation and makes no menu request.
+     */
+    PUBLIC_NAV_MENU_HANDLE?: string;
   }
 }

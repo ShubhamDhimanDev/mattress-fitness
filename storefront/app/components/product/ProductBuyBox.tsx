@@ -7,12 +7,14 @@ import {CompareToggle} from '~/components/compare/CompareToggle';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {AddWithProtectionButton} from '~/components/extend/AddWithProtectionButton';
 import {ProtectionPanel} from '~/components/extend/ProtectionPanel';
+import {ProductAddOns} from '~/components/product/ProductAddOns';
 import {VendorName} from '~/components/product/VendorName';
 import {useProtectionOffers} from '~/components/extend/useProtectionOffers';
 import {Badge} from '~/components/ui/Badge';
 import {Price} from '~/components/ui/Price';
 import {SizeSelector} from '~/components/ui/SizeSelector';
 import {SIZE_OPTION_NAME, toSlug} from '~/lib/catalog/attributes';
+import {sizeOf} from '~/lib/offers-runtime/sizes';
 import type {BrandLink} from '~/lib/shopify/brand-link';
 import type {ProtectionMode} from '~/lib/shopify/protection-mode';
 import {savingsLabel} from '~/lib/shopify/pricing';
@@ -41,12 +43,18 @@ export function ProductBuyBox({
   variant,
   protection = 'off',
   brandLink = null,
+  addOns = false,
 }: {
   product: ProductPageView;
   variant: VariantView;
   protection?: ProtectionMode;
   /** The vendor's brand page, when one exists (resolveBrandLink); otherwise the vendor is plain text. */
   brandLink?: BrandLink | null;
+  /**
+   * The loader says the rules relate foundations, bases or frames to this product (P4-03, REQ-ADD-001). False renders
+   * nothing and asks nothing, which is the case for every product that is not a mattress with add-ons.
+   */
+  addOns?: boolean;
 }) {
   const navigate = useNavigate();
   const {open, type: asideType} = useAside();
@@ -206,6 +214,18 @@ export function ProductBuyBox({
         </AddToCartButton>
       )}
       {protection === 'unknown' ? panel : null}
+      {/* Size-matched foundations, bases and frames (P4-03): under the button, above the shared cart messages that report their result. */}
+      {addOns ? (
+        <ProductAddOns
+          productId={product.id}
+          mattress={{
+            variantId: variant.id,
+            size: sizeOf(variant.selectedOptions),
+            available: variant.available,
+          }}
+          onViewCart={() => open('cart')}
+        />
+      ) : null}
       <CartMessages suppressed={asideType === 'cart'} />
       <CompareToggle handle={product.handle} title={product.title} />
 
@@ -215,7 +235,6 @@ export function ProductBuyBox({
 
       {/* Extension slots, each filled by its own task; they render nothing today. */}
       {/* TODO(P3B-10): store pickup availability and "try in store" (REQ-PDP-003, REQ-PDP-004). */}
-      {/* TODO(P4-03): size-matched foundations, bases and frames (REQ-ADD-001). */}
     </div>
   );
 }

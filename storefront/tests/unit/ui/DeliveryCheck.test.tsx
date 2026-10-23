@@ -10,7 +10,7 @@ import {
 import {createMemoryRouter, data, RouterProvider} from 'react-router';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
-import {deliveryViewFor} from '~/lib/delivery/status';
+import {deliveryViewFor, type DeliveryView} from '~/lib/delivery/status';
 import type {DeliveryZone} from '~/lib/delivery/zone';
 
 afterEach(cleanup);
@@ -18,6 +18,9 @@ afterEach(cleanup);
 // The router's first loads run on a jsdom main thread that is shared with the other test files in a full run; the
 // default 1 s for findBy and waitFor is too tight there (this file was flaky only under full-suite load).
 configure({asyncUtilTimeout: 5000});
+// A multi-step test waits on several of those, and Vitest's own default of 5000 ms would end the test before one
+// wait gives up, hiding which step stalled. Give each test room for three of them.
+vi.setConfig({testTimeout: 15000});
 
 // P3B-11, P5B-03: REQ-NAV-003 (validated, persisted, editable), REQ-DEL-002 (yes/no and approved wording).
 
@@ -35,6 +38,8 @@ function renderCheck(options: {
   gate?: Promise<void>;
   zone?: DeliveryZone | null;
   saved?: string | null;
+  /** Replaces the computed answer, for states the zone cannot produce (the deployment cannot keep a ZIP). */
+  view?: DeliveryView;
 }) {
   let saved = options.saved ?? null;
   const zone = options.zone === undefined ? ZONE : options.zone;
@@ -51,14 +56,20 @@ function renderCheck(options: {
         path: '/delivery',
         loader: async () => {
           await options.gate;
-          return data({delivery: deliveryViewFor(zone, saved), error: null});
+          return data({
+            delivery: options.view ?? deliveryViewFor(zone, saved),
+            error: null,
+          });
         },
         action: async ({request}) => {
           const form = await request.formData();
           submissions.push(String(form.get('zip') ?? form.get('intent')));
           saved =
             form.get('intent') === 'clear' ? null : String(form.get('zip'));
-          return data({delivery: deliveryViewFor(zone, saved), error: null});
+          return data({
+            delivery: options.view ?? deliveryViewFor(zone, saved),
+            error: null,
+          });
         },
       },
     ],
@@ -162,6 +173,25 @@ describe('DeliveryCheck', () => {
     await waitFor(() => expect(screen.queryByText(/available to/i)).toBeNull());
     expect(view.submissions).toEqual([]);
     await waitFor(() => expect(screen.queryByLabelText('ZIP code')).toBeNull());
+  });
+
+  it('shows a plain unavailable state, with no form and no yes or no, when the deployment cannot keep a ZIP (P3B-11)', async () => {
+    const view = renderCheck({
+      saved: '60645',
+      view: {status: 'service-unavailable'},
+    });
+    expect(
+      await screen.findByText(
+        'Delivery information is not available right now.',
+      ),
+    ).toBeVisible();
+    // Unlike "no zone configured", this is visible on the product page and the cart too.
+    expect(screen.getByRole('region', {name: 'Delivery'})).toBeVisible();
+    expect(screen.queryByLabelText('ZIP code')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByText(/available to|not available to/i)).toBeNull();
+    expect(screen.queryByText('White-glove delivery.')).toBeNull();
+    expect(view.submissions).toEqual([]);
   });
 
   it('clears the saved ZIP and goes back to asking', async () => {

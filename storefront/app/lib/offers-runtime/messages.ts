@@ -185,6 +185,7 @@ export type PickerStepFailure =
   | 'gift-not-offered'
   | 'gift-choice-invalid'
   | 'addon-not-offered'
+  | 'addon-already-in-cart'
   | 'cart-changed'
   | 'bundle-not-offered'
   | 'bundle-partial'
@@ -196,6 +197,8 @@ export const PICKER_STEP_FAILURE_TEXT: Record<PickerStepFailure, string> = {
   'cart-changed':
     'Your cart changed while you were choosing, for example in another tab. Nothing was added. Please check your cart and try again.',
   'addon-not-offered': 'That item is not offered for your cart right now.',
+  'addon-already-in-cart':
+    'That item and its mattress are already in your cart. You can change the quantity in your cart.',
   'bundle-not-offered': 'That set is not available on your cart right now.',
   'bundle-partial':
     'Some items in the set could not be added. Please check your cart or try again.',
@@ -235,4 +238,21 @@ export const PICKER_COPY = {
     adding: 'Adding',
     completeHeading: 'Set complete',
   },
+} as const;
+
+/**
+ * Wording for the product page's add-on slot (P4-03, REQ-ADD-001). Placeholder copy until the client approves it
+ * (CLR-010, CLR-011). No price claim: every price shown is Shopify's, and the item is an ordinary cart line.
+ */
+export const PRODUCT_ADDON_COPY = {
+  heading: 'Foundations, bases and frames',
+  help: 'Sized for the mattress size you selected. Adding one also puts this mattress in your cart if it is not there yet.',
+  loading: 'Loading foundations, bases and frames for this size',
+  add: 'Add with mattress',
+  adding: 'Adding',
+  added: 'Added to cart',
+  viewCart: 'View cart',
+  error: 'We could not load the matching foundations, bases and frames.',
+  retry: 'Try again',
+  soldOutMattress: 'Available again when this mattress size is back in stock.',
 } as const;

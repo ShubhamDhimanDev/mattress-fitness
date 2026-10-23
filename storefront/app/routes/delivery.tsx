@@ -11,14 +11,14 @@ import {formatPageTitle} from '~/components/layout/documentTitle';
 import {isSameOriginRequest, noStoreHeaders} from '~/lib/cart/http';
 import {parseZip} from '~/lib/delivery/zip';
 import {readSmallForm} from '~/lib/delivery-runtime/form';
-import {deliveryViewFor} from '~/lib/delivery/status';
 import type {
   DeliveryError,
   DeliveryResponse,
 } from '~/lib/delivery-runtime/response';
-import {loadDeliveryZone} from '~/lib/delivery-runtime/zone';
+import {deliveryViewForEnv} from '~/lib/delivery-runtime/view';
 import {
   clearDeliveryZipHeader,
+  deliveryZipSavingAvailable,
   readDeliveryZip,
   saveDeliveryZipHeader,
 } from '~/lib/delivery-runtime/zip-cookie';
@@ -50,10 +50,7 @@ function failure(
   error: DeliveryError,
   status: number,
 ) {
-  return respond(
-    {delivery: deliveryViewFor(loadDeliveryZone(env), zip), error},
-    {status},
-  );
+  return respond({delivery: deliveryViewForEnv(env, zip), error}, {status});
 }
 
 /**
@@ -63,7 +60,7 @@ function failure(
 export async function loader({request, context}: Route.LoaderArgs) {
   const zip = await readDeliveryZip(request, context.env);
   return respond({
-    delivery: deliveryViewFor(loadDeliveryZone(context.env), zip),
+    delivery: deliveryViewForEnv(context.env, zip),
     error: null,
   });
 }
@@ -80,6 +77,10 @@ export async function action({request, context}: Route.ActionArgs) {
   if (!isSameOriginRequest(request)) {
     return failure(env, current, 'save-failed', 403);
   }
+  // Production without a usable signing secret: nothing can be kept, so say so before reading the body.
+  if (!deliveryZipSavingAvailable(env)) {
+    return failure(env, null, 'save-failed', 503);
+  }
   const read = await readSmallForm(request);
   // An oversized or unreadable body is refused with a fixed message before anything is parsed further.
   if (read.status !== 'ok') {
@@ -92,7 +93,6 @@ export async function action({request, context}: Route.ActionArgs) {
   }
   const {form} = read;
   const intent = form.get('intent');
-  const zone = loadDeliveryZone(env);
 
   if (intent !== 'save' && intent !== 'clear') {
     return failure(env, current, 'save-failed', 400);
@@ -115,7 +115,7 @@ export async function action({request, context}: Route.ActionArgs) {
   const responseHeaders = noStoreHeaders();
   responseHeaders.append('Set-Cookie', cookie);
   return respond(
-    {delivery: deliveryViewFor(zone, zip), error: null},
+    {delivery: deliveryViewForEnv(env, zip), error: null},
     {headers: responseHeaders},
   );
 }

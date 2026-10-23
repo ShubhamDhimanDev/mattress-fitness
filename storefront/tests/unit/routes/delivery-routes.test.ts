@@ -9,6 +9,7 @@ import {
   action as stepsAction,
   loader as stepsLoader,
 } from '~/routes/checkout-steps';
+import {resetReportedSecrets} from '~/lib/cookie-secret';
 import {saveDeliveryZipHeader} from '~/lib/delivery-runtime/zip-cookie';
 import {
   ENV as OFFER_ENV,
@@ -195,6 +196,24 @@ describe('GET /delivery (P5B-03, REQ-DEL-002)', () => {
     expect(result.data.delivery).toEqual({status: 'unavailable'});
   });
 
+  it('in production without a usable secret says service-unavailable, not a yes or a no (P3B-11)', async () => {
+    vi.stubEnv('PROD', true);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const {context} = contextFor(new FakeCart([]), OFFER_ENV);
+      const result = unwrap(
+        await deliveryLoader(args(await withZip(null, '/delivery'), context)),
+      );
+      expect(result.data).toEqual({
+        delivery: {status: 'service-unavailable'},
+        error: null,
+      });
+      expect(result.headers.get('Cache-Control')).toBe('private, no-store');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('does not believe an unsigned or forged cookie', async () => {
     const {context} = contextFor(new FakeCart([]));
     const forged = new Request(`${ORIGIN}/delivery`, {
@@ -352,6 +371,33 @@ describe('POST /delivery (P3B-11, REQ-NAV-003)', () => {
       data: {error: 'save-failed'},
     });
     expect(cookieOf(result)).toBe('');
+  });
+
+  it('in production without a usable secret refuses at once with 503 and a service-unavailable answer, no cookie, ZIP not echoed (P3B-11)', async () => {
+    vi.stubEnv('PROD', true);
+    resetReportedSecrets();
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const {context} = contextFor(new FakeCart([]), {
+        OFFER_CONFIG_JSON: ENV.OFFER_CONFIG_JSON,
+        DELIVERY_COOKIE_SECRET: 'x'.repeat(31),
+      });
+      const result = await deliveryAction(args(save(IN_ZONE), context));
+      const wrapped = unwrap(result);
+      expect(wrapped.status).toBe(503);
+      expect(wrapped.data).toEqual({
+        delivery: {status: 'service-unavailable'},
+        error: 'save-failed',
+      });
+      expect(JSON.stringify(wrapped.data)).not.toContain(IN_ZONE);
+      expect(cookieOf(result)).toBe('');
+      const logged = JSON.stringify(error.mock.calls);
+      expect(logged).toContain('DELIVERY_COOKIE_SECRET');
+      expect(logged).not.toContain(IN_ZONE);
+      expect(logged).not.toContain('xxxx');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('never logs the ZIP (T-05)', async () => {

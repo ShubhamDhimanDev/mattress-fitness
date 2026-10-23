@@ -3,13 +3,12 @@
 // "Enter delivery ZIP". The root document is private and varies by cookie (root.tsx `headers`), which is what
 // makes it safe to carry the ZIP; the ZIP is never put in a URL, a log line or a cache key (T-05).
 
-import {deliveryViewFor} from '~/lib/delivery/status';
 import type {DeliveryResponse} from '~/lib/delivery-runtime/response';
+import {deliveryViewForEnv} from '~/lib/delivery-runtime/view';
 import {
   deliveryZipSavingAvailable,
   readDeliveryZip,
 } from '~/lib/delivery-runtime/zip-cookie';
-import {loadDeliveryZone} from '~/lib/delivery-runtime/zone';
 
 export type DeliverySummary = {
   /** The same JSON shape `/delivery` answers with, ready to seed `useDeliveryZip`. */
@@ -25,7 +24,7 @@ export async function loadDeliverySummary(
   const zip = await readDeliveryZip(request, env);
   return {
     deliverySeed: {
-      delivery: deliveryViewFor(loadDeliveryZone(env), zip),
+      delivery: deliveryViewForEnv(env, zip),
       error: null,
     },
     deliveryZipAvailable: deliveryZipSavingAvailable(env),

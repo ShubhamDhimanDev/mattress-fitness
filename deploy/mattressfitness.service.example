@@ -1,0 +1,97 @@
+# systemd unit for the storefront on a VPS (P9-12, ADR-0011). TEMPLATE: copy to /etc/systemd/system/mattressfitness.service
+# and replace the <PLACEHOLDERS>. Contains no secrets: the secrets live in /etc/mattressfitness/env (root:root, mode 0600),
+# which systemd reads as root, so the service user cannot read that file from disk.
+# Not run on a server yet (docs/deployment/VPS_RUNBOOK.md, "What is NOT verified").
+
+[Unit]
+Description=Mattress storefront (Hydrogen on plain Node)
+Documentation=https://example.invalid/replace-with-the-repository-docs-url
+After=network-online.target
+Wants=network-online.target
+# Give up after 5 failed starts in 60 s so a bad release does not restart-loop forever; `systemctl reset-failed` clears it.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mattressfitness
+Group=mattressfitness
+
+# `current` is a symlink to releases/<id> (VPS_RUNBOOK.md). systemd resolves it when the service starts, so a restart
+# is what moves the site to a new release.
+WorkingDirectory=/srv/mattressfitness/current
+# Absolute path of the Node 22 binary (NodeSource installs /usr/bin/node; with a tarball or nvm use that path).
+ExecStart=/usr/bin/node scripts/node-server/server.mjs
+
+# Host settings (not secret). The storefront's own variables come from the file below.
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=BIND_HOST=127.0.0.1
+# Must be true behind nginx: nginx ends TLS, so the request reaches Node as plain http and only X-Forwarded-Proto says
+# "https" (without it the session and cart cookies would be issued without Secure). Safe only because BIND_HOST is loopback
+# (the server refuses to start with TRUST_PROXY=true on any other address) and nginx overwrites X-Forwarded-Proto.
+Environment=TRUST_PROXY=true
+Environment=MAX_BODY_BYTES=1048576
+Environment=SHUTDOWN_TIMEOUT_MS=10000
+# Byte cap of EACH named in-process cache (default 64 MiB; two are opened today). Keep the total well under MemoryMax below.
+Environment=CACHE_MAX_BYTES=67108864
+# Variables set by the file below override Environment= lines above if both name the same variable.
+EnvironmentFile=/etc/mattressfitness/env
+
+# Restart on a crash or a non-zero exit (including "configuration invalid", which exits 1), not on a clean stop.
+Restart=on-failure
+RestartSec=2
+# SIGTERM starts a graceful stop (finish in-flight requests, wait for background work up to SHUTDOWN_TIMEOUT_MS).
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# Both streams go to the journal; the storefront writes one JSON line per event to stdout/stderr.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mattressfitness
+
+# Sandbox. The service writes no files (no database, logs go to the journal), so the file system can be read-only.
+# NONE OF THIS HAS BEEN LOADED BY systemd YET. The candidate check in the runbook runs WITHOUT these options, so the first
+# start of the real unit is the first time Node meets them: watch `journalctl -u mattressfitness` then (VPS_RUNBOOK.md, section 7).
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+# Other users' processes are hidden in /proc; Node only reads its own /proc/self (needs systemd 247 or newer; Ubuntu 22.04 has 249).
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+# The service writes no files; if it ever does, they are private to the service user.
+UMask=0077
+CapabilityBoundingSet=
+AmbientCapabilities=
+# AF_UNIX stays because some name-service setups resolve host names through a local socket.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+# Reasoned, not run: Node, V8 and libuv use ordinary service syscalls, which @system-service allows. A denied call returns
+# EPERM instead of killing the process (the default is SIGSYS), so a library that probes a syscall (libuv tries io_uring on
+# newer kernels) falls back instead of crashing. If a start fails with EPERM or a SIGSYS line in the journal, find the
+# syscall with `journalctl -k | grep -i audit` or by removing this line and the next to test, then record the finding.
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+# Deliberately NOT set: MemoryDenyWriteExecute=true. V8 compiles JavaScript to machine code in memory that is writable and
+# executable, so this option would stop Node from starting.
+LimitNOFILE=65536
+# A ceiling so a leak restarts the service instead of taking the server down. 1G is an EXAMPLE for a 2 GB VPS and has not
+# been measured: Node's baseline plus the in-process cache (CACHE_MAX_BYTES, 64 MiB per named cache, two caches today)
+# plus server-render peaks. Confirm or change it for the real VPS before the first start (VPS_RUNBOOK.md, section 7
+# checklist) and tune from `systemctl status` / `journalctl` after a week of traffic. Optional, not enabled: also set
+# Environment=NODE_OPTIONS=--max-old-space-size=768 so V8 collects garbage hard before the ceiling is reached.
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target

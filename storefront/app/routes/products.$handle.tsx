@@ -21,6 +21,8 @@ import {
 } from '~/lib/shopify/protection-mode';
 import {offersConfigOf} from '~/lib/extend/runtime';
 import {loadOfferOnlyHandles} from '~/lib/shopify/offer-only';
+import {hasDevAddOnsCookie} from '~/lib/offers-runtime/product-addons';
+import {productHasAddOns} from '~/lib/offers-runtime/product-addons-server';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {
   parseSelectedOptions,
@@ -127,6 +129,13 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     // The Extend flag and the product's own eligibility (P5A-05): the same for every shopper, so neither touches a
     // cache key. 'off' costs the page no request and no reserved space (NFR-002).
     protection,
+    // Whether the offer rules relate foundations, bases or frames to this product (P4-03): rules only, no Shopify read,
+    // the same for every shopper. The slot asks for the list itself after load (/api/product-addons). The e2e cookie
+    // opts a page in during development only, because the dev server has no offer configuration.
+    addOnsExpected:
+      (import.meta.env.DEV &&
+        hasDevAddOnsCookie(request.headers.get('Cookie') ?? '')) ||
+      productHasAddOns(context.env, product.id),
     canonical: siteOrigin ? `${siteOrigin}/products/${product.handle}` : null,
     productJsonLd: buildProductJsonLd(product, siteOrigin),
     breadcrumbJsonLd: buildBreadcrumbJsonLd(
@@ -141,7 +150,8 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
 }
 
 export default function Product() {
-  const {product, protection, brandLink} = useLoaderData<typeof loader>();
+  const {product, protection, brandLink, addOnsExpected} =
+    useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
 
   // The same pure functions the server used, so the first render and later switches always agree.
@@ -176,6 +186,7 @@ export default function Product() {
           variant={variant}
           protection={protection}
           brandLink={brandLink}
+          addOns={addOnsExpected}
         />
       </div>
       <ProductSections product={product} brandLink={brandLink} />

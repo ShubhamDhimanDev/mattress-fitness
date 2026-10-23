@@ -19,7 +19,7 @@ export const ADD_PROTECTION_ACTION = 'CustomAddProtection';
  */
 export const ADD_GIFT_ACTION = 'CustomAddGift';
 
-/** Add a size-matched add-on from the cart picker (P4-05, REQ-CART-003): a variant id only. */
+/** Add a size-matched add-on from the cart picker (P4-05, REQ-CART-003): a variant id, plus an optional mattress variant id from the product page slot (P4-03). */
 export const ADD_ADDON_ACTION = 'CustomAddAddOn';
 
 /** Add the missing companions of a bundle (P4-06, REQ-ADD-002): a bundle id and the anchor line id only. */
