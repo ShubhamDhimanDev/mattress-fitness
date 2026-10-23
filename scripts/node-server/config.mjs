@@ -1,4 +1,4 @@
-// Settings of the plain-Node server entry (ADR-0010, P9-12). These are host settings, not storefront settings: the
+// Settings of the plain-Node server entry (ADR-0011, P9-12). These are host settings, not storefront settings: the
 // storefront itself still reads its configuration only from the request-context env (ADR-0004). Names only here;
 // values live in the server's environment file (docs/deployment/VPS_RUNBOOK.md). Pure functions, no I/O.
 
@@ -125,7 +125,7 @@ export function readSettings(env) {
 
   // Believing X-Forwarded-Proto is only safe when nothing but the proxy can reach the port; otherwise any client can
   // forge it (HSTS on a plain-http answer, Secure cookies decided by a header). Refuse rather than warn: the
-  // unit and the proxy template both bind loopback, so a different value is a mistake or a design change to record in ADR-0010.
+  // unit and the proxy template both bind loopback, so a different value is a mistake or a design change to record in ADR-0011.
   if (env.TRUST_PROXY === 'true' && isIP(bindHost) !== 0 && !isLoopback(bindHost)) {
     problems.push('TRUST_PROXY=true requires BIND_HOST to be a loopback address (127.0.0.0/8 or ::1)');
   }

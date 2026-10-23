@@ -1,4 +1,4 @@
-# systemd unit for the storefront on a VPS (P9-12, ADR-0010). TEMPLATE: copy to /etc/systemd/system/mattressfitness.service
+# systemd unit for the storefront on a VPS (P9-12, ADR-0011). TEMPLATE: copy to /etc/systemd/system/mattressfitness.service
 # and replace the <PLACEHOLDERS>. Contains no secrets: the secrets live in /etc/mattressfitness/env (root:root, mode 0600),
 # which systemd reads as root, so the service user cannot read that file from disk.
 # Not run on a server yet (docs/deployment/VPS_RUNBOOK.md, "What is NOT verified").

@@ -1,5 +1,5 @@
 // Adapter between Node's http server and the storefront's Web-standard `fetch(request, env, ctx)` handler
-// (ADR-0010). It owns what Oxygen provides for free: turning a Node request into a Web Request (with the right scheme
+// (ADR-0011). It owns what Oxygen provides for free: turning a Node request into a Web Request (with the right scheme
 // and host behind a TLS proxy), writing a Web Response back (several Set-Cookie headers, streamed bodies), serving the
 // built client assets, `waitUntil`, a request-size limit, a health check and graceful shutdown.
 //

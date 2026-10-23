@@ -1,4 +1,4 @@
-# nginx reverse proxy for the storefront (P9-12, ADR-0010, blocker B-19). TEMPLATE: no secrets, placeholders in <ANGLE_BRACKETS>.
+# nginx reverse proxy for the storefront (P9-12, ADR-0011, blocker B-19). TEMPLATE: no secrets, placeholders in <ANGLE_BRACKETS>.
 # Install as /etc/nginx/sites-available/mattressfitness, symlink into sites-enabled, then `sudo nginx -t` before every reload.
 # This file is included inside nginx's `http {}` block, so the http-level directives at the top are valid here.
 #

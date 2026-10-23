@@ -1,6 +1,6 @@
 # Manual deployment to a VPS (own Node server)
 
-Task P9-12, requirement REQ-HOST-003. Written 2026-10-23 for the owner's interim hosting answer (DEC-079: deploy by hand to a VPS, our own Node server, no Oxygen for now) and the no-pipeline decision (DEC-080). The client has not confirmed the hosting (Q-003, B-06). Entry design and options: [ADR-0010](../decisions/ADR-0010-node-server-entry.md) (Proposed). Variable meanings: [DEPLOYMENT](DEPLOYMENT.md). Header details: [SECURITY_HEADERS](../security/SECURITY_HEADERS.md). Config templates: [deploy/](../../deploy/).
+Task P9-12, requirement REQ-HOST-003. Written 2026-10-23 for the owner's interim hosting answer (DEC-079: deploy by hand to a VPS, our own Node server, no Oxygen for now) and the no-pipeline decision (DEC-080). The client has not confirmed the hosting (Q-003, B-06). Entry design and options: [ADR-0011](../decisions/ADR-0011-node-server-entry.md) (Proposed). Variable meanings: [DEPLOYMENT](DEPLOYMENT.md). Header details: [SECURITY_HEADERS](../security/SECURITY_HEADERS.md). Config templates: [deploy/](../../deploy/).
 
 **Read this first.** The Node entry was built and proven **on a Windows developer machine** (section 13). **No VPS, nginx, systemd, certbot or TLS step in this document has been run by anyone.** Commands and config below are written from documentation and from how the storefront behaves locally; treat each as a draft to rehearse on a throwaway server before production (section 13 lists what is not verified). Nothing here deploys anything by itself.
 
@@ -67,7 +67,7 @@ sudo chmod 755 /srv /srv/mattressfitness
 sudo chown root:root /etc/mattressfitness && sudo chmod 700 /etc/mattressfitness
 ```
 
-Release files are world-readable on purpose (nginx and the service user read them). They hold the compiled bundle and no secrets: the build must run in a folder that has **no** production `.env` or secrets, and the bundle holds no store values (checked locally, ADR-0010).
+Release files are world-readable on purpose (nginx and the service user read them). They hold the compiled bundle and no secrets: the build must run in a folder that has **no** production `.env` or secrets, and the bundle holds no store values (checked locally, ADR-0011).
 
 **Release id:** UTC time plus the short commit, for example `20261105-141500-ab12cd3`.
 
@@ -127,7 +127,7 @@ test -f "$R/storefront/dist/server/index.js" && test -d "$R/storefront/dist/clie
 
 Why the source-map step is mandatory: nginx's `/assets/` and `/brand/` locations use `^~`, which makes nginx skip every regex location, so a regex guard for `.map` files would never run there. The template therefore refuses any `*.map` path with a server-level `if` (it runs before location matching), and the Node server's static handler does not serve maps either; deleting them at assembly is the first line and the check above proves it. None are built into `dist/client` today, so the check is expected to pass without anything being deleted.
 
-Local proof that this layout runs: a copy of `dist/`, `storefront/package.json` and `scripts/node-server/` without `node_modules` served the same pages (ADR-0010). On Linux it is unproven. If `npm ci` or the build fails on the server (memory, registry access, an unexpected download by the Shopify CLI), stop: the previous release keeps running. Setting `SHOPIFY_CLI_NO_ANALYTICS=1` for the build is advisable if usage reporting is unwanted (not verified).
+Local proof that this layout runs: a copy of `dist/`, `storefront/package.json` and `scripts/node-server/` without `node_modules` served the same pages (ADR-0011). On Linux it is unproven. If `npm ci` or the build fails on the server (memory, registry access, an unexpected download by the Shopify CLI), stop: the previous release keeps running. Setting `SHOPIFY_CLI_NO_ANALYTICS=1` for the build is advisable if usage reporting is unwanted (not verified).
 
 ### Check the candidate before it goes live (port 3001)
 
@@ -171,7 +171,7 @@ What it does: runs as the `mattressfitness` user from `/srv/mattressfitness/curr
 
 Host settings (set in the unit): `PORT` (3000), `BIND_HOST` (127.0.0.1), `TRUST_PROXY` (see below), `MAX_BODY_BYTES` (1 MiB), `SHUTDOWN_TIMEOUT_MS`, `CACHE_MAX_ENTRIES` (default 500), `CACHE_MAX_BYTES` (64 MiB, set in the unit). Meaning: `scripts/node-server/config.mjs`. All are validated at start; a bad value makes the server refuse to start and name the setting (never the value).
 
-**`TRUST_PROXY` must be `true` behind nginx.** nginx ends TLS, so Node sees plain http. With `TRUST_PROXY=false` the adapter ignores `X-Forwarded-Proto`, the request URL says `http:`, and the session and cart cookies (`app/lib/session.ts` keys `Secure` on `request.url`) would be issued **without** the `Secure` flag, and HSTS would follow the wrong scheme. So: `true` for any deployment behind TLS termination; `false` only when Node itself is the TLS endpoint or on a developer machine. `true` is safe only when nothing but the proxy can reach the port, so the server **refuses to start** with `TRUST_PROXY=true` and a `BIND_HOST` that is not loopback (`127.0.0.0/8`, `::1`). Running nginx on another machine or in another container needs a different design (for example a private network plus a firewall rule) and a recorded decision in ADR-0010; the refusal is deliberate, not a bug. `BIND_HOST` must be a literal IP address (Node's own parser decides; `999.999.999.999`, `localhost` and host names are refused).
+**`TRUST_PROXY` must be `true` behind nginx.** nginx ends TLS, so Node sees plain http. With `TRUST_PROXY=false` the adapter ignores `X-Forwarded-Proto`, the request URL says `http:`, and the session and cart cookies (`app/lib/session.ts` keys `Secure` on `request.url`) would be issued **without** the `Secure` flag, and HSTS would follow the wrong scheme. So: `true` for any deployment behind TLS termination; `false` only when Node itself is the TLS endpoint or on a developer machine. `true` is safe only when nothing but the proxy can reach the port, so the server **refuses to start** with `TRUST_PROXY=true` and a `BIND_HOST` that is not loopback (`127.0.0.0/8`, `::1`). Running nginx on another machine or in another container needs a different design (for example a private network plus a firewall rule) and a recorded decision in ADR-0011; the refusal is deliberate, not a bug. `BIND_HOST` must be a literal IP address (Node's own parser decides; `999.999.999.999`, `localhost` and host names are refused).
 
 **Memory.** The in-process cache is bounded in entries (`CACHE_MAX_ENTRIES`) and in bytes (`CACHE_MAX_BYTES`: an estimate of body plus header text plus key, **per named cache**; two are opened today, the Hydrogen query cache and the webhook replay marks, so the worst case is 2 x 64 MiB). The oldest write is evicted first; an entry bigger than one eighth of the byte limit is not stored (and the old copy under that key is dropped); expired entries are swept on every write that falls after the 60-second interval and by a timer that does not keep the process alive. The unit's `MemoryMax=1G` is an **example for a 2 GB VPS, not a measurement**.
 
@@ -295,7 +295,7 @@ Run from your own machine against the public name. None of these places an order
 
 ## 13. What is NOT done and NOT verified
 
-Verified locally (2026-10-23, Windows, Node 22.23.3, [ADR-0010](../decisions/ADR-0010-node-server-entry.md) section "Verification"): the Node adapter's tests pass (42 after the review round: settings validation, the loopback rule for `TRUST_PROXY`, the cache byte and sweep bounds); the built storefront served the pages listed there on a plain Node server against `bedding.mock.shop` with placeholder values; a release folder without `node_modules` also worked.
+Verified locally (2026-10-23, Windows, Node 22.23.3, [ADR-0011](../decisions/ADR-0011-node-server-entry.md) section "Verification"): the Node adapter's tests pass (42 after the review round: settings validation, the loopback rule for `TRUST_PROXY`, the cache byte and sweep bounds); the built storefront served the pages listed there on a plain Node server against `bedding.mock.shop` with placeholder values; a release folder without `node_modules` also worked.
 
 **Assumed, not verified (everything below is a draft until rehearsed):**
 
@@ -310,7 +310,7 @@ Verified locally (2026-10-23, Windows, Node 22.23.3, [ADR-0010](../decisions/ADR
 - Rollback and restore rehearsal; log retention settings; monitoring and alerts (none wired); backup of `/etc/mattressfitness/env` and `/etc/letsencrypt` (see below).
 - The rate limits for the future guest lookup (route not built), the `.data` URL shapes of every route (only the listed ones were reasoned from the route files, not captured from a browser).
 
-**Not in this document:** DNS cutover and TTL plan (P9-03, P9-04), the production approval record, launch-day support, the client's server hardening or ownership model (EXC-13), pixel baselines and WebKit or Firefox runs without CI (CR-17), a staging server (none exists; a second small VPS or a second hostname on this one would serve), and upgrading to Hydrogen 2026.10 (P1-12), after which re-run the proof in ADR-0010.
+**Not in this document:** DNS cutover and TTL plan (P9-03, P9-04), the production approval record, launch-day support, the client's server hardening or ownership model (EXC-13), pixel baselines and WebKit or Firefox runs without CI (CR-17), a staging server (none exists; a second small VPS or a second hostname on this one would serve), and upgrading to Hydrogen 2026.10 (P1-12), after which re-run the proof in ADR-0011.
 
 **Backups.** The server holds no business data. To rebuild it: this repository (tagged releases), the filled environment file (from the password manager), the nginx and systemd files (from `deploy/`), and a new certificate (certbot reissues; or back up `/etc/letsencrypt` for speed). Keep an encrypted copy of the environment file's values outside the server; OS patching and VPS snapshots are the owner's (or a maintenance agreement's) job.
 

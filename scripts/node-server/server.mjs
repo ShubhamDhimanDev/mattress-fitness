@@ -1,4 +1,4 @@
-// Production entry for running the built storefront on a plain Node server (ADR-0010, task P9-12).
+// Production entry for running the built storefront on a plain Node server (ADR-0011, task P9-12).
 //
 //   cd storefront && npm run build && npm run start:node
 //

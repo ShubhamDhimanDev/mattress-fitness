@@ -1,6 +1,6 @@
 # Admin guide: running the store from Shopify admin
 
-**Draft 2, dated 2026-10-15** (draft 1 was 2026-10-12; sections 1, 4.3, 6.6 and 10 updated 2026-10-23 for the menu, the product-page add-ons box and the cache times; still no real screenshots and no non-developer test). For the client's store managers, merchandisers and customer service. Deliverable H-03 (REQ-HAND-003, NFR-005).
+**Draft 2, dated 2026-10-15** (draft 1 was 2026-10-12; sections 1, 4.3, 6.6 and 10 updated 2026-10-23 for the menu (including tag-filtered menu items and links to other sites), the product-page add-ons box and the cache times; still no real screenshots and no non-developer test). For the client's store managers, merchandisers and customer service. Deliverable H-03 (REQ-HAND-003, NFR-005).
 
 ## Read this first
 
@@ -532,6 +532,10 @@ Open **Content > Metaobjects > Brand**. Edit the logo, about text and warranty t
 - "Catalog" items go to all products; "Home", "Search" and the customer account page go to the matching pages.
 - The **Sleep quiz** link is added at the end by the website unless your menu already links to the quiz.
 - If the menu is empty, has nothing usable, or cannot be read, the website shows its own designed navigation again. This is by design, so the header is never empty.
+
+**Menu items that filter a collection by tag.** In Shopify you can point a menu item at a collection **filtered by a tag** (for example the "King" collection filtered by "Firm"). The website has no tag filter on its collection pages, so such an item opens the **whole collection**, not the filtered list. The menu still works and nothing is left out, but shoppers who click "Firm" would see every mattress in the collection. Instead, link each item to a **collection of its own per comfort level** (for example a "Firm mattresses" collection), or leave the item out and let shoppers use the filters on the collection page. When this happens the website records a count in its log (`nav.menu_tag_links_unfiltered`); it is not shown to shoppers or to you in Shopify admin, so check your menu for tag-filtered items before you save.
+
+**Links to other sites.** An item that leads to another website (an address starting with `https://` that is not your own store or website) works as an ordinary link. It also carries a hidden cue, "opens another site", that screen readers announce after the label; sighted shoppers see no change.
 
 [Screenshot: Navigation main menu being edited]
 
