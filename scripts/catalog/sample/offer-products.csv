@@ -1,0 +1,37 @@
+model,brand,product_line,handle,product_type,size,dimensions,sku,price,sale_price,comfort_level,mattress_type,sleep_positions,benefits,height_inches,delivery_type,description,overview_bullets,specifications,seo_title,seo_description,images,extend_category,related_foundations,related_protectors,related_bedding,compare_group,copy_approved
+Halden Luxe Hybrid,Quillmoor Sleep,Halden Series,luxe-hybrid,Mattress,Queen,60 in x 80 in,HLH01-Q,1899.00,1799.00,Medium,Hybrid,Back|Side,Cooling|Pressure Relief,14,white-glove,"The Halden Luxe Hybrid is a medium hybrid mattress made up for offer testing. It is sold in queen and larger sizes only, and every size costs more than $999, so it qualifies for the placeholder gift rule.
+
+This is made-up sample copy. It is not real product information.",Medium feel|Hybrid construction|14 inch profile,Firmness=Medium|Thickness=14 in|Construction=Hybrid,Halden Luxe Hybrid Mattress,"Shop the Halden Luxe Hybrid, a medium hybrid mattress in queen and larger sizes. Sample text only.",halden-luxe-hybrid-1.jpg|halden-luxe-hybrid-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow|sample-sheets,halden-luxe,yes
+,,,luxe-hybrid,,King,76 in x 80 in,HLH01-K,2199.00,2099.00,,,,,,,,,,,,,,,,,,
+,,,luxe-hybrid,,California King,72 in x 84 in,HLH01-CK,2199.00,2099.00,,,,,,,,,,,,,,,,,,
+,,,luxe-hybrid,,Split California King,2 x 36 in x 84 in,HLH01-SCK,2599.00,2499.00,,,,,,,,,,,,,,,,,,
+Halden Luxe Foam,Brindlewood Bedding,Halden Series,luxe-foam,Mattress,Queen,60 in x 80 in,HLF02-Q,1299.00,1199.00,Plush,Memory Foam,Side,Pressure Relief|Motion Separation,13,both,"The Halden Luxe Foam is a plush memory foam mattress made up for offer testing. It is sold in queen and larger sizes only, and every size costs more than $999, so it qualifies for the placeholder gift rule.
+
+This is made-up sample copy. It is not real product information.",Plush feel|Memory Foam construction|13 inch profile,Firmness=Plush|Thickness=13 in|Construction=Memory Foam,Halden Luxe Foam Mattress,"Shop the Halden Luxe Foam, a plush memory foam mattress in queen and larger sizes. Sample text only.",halden-luxe-foam-1.jpg|halden-luxe-foam-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow|sample-sheets,halden-luxe,yes
+,,,luxe-foam,,King,76 in x 80 in,HLF02-K,1549.00,1449.00,,,,,,,,,,,,,,,,,,
+,,,luxe-foam,,California King,72 in x 84 in,HLF02-CK,1549.00,1449.00,,,,,,,,,,,,,,,,,,
+Quillmoor Sample Foundation,Quillmoor Sleep,Sample Accessories,sample-foundation,Foundation,Twin,38 in x 75 in,SFN-T,199.00,,,,,,,,A made-up foundation used to test size-matched add-ons. Sample text only.,Sample foundation|Fits one mattress size,,Quillmoor Sample Foundation,A made-up foundation for testing size-matched add-ons. Sample text only.,,,,,,,yes
+,,,sample-foundation,,Twin XL,38 in x 80 in,SFN-TXL,219.00,,,,,,,,,,,,,,,,,,,
+,,,sample-foundation,,Full,54 in x 75 in,SFN-F,249.00,,,,,,,,,,,,,,,,,,,
+,,,sample-foundation,,Queen,60 in x 80 in,SFN-Q,279.00,,,,,,,,,,,,,,,,,,,
+,,,sample-foundation,,King,76 in x 80 in,SFN-K,349.00,,,,,,,,,,,,,,,,,,,
+,,,sample-foundation,,California King,72 in x 84 in,SFN-CK,349.00,,,,,,,,,,,,,,,,,,,
+,,,sample-foundation,,Split California King,2 x 36 in x 84 in,SFN-SCK,399.00,,,,,,,,,,,,,,,,,,,
+Quillmoor Comfort Guarantee Protector,Quillmoor Sleep,Sample Accessories,sample-protector,Mattress Protector,Twin,38 in x 75 in,SPR-T,79.00,,,,,,,,A made-up mattress protector used by the comfort-guarantee step and the sleep set. Tag it offer-only in Shopify admin. Sample text only.,Sample protector|One per mattress size,,Comfort Guarantee Protector,A made-up mattress protector for testing the comfort-guarantee step. Sample text only.,,,,,,,yes
+,,,sample-protector,,Twin XL,38 in x 80 in,SPR-TXL,89.00,,,,,,,,,,,,,,,,,,,
+,,,sample-protector,,Full,54 in x 75 in,SPR-F,99.00,,,,,,,,,,,,,,,,,,,
+,,,sample-protector,,Queen,60 in x 80 in,SPR-Q,119.00,,,,,,,,,,,,,,,,,,,
+,,,sample-protector,,King,76 in x 80 in,SPR-K,139.00,,,,,,,,,,,,,,,,,,,
+,,,sample-protector,,California King,72 in x 84 in,SPR-CK,139.00,,,,,,,,,,,,,,,,,,,
+,,,sample-protector,,Split California King,2 x 36 in x 84 in,SPR-SCK,159.00,,,,,,,,,,,,,,,,,,,
+Quillmoor Sample Pillow,Quillmoor Sleep,Sample Accessories,sample-pillow,Pillow,Queen,20 in x 30 in,SPL-Q,59.00,,,,,,,,A made-up pillow used as an add-on and in the sleep set. Sample text only.,Sample pillow|Queen and king sizes,,Quillmoor Sample Pillow,A made-up pillow for testing add-ons and the sleep set. Sample text only.,,,,,,,yes
+,,,sample-pillow,,King,20 in x 36 in,SPL-K,69.00,,,,,,,,,,,,,,,,,,,
+Quillmoor Gift Pillow,Quillmoor Sleep,Sample Accessories,sample-gift-pillow,Pillow,Queen,20 in x 30 in,SGP-Q,59.00,,,,,,,,"A made-up gift product: free with a qualifying mattress through an automatic Shopify discount, never sold on its own. Tag it offer-only in Shopify admin. Sample text only.",Sample gift pillow|Queen and king sizes,,Quillmoor Gift Pillow,A made-up gift pillow for testing the gift with purchase. Sample text only.,,,,,,,yes
+,,,sample-gift-pillow,,King,20 in x 36 in,SGP-K,69.00,,,,,,,,,,,,,,,,,,,
+Quillmoor Sample Sheet Set,Quillmoor Sleep,Sample Accessories,sample-sheets,Bedding,Twin,38 in x 75 in,SSH-T,89.00,,,,,,,,A made-up sheet set used to test size-matched bedding add-ons. Sample text only.,Sample sheet set|Fits one mattress size,,Quillmoor Sample Sheet Set,A made-up sheet set for testing bedding add-ons. Sample text only.,,,,,,,yes
+,,,sample-sheets,,Twin XL,38 in x 80 in,SSH-TXL,99.00,,,,,,,,,,,,,,,,,,,
+,,,sample-sheets,,Full,54 in x 75 in,SSH-F,119.00,,,,,,,,,,,,,,,,,,,
+,,,sample-sheets,,Queen,60 in x 80 in,SSH-Q,139.00,,,,,,,,,,,,,,,,,,,
+,,,sample-sheets,,King,76 in x 80 in,SSH-K,169.00,,,,,,,,,,,,,,,,,,,
+,,,sample-sheets,,California King,72 in x 84 in,SSH-CK,169.00,,,,,,,,,,,,,,,,,,,
+,,,sample-sheets,,Split California King,2 x 36 in x 84 in,SSH-SCK,189.00,,,,,,,,,,,,,,,,,,,

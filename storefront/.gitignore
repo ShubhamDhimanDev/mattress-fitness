@@ -7,3 +7,7 @@ node_modules
 .env
 .shopify
 .react-router
+
+# Local test cache and local offer configuration (never commit)
+.vitest/
+.offer-config.local.json
