@@ -1,0 +1,217 @@
+# nginx reverse proxy for the storefront (P9-12, ADR-0010, blocker B-19). TEMPLATE: no secrets, placeholders in <ANGLE_BRACKETS>.
+# Install as /etc/nginx/sites-available/mattressfitness, symlink into sites-enabled, then `sudo nginx -t` before every reload.
+# This file is included inside nginx's `http {}` block, so the http-level directives at the top are valid here.
+#
+# NOT TESTED on a server (docs/deployment/VPS_RUNBOOK.md, "What is NOT verified"): written against nginx documentation
+# and the storefront's behaviour as proven locally. Every number marked "starting value" is a guess to tune from real traffic.
+# Syntax needs nginx 1.18 or newer (Ubuntu 22.04 and later); `listen ... http2` is accepted by newer versions too
+# (they warn that the form is deprecated in favour of a separate `http2 on;` line, which 1.18 and 1.24 do not know).
+#
+# What this file does, in order: log format without query strings; rate-limit zones (the B-19 controls); upstream to the
+# Node process on loopback; port 80 (certificate challenge + redirect); port 443 (TLS, HTTP/2, compression, body and
+# time limits, static assets from disk, everything else proxied).
+
+# ---- Logging: no query strings (search text, cart links) and no cookies in access logs (T-05) ---------------------------
+log_format mf_privacy '$remote_addr [$time_local] "$request_method $uri" $status $body_bytes_sent '
+                      '$request_time "$http_user_agent"';
+
+# ---- Rate limiting (B-19). Each zone is keyed by client IP, but only for the paths its map selects: an empty key is not limited.
+# Paths are matched case-insensitively (~*) because the router ignores case, and with the optional `.data` suffix the
+# router's client navigations use. If a CDN or another proxy is ever put in front of this server, take the client address from
+# its header with ngx_http_realip_module first, or every visitor shares one address.
+map $uri $mf_key_offers   { default ""; "~*^/api/extend/offers/?$"          $binary_remote_addr; }
+map $uri $mf_key_api      { default ""; "~*^/api/"                           $binary_remote_addr; }
+map $uri $mf_key_delivery { default ""; "~*^/delivery(\.data)?/?$"           $binary_remote_addr; }
+# Routes that create a cart on a GET (/cart/<lines>, /discount/<code>) and the cart page's own data.
+map $uri $mf_key_cartget  { default ""; "~*^/(cart|discount)/[^/]+(\.data)?$" $binary_remote_addr; }
+# The guest order lookup is not built yet (P6-14). When it is, put its real path here and remove the leading `#`.
+#map $uri $mf_key_lookup  { default ""; "~*^/<LOOKUP_PATH>(\.data)?/?$"      $binary_remote_addr; }
+map $uri $mf_key_webhook  { default ""; "~*^/webhooks/"                      $binary_remote_addr; }
+
+limit_req_zone $binary_remote_addr zone=mf_general:10m  rate=20r/s;  # starting value, all paths
+limit_req_zone $mf_key_offers      zone=mf_offers:5m    rate=2r/s;   # starting value; the app also limits 60 variants a minute per process
+limit_req_zone $mf_key_api         zone=mf_api:5m       rate=5r/s;   # starting value
+limit_req_zone $mf_key_delivery    zone=mf_delivery:5m  rate=2r/s;   # starting value (a shopper types a ZIP now and then)
+limit_req_zone $mf_key_cartget     zone=mf_cartget:5m   rate=1r/s;   # starting value
+#limit_req_zone $mf_key_lookup     zone=mf_lookup:5m    rate=6r/m;   # starting value, enable with the map above
+limit_req_zone $mf_key_webhook     zone=mf_webhook:5m   rate=10r/s;  # starting value; Shopify's sender addresses are not a fixed list
+limit_conn_zone $binary_remote_addr zone=mf_conn:10m;
+
+limit_req_status 429;
+limit_conn_status 429;
+limit_req_log_level warn;
+
+upstream mattressfitness_app {
+    server 127.0.0.1:3000;   # must equal PORT in the service unit
+    keepalive 16;
+}
+
+# ---- Port 80: certificate challenge, then redirect everything to https; unknown host names get nothing -----------------
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name <YOUR_DOMAIN>;     # add www.<YOUR_DOMAIN> only if the site should answer on it
+    server_tokens off;
+    access_log /var/log/nginx/mattressfitness.http.access.log mf_privacy;
+
+    # certbot --webroot writes the challenge files here
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# BEGIN HTTPS BLOCK -- keep this block commented out until the first certificate exists (VPS_RUNBOOK.md, "TLS"), because
+# `nginx -t` fails while the certificate files are missing.
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name <YOUR_DOMAIN>;
+    server_tokens off;
+
+    # Names certbot creates under /etc/letsencrypt/live/<name>/
+    ssl_certificate     /etc/letsencrypt/live/<YOUR_DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<YOUR_DOMAIN>/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:mf_ssl:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+    # nginx 1.19.4 and newer: reject TLS handshakes for unknown names with a default 443 server holding `ssl_reject_handshake on;`.
+    # Until then this block is the default for unknown names, so refuse other Host values here:
+    if ($host != "<YOUR_DOMAIN>") {
+        return 444;
+    }
+
+    access_log /var/log/nginx/mattressfitness.access.log mf_privacy;
+    error_log  /var/log/nginx/mattressfitness.error.log warn;
+
+    # ---- Request limits ----
+    client_max_body_size 1m;          # B-19 request-body limit; keep equal to MAX_BODY_BYTES in the service unit (starting value)
+    client_body_timeout 15s;
+    client_header_timeout 15s;
+    send_timeout 30s;
+    keepalive_timeout 30s;
+    large_client_header_buffers 4 16k;
+    limit_conn mf_conn 30;            # starting value; HTTP/2 multiplexes many requests on one connection
+
+    # ---- Compression (gzip is in the stock build; brotli needs an extra module, not verified) ----
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_types text/plain text/css text/javascript application/javascript application/json application/manifest+json image/svg+xml;
+    # With ngx_brotli installed (libnginx-mod-http-brotli-filter on some distributions):
+    #brotli on;
+    #brotli_comp_level 5;
+    #brotli_types text/plain text/css text/javascript application/javascript application/json image/svg+xml;
+
+    # ---- Answers nginx makes itself carry the security headers; proxied answers get theirs from the application ----
+    error_page 413 = @mf_413;
+    error_page 429 = @mf_429;
+    error_page 502 503 504 = @mf_unavailable;
+
+    location @mf_413 {
+        include snippets/mattressfitness-security-headers.conf;
+        default_type text/plain;
+        return 413 "Request too large\n";
+    }
+    location @mf_429 {
+        include snippets/mattressfitness-security-headers.conf;
+        add_header Retry-After 5 always;
+        add_header Cache-Control "no-store" always;
+        default_type text/plain;
+        return 429 "Too many requests\n";
+    }
+    location @mf_unavailable {
+        include snippets/mattressfitness-security-headers.conf;
+        add_header Retry-After 5 always;
+        add_header Cache-Control "no-store" always;
+        default_type text/plain;
+        return 503 "Temporarily unavailable\n";
+    }
+
+    # ---- Static build output, straight from disk. Hashed names never change, so they are cached for a year. ----
+    # The fallback to the previous release keeps a page that was loaded before a deploy from losing its lazy chunks.
+    location ^~ /assets/ {
+        root /srv/mattressfitness/current/storefront/dist/client;
+        try_files $uri @assets_previous;
+        include snippets/mattressfitness-security-headers.conf;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        access_log off;
+    }
+    location @assets_previous {
+        root /srv/mattressfitness/previous/storefront/dist/client;
+        try_files $uri =404;
+        include snippets/mattressfitness-security-headers.conf;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        access_log off;
+    }
+    # Not hashed: an hour, so a replaced logo shows up.
+    location ^~ /brand/ {
+        root /srv/mattressfitness/current/storefront/dist/client;
+        try_files $uri =404;
+        include snippets/mattressfitness-security-headers.conf;
+        add_header Cache-Control "public, max-age=3600" always;
+    }
+    # Source maps are not published (none are built into dist/client today; this is a guard).
+    location ~* \.map$ {
+        return 404;
+    }
+
+    # ---- Health check for the process manager and local scripts: loopback only ----
+    location = /healthz {
+        allow 127.0.0.1;
+        allow ::1;
+        deny all;
+        proxy_pass http://mattressfitness_app;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+    }
+
+    # ---- Everything else: the application ----
+    # No proxy_cache on purpose. The home document is `Cache-Control: private, no-cache` with `Vary: Cookie` and the
+    # delivery ZIP changes the header and offers per shopper (DEC-036); a shared cache that ignores that would show one
+    # shopper's ZIP-driven state to another. If page caching is ever added, repeat the two-cookie test first (B-19).
+    location / {
+        limit_req zone=mf_general  burst=60 nodelay;
+        limit_req zone=mf_offers   burst=20 nodelay;
+        limit_req zone=mf_api      burst=20 nodelay;
+        limit_req zone=mf_delivery burst=10 nodelay;
+        limit_req zone=mf_cartget  burst=5  nodelay;
+        #limit_req zone=mf_lookup  burst=3  nodelay;
+        limit_req zone=mf_webhook  burst=30 nodelay;
+
+        proxy_pass http://mattressfitness_app;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+
+        proxy_set_header Host              $host;
+        # Overwrite, never append: a client-supplied value must not survive (the application trusts the first value, TRUST_PROXY).
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header Forwarded         "";
+
+        proxy_connect_timeout 5s;
+        proxy_send_timeout    60s;
+        proxy_read_timeout    60s;
+        # Streaming pages are buffered by nginx (the default), which protects Node from slow clients. Turning buffering
+        # off would send each streamed chunk at once; not measured either way.
+
+        # Response headers from the application pass through unchanged (security headers, Set-Cookie, Vary, Cache-Control).
+        # Optional, a client decision: hide Hydrogen's `powered-by` header.
+        #proxy_hide_header powered-by;
+    }
+}
+# END HTTPS BLOCK

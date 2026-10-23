@@ -1,0 +1,16 @@
+# Security headers for responses that NGINX itself produces (static files, 429/413/5xx pages). TEMPLATE (P9-12).
+# Install as /etc/nginx/snippets/mattressfitness-security-headers.conf and `include` it where nginx.conf.example says so.
+#
+# Do NOT include this in a location that proxies to the application. The application already sends these headers on
+# every response it makes (storefront/server.ts -> withSecurityHeaders, docs/security/SECURITY_HEADERS.md), and nginx's
+# add_header would send them a second time. Keep the values in step with storefront/app/lib/security-headers.ts.
+#
+# Not verified on a server: whether every value below still equals what the build sends (compare with the smoke test
+# in docs/deployment/VPS_RUNBOOK.md).
+
+add_header Strict-Transport-Security "max-age=15552000" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header X-Frame-Options "DENY" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+add_header Cross-Origin-Opener-Policy "same-origin-allow-popups" always;

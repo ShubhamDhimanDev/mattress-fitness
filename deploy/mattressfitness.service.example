@@ -1,0 +1,71 @@
+# systemd unit for the storefront on a VPS (P9-12, ADR-0010). TEMPLATE: copy to /etc/systemd/system/mattressfitness.service
+# and replace the <PLACEHOLDERS>. Contains no secrets: the secrets live in /etc/mattressfitness/env (root:root, mode 0600),
+# which systemd reads as root, so the service user cannot read that file from disk.
+# Not run on a server yet (docs/deployment/VPS_RUNBOOK.md, "What is NOT verified").
+
+[Unit]
+Description=Mattress storefront (Hydrogen on plain Node)
+Documentation=https://example.invalid/replace-with-the-repository-docs-url
+After=network-online.target
+Wants=network-online.target
+# Give up after 5 failed starts in 60 s so a bad release does not restart-loop forever; `systemctl reset-failed` clears it.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mattressfitness
+Group=mattressfitness
+
+# `current` is a symlink to releases/<id> (VPS_RUNBOOK.md). systemd resolves it when the service starts, so a restart
+# is what moves the site to a new release.
+WorkingDirectory=/srv/mattressfitness/current
+# Absolute path of the Node 22 binary (NodeSource installs /usr/bin/node; with a tarball or nvm use that path).
+ExecStart=/usr/bin/node scripts/node-server/server.mjs
+
+# Host settings (not secret). The storefront's own variables come from the file below.
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=BIND_HOST=127.0.0.1
+# Safe only because BIND_HOST is loopback and nginx overwrites X-Forwarded-Proto (deploy/nginx.conf.example).
+Environment=TRUST_PROXY=true
+Environment=MAX_BODY_BYTES=1048576
+Environment=SHUTDOWN_TIMEOUT_MS=10000
+# Variables set by the file below override Environment= lines above if both name the same variable.
+EnvironmentFile=/etc/mattressfitness/env
+
+# Restart on a crash or a non-zero exit (including "configuration invalid", which exits 1), not on a clean stop.
+Restart=on-failure
+RestartSec=2
+# SIGTERM starts a graceful stop (finish in-flight requests, wait for background work up to SHUTDOWN_TIMEOUT_MS).
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# Both streams go to the journal; the storefront writes one JSON line per event to stdout/stderr.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mattressfitness
+
+# Sandbox. The service writes no files (no database, logs go to the journal), so the file system can be read-only.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+# AF_UNIX stays because some name-service setups resolve host names through a local socket.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+LimitNOFILE=65536
+# A ceiling so a leak restarts the service instead of taking the server down. Size it from observed use; this is a guess.
+MemoryMax=<MEMORY_CEILING_E.G._1G>
+
+[Install]
+WantedBy=multi-user.target
