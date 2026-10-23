@@ -66,6 +66,24 @@ describe('loadDeliverySummary', () => {
     expect(noZone.deliverySeed.delivery).toEqual({status: 'unavailable'});
   });
 
+  it('in production without a usable secret the seed says service-unavailable and the header flag is false', async () => {
+    vi.stubEnv('PROD', true);
+    try {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const summary = await loadDeliverySummary(
+        new Request(URL_LOCAL),
+        OFFER_ENV,
+      );
+      expect(summary.deliverySeed).toEqual({
+        delivery: {status: 'service-unavailable'},
+        error: null,
+      });
+      expect(summary.deliveryZipAvailable).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('keeps the ZIP out of the logs', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     await loadDeliverySummary(await requestWithZip('60645'), ENV);
@@ -94,6 +112,14 @@ describe('readDeliverySeed (route data is untrusted shape)', () => {
     {deliverySeed: {delivery: {status: 'outside-zone', zip: 7}}},
   ])('gives no seed for %j', (value) => {
     expect(readDeliverySeed(value)).toBeNull();
+  });
+
+  it('reads back the service-unavailable status', () => {
+    expect(
+      readDeliverySeed({
+        deliverySeed: {delivery: {status: 'service-unavailable'}},
+      })?.delivery,
+    ).toEqual({status: 'service-unavailable'});
   });
 
   it('keeps a promise only when it is text', () => {

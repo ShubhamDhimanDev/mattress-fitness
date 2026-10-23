@@ -1,9 +1,11 @@
 import {useCallback, useEffect, useRef} from 'react';
-import {useFetcher, useRevalidator, useRouteLoaderData} from 'react-router';
+import {useFetcher, useRouteLoaderData} from 'react-router';
+import {currentCartResultSeq} from '~/components/cart/cart-results';
 import {
   readDeliverySeed,
   type DeliveryResponse,
 } from '~/lib/delivery-runtime/response';
+import {markZipChanged} from '~/lib/delivery-runtime/zip-change';
 
 /** One shared fetcher: every ZIP control on a page (product page, cart, header) sees the same answer. */
 export const DELIVERY_FETCHER_KEY = 'delivery-zip';
@@ -15,21 +17,25 @@ export const DELIVERY_FETCHER_KEY = 'delivery-zip';
  * already read the signed cookie, so the header and the product-page and cart checks paint the right state
  * at once), else one request to `/delivery` after load (error pages that have no root data). After any change
  * the fetcher's own answer replaces the seed, so every surface keeps agreeing.
+ *
+ * A save or clear that the server accepted is recorded in `zip-change.ts`; the cart's offers view reads that
+ * record and refreshes itself (useCartOffers), so a change made from the header, the drawer or the cart page
+ * reaches the haul-away and free-delivery state without a reload. The page's loaders are deliberately NOT all
+ * re-run: the product page, the header and the catalog do not depend on the ZIP.
  */
-export function useDeliveryZip(
-  initial?: DeliveryResponse,
-  options: {refreshPageAfterChange?: boolean} = {},
-) {
+export function useDeliveryZip(initial?: DeliveryResponse) {
   const fetcher = useFetcher<DeliveryResponse>({key: DELIVERY_FETCHER_KEY});
   const {load, submit, state, data} = fetcher;
-  const {revalidate} = useRevalidator();
   // Untyped on purpose: importing the root's loader type here would make a cycle (root -> layout -> this).
   const rootData = useRouteLoaderData('root');
   const seed = initial ?? readDeliverySeed(rootData) ?? undefined;
   const hasSeed = seed !== undefined;
-  const refresh = options.refreshPageAfterChange === true;
   // One attempt per mount: a failing endpoint must not turn into a request loop.
   const requested = useRef(false);
+  // True between this instance sending a change and its answer arriving. Only the instance that sent it records
+  // the change, so several ZIP controls on one page do not count it more than once, and the answer to the
+  // first `load('/delivery')` is never mistaken for a change.
+  const awaitingAnswer = useRef(false);
 
   useEffect(() => {
     if (hasSeed || data !== undefined || requested.current) return;
@@ -37,19 +43,25 @@ export function useDeliveryZip(
     void load('/delivery');
   }, [hasSeed, data, load]);
 
-  // A ZIP change must not re-run every loader on the page (the product loader, the header, the catalog): the
-  // answer lives in this fetcher. Only a surface whose server data depends on the ZIP, the cart (offers and
-  // haul-away eligibility), asks for a page refresh.
+  useEffect(() => {
+    if (!awaitingAnswer.current || state !== 'idle' || data === undefined) {
+      return;
+    }
+    awaitingAnswer.current = false;
+    // A refused change (invalid ZIP, no secret, wrong origin) leaves the cookie as it was: nothing to refresh.
+    if (data.error === null) markZipChanged(currentCartResultSeq());
+  }, [state, data]);
+
   const send = useCallback(
     async (fields: Record<string, string>) => {
+      awaitingAnswer.current = true;
       await submit(fields, {
         method: 'post',
         action: '/delivery',
         defaultShouldRevalidate: false,
       });
-      if (refresh) await revalidate();
     },
-    [submit, revalidate, refresh],
+    [submit],
   );
   const save = useCallback(
     (zip: string) => send({intent: 'save', zip}),

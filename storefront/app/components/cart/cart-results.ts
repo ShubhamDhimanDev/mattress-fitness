@@ -25,9 +25,16 @@ export type CartResultSnapshot = {
    * no view, and the view of the cart as it still is must survive it (useCartOffers).
    */
   readonly offers: CartOffersView | null;
+  /** The `seq` of the answer `offers` came from (0 when none): lets a reader tell whether the view is newer than an event. */
+  readonly offersSeq: number;
 };
 
-const EMPTY: CartResultSnapshot = {seq: 0, data: null, offers: null};
+const EMPTY: CartResultSnapshot = {
+  seq: 0,
+  data: null,
+  offers: null,
+  offersSeq: 0,
+};
 let latest: CartResultSnapshot = EMPTY;
 const listeners = new Set<() => void>();
 // The same result object can be offered again (a remounted form, a second effect pass); it counts once.
@@ -50,10 +57,13 @@ export function currentCartResultSeq(): number {
 export function reportCartResult(data: unknown): void {
   if (!isCartActionResult(data) || reported.has(data)) return;
   reported.add(data);
+  const seq = latest.seq + 1;
+  const offers = readOffersView(data);
   latest = {
-    seq: latest.seq + 1,
+    seq,
     data,
-    offers: readOffersView(data) ?? latest.offers,
+    offers: offers ?? latest.offers,
+    offersSeq: offers ? seq : latest.offersSeq,
   };
   listeners.forEach((listener) => listener());
 }

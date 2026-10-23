@@ -19,8 +19,6 @@ type DeliveryCheckProps = {
   initial?: DeliveryResponse;
   /** The product page and cart say nothing when no delivery zone is configured; the /delivery page does. */
   showWhenUnavailable?: boolean;
-  /** Re-run the page's loaders after a change, for surfaces whose server data depends on the ZIP (the cart). */
-  refreshPageAfterChange?: boolean;
   className?: string;
 };
 
@@ -35,12 +33,9 @@ export function DeliveryCheck({
   title = 'Delivery',
   initial,
   showWhenUnavailable = false,
-  refreshPageAfterChange = false,
   className,
 }: DeliveryCheckProps) {
-  const {response, pending, save, clear} = useDeliveryZip(initial, {
-    refreshPageAfterChange,
-  });
+  const {response, pending, save, clear} = useDeliveryZip(initial);
   const headingId = useId();
   const [editing, setEditing] = useState(false);
   const [localError, setLocalError] = useState<string | undefined>(undefined);
@@ -68,6 +63,31 @@ export function DeliveryCheck({
   }, [editing]);
 
   if (delivery?.status === 'unavailable' && !showWhenUnavailable) return null;
+
+  // The deployment cannot keep a ZIP (P3B-11): no form that could never work and no yes or no. Unlike a store
+  // with no delivery zone this is shown on every surface, so the shopper is told rather than left with a gap.
+  if (delivery?.status === 'service-unavailable') {
+    return (
+      <section
+        aria-labelledby={headingId}
+        className={cn(
+          'flex flex-col gap-3 rounded-card border border-line p-4',
+          className,
+        )}
+      >
+        <h2
+          id={headingId}
+          className="flex items-center gap-2 text-base font-bold"
+        >
+          <TruckIcon className="size-5" />
+          {title}
+        </h2>
+        <div role="status" className="flex flex-col gap-1 text-sm">
+          <DeliveryAnswer delivery={delivery} />
+        </div>
+      </section>
+    );
+  }
 
   // Before the first answer (fetched after load so the page itself carries no ZIP) hold the space the form
   // takes, so nothing below jumps (NFR-002). Without scripts the link below is the way in.
@@ -223,6 +243,7 @@ function DeliveryAnswer({delivery}: {delivery: DeliveryView | null}) {
     return <p>Enter your ZIP code to see delivery options for your area.</p>;
   }
   switch (delivery.status) {
+    case 'service-unavailable':
     case 'unavailable':
       return <p>Delivery information is not available right now.</p>;
     case 'in-zone':

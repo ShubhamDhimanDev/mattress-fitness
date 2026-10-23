@@ -8,7 +8,10 @@ import {
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
 import {useDeliveryZip} from '~/components/delivery/useDeliveryZip';
-import {DeliveryZipControl} from '~/components/layout/DeliveryZipControl';
+import {
+  DeliveryZipControl,
+  DeliveryZipUnavailable,
+} from '~/components/layout/DeliveryZipControl';
 import {HeaderLogo} from '~/components/layout/BrandLogo';
 import {HeaderSearch} from '~/components/layout/HeaderSearch';
 import {MainNav} from '~/components/layout/MainNav';
@@ -43,7 +46,7 @@ type SiteHeaderProps = {
   /** Name of the shopper's chosen store, read from the validated my_store cookie by the root loader (P3B-10). */
   storeName?: string | null;
   supportPhone?: SupportPhone | null;
-  /** False in production when the ZIP cookie cannot be signed: no control that implies saving works. */
+  /** False in production when the ZIP cookie cannot be signed: a plain unavailable note replaces the control. */
   deliveryZipAvailable?: boolean;
 };
 
@@ -77,7 +80,7 @@ export function SiteHeader({
       <PromoBar message={promo} />
       <TopStrip visible={Boolean(topStrip)}>{topStrip}</TopStrip>
       <UtilityBar supportPhone={supportPhone}>
-        {deliveryZipAvailable ? (
+        {deliveryZipAvailable && delivery?.status !== 'service-unavailable' ? (
           <DeliveryZipControl
             zip={zip}
             onSubmit={(next) => void save(next)}
@@ -87,7 +90,9 @@ export function SiteHeader({
               response?.error ? DELIVERY_ERROR_TEXT[response.error] : undefined
             }
           />
-        ) : null}
+        ) : (
+          <DeliveryZipUnavailable />
+        )}
         <StoreSelectorLink storeName={storeName} />
       </UtilityBar>
 

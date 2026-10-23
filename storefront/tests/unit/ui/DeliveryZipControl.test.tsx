@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import {cleanup, fireEvent, render, screen} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {DeliveryZipControl} from '~/components/layout/DeliveryZipControl';
+import {
+  DeliveryZipControl,
+  DeliveryZipUnavailable,
+} from '~/components/layout/DeliveryZipControl';
 import {ZIP_ERROR_MESSAGE} from '~/components/layout/ZipEntryDialog';
 import {DELIVERY_ERROR_TEXT} from '~/lib/delivery-runtime/response';
 
@@ -117,5 +120,14 @@ describe('<DeliveryZipControl>', () => {
     expect(
       screen.getByText(DELIVERY_ERROR_TEXT['save-failed']),
     ).toBeInTheDocument();
+  });
+});
+
+describe('<DeliveryZipUnavailable>', () => {
+  it('is plain text: no button that opens a form which could never save, no ZIP, no promise', () => {
+    render(<DeliveryZipUnavailable />);
+    expect(screen.getByText('Delivery check unavailable')).toBeVisible();
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByText(/Delivering to/)).toBeNull();
   });
 });

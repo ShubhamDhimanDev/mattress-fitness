@@ -10,7 +10,7 @@ import {
 import {createMemoryRouter, data, RouterProvider} from 'react-router';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
-import {deliveryViewFor} from '~/lib/delivery/status';
+import {deliveryViewFor, type DeliveryView} from '~/lib/delivery/status';
 import type {DeliveryZone} from '~/lib/delivery/zone';
 
 afterEach(cleanup);
@@ -35,6 +35,8 @@ function renderCheck(options: {
   gate?: Promise<void>;
   zone?: DeliveryZone | null;
   saved?: string | null;
+  /** Replaces the computed answer, for states the zone cannot produce (the deployment cannot keep a ZIP). */
+  view?: DeliveryView;
 }) {
   let saved = options.saved ?? null;
   const zone = options.zone === undefined ? ZONE : options.zone;
@@ -51,14 +53,20 @@ function renderCheck(options: {
         path: '/delivery',
         loader: async () => {
           await options.gate;
-          return data({delivery: deliveryViewFor(zone, saved), error: null});
+          return data({
+            delivery: options.view ?? deliveryViewFor(zone, saved),
+            error: null,
+          });
         },
         action: async ({request}) => {
           const form = await request.formData();
           submissions.push(String(form.get('zip') ?? form.get('intent')));
           saved =
             form.get('intent') === 'clear' ? null : String(form.get('zip'));
-          return data({delivery: deliveryViewFor(zone, saved), error: null});
+          return data({
+            delivery: options.view ?? deliveryViewFor(zone, saved),
+            error: null,
+          });
         },
       },
     ],
@@ -162,6 +170,25 @@ describe('DeliveryCheck', () => {
     await waitFor(() => expect(screen.queryByText(/available to/i)).toBeNull());
     expect(view.submissions).toEqual([]);
     await waitFor(() => expect(screen.queryByLabelText('ZIP code')).toBeNull());
+  });
+
+  it('shows a plain unavailable state, with no form and no yes or no, when the deployment cannot keep a ZIP (P3B-11)', async () => {
+    const view = renderCheck({
+      saved: '60645',
+      view: {status: 'service-unavailable'},
+    });
+    expect(
+      await screen.findByText(
+        'Delivery information is not available right now.',
+      ),
+    ).toBeVisible();
+    // Unlike "no zone configured", this is visible on the product page and the cart too.
+    expect(screen.getByRole('region', {name: 'Delivery'})).toBeVisible();
+    expect(screen.queryByLabelText('ZIP code')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByText(/available to|not available to/i)).toBeNull();
+    expect(screen.queryByText('White-glove delivery.')).toBeNull();
+    expect(view.submissions).toEqual([]);
   });
 
   it('clears the saved ZIP and goes back to asking', async () => {

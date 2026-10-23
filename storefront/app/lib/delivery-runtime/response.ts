@@ -30,6 +30,7 @@ export function readDeliverySeed(rootData: unknown): DeliveryResponse | null {
   if (typeof view !== 'object' || view === null) return null;
   const status: unknown = Reflect.get(view, 'status');
   switch (status) {
+    case 'service-unavailable':
     case 'unavailable':
     case 'no-zip':
       return {delivery: {status}, error: null};

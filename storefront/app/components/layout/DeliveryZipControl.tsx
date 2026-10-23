@@ -91,3 +91,16 @@ export function DeliveryZipControl({
     </>
   );
 }
+
+/**
+ * Shown in place of the control when this deployment cannot keep a ZIP (P3B-11). Plain text, not a button: a
+ * control that opens a form which can never save would be worse than saying so. No ZIP, no promise.
+ */
+export function DeliveryZipUnavailable() {
+  return (
+    <span className="inline-flex min-h-touch shrink-0 items-center gap-2">
+      <TruckIcon className="size-5" />
+      <span>Delivery check unavailable</span>
+    </span>
+  );
+}

@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import {useFetcher} from 'react-router';
 import {useLatestCartResult} from '~/components/cart/cart-results';
+import {useZipChange} from '~/components/delivery/useZipChange';
 import {pickOffersView, readOffersView} from '~/lib/offers-runtime/client';
 import type {CartOffersView} from '~/lib/offers-runtime/view';
 
@@ -14,6 +15,13 @@ import type {CartOffersView} from '~/lib/offers-runtime/view';
  * `useFetchers()`: React Router drops a mounted fetcher from that list as soon as it is idle, so a view read there
  * vanished right after it arrived and the drawer asked `/cart` again after every change (B-20 follow-up). Only this
  * hook's own `cart-offers` fetcher is read directly, because its data survives.
+ *
+ * The view depends on the shopper's delivery ZIP (haul-away eligibility, the free-delivery message), which is not
+ * part of the cart version. After a ZIP change (zip-change.ts, P3B-11) every view computed before it is dropped:
+ * the page loader's, an earlier action's, and the earlier fetch (a new fetcher key per change starts empty). The
+ * hook then asks `/cart` again, on the page as well as in the drawer, and a cart action answered after the change
+ * is used as soon as it arrives. The `/cart` request reads the new signed cookie on the server; nothing about the
+ * ZIP is sent or cached by the browser here.
  */
 export function useCartOffers({
   cartUpdatedAt,
@@ -24,27 +32,37 @@ export function useCartOffers({
   provided: CartOffersView | null | undefined;
   active: boolean;
 }): CartOffersView | null {
-  const {offers: reported} = useLatestCartResult();
-  const loader = useFetcher({key: 'cart-offers'});
+  const {offers: reportedOffers, offersSeq} = useLatestCartResult();
+  const {epoch, cartResultSeq} = useZipChange();
+  const loader = useFetcher({key: `cart-offers-${epoch}`});
   const requestedFor = useRef<string | null>(null);
 
+  // Once the ZIP has changed, the loader's view of the page is older than the cookie; only views fetched or
+  // answered since the change describe the cart as it is now.
+  const changed = epoch > 0;
+  const usableProvided = changed ? null : (provided ?? null);
+  const usableReported =
+    !changed || offersSeq > cartResultSeq ? reportedOffers : null;
+
   const view = pickOffersView(
-    [provided ?? null, reported, readOffersView(loader.data)],
+    [usableProvided, usableReported, readOffersView(loader.data)],
     cartUpdatedAt,
   );
 
-  const needsLoad = active && !provided && !view && Boolean(cartUpdatedAt);
+  const needsLoad =
+    active && !usableProvided && !view && Boolean(cartUpdatedAt);
+  const requestKey = cartUpdatedAt ? `${epoch}:${cartUpdatedAt}` : null;
   useEffect(() => {
     if (
       !needsLoad ||
-      !cartUpdatedAt ||
-      requestedFor.current === cartUpdatedAt
+      requestKey === null ||
+      requestedFor.current === requestKey
     ) {
       return;
     }
-    requestedFor.current = cartUpdatedAt;
+    requestedFor.current = requestKey;
     void loader.load('/cart');
-  }, [needsLoad, cartUpdatedAt, loader]);
+  }, [needsLoad, requestKey, loader]);
 
   return view;
 }
