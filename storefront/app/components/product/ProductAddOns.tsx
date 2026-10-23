@@ -1,11 +1,12 @@
-import {useId} from 'react';
+import {useEffect, useId, useRef} from 'react';
+import {useFetchers} from 'react-router';
 import {CartActionForm} from '~/components/cart/CartActionForm';
+import {useCartVariantIds} from '~/components/product/useCartVariantIds';
 import {useProductAddOns} from '~/components/product/useProductAddOns';
 import {Button} from '~/components/ui/Button';
 import {Price} from '~/components/ui/Price';
 import {Skeleton} from '~/components/ui/Skeleton';
 import {ADD_ADDON_ACTION} from '~/lib/cart/custom-actions';
-import {isCartActionResult, readCartMessages} from '~/lib/cart/messages';
 import {PRODUCT_ADDON_COPY} from '~/lib/offers-runtime/messages';
 import {
   itemsForSize,
@@ -14,7 +15,9 @@ import {
 
 /**
  * Held while the list loads, for a product the server already knows has add-ons (the loader's `addOnsExpected`), so
- * what sits below the slot does not jump when the answer arrives (NFR-002).
+ * what sits below the slot does not jump when the answer arrives (NFR-002). One fixed height (about one row plus the
+ * heading) on purpose: the row count per size is only known once the list arrives, and a guess from the rules would
+ * need another loader field for a few pixels of difference.
  */
 const RESERVED = 'min-h-48';
 
@@ -100,6 +103,14 @@ function AddOnList({
   onViewCart: () => void;
 }) {
   const headingId = useId();
+  const reasonId = useId();
+  // What the cart holds comes from the root loader, so it follows changes made anywhere (the drawer, another page).
+  const cartIds = useCartVariantIds();
+  // Cart writes are serialised: while any cart form is in flight every row waits, so two rows cannot race on the
+  // "mattress not in the cart yet" decision.
+  const busy = useFetchers().some(
+    (fetcher) => fetcher.state !== 'idle' && fetcher.formAction === '/cart',
+  );
   return (
     <section
       aria-labelledby={headingId}
@@ -108,7 +119,7 @@ function AddOnList({
       <h2 id={headingId} className="type-display text-base">
         {PRODUCT_ADDON_COPY.heading}
       </h2>
-      <p className="text-sm text-fg-muted">
+      <p id={reasonId} className="text-sm text-fg-muted">
         {mattress.available
           ? PRODUCT_ADDON_COPY.help
           : PRODUCT_ADDON_COPY.soldOutMattress}
@@ -119,6 +130,15 @@ function AddOnList({
             key={item.variant.variantId}
             item={item}
             mattress={mattress}
+            // Both lines are in the cart: this exact mattress size and this add-on. A size-independent add-on that
+            // was added with Queen is therefore not "added" for King.
+            added={
+              cartIds !== null &&
+              cartIds.has(item.variant.variantId) &&
+              cartIds.has(mattress.variantId)
+            }
+            busy={busy}
+            reasonId={mattress.available ? undefined : reasonId}
             onViewCart={onViewCart}
           />
         ))}
@@ -130,16 +150,37 @@ function AddOnList({
 function AddOnRow({
   item,
   mattress,
+  added,
+  busy,
+  reasonId,
   onViewCart,
 }: {
   item: ProductAddOnItem;
   mattress: AddOnMattress;
+  added: boolean;
+  /** Some cart form is in flight (this row's or another's). */
+  busy: boolean;
+  /** Id of the text that says why the buttons are off (sold-out mattress), when they are. */
+  reasonId: string | undefined;
   onViewCart: () => void;
 }) {
   const {variant} = item;
   const name = variant.variantTitle
     ? `${variant.productTitle}, ${variant.variantTitle}`
     : variant.productTitle;
+  const viewCart = useRef<HTMLSpanElement>(null);
+  const wasAdded = useRef(added);
+  useEffect(() => {
+    // The Add button unmounts when the add lands; keep the shopper in the row instead of dropping focus to the page.
+    if (added && !wasAdded.current) {
+      const active = document.activeElement;
+      if (active === null || active === document.body) {
+        viewCart.current?.querySelector('button')?.focus();
+      }
+    }
+    wasAdded.current = added;
+  }, [added]);
+
   return (
     <li className="rounded-choice border border-line p-3">
       <CartActionForm
@@ -152,13 +193,6 @@ function AddOnRow({
       >
         {(fetcher) => {
           const pending = fetcher.state !== 'idle';
-          // An answer with no error is an add (warnings alone still mean the lines landed).
-          const added =
-            !pending &&
-            isCartActionResult(fetcher.data) &&
-            readCartMessages(fetcher.data).every(
-              (message) => message.kind !== 'error',
-            );
           return (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="flex min-w-0 flex-col">
@@ -170,8 +204,11 @@ function AddOnRow({
                 ) : null}
                 <Price price={variant.price} size="sm" />
               </span>
-              <span className="flex items-center gap-2">
-                {added ? (
+              {added ? (
+                <span ref={viewCart} className="flex items-center gap-2">
+                  <span className="text-sm font-bold">
+                    {PRODUCT_ADDON_COPY.added}
+                  </span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -181,25 +218,24 @@ function AddOnRow({
                   >
                     {PRODUCT_ADDON_COPY.viewCart}
                   </Button>
-                ) : null}
+                </span>
+              ) : (
                 <Button
                   type="submit"
                   variant="secondary"
                   size="sm"
                   // Flex item: shrink-0 keeps the label from squeezing below its longest word.
                   className="shrink-0"
-                  disabled={!mattress.available || added}
+                  disabled={!mattress.available || (busy && !pending)}
                   loading={pending}
                   loadingLabel={PRODUCT_ADDON_COPY.adding}
-                  // The visible label is the same for every row, so the name says which item. Not set once added: the
-                  // visible text then changes and the name must follow it (WCAG 2.5.3).
-                  aria-label={
-                    added ? undefined : `${PRODUCT_ADDON_COPY.add}: ${name}`
-                  }
+                  aria-describedby={reasonId}
+                  // The visible label is the same for every row, so the name says which item.
+                  aria-label={`${PRODUCT_ADDON_COPY.add}: ${name}`}
                 >
-                  {added ? PRODUCT_ADDON_COPY.added : PRODUCT_ADDON_COPY.add}
+                  {PRODUCT_ADDON_COPY.add}
                 </Button>
-              </span>
+              )}
               <span role="status" className="sr-only">
                 {added ? `${PRODUCT_ADDON_COPY.added}: ${name}` : ''}
               </span>

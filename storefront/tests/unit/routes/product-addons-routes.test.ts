@@ -116,6 +116,21 @@ describe('GET /api/product-addons (REQ-ADD-001)', () => {
     },
   );
 
+  it('a failed Shopify read answers 502 with no cache, never an empty list a cache would keep', async () => {
+    const {storefront} = fakeStorefront(() => {
+      throw new Error('upstream down');
+    });
+    const response = await addOnsLoader(
+      args(new Request(url(`?productId=${encodeURIComponent(GID.mattress)}`)), {
+        storefront,
+        env: ENV,
+      }),
+    );
+    expect(response.status).toBe(502);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await bodyOf(response)).toEqual({status: 'unavailable'});
+  });
+
   it('refuses a request the browser labels cross-site', async () => {
     const {storefront, calls} = fakeStorefront(storefrontResponder());
     const response = await addOnsLoader(

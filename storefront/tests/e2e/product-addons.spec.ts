@@ -263,10 +263,9 @@ test.describe('product page add-on slot (REQ-ADD-001)', () => {
     }
 
     if (RULES_ON) {
-      await expect(
-        slot.getByRole('button', {name: 'Added to cart'}),
-      ).toBeDisabled();
-      await expect(slot.getByRole('button', {name: 'View cart'})).toBeVisible();
+      // The row now reads the cart: the Add button is replaced by the confirmation and focus stays in the row.
+      await expect(slot.getByRole('button', {name: 'View cart'})).toBeFocused();
+      await expect(slot.getByText('Added to cart').first()).toBeVisible();
     } else {
       // No offer rules on a mock store: the server refuses with a fixed message and adds nothing.
       await expect(

@@ -5,6 +5,7 @@ import {
   isProductGid,
   itemsForSize,
   readProductAddOnsAnswer,
+  variantIdsInCart,
   type ProductAddOnItem,
 } from '~/lib/offers-runtime/product-addons';
 import {
@@ -133,17 +134,28 @@ describe('productHasAddOns (rules only, no Shopify read)', () => {
   });
 });
 
+/** The items of an answer that must be a list; a failure to read is a test failure here, not an empty list. */
+async function listed(
+  read: ReturnType<typeof loadProductAddOns>,
+): Promise<readonly ProductAddOnItem[]> {
+  const answer = await read;
+  if (answer.status !== 'ok') throw new Error('expected a list');
+  return answer.items;
+}
+
 describe('loadProductAddOns (REQ-ADD-001, REQ-CAT-007)', () => {
   it('offers the in-stock foundations of every size with the price Shopify returned, and not the pillow', async () => {
     const {storefront, calls} = fakeStorefront(storefrontResponder());
-    const answer = await loadProductAddOns(storefront, ENV, GID.mattress);
-    expect(
-      answer.items.map((entry) => [entry.size, entry.variant.variantId]),
-    ).toEqual([
-      ['Queen', GID.foundationQueen],
-      ['King', GID.foundationKing],
-    ]);
-    expect(answer.items[0]?.variant.price).toEqual({
+    const items = await listed(
+      loadProductAddOns(storefront, ENV, GID.mattress),
+    );
+    expect(items.map((entry) => [entry.size, entry.variant.variantId])).toEqual(
+      [
+        ['Queen', GID.foundationQueen],
+        ['King', GID.foundationKing],
+      ],
+    );
+    expect(items[0]?.variant.price).toEqual({
       amount: '49.00',
       currencyCode: 'USD',
     });
@@ -159,8 +171,10 @@ describe('loadProductAddOns (REQ-ADD-001, REQ-CAT-007)', () => {
     const {storefront} = fakeStorefront(
       storefrontResponder({soldOut: [GID.foundationKing]}),
     );
-    const answer = await loadProductAddOns(storefront, ENV, GID.mattress);
-    expect(answer.items.map((entry) => entry.variant.variantId)).toEqual([
+    const items = await listed(
+      loadProductAddOns(storefront, ENV, GID.mattress),
+    );
+    expect(items.map((entry) => entry.variant.variantId)).toEqual([
       GID.foundationQueen,
     ]);
   });
@@ -170,7 +184,7 @@ describe('loadProductAddOns (REQ-ADD-001, REQ-CAT-007)', () => {
       storefrontResponder({soldOut: [GID.foundationQueen, GID.foundationKing]}),
     );
     expect(
-      (await loadProductAddOns(storefront, ENV, GID.mattress)).items,
+      await listed(loadProductAddOns(storefront, ENV, GID.mattress)),
     ).toEqual([]);
   });
 
@@ -180,16 +194,16 @@ describe('loadProductAddOns (REQ-ADD-001, REQ-CAT-007)', () => {
     ['no configuration', {}, GID.mattress],
   ])('offers nothing, and reads nothing, for %s', async (_name, env, id) => {
     const {storefront, calls} = fakeStorefront(storefrontResponder());
-    expect((await loadProductAddOns(storefront, env, id)).items).toEqual([]);
+    expect(await listed(loadProductAddOns(storefront, env, id))).toEqual([]);
     expect(calls).toEqual([]);
   });
 
-  it('a failed Shopify read offers nothing and does not throw (the page is never blocked)', async () => {
+  it('a failed Shopify read is reported as unavailable, not as an empty list, and does not throw', async () => {
     const {storefront} = fakeStorefront(() => {
       throw new Error('upstream down');
     });
     const answer = await loadProductAddOns(storefront, ENV, GID.mattress);
-    expect(answer).toEqual({status: 'ok', items: []});
+    expect(answer).toEqual({status: 'unavailable'});
   });
 });
 
@@ -234,6 +248,37 @@ describe('readProductAddOnsAnswer (the browser trusts nothing it did not check)'
   ])('drops an item with %s and keeps the rest', (_name, bad) => {
     const answer = readProductAddOnsAnswer({status: 'ok', items: [bad, good]});
     expect(answer?.items).toEqual([good]);
+  });
+});
+
+describe('variantIdsInCart (what the row treats as added)', () => {
+  const cart = (...ids: string[]) => ({
+    lines: {nodes: ids.map((id) => ({merchandise: {id}}))},
+  });
+
+  it('lists the variant ids on the cart lines', () => {
+    expect(variantIdsInCart(cart('a', 'b'))).toEqual(new Set(['a', 'b']));
+  });
+
+  it('treats no cart as an empty cart', () => {
+    expect(variantIdsInCart(null)).toEqual(new Set());
+  });
+
+  it.each([
+    ['undefined', undefined],
+    ['a string', 'cart'],
+    ['no lines', {}],
+    ['lines without nodes', {lines: {}}],
+  ])('treats %s as unknown, so nothing is claimed as added', (_name, value) => {
+    expect(variantIdsInCart(value)).toBeNull();
+  });
+
+  it('skips a line with no merchandise', () => {
+    expect(
+      variantIdsInCart({
+        lines: {nodes: [{merchandise: null}, {}, {merchandise: {id: 'a'}}]},
+      }),
+    ).toEqual(new Set(['a']));
   });
 });
 

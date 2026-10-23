@@ -112,3 +112,21 @@ const DEV_ADDONS_COOKIE = /(?:^|;\s*)e2e_addons_expected=1(?:;|$)/;
 export function hasDevAddOnsCookie(cookieHeader: string): boolean {
   return DEV_ADDONS_COOKIE.test(cookieHeader);
 }
+
+/**
+ * The variant ids a cart holds, from the root loader's cart (typed `unknown` at the browser boundary). No cart at all is
+ * an empty set; something that does not look like a cart is `null` (unknown), so the page never claims "added" from it.
+ */
+export function variantIdsInCart(cart: unknown): ReadonlySet<string> | null {
+  if (cart === null) return new Set();
+  if (!isRecord(cart) || !isRecord(cart.lines)) return null;
+  const nodes = cart.lines.nodes;
+  if (!Array.isArray(nodes)) return null;
+  const ids = new Set<string>();
+  for (const node of nodes) {
+    if (!isRecord(node) || !isRecord(node.merchandise)) continue;
+    const id = node.merchandise.id;
+    if (typeof id === 'string') ids.add(id);
+  }
+  return ids;
+}

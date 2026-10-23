@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -45,6 +46,8 @@ function item(
   };
 }
 
+const FRAME = 'gid://shopify/ProductVariant/80';
+
 const ITEMS = [
   item(FOUND_QUEEN, 'Queen', 'Steel foundation'),
   item(FOUND_KING, 'King', 'Steel foundation', '399.00'),
@@ -69,16 +72,31 @@ function stubList(
 const ok = (items: readonly ProductAddOnItem[] = ITEMS) =>
   new Response(JSON.stringify({status: 'ok', items}), {status: 200});
 
+/** Variant ids the stand-in cart holds; the root loader below reads it, so every action reloads it like the real root. */
+let cartHolds: string[] = [];
+/** When set, the next cart action waits for it (to look at the page while an add is in flight). */
+let hold: Promise<void> | null = null;
+
 function cartAction(answer: {errors?: string[]; warnings?: string[]}) {
   return async ({request}: {request: Request}) => {
     const form = await request.formData();
     const raw = form.get(CartForm.INPUT_NAME);
     const parsed: unknown = typeof raw === 'string' ? JSON.parse(raw) : null;
     if (typeof parsed === 'object' && parsed !== null) {
+      const inputs = 'inputs' in parsed ? parsed.inputs : undefined;
       posted.push({
         action: 'action' in parsed ? parsed.action : undefined,
-        inputs: 'inputs' in parsed ? parsed.inputs : undefined,
+        inputs,
       });
+      if (hold) await hold;
+      if (!answer.errors?.length && typeof inputs === 'object' && inputs) {
+        for (const key of ['mattressVariantId', 'variantId']) {
+          const id: unknown = Reflect.get(inputs, key);
+          if (typeof id === 'string' && !cartHolds.includes(id)) {
+            cartHolds.push(id);
+          }
+        }
+      }
     }
     return data(
       {
@@ -126,13 +144,25 @@ function mount(
     answer?: {errors?: string[]; warnings?: string[]};
     onViewCart?: () => void;
     available?: boolean;
+    cart?: string[];
   } = {},
 ) {
   posted.length = 0;
+  cartHolds = [...(options.cart ?? [])];
+  hold = null;
   const router = createMemoryRouter(
     [
       {
+        id: 'root',
         path: '/',
+        // Like the real root loader: the cart is a promise, and it is read again after every action.
+        loader: () => ({
+          cart: Promise.resolve({
+            lines: {
+              nodes: cartHolds.map((id) => ({merchandise: {id}})),
+            },
+          }),
+        }),
         element: (
           <Harness
             onViewCart={options.onViewCart ?? (() => {})}
@@ -145,6 +175,7 @@ function mount(
     {initialEntries: ['/']},
   );
   render(<RouterProvider router={router} />);
+  return router;
 }
 
 beforeEach(() => {
@@ -194,7 +225,7 @@ describe('ProductAddOns (REQ-ADD-001)', () => {
         }),
     );
     mount();
-    expect(screen.getByText(/Loading foundations/)).toBeInTheDocument();
+    expect(await screen.findByText(/Loading foundations/)).toBeInTheDocument();
     expect(
       screen.getByText(/Loading foundations/).closest('[aria-busy="true"]'),
     ).toHaveClass('min-h-48');
@@ -206,6 +237,8 @@ describe('ProductAddOns (REQ-ADD-001)', () => {
   it('renders nothing for a size with no matching item', async () => {
     stubList(() => ok([item(FOUND_KING, 'King', 'Steel foundation')]));
     mount();
+    // The slot mounted and asked (not a vacuous pass before the page rendered), then it settled.
+    await waitFor(() => expect(requested).toHaveLength(1));
     await waitFor(() =>
       expect(screen.queryByText(/Loading foundations/)).toBeNull(),
     );
@@ -218,6 +251,8 @@ describe('ProductAddOns (REQ-ADD-001)', () => {
   it('renders nothing when the server lists nothing', async () => {
     stubList(() => ok([]));
     mount();
+    // The slot mounted and asked (not a vacuous pass before the page rendered), then it settled.
+    await waitFor(() => expect(requested).toHaveLength(1));
     await waitFor(() =>
       expect(screen.queryByText(/Loading foundations/)).toBeNull(),
     );
@@ -321,18 +356,23 @@ describe('ProductAddOns add (REQ-ADD-001, T-01)', () => {
     );
   });
 
-  it('after a successful add the row says so, announces it, disables the button and offers View cart', async () => {
+  it('after a successful add the row says so, announces it, offers View cart and keeps focus in the row', async () => {
     stubList(() => ok());
     const onViewCart = vi.fn();
     mount({onViewCart});
     const region = await slot();
-    fireEvent.click(
-      within(region).getAllByRole('button', {name: /Add with mattress/})[0],
-    );
-    const added = await within(region).findByRole('button', {
-      name: 'Added to cart',
-    });
-    expect(added).toBeDisabled();
+    const add = within(region).getAllByRole('button', {
+      name: /Add with mattress/,
+    })[0];
+    add.focus();
+    fireEvent.click(add);
+    const view = await within(region).findByRole('button', {name: 'View cart'});
+    expect(within(region).getAllByText('Added to cart')[0]).toBeVisible();
+    // The Add button of that row is gone, and focus moved to the control that replaced it (it did not drop to the body).
+    expect(
+      within(region).queryByRole('button', {name: /Add with mattress: Steel/}),
+    ).toBeNull();
+    await waitFor(() => expect(view).toHaveFocus());
     expect(
       within(region)
         .getAllByRole('status')
@@ -340,8 +380,87 @@ describe('ProductAddOns add (REQ-ADD-001, T-01)', () => {
           /Added to cart: Steel foundation, Queen/.test(node.textContent ?? ''),
         ),
     ).toBe(true);
-    fireEvent.click(within(region).getByRole('button', {name: 'View cart'}));
+    fireEvent.click(view);
     expect(onViewCart).toHaveBeenCalledTimes(1);
+  });
+
+  it('is added only while the cart holds BOTH the add-on and this mattress: removing the add-on in the cart brings the Add button back', async () => {
+    stubList(() => ok());
+    const router = mount({cart: [MATTRESS_QUEEN, FOUND_QUEEN]});
+    const region = await slot();
+    // Back on the page with both lines already in the cart.
+    expect(
+      await within(region).findAllByRole('button', {name: 'View cart'}),
+    ).toHaveLength(1);
+    expect(
+      within(region).queryByRole('button', {name: /Add with mattress: Steel/}),
+    ).toBeNull();
+    // The shopper removes the foundation in the cart; the root cart reloads.
+    cartHolds = [MATTRESS_QUEEN];
+    await act(() => router.revalidate());
+    expect(
+      await within(region).findByRole('button', {
+        name: /Add with mattress: Steel foundation, Queen/,
+      }),
+    ).toBeEnabled();
+    expect(
+      within(region).queryByRole('button', {name: 'View cart'}),
+    ).toBeNull();
+  });
+
+  it('a size-independent add-on added with Queen is not shown as added for King', async () => {
+    stubList(() => ok());
+    mount({cart: [MATTRESS_QUEEN, FRAME]});
+    const region = await slot();
+    expect(
+      await within(region).findAllByRole('button', {name: 'View cart'}),
+    ).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', {name: 'Choose King'}));
+    const king = await slot();
+    // The frame is still listed (it fits every size) but it can be added again with the King mattress.
+    await waitFor(() =>
+      expect(
+        within(king).getByRole('button', {
+          name: /Add with mattress: Platform frame/,
+        }),
+      ).toBeEnabled(),
+    );
+    expect(within(king).queryByRole('button', {name: 'View cart'})).toBeNull();
+  });
+
+  it('an empty cart claims no add', async () => {
+    stubList(() => ok());
+    mount();
+    const region = await slot();
+    expect(
+      within(region).queryByRole('button', {name: 'View cart'}),
+    ).toBeNull();
+  });
+
+  it('while one row is adding every other row waits, so two adds cannot race', async () => {
+    stubList(() => ok());
+    let release: () => void = () => {};
+    mount();
+    const region = await slot();
+    hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const buttons = () =>
+      within(region).getAllByRole('button', {name: /Add with mattress/});
+    fireEvent.click(buttons()[0]);
+    await waitFor(() => expect(buttons()[1]).toBeDisabled());
+    // The row that is adding keeps its button (inert, busy), so focus stays where it was.
+    expect(buttons()[0]).toHaveAttribute('aria-disabled', 'true');
+    release();
+    await waitFor(() => expect(posted).toHaveLength(1));
+    await within(region).findAllByRole('button', {name: 'View cart'});
+    await waitFor(() =>
+      expect(
+        within(region).getByRole('button', {
+          name: /Add with mattress: Platform frame/,
+        }),
+      ).toBeEnabled(),
+    );
   });
 
   it('a refused add shows the fixed message in the shared cart messages and leaves the button usable', async () => {
@@ -368,11 +487,13 @@ describe('ProductAddOns add (REQ-ADD-001, T-01)', () => {
     stubList(() => ok());
     mount({available: false});
     const region = await slot();
+    const reason = within(region).getByText(/back in stock/);
     for (const button of within(region).getAllByRole('button', {
       name: /Add with mattress/,
     })) {
       expect(button).toBeDisabled();
+      // The reason is announced with the button, not only shown next to it.
+      expect(button).toHaveAccessibleDescription(reason.textContent ?? '');
     }
-    expect(within(region).getByText(/back in stock/)).toBeInTheDocument();
   });
 });

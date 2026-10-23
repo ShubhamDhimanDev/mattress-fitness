@@ -1,11 +1,13 @@
-import {describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it, vi} from 'vitest';
 import {fakeStorefront} from '../catalog/fake-storefront';
 import {validateAddAddOn} from '~/lib/cart/actions';
+import {decideCheckout} from '~/lib/cart/checkout';
 import {addAddOn, type PickerResult} from '~/lib/offers-runtime/picker-steps';
-import type {
-  CartLineAddInput,
-  CartMutationResult,
-  OfferRuntime,
+import {
+  revalidateCartOffers,
+  type CartLineAddInput,
+  type CartMutationResult,
+  type OfferRuntime,
 } from '~/lib/offers-runtime/server';
 import {
   CONFIG,
@@ -389,5 +391,90 @@ describe('validateAddAddOn (T-01)', () => {
     expect(
       validateAddAddOn({variantId: GID.foundationQueen, ...extra}).status,
     ).toBe('invalid');
+  });
+});
+
+describe('two adds from the product page never duplicate the mattress (REQ-ADD-001, K-L5)', () => {
+  it('a second add-on requested after the first landed adds only itself', async () => {
+    const fake = new FakeCart([]);
+    const {runtime} = setup(fake);
+    await addAddOn(runtime, null, FROM_PRODUCT);
+    const second = await addAddOn(runtime, fake.snapshot(), {
+      variantId: GID.pillowVariant,
+      mattressVariantId: GID.mattressQueen,
+    });
+    expect(second.status).toBe('ok');
+    expect(addCalls(fake)[1]).toMatchObject({
+      lines: [{merchandiseId: GID.pillowVariant, quantity: 1}],
+    });
+    const mattressLines = fake
+      .allSpecs()
+      .filter((spec) => spec.variantId === GID.mattressQueen);
+    expect(mattressLines).toHaveLength(1);
+    expect(mattressLines[0]?.quantity ?? 1).toBe(1);
+  });
+
+  it('a second request judged against the cart as it was before the first is refused, not applied', async () => {
+    const fake = new FakeCart([]);
+    const before = fake.snapshot();
+    const {runtime} = setup(fake);
+    await addAddOn(runtime, null, FROM_PRODUCT);
+    const stale = await addAddOn(runtime, before, {
+      variantId: GID.pillowVariant,
+      mattressVariantId: GID.mattressQueen,
+    });
+    expect(code(stale)).toBe('cart-changed');
+    expect(addCalls(fake)).toHaveLength(1);
+  });
+});
+
+describe('an add-on added while the Extend coverage catalog is unreadable (REQ-ADD-001, O-M2)', () => {
+  const EXTEND_ENV = {
+    ...ENV,
+    PUBLIC_EXTEND_ENABLED: 'true',
+    EXTEND_API_HOST: 'https://api-demo.helloextend.com',
+    EXTEND_STORE_ID: 'store-1',
+    EXTEND_ACCESS_TOKEN: 'fixture-token-not-real',
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('is added, and the gate pass that follows leaves the view unverified with checkout withheld', async () => {
+    // No network is ever reached: Extend is stubbed to fail, and the coverage catalog read throws.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('no network in tests'))),
+    );
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const base = storefrontResponder();
+    const {storefront} = fakeStorefront((call) => {
+      if (call.query.includes('query ExtendCoverageVariants')) {
+        throw new Error('storefront down');
+      }
+      return base(call);
+    });
+    const fake = new FakeCart([MATTRESS_LINE]);
+    const runtime: OfferRuntime = {
+      storefront,
+      cart: fake,
+      env: EXTEND_ENV,
+      production: true,
+    };
+
+    const result = await addAddOn(runtime, fake.snapshot(), {
+      variantId: GID.foundationQueen,
+    });
+    expect(result.status).toBe('ok');
+    expect(fake.allSpecs().map((spec) => spec.variantId)).toContain(
+      GID.foundationQueen,
+    );
+
+    // What the route does after every picker add.
+    const after = await revalidateCartOffers(runtime, await fake.get());
+    expect(after.view?.blocked[0]?.code).toBe('unverified');
+    expect(decideCheckout(after.cart, after.view).status).toBe('blocked');
   });
 });

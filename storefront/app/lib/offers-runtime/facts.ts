@@ -24,20 +24,22 @@ function unique(ids: readonly string[]): string[] {
   return [...new Set(ids)].slice(0, MAX_IDS);
 }
 
+export type OfferedVariantsRead =
+  | {readonly status: 'ok'; readonly variants: Map<string, OfferedVariant>}
+  | {readonly status: 'error'};
+
 /**
- * Details of the variants that are in stock; a sold-out or unknown id is simply absent. The cart reads fresh (the ids
- * come from a cart, never cached). `priced` is for a page that is the same for every shopper (the product page's
- * add-on slot, P4-03): the 60 second price-and-availability window every catalog card uses (DEC-024); the ids in the
- * cache key are catalog ids from the rules, never personal data. The add itself always re-reads fresh.
+ * Like `loadOfferedVariants` but says when the read FAILED, so a caller that must not present "could not read" as
+ * "nothing is offered" (the product page's add-on slot, which would otherwise cache an empty answer) can tell.
  */
-export async function loadOfferedVariants(
+export async function readOfferedVariants(
   storefront: Storefront,
   variantIds: readonly string[],
   options: {readonly priced?: boolean} = {},
-): Promise<Map<string, OfferedVariant>> {
+): Promise<OfferedVariantsRead> {
   const variants = new Map<string, OfferedVariant>();
   const ids = unique(variantIds);
-  if (ids.length === 0) return variants;
+  if (ids.length === 0) return {status: 'ok', variants};
   try {
     const result = await storefront.query(OFFER_VARIANTS_QUERY, {
       cache: options.priced ? pricedCache(storefront) : noCache(storefront),
@@ -53,10 +55,26 @@ export async function loadOfferedVariants(
         price: node.price,
       });
     }
+    return {status: 'ok', variants};
   } catch (error) {
     logFailure('variants', error);
+    return {status: 'error'};
   }
-  return variants;
+}
+
+/**
+ * Details of the variants that are in stock; a sold-out or unknown id is simply absent. The cart reads fresh (the ids
+ * come from a cart, never cached). `priced` is for a page that is the same for every shopper (the product page's
+ * add-on slot, P4-03): the 60 second price-and-availability window every catalog card uses (DEC-024); the ids in the
+ * cache key are catalog ids from the rules, never personal data. The add itself always re-reads fresh.
+ */
+export async function loadOfferedVariants(
+  storefront: Storefront,
+  variantIds: readonly string[],
+  options: {readonly priced?: boolean} = {},
+): Promise<Map<string, OfferedVariant>> {
+  const read = await readOfferedVariants(storefront, variantIds, options);
+  return read.status === 'ok' ? read.variants : new Map();
 }
 
 export type ProductFacts = {

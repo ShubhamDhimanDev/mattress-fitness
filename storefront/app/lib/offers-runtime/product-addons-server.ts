@@ -9,12 +9,14 @@
 import type {Storefront} from '@shopify/hydrogen';
 import {addOnRelationsFor} from '~/lib/offers/addons';
 import {offerRulesOf} from './config';
-import {loadOfferedVariants} from './facts';
+import {readOfferedVariants} from './facts';
 import {
   PRODUCT_PAGE_CATEGORIES,
   type ProductAddOnItem,
   type ProductAddOnsAnswer,
 } from './product-addons';
+
+export type ProductAddOnsUnavailable = {readonly status: 'unavailable'};
 
 /** True when the rules relate anything the product page offers to this product (no Shopify read). */
 export function productHasAddOns(env: object, productId: string): boolean {
@@ -30,14 +32,15 @@ export function productHasAddOns(env: object, productId: string): boolean {
 /**
  * The in-stock add-ons for a mattress product, every size. Empty when no rule relates anything to the product (it is
  * not a mattress with add-ons), when offers are switched off or the rules are unreadable, and when every related
- * variant is sold out. A failed Shopify read is logged by the facts module and also reads as empty: the slot is an
- * extra and never blocks the page (NFR-013).
+ * variant is sold out. A failed Shopify read is logged by the facts module and answers `unavailable` (the route
+ * maps it to an uncacheable error and the slot offers a retry): the slot is an extra and never blocks the page
+ * (NFR-013).
  */
 export async function loadProductAddOns(
   storefront: Storefront,
   env: object,
   productId: string,
-): Promise<ProductAddOnsAnswer> {
+): Promise<ProductAddOnsAnswer | ProductAddOnsUnavailable> {
   const relations = addOnRelationsFor(
     offerRulesOf(env).matchingAddOns,
     productId,
@@ -45,11 +48,14 @@ export async function loadProductAddOns(
   );
   if (relations.length === 0) return {status: 'ok', items: []};
 
-  const variants = await loadOfferedVariants(
+  const read = await readOfferedVariants(
     storefront,
     relations.map(({relation}) => relation.variantId),
     {priced: true},
   );
+  // A failed read is NOT "nothing is offered": the route must not cache it as an empty list for a minute.
+  if (read.status === 'error') return {status: 'unavailable'};
+  const {variants} = read;
   const items: ProductAddOnItem[] = relations.flatMap(
     ({category, relation}) => {
       const variant = variants.get(relation.variantId);
