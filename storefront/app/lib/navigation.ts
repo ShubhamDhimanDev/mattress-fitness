@@ -1,8 +1,8 @@
 // Static fallback content for the site chrome (REQ-NAV-001, REQ-NAV-002).
 // Pure data and types, no framework imports (the phone parser is a pure helper from lib/stores).
 // Every URL and label here is a PLACEHOLDER until the client's catalog, Shopify navigation menus and content
-// pages exist; the Shopify menu mapping replaces this config in P3B-02 and the layout components keep the same
-// prop shapes.
+// pages exist. The Shopify admin menu (lib/nav-menu.ts, P3B-02) replaces MAIN_NAV when it is present and usable;
+// these fixed items remain the fallback when it is absent, empty or its read fails.
 
 import {BRAND_NAME} from '~/lib/brand';
 import {normalizeUsPhone} from '~/lib/stores/directions';
@@ -40,6 +40,8 @@ export type NavLinkItem = {
   id: string;
   label: string;
   to: string;
+  /** True for an https link to another site (a Shopify menu item of type HTTP): rendered as a plain anchor. */
+  external?: boolean;
   /** Styled as the call to action at the end of the main navigation (the sleep quiz). */
   emphasis?: boolean;
 };
@@ -47,6 +49,8 @@ export type NavLinkItem = {
 export type NavGroupLink = {
   label: string;
   to: string;
+  /** True for an https link to another site: rendered as a plain anchor instead of a router link. */
+  external?: boolean;
   /**
    * True while the page behind the link and the promise it describes are not supplied by the client. Such a
    * link is never rendered (REQ-CNT-001, B-15); see `publishedLinks`.
@@ -63,7 +67,11 @@ export function publishedLinks<T extends {awaitingContent?: boolean}>(
 
 export type NavGroup = {
   id: string;
-  heading: string;
+  /** Null for links that sit directly under a top-level item with no group between (Shopify menu, two levels). */
+  heading: string | null;
+  /** Where the heading itself leads, when the group's menu item has a link of its own. */
+  headingTo?: string;
+  headingExternal?: boolean;
   links: NavGroupLink[];
 };
 
@@ -71,8 +79,12 @@ export type NavMenuItem = {
   kind: 'menu';
   id: string;
   label: string;
-  /** Landing page for the whole section, shown as "Shop all" inside the dropdown. */
-  to: string;
+  /**
+   * Landing page for the whole section, shown as "View all" inside the dropdown. Absent when the Shopify menu
+   * item has children but no link of its own.
+   */
+  to?: string;
+  external?: boolean;
   groups: NavGroup[];
 };
 

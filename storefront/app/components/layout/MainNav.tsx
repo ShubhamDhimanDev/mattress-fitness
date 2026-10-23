@@ -6,7 +6,8 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
-import {Link, NavLink, useLocation} from 'react-router';
+import {NavLink, useLocation} from 'react-router';
+import {NavAnchor} from '~/components/layout/NavAnchor';
 import {cn} from '~/components/ui/cn';
 import {ChevronDownIcon} from '~/components/ui/Icons';
 import {displayHeadingClass, fitsDisplayType} from '~/lib/display-type';
@@ -191,23 +192,36 @@ export function MainNav({items}: MainNavProps) {
       <ul className="mx-auto flex max-w-page items-center justify-center px-2 xl:px-6">
         {items.map((item) => {
           if (item.kind === 'link') {
+            const linkClasses = cn(
+              topClasses(item.label),
+              'aria-[current=page]:underline aria-[current=page]:underline-offset-4',
+              // On the amber pill the text stays ink: red text on amber is 4.27 : 1, below 4.5.
+              item.emphasis
+                ? 'min-h-touch rounded-pill bg-accent-400 px-3 text-ink-900 hover:bg-accent-300 hover:text-ink-900 xl:px-5'
+                : 'min-h-14 aria-[current=page]:text-primary-700',
+            );
             return (
               <li key={item.id} className={item.emphasis ? 'ml-2' : undefined}>
-                <NavLink
-                  to={item.to}
-                  data-nav-top={item.id}
-                  onKeyDown={(event) => onTopKeyDown(event, item)}
-                  className={cn(
-                    topClasses(item.label),
-                    'aria-[current=page]:underline aria-[current=page]:underline-offset-4',
-                    // On the amber pill the text stays ink: red text on amber is 4.27 : 1, below 4.5.
-                    item.emphasis
-                      ? 'min-h-touch rounded-pill bg-accent-400 px-3 text-ink-900 hover:bg-accent-300 hover:text-ink-900 xl:px-5'
-                      : 'min-h-14 aria-[current=page]:text-primary-700',
-                  )}
-                >
-                  {item.label}
-                </NavLink>
+                {item.external ? (
+                  <NavAnchor
+                    to={item.to}
+                    external
+                    data-nav-top={item.id}
+                    onKeyDown={(event) => onTopKeyDown(event, item)}
+                    className={linkClasses}
+                  >
+                    {item.label}
+                  </NavAnchor>
+                ) : (
+                  <NavLink
+                    to={item.to}
+                    data-nav-top={item.id}
+                    onKeyDown={(event) => onTopKeyDown(event, item)}
+                    className={linkClasses}
+                  >
+                    {item.label}
+                  </NavLink>
+                )}
               </li>
             );
           }
@@ -258,43 +272,69 @@ export function MainNav({items}: MainNavProps) {
                     const headingId = `${panelId}-${group.id}`;
                     return (
                       <div key={group.id}>
-                        <p
-                          id={headingId}
-                          className={cn(
-                            'mb-1 text-xs font-extrabold text-fg',
-                            fitsDisplayType(group.heading) &&
-                              'tracking-wide uppercase',
-                          )}
+                        {group.heading === null ? null : (
+                          <p
+                            id={headingId}
+                            className={cn(
+                              'mb-1 text-xs font-extrabold text-fg',
+                              fitsDisplayType(group.heading) &&
+                                'tracking-wide uppercase',
+                            )}
+                          >
+                            {group.headingTo ? (
+                              <NavAnchor
+                                to={group.headingTo}
+                                external={group.headingExternal}
+                                onKeyDown={(event) =>
+                                  onPanelKeyDown(event, item)
+                                }
+                                className="inline-flex min-h-touch items-center hover:text-primary-700 hover:underline"
+                              >
+                                {group.heading}
+                              </NavAnchor>
+                            ) : (
+                              group.heading
+                            )}
+                          </p>
+                        )}
+                        <ul
+                          aria-labelledby={
+                            group.heading === null ? undefined : headingId
+                          }
+                          aria-label={
+                            group.heading === null ? item.label : undefined
+                          }
                         >
-                          {group.heading}
-                        </p>
-                        <ul aria-labelledby={headingId}>
                           {group.links.map((link) => (
                             <li key={link.to}>
-                              <Link
+                              <NavAnchor
                                 to={link.to}
+                                external={link.external}
                                 onKeyDown={(event) =>
                                   onPanelKeyDown(event, item)
                                 }
                                 className="inline-flex min-h-touch items-center text-base text-fg hover:text-primary-700 hover:underline"
                               >
                                 {link.label}
-                              </Link>
+                              </NavAnchor>
                             </li>
                           ))}
                         </ul>
                       </div>
                     );
                   })}
-                  <div className="col-span-full border-t border-line pt-3">
-                    <Link
-                      to={item.to}
-                      onKeyDown={(event) => onPanelKeyDown(event, item)}
-                      className="inline-flex min-h-touch items-center text-base font-bold text-primary-700 hover:underline"
-                    >
-                      View all {item.label.toLowerCase()}
-                    </Link>
-                  </div>
+                  {item.to ? (
+                    <div className="col-span-full border-t border-line pt-3">
+                      <NavAnchor
+                        to={item.to}
+                        external={item.external}
+                        onKeyDown={(event) => onPanelKeyDown(event, item)}
+                        className="inline-flex min-h-touch items-center text-base font-bold text-primary-700 hover:underline"
+                      >
+                        View all {item.label.toLowerCase()}
+                      </NavAnchor>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </li>

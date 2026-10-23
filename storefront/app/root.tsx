@@ -12,7 +12,7 @@ import {
 } from 'react-router';
 import type {Route} from './+types/root';
 import {BRAND_HEAD_LINKS, BRAND_THEME_COLOR} from '~/lib/brand';
-import {FOOTER_QUERY, HEADER_QUERY} from '~/lib/fragments';
+import {FOOTER_QUERY} from '~/lib/fragments';
 import tailwindCss from './styles/tailwind.css?url';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PageLayout} from '~/components/layout/PageLayout';
@@ -21,6 +21,7 @@ import {Button} from '~/components/ui/Button';
 import {loadDeliverySummary} from '~/lib/delivery-runtime/summary';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {PRIVATE_REVALIDATE_HEADERS} from '~/lib/pages/private-response';
+import {loadMainNav} from '~/lib/shopify/menu-data';
 import {
   chooseSupportPhone,
   loadSiteSettings,
@@ -119,19 +120,21 @@ export async function loader(args: Route.LoaderArgs) {
   const deferredData = loadDeferredData(args);
   const {storefront, env} = args.context;
 
-  // Await the critical data required to render initial state of the page. The store lookup and the ZIP
-  // cookie read are independent of it, so they run alongside instead of after.
-  const [criticalData, myStore, delivery, siteSettings] = await Promise.all([
-    loadCriticalData(args),
+  // The store lookup, the ZIP cookie read, the site settings and the menu are independent of each other, so
+  // they run together. None of them fails the page: each degrades to "nothing" or to the fixed navigation.
+  const [myStore, delivery, siteSettings, mainNav] = await Promise.all([
     loadMyStore(args.request),
     loadDeliverySummary(args.request, env),
     loadSiteSettings(storefront),
+    loadMainNav(storefront, env),
   ]);
 
   return {
     ...deferredData,
-    ...criticalData,
     myStore,
+    // The Shopify admin menu (REQ-NAV-002), or null: the layout then shows the fixed navigation. No price, no
+    // shopper data: safe for the long catalog cache.
+    mainNav,
     ...delivery,
     // The promotion bar and the phone come from the `site_settings` entry (P3B-13). The phone is shown only when
     // valid: PUBLIC_SUPPORT_PHONE overrides the admin value; development shows a labelled placeholder when
@@ -156,26 +159,6 @@ export async function loader(args: Route.LoaderArgs) {
       language: args.context.storefront.i18n.language,
     },
   };
-}
-
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({context}: Route.LoaderArgs) {
-  const {storefront} = context;
-
-  const [header] = await Promise.all([
-    storefront.query(HEADER_QUERY, {
-      cache: storefront.CacheLong(),
-      variables: {
-        headerMenuHandle: 'main-menu', // Adjust to your header menu handle
-      },
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
-
-  return {header};
 }
 
 /**
@@ -248,6 +231,7 @@ export default function App() {
         isLoggedIn={data.isLoggedIn}
         myStore={data.myStore}
         promo={data.promo}
+        mainNav={data.mainNav}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
       >
@@ -344,6 +328,7 @@ export function ErrorBoundary() {
         isLoggedIn={data.isLoggedIn}
         myStore={data.myStore}
         promo={data.promo}
+        mainNav={data.mainNav}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
       >

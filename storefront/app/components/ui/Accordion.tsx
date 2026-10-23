@@ -24,6 +24,8 @@ export type AccordionLinkItem = {
   id: string;
   title: ReactNode;
   to: string;
+  /** An https URL on another site: rendered as a plain anchor. */
+  external?: boolean;
   onNavigate?: () => void;
 };
 
@@ -204,16 +206,30 @@ export function Accordion({
         if (isLinkItem(item)) {
           return (
             <div key={item.id}>
-              <Link
-                to={item.to}
-                data-accordion-row=""
-                onClick={item.onNavigate}
-                onKeyDown={onRowKeyDown}
-                className={rowClassesFor(item.title)}
-              >
-                <span>{item.title}</span>
-                <ChevronRightIcon className="size-5 text-fg-muted" />
-              </Link>
+              {item.external ? (
+                <a
+                  href={item.to}
+                  rel="noopener noreferrer"
+                  data-accordion-row=""
+                  onClick={item.onNavigate}
+                  onKeyDown={onRowKeyDown}
+                  className={rowClassesFor(item.title)}
+                >
+                  <span>{item.title}</span>
+                  <ChevronRightIcon className="size-5 text-fg-muted" />
+                </a>
+              ) : (
+                <Link
+                  to={item.to}
+                  data-accordion-row=""
+                  onClick={item.onNavigate}
+                  onKeyDown={onRowKeyDown}
+                  className={rowClassesFor(item.title)}
+                >
+                  <span>{item.title}</span>
+                  <ChevronRightIcon className="size-5 text-fg-muted" />
+                </Link>
+              )}
             </div>
           );
         }
