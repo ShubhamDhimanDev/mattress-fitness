@@ -24,6 +24,10 @@ map $uri $mf_key_api      { default ""; "~*^/api/"                           $bi
 map $uri $mf_key_delivery { default ""; "~*^/delivery(\.data)?/?$"           $binary_remote_addr; }
 # Routes that create a cart on a GET (/cart/<lines>, /discount/<code>) and the cart page's own data.
 map $uri $mf_key_cartget  { default ""; "~*^/(cart|discount)/[^/]+(\.data)?$" $binary_remote_addr; }
+# The cart actions themselves (add, update, remove, the product page add-on add): POST /cart, and POST /cart.data from the
+# router's client submissions. The key is method plus path, so GET /cart (the page view, and /cart.data navigations) stays
+# on the general zone only. One add costs several Storefront calls and can create a Shopify cart (review A-L1).
+map "$request_method$uri" $mf_key_cartpost { default ""; "~*^POST/cart(\.data)?/?$" $binary_remote_addr; }
 # The guest order lookup is not built yet (P6-14). When it is, put its real path here and remove the leading `#`.
 #map $uri $mf_key_lookup  { default ""; "~*^/<LOOKUP_PATH>(\.data)?/?$"      $binary_remote_addr; }
 map $uri $mf_key_webhook  { default ""; "~*^/webhooks/"                      $binary_remote_addr; }
@@ -33,6 +37,7 @@ limit_req_zone $mf_key_offers      zone=mf_offers:5m    rate=2r/s;   # starting 
 limit_req_zone $mf_key_api         zone=mf_api:5m       rate=5r/s;   # starting value
 limit_req_zone $mf_key_delivery    zone=mf_delivery:5m  rate=2r/s;   # starting value (a shopper types a ZIP now and then)
 limit_req_zone $mf_key_cartget     zone=mf_cartget:5m   rate=1r/s;   # starting value
+limit_req_zone $mf_key_cartpost    zone=mf_cartpost:5m  rate=3r/s;   # starting guess (A-L1); not measured against real cart use
 #limit_req_zone $mf_key_lookup     zone=mf_lookup:5m    rate=6r/m;   # starting value, enable with the map above
 limit_req_zone $mf_key_webhook     zone=mf_webhook:5m   rate=10r/s;  # starting value; Shopify's sender addresses are not a fixed list
 limit_conn_zone $binary_remote_addr zone=mf_conn:10m;
@@ -183,12 +188,15 @@ server {
     # No proxy_cache on purpose. The home document is `Cache-Control: private, no-cache` with `Vary: Cookie` and the
     # delivery ZIP changes the header and offers per shopper (DEC-036); a shared cache that ignores that would show one
     # shopper's ZIP-driven state to another. If page caching is ever added, repeat the two-cookie test first (B-19).
+    # The same holds for /api/product-addons: the app marks its 200 answer `private, max-age=60` (browser only) and its
+    # failures no-store (review A-L2). Never add a proxy_cache or CDN rule that stores /api/* responses.
     location / {
         limit_req zone=mf_general  burst=60 nodelay;
         limit_req zone=mf_offers   burst=20 nodelay;
         limit_req zone=mf_api      burst=20 nodelay;
         limit_req zone=mf_delivery burst=10 nodelay;
         limit_req zone=mf_cartget  burst=5  nodelay;
+        limit_req zone=mf_cartpost burst=10 nodelay;
         #limit_req zone=mf_lookup  burst=3  nodelay;
         limit_req zone=mf_webhook  burst=30 nodelay;
 
