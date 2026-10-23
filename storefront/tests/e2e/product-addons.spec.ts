@@ -144,6 +144,11 @@ test.describe('product page add-on slot (REQ-ADD-001)', () => {
     await expect(slot).toContainText('$199.00');
     const before = await slot.getByRole('listitem').allInnerTexts();
 
+    // React StrictMode (development only) mounts the page's effect twice and aborts the first request, so the dev
+    // server sees one or two identical requests for the page; a production build sends one.
+    expect(asked.length).toBeGreaterThanOrEqual(1);
+    expect(asked.length).toBeLessThanOrEqual(2);
+    const askedBeforeSizeChange = asked.length;
     await markPage(page);
     const sizes = page.getByRole('group', {name: /^Size/});
     await sizes.locator('input:enabled + label').nth(1).click();
@@ -152,8 +157,8 @@ test.describe('product page add-on slot (REQ-ADD-001)', () => {
     await expect
       .poll(async () => slot.getByRole('listitem').allInnerTexts())
       .not.toEqual(before);
-    // One request for the page, none for the size change.
-    expect(asked).toHaveLength(1);
+    // None for the size change.
+    expect(asked).toHaveLength(askedBeforeSizeChange);
     expect(
       new URL(asked[0] ?? 'http://x').searchParams.get('productId'),
     ).toMatch(/^gid:\/\/shopify\/Product\/\d+$/);
@@ -191,10 +196,11 @@ test.describe('product page add-on slot (REQ-ADD-001)', () => {
     const product = await openProductWithSizes(page);
     await gotoReady(page, product);
     const items = await itemsForSizes(page);
-    let calls = 0;
+    // Every request of the first attempt fails (StrictMode in development sends the page's request twice); the
+    // answer changes only when the shopper presses Try again.
+    let failing = true;
     await stubList(page, async (route) => {
-      calls += 1;
-      if (calls === 1) await json(route, {status: 'invalid'}, 500);
+      if (failing) await json(route, {status: 'invalid'}, 500);
       else await json(route, body(items));
     });
     await page.reload({waitUntil: 'domcontentloaded'});
@@ -203,6 +209,7 @@ test.describe('product page add-on slot (REQ-ADD-001)', () => {
     ).toBeVisible();
     // The rest of the page is unaffected (NFR-013).
     await expect(page.getByRole('button', {name: 'Add to cart'})).toBeEnabled();
+    failing = false;
     await page.getByRole('button', {name: 'Try again'}).click();
     await expect(page.getByRole('region', {name: SLOT})).toBeVisible();
   });
