@@ -1,5 +1,9 @@
 import {describe, expect, it} from 'vitest';
-import {matchingAddOnOffers} from '~/lib/offers/addons';
+import {
+  addOnRelationsFor,
+  matchingAddOnOffers,
+  relationFitsSize,
+} from '~/lib/offers/addons';
 import {prepareCart} from '~/lib/offers/lines';
 import type {MatchingAddOnRules} from '~/lib/offers/types';
 import {
@@ -185,6 +189,84 @@ describe('matchingAddOnOffers size matching is exact (REQ-ADD-001)', () => {
       expect(
         offers([mattressA(`  ${size.toUpperCase()} `)], only(size)),
       ).toHaveLength(1);
+    },
+  );
+});
+
+// REQ-ADD-001 (P4-03): the product page asks the same rules, by mattress product, before any size is chosen.
+describe('addOnRelationsFor (REQ-ADD-001)', () => {
+  it('returns every relation of the mattress product, in category order, for all sizes', () => {
+    expect(
+      addOnRelationsFor(RULES.matchingAddOns, PRODUCT.mattressA).map(
+        ({category, relation}) => [category, relation.variantId],
+      ),
+    ).toEqual([
+      ['foundation', VARIANT.foundQueen],
+      ['foundation', VARIANT.foundKing],
+      ['pillow', VARIANT.pillow],
+    ]);
+  });
+
+  it('can be limited to the categories a page offers', () => {
+    expect(
+      addOnRelationsFor(RULES.matchingAddOns, PRODUCT.mattressA, [
+        'foundation',
+      ]).map(({relation}) => relation.variantId),
+    ).toEqual([VARIANT.foundQueen, VARIANT.foundKing]);
+  });
+
+  it.each([
+    ['a product with no relation', PRODUCT.mattressB],
+    ['a product that is not a mattress', PRODUCT.other],
+    ['an empty id', ''],
+  ])('offers nothing for %s', (_name, productId) => {
+    expect(addOnRelationsFor(RULES.matchingAddOns, productId)).toEqual([]);
+  });
+
+  it('offers nothing when no rule is configured at all', () => {
+    expect(
+      addOnRelationsFor(
+        {foundations: [], protectors: [], pillows: [], bedding: []},
+        PRODUCT.mattressA,
+      ),
+    ).toEqual([]);
+  });
+
+  it('agrees with the cart engine: the relations that fit a size are exactly the offers for that size', () => {
+    for (const size of ['Queen', 'King', 'Twin', 'queen ']) {
+      const fromProduct = addOnRelationsFor(
+        RULES.matchingAddOns,
+        PRODUCT.mattressA,
+      )
+        .filter(({relation}) => relationFitsSize(relation, size))
+        .map(({relation}) => relation.variantId);
+      const fromCart = offers([mattressA(size)]).map((o) => o.variantId);
+      expect(fromProduct).toEqual(fromCart);
+    }
+  });
+});
+
+describe('relationFitsSize (REQ-ADD-001)', () => {
+  const relation = (size: string | null) => ({
+    mattressProductId: PRODUCT.mattressA,
+    size,
+    productId: PRODUCT.foundation,
+    variantId: VARIANT.foundQueen,
+  });
+
+  it.each([
+    ['Queen', 'Queen', true],
+    ['Queen', '  QUEEN ', true],
+    ['Cal  King', 'cal king', true],
+    ['Queen', 'King', false],
+    ['Twin', 'Twin XL', false],
+    ['Queen', null, false],
+    [null, 'Queen', true],
+    [null, null, true],
+  ])(
+    'relation size %j against mattress size %j is %s',
+    (wanted, size, fits) => {
+      expect(relationFitsSize(relation(wanted), size)).toBe(fits);
     },
   );
 });

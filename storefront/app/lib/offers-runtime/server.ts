@@ -223,7 +223,7 @@ function logConfigProblemOnce(
   else logWarn('offers.config_problem', fields);
 }
 
-type ConfigGate = {
+export type ConfigGate = {
   readonly unverified: boolean;
   readonly config: OfferConfig;
 };
@@ -234,7 +234,7 @@ type ConfigGate = {
  * service line from an ordinary one, so without them nothing may be repaired and checkout is paused. Only a
  * non-production environment (dev server, mock store) may run with no configuration. Logged by name only.
  */
-function loadConfig(runtime: OfferRuntime): ConfigGate {
+export function loadConfig(runtime: OfferRuntime): ConfigGate {
   // "Offers off" is a decision someone makes (OFFERS_ENABLED=false), never something a broken or missing
   // setting can cause by itself. In production the default is "required".
   if (Reflect.get(runtime.env, 'OFFERS_ENABLED') === 'false') {

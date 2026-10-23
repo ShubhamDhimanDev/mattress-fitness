@@ -268,9 +268,13 @@ export function validateAddGift(raw: unknown): Validated<ValidAddGift> {
   };
 }
 
-export type ValidAddAddOn = {variantId: string};
+export type ValidAddAddOn = {variantId: string; mattressVariantId?: string};
 
-/** An add-on from the cart picker: a variant id. The quantity is always the server's (one). */
+/**
+ * An add-on from the cart picker (a variant id) or the product page (also the mattress variant being viewed, P4-03).
+ * The quantity is always the server's (one). A mattress id that is present but malformed is refused, not dropped: the
+ * request would otherwise quietly turn from "with this mattress" into "for a mattress already in the cart".
+ */
 export function validateAddAddOn(raw: unknown): Validated<ValidAddAddOn> {
   if (
     !isRecord(raw) ||
@@ -279,7 +283,23 @@ export function validateAddAddOn(raw: unknown): Validated<ValidAddAddOn> {
   ) {
     return {status: 'invalid', reason: 'Invalid item.'};
   }
-  return {status: 'ok', value: {variantId: raw.variantId}};
+  if (raw.mattressVariantId === undefined) {
+    return {status: 'ok', value: {variantId: raw.variantId}};
+  }
+  if (
+    typeof raw.mattressVariantId !== 'string' ||
+    !VARIANT_ID.test(raw.mattressVariantId) ||
+    raw.mattressVariantId === raw.variantId
+  ) {
+    return {status: 'invalid', reason: 'Invalid item.'};
+  }
+  return {
+    status: 'ok',
+    value: {
+      variantId: raw.variantId,
+      mattressVariantId: raw.mattressVariantId,
+    },
+  };
 }
 
 export type ValidAddBundle = {bundleId: string; anchorLineId: string};

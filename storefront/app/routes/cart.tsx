@@ -190,7 +190,13 @@ export async function action({request, context}: Route.ActionArgs) {
     case ADD_ADDON_ACTION: {
       const input = validateAddAddOn(inputs);
       if (input.status === 'invalid') return rejected(input.reason);
-      const added = await addAddOn(runtime, await cart.get(), input.value);
+      // From the product page the mattress may not be in the cart yet, so a stale cookie starts a fresh cart (P4-03).
+      const added = await addAddOn(
+        runtime,
+        await cart.get(),
+        input.value,
+        (created) => cart.create(created),
+      );
       if (added.status === 'rejected') return rejected(added.reason);
       result = added.result;
       break;

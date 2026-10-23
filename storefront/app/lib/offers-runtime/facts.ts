@@ -3,7 +3,7 @@
 // (NFR-013): every loader here resolves to "nothing known" instead of throwing.
 
 import type {Storefront} from '@shopify/hydrogen';
-import {noCache} from '~/lib/shopify/cache';
+import {noCache, pricedCache} from '~/lib/shopify/cache';
 import {
   OFFER_PRODUCTS_QUERY,
   OFFER_SWAP_TARGET_QUERY,
@@ -24,17 +24,23 @@ function unique(ids: readonly string[]): string[] {
   return [...new Set(ids)].slice(0, MAX_IDS);
 }
 
-/** Details of the variants that are in stock; a sold-out or unknown id is simply absent. */
+/**
+ * Details of the variants that are in stock; a sold-out or unknown id is simply absent. The cart reads fresh (the ids
+ * come from a cart, never cached). `priced` is for a page that is the same for every shopper (the product page's
+ * add-on slot, P4-03): the 60 second price-and-availability window every catalog card uses (DEC-024); the ids in the
+ * cache key are catalog ids from the rules, never personal data. The add itself always re-reads fresh.
+ */
 export async function loadOfferedVariants(
   storefront: Storefront,
   variantIds: readonly string[],
+  options: {readonly priced?: boolean} = {},
 ): Promise<Map<string, OfferedVariant>> {
   const variants = new Map<string, OfferedVariant>();
   const ids = unique(variantIds);
   if (ids.length === 0) return variants;
   try {
     const result = await storefront.query(OFFER_VARIANTS_QUERY, {
-      cache: noCache(storefront),
+      cache: options.priced ? pricedCache(storefront) : noCache(storefront),
       variables: {ids},
     });
     for (const node of result.nodes) {
