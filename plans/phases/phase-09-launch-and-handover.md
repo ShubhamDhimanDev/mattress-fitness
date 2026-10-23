@@ -39,10 +39,11 @@ REQ-HOST-002, REQ-HOST-003, REQ-HOST-004, REQ-HAND-001, REQ-HAND-002, REQ-HAND-0
 | P9-09 | Training session for the client's team | technical-writer | P9-08 | session record |
 | P9-10 | Launch-day support and first-week issue log | project-manager | P9-05 | support log |
 | P9-11 | Release notes and project close-out report (release-and-handover skill) | technical-writer | P9-06 | release notes, close-out |
+| P9-12 | Manual VPS deployment runbook for the interim hosting answer (DEC-079, REQ-HOST-003): build and copy steps run by hand, Node 22 process manager (restart on crash and reboot), reverse proxy (TLS, request-rate and request-body limits, security headers on every response including redirects and error pages, no shared-cache leak of ZIP-driven pages), environment and secret handling without values, a smoke check and a rehearsed rollback; Oxygen-specific items deferred | devops-engineer | P1-08, Q-003 | `docs/deployment/VPS_RUNBOOK.md`, reverse-proxy and process-manager example configs (no secrets) |
 
 ## Dependencies and blockers
 
-Blocked until acceptance and a go decision. Option B additionally needs the client's server before P9-01 can complete. Production Extend approval and payment activations are hard gates for the features that depend on them (SOW §13).
+Blocked until acceptance and a go decision. **Interim (owner, 2026-10-23, DEC-079):** the owner deploys by hand to a VPS on our own Node server, no CI and no pipeline (DEC-080); P9-12 (the runbook and proxy configuration) can start earlier than the rest of this phase because it needs no client input, and is written so a later host change only replaces its host-specific steps. The client has not confirmed the hosting (Q-003, B-06; Q-023 for the no-pipeline model). Option B additionally needs the client's server before P9-01 can complete. Production Extend approval and payment activations are hard gates for the features that depend on them (SOW §13).
 
 ## Security considerations
 
