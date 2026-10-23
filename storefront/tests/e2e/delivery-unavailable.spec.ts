@@ -1,5 +1,8 @@
 import {expect, test, type Page} from '@playwright/test';
-import {collectConsoleErrors} from './helpers/a11y';
+import {
+  collectConsoleErrors,
+  expectNoSeriousA11yViolations,
+} from './helpers/a11y';
 import {gotoReady, ourErrors} from './helpers/catalog';
 
 // REQ-DEL-001 / P3B-11 / BV-013 / NFR-001: when the deployment's DELIVERY_COOKIE_SECRET is missing or shorter than 32
@@ -49,6 +52,31 @@ test.describe('delivery check unavailable (REQ-DEL-001, P3B-11)', () => {
     ).toBeVisible();
     expect(ourErrors(errors)).toEqual([]);
   });
+
+  // BV-015 fix: below a width the visible text is a shorter one (aria-hidden) and the full text stays in the page for
+  // assistive technology (visually hidden). Both states must have no serious axe violation, and the shopper must be
+  // told exactly once, in the full words.
+  for (const width of [320, 360, 1280]) {
+    test(`the unavailable notice has no serious accessibility violation and is announced once, in full, at ${width} px`, async ({
+      page,
+    }, info) => {
+      test.skip(
+        info.project.name.includes('mobile'),
+        'The width is set explicitly here, so the desktop project covers every width.',
+      );
+      await page.setViewportSize({width, height: 900});
+      await gotoReady(page, '/');
+      await expect(banner(page).getByText(TEXT)).toHaveCount(1);
+      const exposed = await banner(page)
+        .getByText(TEXT)
+        .evaluate((el) => !el.closest('[aria-hidden="true"]'));
+      expect(
+        exposed,
+        'the full text is not hidden from assistive technology',
+      ).toBe(true);
+      await expectNoSeriousA11yViolations(page);
+    });
+  }
 
   test('the delivery page says it is unavailable and makes no yes or no promise', async ({
     page,
