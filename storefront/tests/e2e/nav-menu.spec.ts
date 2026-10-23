@@ -13,6 +13,14 @@ import {expectNoSeriousA11yViolations} from './helpers/a11y';
 // then start a server on it and run:
 //   E2E_PORT=6100 E2E_ENV_FILE=.env.navmenu npx playwright test tests/e2e/nav-menu.spec.ts
 // On the default mock-store .env the spec reports every test as skipped; no other spec is affected by it.
+//
+// Why it cannot be stubbed here: the menu is fetched by the server in the root loader (lib/shopify/menu-data.ts),
+// so `page.route` (a browser-side hook) never sees the Storefront request. The default run therefore proves the
+// mapping and the rendering in Vitest instead: tests/unit/lib/nav-menu.test.ts (link rules, tag links, hostile
+// URLs), tests/unit/lib/menu-data.test.ts (query, cache, fallback, logging) and tests/unit/ui/MenuNavigation.test.tsx
+// (keyboard disclosure, mobile accordion, external cue). This spec adds only what jsdom cannot: real focus, layout,
+// axe on the open panel and live internal links. It must be run against a live menu before REQ-NAV-002 is
+// accepted (QA task); an all-skipped run is not evidence.
 
 async function gotoReady(page: Page, url = '/') {
   const response = await page.goto(url);

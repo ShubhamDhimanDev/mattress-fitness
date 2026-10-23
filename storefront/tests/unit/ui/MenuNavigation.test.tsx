@@ -144,10 +144,21 @@ describe('REQ-NAV-002 desktop menu from the Shopify menu', () => {
 
   it('renders an external menu link as a plain anchor with rel, no new tab', () => {
     renderIn(<MainNav items={ITEMS} />);
-    const link = screen.getByRole('link', {name: 'Partner'});
+    const link = screen.getByRole('link', {name: /^Partner/});
     expect(link).toHaveAttribute('href', 'https://partner.example.org/offer');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link).not.toHaveAttribute('target');
+  });
+
+  it('tells screen readers that an external link leaves the site, and only an external one', () => {
+    renderIn(<MainNav items={ITEMS} />);
+    expect(
+      screen.getByRole('link', {name: 'Partner, opens another site'}),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Sale'})).toBeInTheDocument();
+    // Exactly one cue on the page: the internal links carry none.
+    expect(screen.getAllByText(/opens another site/)).toHaveLength(1);
+    expect(screen.getByText(/opens another site/)).toHaveClass('sr-only');
   });
 
   it('keeps arrow-key movement between top-level items across links and buttons', () => {
@@ -183,7 +194,7 @@ describe('REQ-NAV-002 mobile accordion from the Shopify menu', () => {
       'href',
       '/collections/sale',
     );
-    expect(screen.getByRole('link', {name: 'Partner'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: /^Partner/})).toHaveAttribute(
       'rel',
       'noopener noreferrer',
     );

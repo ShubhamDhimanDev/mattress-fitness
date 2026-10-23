@@ -21,6 +21,10 @@ export function NavAnchor({
     return (
       <a href={to} rel="noopener noreferrer" {...rest}>
         {children}
+        {/* The link leaves this site in the same tab; say so to screen readers. The cue starts with a comma, not a
+            space: the anchors are flex containers and name computation trims a leading space, which would run the
+            words together ("Partneropens"). */}
+        <span className="sr-only">, opens another site</span>
       </a>
     );
   }

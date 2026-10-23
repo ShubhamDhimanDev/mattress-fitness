@@ -1,6 +1,10 @@
 import type {Storefront} from '@shopify/hydrogen';
-import {describe, expect, it, vi} from 'vitest';
-import {loadMainNav, MAIN_MENU_QUERY} from '~/lib/shopify/menu-data';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {
+  loadMainNav,
+  MAIN_MENU_QUERY,
+  resetMenuLogMemory,
+} from '~/lib/shopify/menu-data';
 
 // REQ-NAV-002: a missing, empty or failing menu read must give null (the layout keeps the fixed navigation),
 // never an exception, and must use the long catalog cache (a menu has no price or shopper data).
@@ -106,6 +110,71 @@ describe('loadMainNav', () => {
     expect(line).toContain('nav.menu_read_failed');
     expect(line).toContain('TypeError');
     expect(line).not.toContain('secret');
+  });
+
+  describe('logging of dropped and tag-filtered entries', () => {
+    const SALE = {
+      title: 'Sale',
+      type: 'COLLECTION',
+      url: 'https://example-shop.myshopify.com/collections/sale',
+      items: [],
+    };
+    const JUNK = {title: 'x', type: 'METAOBJECT', url: null, items: []};
+    const FIRM = {
+      title: 'Firm',
+      type: 'COLLECTION',
+      url: 'https://example-shop.myshopify.com/collections/king/firm',
+      items: [],
+    };
+
+    function lines(spy: {mock: {calls: unknown[][]}}): string[] {
+      return spy.mock.calls.map((call) => String(call[0]));
+    }
+
+    beforeEach(() => {
+      resetMenuLogMemory();
+    });
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('logs a steady dropped count once, then again only when it changes (counts only)', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const menuWith = (...items: unknown[]) =>
+        vi.fn().mockResolvedValue({menu: {items}});
+
+      for (let request = 0; request < 3; request += 1) {
+        await loadMainNav(fakeStorefront(menuWith(SALE, JUNK)), ENV);
+      }
+      expect(
+        lines(warn).filter((line) => line.includes('nav.menu_entries_dropped')),
+      ).toHaveLength(1);
+
+      await loadMainNav(fakeStorefront(menuWith(SALE, JUNK, JUNK)), ENV);
+      const dropped = lines(warn).filter((line) =>
+        line.includes('nav.menu_entries_dropped'),
+      );
+      expect(dropped).toHaveLength(2);
+      expect(dropped[1]).toContain('"count":2');
+      expect(lines(warn).join('\n')).not.toContain('METAOBJECT');
+    });
+
+    it('logs nothing when nothing is dropped, and the tag-link count once per value', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const query = vi.fn().mockResolvedValue({menu: {items: [SALE, FIRM]}});
+      await loadMainNav(fakeStorefront(query), ENV);
+      await loadMainNav(fakeStorefront(query), ENV);
+      const all = lines(warn);
+      expect(all.some((l) => l.includes('nav.menu_entries_dropped'))).toBe(
+        false,
+      );
+      const tagged = all.filter((l) =>
+        l.includes('nav.menu_tag_links_unfiltered'),
+      );
+      expect(tagged).toHaveLength(1);
+      expect(tagged[0]).toContain('"count":1');
+      expect(tagged[0]).not.toContain('firm');
+    });
   });
 
   it('requests three levels of only the fields the mapper reads', () => {

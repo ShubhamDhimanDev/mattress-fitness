@@ -42,6 +42,22 @@ export const MAIN_MENU_QUERY = `#graphql
   }
 ` as const;
 
+// The menu is read on every uncached request of every page, so a menu that always loses the same entries would
+// log the same line each time. Only a change in the count is logged (once per isolate for a steady count). Counts
+// only: titles and URLs are client content and stay out of logs (T-05).
+const lastLoggedCount = new Map<string, number>();
+
+function logWhenChanged(event: string, count: number): void {
+  if (lastLoggedCount.get(event) === count) return;
+  lastLoggedCount.set(event, count);
+  if (count > 0) logInfo(event, {count});
+}
+
+/** Test seam: forgets what was logged, so each test starts like a fresh isolate. */
+export function resetMenuLogMemory(): void {
+  lastLoggedCount.clear();
+}
+
 type MenuEnv = {
   readonly PUBLIC_STORE_DOMAIN?: string;
   readonly PUBLIC_SITE_URL?: string;
@@ -64,10 +80,11 @@ export async function loadMainNav(
       cache: catalogCache(storefront),
       variables: {handle},
     });
-    const {items, dropped} = buildMainNav(menu, {
+    const {items, dropped, tagLinksUnfiltered} = buildMainNav(menu, {
       ownHosts: ownHostsFrom([env.PUBLIC_STORE_DOMAIN, env.PUBLIC_SITE_URL]),
     });
-    if (dropped > 0) logInfo('nav.menu_entries_dropped', {count: dropped});
+    logWhenChanged('nav.menu_entries_dropped', dropped);
+    logWhenChanged('nav.menu_tag_links_unfiltered', tagLinksUnfiltered);
     return items.length > 0 ? items : null;
   } catch (error: unknown) {
     logError('nav.menu_read_failed', errorFields(error));

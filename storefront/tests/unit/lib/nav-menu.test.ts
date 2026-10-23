@@ -51,17 +51,18 @@ describe('resolveMenuLink: Shopify resource types become our routes', () => {
       `${SHOP}/collections/king-mattresses`,
       '/collections/king-mattresses',
     ],
-    [
-      'COLLECTION',
-      `${SHOP}/collections/king-mattresses/firm+cooling`,
-      '/collections/king-mattresses',
-    ],
     ['COLLECTION', '/collections/all', '/collections/all'],
     ['PRODUCT', `${SHOP}/products/cloud-queen`, '/products/cloud-queen'],
     [
       'PRODUCT',
       `${SHOP}/collections/beds/products/cloud-queen`,
       '/products/cloud-queen',
+    ],
+    // A collection whose handle is "products" is not the marker.
+    [
+      'PRODUCT',
+      `${SHOP}/collections/products/products/real-handle`,
+      '/products/real-handle',
     ],
     ['PAGE', `${SHOP}/pages/size-guide`, '/pages/size-guide'],
     ['BLOG', `${SHOP}/blogs/journal`, '/blogs/journal'],
@@ -117,12 +118,50 @@ describe('resolveMenuLink: Shopify resource types become our routes', () => {
     ['COLLECTION', `${SHOP}/collections/bad%zz`],
     ['COLLECTION', `${SHOP}/collections/has space`],
     ['PRODUCT', `${SHOP}/products/`],
+    // "products" is only the marker at index 0 or, under a collection, at index 2.
+    ['PRODUCT', `${SHOP}/collections/products/real-handle`],
+    ['PRODUCT', `${SHOP}/collections/beds/products/`],
+    ['PRODUCT', `${SHOP}/pages/x/products/real-handle`],
+    ['PRODUCT', `${SHOP}/collections/beds/x/products/real-handle`],
+    ['COLLECTION', `${SHOP}/collections/king/%2e%2e`],
+    ['COLLECTION', `${SHOP}/collections/king/a%2Fb`],
+    ['COLLECTION', `${SHOP}/collections/king/bad%zz`],
+    ['COLLECTION', `${SHOP}/collections/king/%00`],
+    ['COLLECTION', `${SHOP}/collections/king/a%20b`],
+    ['COLLECTION', `${SHOP}/collections/king/firm/extra`],
     ['ARTICLE', `${SHOP}/blogs/journal`],
     ['COLLECTION', 'javascript:alert(1)'],
     ['COLLECTION', 'data:text/html,hi'],
     ['COLLECTION', `${SHOP}/collections/x\u0000y`],
   ])('%s with %j leads nowhere', (type, url) => {
     expect(resolveMenuLink({type, url}, OPTIONS)).toBeNull();
+  });
+});
+
+describe('resolveMenuLink: collection tag filters (no tag route here)', () => {
+  it.each(['firm', 'plush', 'firm+cooling', 'extra-firm', 'caf%C3%A9'])(
+    'a tag segment "%s" opens the whole collection and is marked',
+    (tag) => {
+      expect(
+        resolveMenuLink(
+          {type: 'COLLECTION', url: `${SHOP}/collections/king/${tag}`},
+          OPTIONS,
+        ),
+      ).toEqual({
+        to: '/collections/king',
+        external: false,
+        tagFilterRemoved: true,
+      });
+    },
+  );
+
+  it('a collection link without a tag is not marked', () => {
+    expect(
+      resolveMenuLink(
+        {type: 'COLLECTION', url: `${SHOP}/collections/king`},
+        OPTIONS,
+      ),
+    ).toEqual({to: '/collections/king', external: false});
   });
 });
 
@@ -143,6 +182,61 @@ describe('resolveMenuLink: plain URLs (HTTP type)', () => {
     expect(resolveMenuLink({type: 'HTTP', url: '/stores'}, OPTIONS)).toEqual({
       to: '/stores',
       external: false,
+    });
+  });
+
+  it('keeps the #fragment of an own-host or relative link (the allow-list judges the path)', () => {
+    expect(
+      resolveMenuLink(
+        {type: 'HTTP', url: `${SHOP}/pages/faq#shipping`},
+        OPTIONS,
+      ),
+    ).toEqual({to: '/pages/faq#shipping', external: false});
+    expect(
+      resolveMenuLink(
+        {type: 'HTTP', url: '/collections/sale?sort=price-asc#top'},
+        OPTIONS,
+      ),
+    ).toEqual({to: '/collections/sale?sort=price-asc#top', external: false});
+    // A fragment cannot make a disallowed path pass.
+    expect(
+      resolveMenuLink({type: 'HTTP', url: '/api/cart#/pages/faq'}, OPTIONS),
+    ).toBeNull();
+  });
+
+  it('only http(s) can name one of our own hosts', () => {
+    for (const url of [
+      'javascript://example-shop.myshopify.com/pages/x',
+      'ftp://example-shop.myshopify.com/pages/x',
+      'JAVASCRIPT://shop.example.com/pages/x%0Aalert(1)',
+      'blob://example-shop.myshopify.com/pages/x',
+      'file://example-shop.myshopify.com/pages/x',
+    ]) {
+      expect(resolveMenuLink({type: 'HTTP', url}, OPTIONS), url).toBeNull();
+    }
+  });
+
+  it('a host that merely starts with or contains our host is another site', () => {
+    expect(
+      resolveMenuLink(
+        {
+          type: 'HTTP',
+          url: 'https://example-shop.myshopify.com.evil.com/pages/x',
+        },
+        OPTIONS,
+      ),
+    ).toEqual({
+      to: 'https://example-shop.myshopify.com.evil.com/pages/x',
+      external: true,
+    });
+    expect(
+      resolveMenuLink(
+        {type: 'HTTP', url: 'https://evil.com/example-shop.myshopify.com'},
+        OPTIONS,
+      ),
+    ).toEqual({
+      to: 'https://evil.com/example-shop.myshopify.com',
+      external: true,
     });
   });
 
@@ -453,6 +547,89 @@ describe('buildMainNav: untrusted and malformed content', () => {
       'Queen',
       'King',
     ]);
+  });
+
+  it('tag-filtered links under one collection stay distinct (by label) and are counted, not silently dropped', () => {
+    const tagged = (title: string, tag: string): Node => ({
+      title,
+      type: 'COLLECTION',
+      url: `${SHOP}/collections/king/${tag}`,
+      items: [],
+    });
+    const result = buildMainNav(
+      menu(
+        collection('King', 'king', [
+          collection('All king', 'king'),
+          tagged('Firm', 'firm'),
+          tagged('Plush', 'plush'),
+          tagged('Medium', 'medium'),
+          tagged('FIRM', 'firm+cooling'),
+          collection('King again', 'king'),
+        ]),
+      ),
+      OPTIONS,
+    );
+    const [item] = result.items;
+    if (item?.kind !== 'menu') throw new Error('expected a menu');
+    expect(item.groups[0]?.links).toEqual([
+      {label: 'All king', to: '/collections/king'},
+      {label: 'Firm', to: '/collections/king'},
+      {label: 'Plush', to: '/collections/king'},
+      {label: 'Medium', to: '/collections/king'},
+    ]);
+    // Counted where they are used: the three kept links. "FIRM" repeats a label (dropped); "King again" repeats
+    // the plain target (dropped).
+    expect(result.tagLinksUnfiltered).toBe(3);
+    expect(result.dropped).toBe(2);
+  });
+
+  it('counts a tag-filtered top-level item and group heading once each, and none when there is no tag', () => {
+    const result = buildMainNav(
+      menu(
+        {
+          title: 'Firm beds',
+          type: 'COLLECTION',
+          url: `${SHOP}/collections/king/firm`,
+          items: [
+            {
+              title: 'Plush beds',
+              type: 'COLLECTION',
+              url: `${SHOP}/collections/king/plush`,
+              items: [collection('Queen', 'queen')],
+            },
+          ],
+        },
+        collection('Sale', 'sale'),
+      ),
+      OPTIONS,
+    );
+    expect(result.items).toHaveLength(2);
+    expect(result.tagLinksUnfiltered).toBe(2);
+    expect(
+      buildMainNav(menu(collection('Sale', 'sale')), OPTIONS),
+    ).toMatchObject({tagLinksUnfiltered: 0});
+  });
+
+  it('drops a collection link whose tag segment is not trustworthy', () => {
+    const result = buildMainNav(
+      menu(
+        collection('Sale', 'sale'),
+        {
+          title: 'Evil',
+          type: 'COLLECTION',
+          url: `${SHOP}/collections/king/%2e%2e`,
+        },
+        {
+          title: 'Slash',
+          type: 'COLLECTION',
+          url: `${SHOP}/collections/king/a%2Fb`,
+        },
+      ),
+      OPTIONS,
+    );
+    expect(result.items.map((item) => item.label)).toEqual(['Sale']);
+    expect(result.dropped).toBe(2);
+    expect(result.tagLinksUnfiltered).toBe(0);
   });
 
   it('gives every item and group a unique, position-based id', () => {

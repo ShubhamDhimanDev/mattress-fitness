@@ -55,6 +55,11 @@ export type ResolvedMenuLink = {
   readonly to: string;
   /** True for an https URL on another site. */
   readonly external: boolean;
+  /**
+   * True when a collection link carried a tag segment (`/collections/king/firm`) that was removed: our collection
+   * route has no tag filter, so the link opens the whole collection (see `resourcePath`).
+   */
+  readonly tagFilterRemoved?: true;
 };
 
 export type MenuLinkOptions = {
@@ -69,6 +74,8 @@ export type MenuBuildResult = {
   readonly items: MainNavItem[];
   /** Menu entries that did not make it into `items` (bad title, no usable link, duplicate, over a cap). */
   readonly dropped: number;
+  /** Links in `items` whose Shopify tag filter was removed, so they open the whole collection (count only). */
+  readonly tagLinksUnfiltered: number;
 };
 
 // A base for resolving relative URLs; it is never used in an output.
@@ -136,41 +143,68 @@ function internal(to: string): ResolvedMenuLink {
   return {to, external: false};
 }
 
+type ResourcePath = {
+  readonly path: string;
+  readonly tagFilterRemoved: boolean;
+};
+
+function plainPath(path: string | null): ResourcePath | null {
+  return path ? {path, tagFilterRemoved: false} : null;
+}
+
 /** Handles are taken from the URL's path; the rest of the URL (host, prefix, query, tag filters) is dropped. */
 function resourcePath(
   type: string,
   segments: readonly string[],
-): string | null {
+): ResourcePath | null {
   switch (type) {
     case 'COLLECTION': {
-      // /collections/<handle>[/<tag filter>]: the tag segment has no route here, so the whole collection opens.
-      const handle =
-        segments[0] === 'collections' ? validSegment(segments[1]) : null;
-      return handle ? `/collections/${handle}` : null;
+      // /collections/<handle>[/<tag>]. Shopify filters a collection by product tag with the third segment
+      // (`/collections/king/firm`, several tags joined with `+`). Our collection route filters by catalog
+      // attributes (lib/filters.ts: comfort, size, brand ...), never by tag, and mapping a tag onto one of those
+      // would be a guess about how the client tags products. So the link opens the whole collection and is
+      // marked `tagFilterRemoved`; the caller keeps links with different labels apart (otherwise Firm, Plush and
+      // Medium under one collection would collapse into one) and counts them for the log. A tag segment that
+      // could change the path (dot segments, encoded slashes, whitespace, control characters), or more segments
+      // than that, makes the whole link untrusted, so it is rejected.
+      if (segments[0] !== 'collections' || segments.length > 3) return null;
+      const handle = validSegment(segments[1]);
+      if (!handle) return null;
+      const tag = segments[2];
+      if (tag !== undefined && validSegment(tag) === null) return null;
+      return {
+        path: `/collections/${handle}`,
+        tagFilterRemoved: tag !== undefined,
+      };
     }
     case 'PRODUCT': {
-      // /products/<handle> or /collections/<c>/products/<handle>.
-      const at = segments.indexOf('products');
-      const handle = at === -1 ? null : validSegment(segments[at + 1]);
-      return handle ? `/products/${handle}` : null;
+      // /products/<handle> or /collections/<c>/products/<handle>. The marker's position is fixed: a collection
+      // whose handle is "products" (`/collections/products/products/x`) must not be taken for it.
+      let handle: string | null = null;
+      if (segments[0] === 'products') {
+        handle = validSegment(segments[1]);
+      } else if (segments[0] === 'collections' && segments[2] === 'products') {
+        handle = validSegment(segments[3]);
+      }
+      return plainPath(handle ? `/products/${handle}` : null);
     }
     case 'PAGE': {
       const handle = segments[0] === 'pages' ? validSegment(segments[1]) : null;
-      return handle ? `/pages/${handle}` : null;
+      return plainPath(handle ? `/pages/${handle}` : null);
     }
     case 'BLOG': {
       const handle = segments[0] === 'blogs' ? validSegment(segments[1]) : null;
-      return handle ? `/blogs/${handle}` : null;
+      return plainPath(handle ? `/blogs/${handle}` : null);
     }
     case 'ARTICLE': {
       const blog = segments[0] === 'blogs' ? validSegment(segments[1]) : null;
       const article = validSegment(segments[2]);
-      return blog && article ? `/blogs/${blog}/${article}` : null;
+      return plainPath(blog && article ? `/blogs/${blog}/${article}` : null);
     }
     case 'SHOP_POLICY': {
       const handle =
         segments[0] === 'policies' ? validSegment(segments[1]) : null;
-      return handle ? `/policies/${handle}` : null;
+      return plainPath(handle ? `/policies/${handle}` : null);
     }
     default:
       return null;
@@ -188,12 +222,17 @@ function resolveHttpLink(
     return null;
   }
   if (url.username !== '' || url.password !== '') return null;
+  // Only http(s) (or a relative path, which resolves to the placeholder's https) can name one of our hosts: a
+  // non-special scheme such as `javascript://ownhost/pages/x` or `ftp://ownhost/pages/x` also parses with that
+  // hostname and must not be taken for an internal link.
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
   // Backslashes were rejected by the caller: URL parsers read them as slashes, which can turn '/\host' into
   // another site. Relative only if resolving did not change the host (it does for '//host').
   const relative = raw.startsWith('/') && url.origin === PLACEHOLDER_ORIGIN;
   const own = (options.ownHosts ?? []).includes(url.hostname.toLowerCase());
   if (relative || own) {
-    const parsed = parseAdminLink(`${url.pathname}${url.search}`);
+    // The fragment is kept (`/pages/faq#shipping`); the allow-list judges the path before it.
+    const parsed = parseAdminLink(`${url.pathname}${url.search}${url.hash}`);
     return parsed && !parsed.external ? internal(parsed.href) : null;
   }
   const parsed = parseAdminLink(raw);
@@ -236,8 +275,11 @@ export function resolveMenuLink(
     return null;
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-  const path = resourcePath(type, segmentsOf(url));
-  return path ? internal(path) : null;
+  const resolved = resourcePath(type, segmentsOf(url));
+  if (!resolved) return null;
+  return resolved.tagFilterRemoved
+    ? {to: resolved.path, external: false, tagFilterRemoved: true}
+    : internal(resolved.path);
 }
 
 /** Plain-text label, at most `MAX_LABEL_LENGTH` characters (counted as code points); null when nothing is left. */
@@ -255,28 +297,50 @@ export function cleanMenuLabel(title: string | null): string | null {
 
 type Context = {
   readonly options: MenuLinkOptions;
+  /** The duplicate keys each link list already holds (lists start empty). */
+  readonly seen: WeakMap<readonly NavGroupLink[], Set<string>>;
   dropped: number;
+  tagLinksUnfiltered: number;
 };
 
-function toGroupLink(node: MenuNode, context: Context): NavGroupLink | null {
+type GroupLink = {readonly link: NavGroupLink; readonly tagged: boolean};
+
+function toGroupLink(node: MenuNode, context: Context): GroupLink | null {
   const label = cleanMenuLabel(node.title);
-  const link = resolveMenuLink(node, context.options);
-  if (!label || !link) return null;
-  return link.external
-    ? {label, to: link.to, external: true}
-    : {label, to: link.to};
+  const resolved = resolveMenuLink(node, context.options);
+  if (!label || !resolved) return null;
+  return {
+    link: resolved.external
+      ? {label, to: resolved.to, external: true}
+      : {label, to: resolved.to},
+    tagged: resolved.tagFilterRemoved === true,
+  };
 }
 
-/** Links of one group in menu order, without duplicates (one `to` once) and within the cap. */
+/**
+ * Two links in one group are the same when they lead to the same place. Links whose tag filter was removed all
+ * lead to the whole collection, so for them the label tells them apart: Firm and Plush under one collection stay
+ * two links, the same label twice is still one.
+ */
+function duplicateKey({link, tagged}: GroupLink): string {
+  return tagged ? `${link.to}\n${link.label.toLowerCase()}` : link.to;
+}
+
+/** Links of one group in menu order, without duplicates and within the cap. */
 function collectLinks(
   nodes: readonly unknown[],
   context: Context,
   into: NavGroupLink[] = [],
 ): NavGroupLink[] {
+  let seen = context.seen.get(into);
+  if (!seen) {
+    seen = new Set<string>();
+    context.seen.set(into, seen);
+  }
   for (const value of nodes) {
     const node = readNode(value);
-    const link = node ? toGroupLink(node, context) : null;
-    if (!link || into.some((existing) => existing.to === link.to)) {
+    const entry = node ? toGroupLink(node, context) : null;
+    if (!entry || seen.has(duplicateKey(entry))) {
       context.dropped += 1;
       continue;
     }
@@ -284,7 +348,9 @@ function collectLinks(
       context.dropped += 1;
       continue;
     }
-    into.push(link);
+    seen.add(duplicateKey(entry));
+    if (entry.tagged) context.tagLinksUnfiltered += 1;
+    into.push(entry.link);
   }
   return into;
 }
@@ -316,6 +382,7 @@ function buildGroups(
         context.dropped += 1;
         continue;
       }
+      if (own?.tagFilterRemoved) context.tagLinksUnfiltered += 1;
       groups.push({
         id: `${topId}-g${groups.length}`,
         heading,
@@ -348,7 +415,7 @@ function buildTopItem(
   value: unknown,
   index: number,
   context: Context,
-): MainNavItem | null {
+): {readonly item: MainNavItem; readonly tagged: boolean} | null {
   const node = readNode(value);
   const label = node ? cleanMenuLabel(node.title) : null;
   if (!node || !label) {
@@ -365,20 +432,26 @@ function buildTopItem(
       return null;
     }
     return {
-      kind: 'link',
-      id,
-      label,
-      to: own.to,
-      ...(own.external ? {external: true} : {}),
+      item: {
+        kind: 'link',
+        id,
+        label,
+        to: own.to,
+        ...(own.external ? {external: true} : {}),
+      },
+      tagged: own.tagFilterRemoved === true,
     };
   }
   return {
-    kind: 'menu',
-    id,
-    label,
-    ...(own ? {to: own.to} : {}),
-    ...(own?.external ? {external: true} : {}),
-    groups,
+    item: {
+      kind: 'menu',
+      id,
+      label,
+      ...(own ? {to: own.to} : {}),
+      ...(own?.external ? {external: true} : {}),
+      groups,
+    },
+    tagged: own?.tagFilterRemoved === true,
   };
 }
 
@@ -391,7 +464,12 @@ export function buildMainNav(
   menu: unknown,
   options: MenuLinkOptions = {},
 ): MenuBuildResult {
-  const context: Context = {options, dropped: 0};
+  const context: Context = {
+    options,
+    seen: new WeakMap(),
+    dropped: 0,
+    tagLinksUnfiltered: 0,
+  };
   const top =
     typeof menu === 'object' &&
     menu !== null &&
@@ -406,8 +484,9 @@ export function buildMainNav(
       context.dropped += 1;
       continue;
     }
-    const item = buildTopItem(value, items.length, context);
-    if (!item) continue;
+    const built = buildTopItem(value, items.length, context);
+    if (!built) continue;
+    const {item} = built;
     const duplicate = items.some(
       (existing) =>
         existing.label.toLowerCase() === item.label.toLowerCase() &&
@@ -417,9 +496,14 @@ export function buildMainNav(
       context.dropped += 1;
       continue;
     }
+    if (built.tagged) context.tagLinksUnfiltered += 1;
     items.push(item);
   }
-  return {items, dropped: context.dropped};
+  return {
+    items,
+    dropped: context.dropped,
+    tagLinksUnfiltered: context.tagLinksUnfiltered,
+  };
 }
 
 /**
