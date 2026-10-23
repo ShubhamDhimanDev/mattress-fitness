@@ -5,7 +5,14 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { createNodeServer, isValidHost, resolveScheme, resolveStaticPath, staticCacheControl } from './adapter.mjs';
+import {
+  buildRequestHeaders,
+  createNodeServer,
+  isValidHost,
+  resolveScheme,
+  resolveStaticPath,
+  staticCacheControl,
+} from './adapter.mjs';
 import { createCacheStorage } from './cache.mjs';
 import { DEFAULTS, REQUIRED_NAMES, isLoopback, readSettings, readStorefrontProblems } from './config.mjs';
 
@@ -760,4 +767,114 @@ test('server: a client that leaves after the response started does not abort the
     },
   );
   assert.equal(aborted, false);
+});
+
+// ---- client-address headers (security review M-1, T-09, T-13) ------------------------------------------------------
+
+const spoofed = [
+  'Oxygen-Buyer-IP',
+  '10.9.9.9',
+  'CF-Connecting-IP',
+  '10.9.9.8',
+  'True-Client-IP',
+  '10.9.9.7',
+  'X-Real-IP',
+  '10.9.9.6',
+  'X-Forwarded-For',
+  '10.9.9.5',
+  'User-Agent',
+  'test',
+];
+
+test('buildRequestHeaders: the three platform address headers never pass, in any letter case', () => {
+  for (const trustProxy of [true, false]) {
+    const headers = buildRequestHeaders(
+      ['oxygen-buyer-ip', '1.1.1.1', 'CF-CONNECTING-IP', '2.2.2.2', 'True-Client-Ip', '3.3.3.3', 'Accept', 'x'],
+      { trustProxy, remoteAddress: '198.51.100.7' },
+    );
+    assert.equal(headers.get('oxygen-buyer-ip'), null);
+    assert.equal(headers.get('cf-connecting-ip'), null);
+    assert.equal(headers.get('true-client-ip'), null);
+    assert.equal(headers.get('accept'), 'x');
+  }
+});
+
+test('buildRequestHeaders: without a trusted proxy x-real-ip comes from the socket and x-forwarded-for is dropped', () => {
+  const headers = buildRequestHeaders(spoofed, { trustProxy: false, remoteAddress: '198.51.100.7' });
+  assert.equal(headers.get('x-real-ip'), '198.51.100.7');
+  assert.equal(headers.get('x-forwarded-for'), null);
+  assert.equal(headers.get('user-agent'), 'test');
+  // Two spoofed copies still end as the one socket value.
+  const twice = buildRequestHeaders(['X-Real-IP', '1.1.1.1', 'x-real-ip', '2.2.2.2'], {
+    trustProxy: false,
+    remoteAddress: '198.51.100.7',
+  });
+  assert.equal(twice.get('x-real-ip'), '198.51.100.7');
+});
+
+test('buildRequestHeaders: an IPv4-mapped socket address is shown as plain IPv4; no socket address sets nothing', () => {
+  assert.equal(
+    buildRequestHeaders([], { trustProxy: false, remoteAddress: '::ffff:203.0.113.5' }).get('x-real-ip'),
+    '203.0.113.5',
+  );
+  assert.equal(
+    buildRequestHeaders([], { trustProxy: false, remoteAddress: '2001:db8::1' }).get('x-real-ip'),
+    '2001:db8::1',
+  );
+  assert.equal(buildRequestHeaders(['x-real-ip', '9.9.9.9'], { trustProxy: false }).get('x-real-ip'), null);
+});
+
+test('buildRequestHeaders: with a trusted proxy its x-real-ip and x-forwarded-for pass unchanged', () => {
+  const headers = buildRequestHeaders(spoofed, { trustProxy: true, remoteAddress: '127.0.0.1' });
+  assert.equal(headers.get('x-real-ip'), '10.9.9.6');
+  assert.equal(headers.get('x-forwarded-for'), '10.9.9.5');
+});
+
+test('adapter: spoofed address headers never reach the handler; x-real-ip is the socket address', async () => {
+  let seen;
+  const handler = async (request) => {
+    seen = Object.fromEntries(request.headers);
+    return new Response('ok');
+  };
+  await withServer(handler, { trustProxy: false }, async ({ port }) => {
+    const res = await rawRequest(port, {
+      path: '/',
+      headers: {
+        host: 'shop.example.com',
+        'oxygen-buyer-ip': '10.1.1.1',
+        'cf-connecting-ip': '10.1.1.2',
+        'true-client-ip': '10.1.1.3',
+        'x-real-ip': '10.1.1.4',
+        'x-forwarded-for': '10.1.1.5',
+      },
+    });
+    assert.equal(res.status, 200);
+  });
+  assert.equal(seen['oxygen-buyer-ip'], undefined);
+  assert.equal(seen['cf-connecting-ip'], undefined);
+  assert.equal(seen['true-client-ip'], undefined);
+  assert.equal(seen['x-forwarded-for'], undefined);
+  assert.equal(seen['x-real-ip'], '127.0.0.1');
+});
+
+test('adapter: behind a trusted proxy the proxy x-real-ip arrives and spoofed platform headers still do not', async () => {
+  let seen;
+  const handler = async (request) => {
+    seen = Object.fromEntries(request.headers);
+    return new Response('ok');
+  };
+  await withServer(handler, { trustProxy: true }, async ({ port }) => {
+    await rawRequest(port, {
+      path: '/',
+      headers: {
+        host: 'shop.example.com',
+        'x-real-ip': '203.0.113.9',
+        'oxygen-buyer-ip': '10.1.1.1',
+        'true-client-ip': '10.1.1.3',
+      },
+    });
+  });
+  assert.equal(seen['x-real-ip'], '203.0.113.9');
+  assert.equal(seen['oxygen-buyer-ip'], undefined);
+  assert.equal(seen['true-client-ip'], undefined);
 });

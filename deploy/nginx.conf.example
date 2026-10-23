@@ -18,7 +18,8 @@ log_format mf_privacy '$remote_addr [$time_local] "$request_method $uri" $status
 # ---- Rate limiting (B-19). Each zone is keyed by client IP, but only for the paths its map selects: an empty key is not limited.
 # Paths are matched case-insensitively (~*) because the router ignores case, and with the optional `.data` suffix the
 # router's client navigations use. If a CDN or another proxy is ever put in front of this server, take the client address from
-# its header with ngx_http_realip_module first, or every visitor shares one address.
+# its header with ngx_http_realip_module first (`set_real_ip_from <CDN ranges>; real_ip_header <its header>;`), or every
+# visitor shares one address; `$remote_addr`, and so X-Real-IP, then stay the client and the application does not change.
 map $uri $mf_key_offers   { default ""; "~*^/api/extend/offers/?$"          $binary_remote_addr; }
 map $uri $mf_key_api      { default ""; "~*^/api/"                           $binary_remote_addr; }
 map $uri $mf_key_delivery { default ""; "~*^/delivery(\.data)?/?$"           $binary_remote_addr; }
@@ -28,8 +29,10 @@ map $uri $mf_key_cartget  { default ""; "~*^/(cart|discount)/[^/]+(\.data)?$" $b
 # router's client submissions. The key is method plus path, so GET /cart (the page view, and /cart.data navigations) stays
 # on the general zone only. One add costs several Storefront calls and can create a Shopify cart (review A-L1).
 map "$request_method$uri" $mf_key_cartpost { default ""; "~*^POST/cart(\.data)?/?$" $binary_remote_addr; }
-# The guest order lookup is not built yet (P6-14). When it is, put its real path here and remove the leading `#`.
-#map $uri $mf_key_lookup  { default ""; "~*^/<LOOKUP_PATH>(\.data)?/?$"      $binary_remote_addr; }
+# The guest order lookup (P6-08, P6-14): the submission is POST /track-order, or POST /track-order.data from the router's
+# client submissions. Method plus path, so viewing the page (GET) stays on the general zone. This is the only per-address
+# limit a client cannot spoof (the application's own counters read a header; security review 2026-10-24, M-1, L-3).
+map "$request_method$uri" $mf_key_lookup { default ""; "~*^POST/track-order(\.data)?/?$" $binary_remote_addr; }
 map $uri $mf_key_webhook  { default ""; "~*^/webhooks/"                      $binary_remote_addr; }
 
 limit_req_zone $binary_remote_addr zone=mf_general:10m  rate=20r/s;  # starting value, all paths
@@ -38,7 +41,7 @@ limit_req_zone $mf_key_api         zone=mf_api:5m       rate=5r/s;   # starting 
 limit_req_zone $mf_key_delivery    zone=mf_delivery:5m  rate=2r/s;   # starting value (a shopper types a ZIP now and then)
 limit_req_zone $mf_key_cartget     zone=mf_cartget:5m   rate=1r/s;   # starting value
 limit_req_zone $mf_key_cartpost    zone=mf_cartpost:5m  rate=3r/s;   # starting guess (A-L1); not measured against real cart use
-#limit_req_zone $mf_key_lookup     zone=mf_lookup:5m    rate=6r/m;   # starting value, enable with the map above
+limit_req_zone $mf_key_lookup      zone=mf_lookup:5m    rate=6r/m;   # starting value (review answer 6); not measured, nginx -t not run
 limit_req_zone $mf_key_webhook     zone=mf_webhook:5m   rate=10r/s;  # starting value; Shopify's sender addresses are not a fixed list
 limit_conn_zone $binary_remote_addr zone=mf_conn:10m;
 
@@ -218,7 +221,7 @@ server {
         limit_req zone=mf_delivery burst=10 nodelay;
         limit_req zone=mf_cartget  burst=5  nodelay;
         limit_req zone=mf_cartpost burst=10 nodelay;
-        #limit_req zone=mf_lookup  burst=3  nodelay;
+        limit_req zone=mf_lookup   burst=5  nodelay;
         limit_req zone=mf_webhook  burst=30 nodelay;
 
         proxy_pass http://mattressfitness_app;
@@ -231,6 +234,13 @@ server {
         proxy_set_header X-Forwarded-For   $remote_addr;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header Forwarded         "";
+        # Client-address headers that belong to other platforms. An empty value makes nginx drop the header, so a client
+        # cannot choose its own "address" for the application's per-address counters (security review M-1). The Node
+        # adapter drops them as well; this is the first line. X-Real-IP above is the one address header the application
+        # is told to trust on this host (TRUSTED_CLIENT_IP_HEADER=x-real-ip in the environment file).
+        proxy_set_header CF-Connecting-IP  "";
+        proxy_set_header True-Client-IP    "";
+        proxy_set_header Oxygen-Buyer-IP   "";
 
         proxy_connect_timeout 5s;
         proxy_send_timeout    60s;

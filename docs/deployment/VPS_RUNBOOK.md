@@ -211,7 +211,7 @@ Templates: [deploy/nginx.conf.example](../../deploy/nginx.conf.example) and [dep
 | Connection limit | 30 per client address | HTTP/2 multiplexes, so this is generous |
 | Rate limits (B-19) | see the next table | starting values, per client IP, status 429 with `Retry-After` |
 | Host filtering | port 80 and 443 answer only `<DOMAIN>`; other names get no response (444) | |
-| Proxy headers | `Host`, `X-Forwarded-Proto` (overwritten with `$scheme`), `X-Forwarded-For` (overwritten), `Forwarded` removed | the Node adapter believes `X-Forwarded-Proto` (first value only) **only when `TRUST_PROXY=true`**; the application's own header code (`app/lib/security-headers.ts`) reads the header regardless of that setting, so a client that reached the app directly could earn an HSTS header on its own plain-http answer (browsers ignore it). `TRUST_PROXY` must be `true` behind nginx (section 7) |
+| Proxy headers | `Host`, `X-Forwarded-Proto` (overwritten with `$scheme`), `X-Forwarded-For` (overwritten), `Forwarded` removed; `X-Real-IP` overwritten with the socket address; `CF-Connecting-IP`, `True-Client-IP` and `Oxygen-Buyer-IP` blanked (nginx then drops them) | the Node adapter believes `X-Forwarded-Proto` (first value only) **only when `TRUST_PROXY=true`**; the application's own header code (`app/lib/security-headers.ts`) reads the header regardless of that setting, so a client that reached the app directly could earn an HSTS header on its own plain-http answer (browsers ignore it). `TRUST_PROXY` must be `true` behind nginx (section 7) |
 | Page caching | none (`proxy_cache` is not used) | The home document is `private, no-cache` with `Vary: Cookie`; the delivery ZIP changes it per shopper (DEC-036) |
 | Access log | one line per request without query string or cookies, rotated by the packaged logrotate | `$uri` instead of `$request` keeps search text out (T-05) |
 | `/healthz` | loopback only | external monitors use `/` |
@@ -225,7 +225,7 @@ Templates: [deploy/nginx.conf.example](../../deploy/nginx.conf.example) and [dep
 | Cart-creating GET routes `/cart/<lines>` and `/discount/<code>` (P-L5) | nginx | `mf_cartget` 1 r/s, burst 5 | same |
 | Cart actions: `POST /cart` and `POST /cart.data` (add, update, remove, the product-page add-on add) (A-L1) | nginx. One add costs several Storefront calls and, without a cart cookie, creates a Shopify cart. `GET /cart` (the page view) is not in this zone, only in the general one | `mf_cartpost` 3 r/s, burst 10, keyed by method plus path (plus `mf_general`) | step 10: rapid POSTs return 429 |
 | Any other `/api/*` route (includes `/api/product-addons`) | nginx | `mf_api` 5 r/s, burst 20 | same |
-| Shared guest-lookup limiter (P6-14, R-27) | not built; a commented zone and map exist for its path. The in-app limiter can be a single-process memory store on one VPS (decision for security-engineer) | `mf_lookup` (commented out) | when the route exists |
+| Guest order lookup `POST /track-order` and `POST /track-order.data` (P6-08, P6-14, R-27; security review 2026-10-24 L-3) | nginx, the only per-address limit a client cannot spoof (the app's own counters read a header). The app limits per address, order plus address, email and overall in one process's memory (see "Guest lookup: client address and limits" below) | `mf_lookup` 6 r/m, burst 5, keyed by method plus path; `GET /track-order` stays on `mf_general` | step 10: rapid POSTs to `/track-order` return 429 (use a throwaway address; not run) |
 | `/webhooks/shopify` | nginx | `mf_webhook` 10 r/s, burst 30; Shopify's sender addresses are not a fixed list, so there is no IP allow-list; the HMAC check is in the app | send a bad-signature POST: 401 or 503, not 200 |
 | Request-body limit | nginx and Node | 1 MiB | oversized POST returns 413 |
 | TLS, HSTS ramp | nginx | HSTS `max-age=15552000`, no `includeSubDomains`, no `preload` (SECURITY_HEADERS) | headers on https responses |
@@ -239,6 +239,22 @@ Templates: [deploy/nginx.conf.example](../../deploy/nginx.conf.example) and [dep
 
 Paths in the rate-limit maps are matched case-insensitively and with the optional `.data` suffix because the router ignores case and uses `.data` URLs for client navigations. Re-check the list when routes change (`storefront/app/routes/`); a new route that creates carts, calls Shopify or accepts input needs a zone.
 
+### Guest lookup: client address and limits (security review 2026-10-24, M-1, L-3)
+
+The guest order lookup limits attempts per address, per order plus address, per email and overall, and it learns the address from **one request header named by `TRUSTED_CLIENT_IP_HEADER`**. A header is only as trustworthy as whoever sets it, so on this host the chain is:
+
+1. nginx overwrites `X-Real-IP` with `$remote_addr` (the socket address, one value) and blanks `CF-Connecting-IP`, `True-Client-IP` and `Oxygen-Buyer-IP`, which belong to Cloudflare and Oxygen and would otherwise pass through from any client.
+2. The Node server (`scripts/node-server/adapter.mjs`) drops those three names from every request, whatever `TRUST_PROXY` says. With `TRUST_PROXY=false` it also drops `X-Real-IP` and `X-Forwarded-For` and sets `X-Real-IP` from the socket, so the same setting is correct without a proxy. With `TRUST_PROXY=true` the server already refuses any non-loopback `BIND_HOST`, so only nginx can supply `X-Real-IP`.
+3. **Set `TRUSTED_CLIENT_IP_HEADER=x-real-ip` in `/etc/mattressfitness/env`** (the template has it). Never `oxygen-buyer-ip` on this host. Unset means every shopper shares one "unknown" address, which is safe but strict (10 attempts per 15 minutes for the whole site).
+4. If a CDN is ever put in front, fix it once in nginx (`set_real_ip_from` plus `real_ip_header`, see the template header) so `$remote_addr` and `X-Real-IP` stay the client; the application does not change. Not designed yet (Q-003).
+
+Test after deploy (not run by the author): `curl -s -o /dev/null -w '%{http_code}
+' -X POST -H 'Oxygen-Buyer-IP: 10.9.9.9' -H 'Origin: https://<DOMAIN>' -d 'x=1' https://<DOMAIN>/track-order` repeated 20 times with a different spoofed value each time must still end in 429 from nginx (`mf_lookup`), because nginx keys on the real socket address. Use an address you can afford to have limited for a few minutes.
+
+Optional environment names for this feature: `TRACKING_LINK_HOSTS` (extra carrier domains for tracking links, bare domains, comma separated; only what the client confirms) and, for later only, `GUEST_LOOKUP_KEY_SECRET` (one random 32-byte value in the environment file, distinct from `SESSION_SECRET` and `DELIVERY_COOKIE_SECRET`, needed when the lookup counters leave the single process; today the app uses a random per-process key and the variable is not read).
+
+**Risk acceptance needed from the owner, in writing (not yet given).** The application's lookup counters live in this process's memory: they **reset on every restart and deploy** and are not shared between processes. On the single-VPS plan that is functionally the shared limiter for a few seconds of lost counters per restart; a second process or a zero-downtime two-instance setup would multiply the app's allowances, leaving nginx's `mf_lookup` as the only shared per-address limit (the email and overall counters would need a shared store first). The owner should also accept the email-counter trade-off (review L-2: someone who knows a shopper's email can keep that email's counter full, so that shopper's guest lookup answers 429 until it clears; sign-in and the confirmation-email link remain). Record both in `progress/DECISIONS.md`.
+
 Still open from B-19 after this document: promote the report-only Content-Security-Policy after a clean report period on this host; HSTS ramp; N-L2 (the app's global limiter fails open); the privacy policy wording about the delivery ZIP (T-16).
 
 ## 9. Health check and monitoring
@@ -247,7 +263,7 @@ Still open from B-19 after this document: promote the report-only Content-Securi
 - Site: an external uptime check on `https://<DOMAIN>/` expecting 200 (and `/robots.txt`), with alerts to the owner. A service choice and its data handling are the owner's decision; none is configured.
 - Certificate: alert at 21 days before expiry.
 - Disk, memory and restarts: check `systemctl status` and `free -h` after each release for the first week; set the unit's `MemoryMax` from what you see.
-- Log events and alert candidates: [RUNBOOKS](../handover/RUNBOOKS.md) section 11. Nothing is wired to a tool. In the journal, search for `config.secret_unusable`, `offers.config_problem`, `webhook.rejected`, `request.unhandled`, `render.failed`, `node_server.unhandled_rejection` (the entry swallows these on purpose, section 7, so this line is the only signal) and other `node_server.` events.
+- Log events and alert candidates: [RUNBOOKS](../handover/RUNBOOKS.md) section 11. Nothing is wired to a tool. In the journal, search for `config.secret_unusable`, `offers.config_problem`, `webhook.rejected`, `request.unhandled`, `render.failed`, `node_server.unhandled_rejection` (the entry swallows these on purpose, section 7, so this line is the only signal) and other `node_server.` events. Guest order lookup (review 2026-10-24, L-1, L-7): `guest_lookup.upstream_failed` (the shopper sees the same "not found" answer, so this log line is the only sign that the Admin token is revoked, throttled or timing out; alert on `reason=auth` or `throttled` at once and on a sustained rate of any reason), and `guest_lookup.rate_limited` with `limitedBy=overall` (the site-wide ceiling tripped: one client may be switching the lookup off for everyone, or real demand outgrew the number; alert on any) or `limitedBy=email` (a spike suggests someone is guessing orders for known emails or locking out a shopper). Field names checked against `guest-lookup-handler.ts` and `guest-lookup-limiter.ts` on 2026-10-24 (`limitedBy` is also `address`, `order_address` or `order`); re-check if the app changes.
 
 ## 10. Logs and rotation
 
@@ -295,7 +311,7 @@ Run from your own machine against the public name. None of these places an order
 
 ## 13. What is NOT done and NOT verified
 
-Verified locally (2026-10-23, Windows, Node 22.23.3, [ADR-0011](../decisions/ADR-0011-node-server-entry.md) section "Verification"): the Node adapter's tests pass (42 after the review round: settings validation, the loopback rule for `TRUST_PROXY`, the cache byte and sweep bounds); the built storefront served the pages listed there on a plain Node server against `bedding.mock.shop` with placeholder values; a release folder without `node_modules` also worked.
+Verified locally (2026-10-23, Windows, Node 22.23.3, [ADR-0011](../decisions/ADR-0011-node-server-entry.md) section "Verification"): the Node adapter's tests pass (48 after the review rounds: settings validation, the loopback rule for `TRUST_PROXY`, the cache byte and sweep bounds, client-address header stripping); the built storefront served the pages listed there on a plain Node server against `bedding.mock.shop` with placeholder values; a release folder without `node_modules` also worked.
 
 **Assumed, not verified (everything below is a draft until rehearsed):**
 
@@ -308,7 +324,7 @@ Verified locally (2026-10-23, Windows, Node 22.23.3, [ADR-0011](../decisions/ADR
 - Streaming pages through nginx buffering and gzip; behaviour with slow clients; memory growth over days; restart gap length; any benefit of brotli.
 - The customer account sign-in (P6-07), the checkout hand-off with the real checkout domain, a signed Shopify webhook and the Extend sync with real credentials (V-20, Q-005), the delivery ZIP save through the proxy, `OFFER_CONFIG_JSON` on the real store.
 - Rollback and restore rehearsal; log retention settings; monitoring and alerts (none wired); backup of `/etc/mattressfitness/env` and `/etc/letsencrypt` (see below).
-- The rate limits for the future guest lookup (route not built), the `.data` URL shapes of every route (only the listed ones were reasoned from the route files, not captured from a browser).
+- The `mf_lookup` zone and map for `POST /track-order` (added 2026-10-24: not run through `nginx -t`, rate and burst are guesses), the blanking of the three platform address headers in nginx (never run; the Node-side stripping is unit- and integration-tested), the exact `.data` path shape of the lookup submission, and the guest lookup itself against a real store (V-09, V-20); the `.data` URL shapes of every route (only the listed ones were reasoned from the route files, not captured from a browser).
 
 **Not in this document:** DNS cutover and TTL plan (P9-03, P9-04), the production approval record, launch-day support, the client's server hardening or ownership model (EXC-13), pixel baselines and WebKit or Firefox runs without CI (CR-17), a staging server (none exists; a second small VPS or a second hostname on this one would serve), and upgrading to Hydrogen 2026.10 (P1-12), after which re-run the proof in ADR-0011.
 
