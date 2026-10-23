@@ -100,7 +100,11 @@ export function DeliveryZipUnavailable() {
   return (
     <span className="inline-flex min-h-touch shrink-0 items-center gap-2">
       <TruckIcon className="size-5" />
-      <span>Delivery check unavailable</span>
+      {/* Shorter below sm so the utility bar stays one row at 320 and 360 px (BV-015); the full text is the accessible name. */}
+      <span className="sr-only sm:not-sr-only">Delivery check unavailable</span>
+      <span aria-hidden="true" className="sm:hidden">
+        Delivery unavailable
+      </span>
     </span>
   );
 }
