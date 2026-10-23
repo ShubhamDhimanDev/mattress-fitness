@@ -500,3 +500,19 @@ Agent-reported by `qa-engineer`; not re-run by the orchestrator. Build: committe
 **Not run:** the phone project of the production preview for the width tests (they set their own width and are skipped on phone by design); WebKit; Firefox.
 
 **Cleanup:** all servers started by QA stopped (no listener on 6200, 4410, 3100 or 3400); no `chrome-headless-shell` running. The two `node.exe` processes running `@playwright/mcp` (PIDs 8092 and 4724) were already running before QA started and are not QA's.
+
+### QA: verification of the second BV-015 fix, 2026-10-23 (HEAD `8534aca`)
+
+Agent-reported by `qa-engineer`; not re-run by the orchestrator. Build: committed HEAD `8534aca` (working tree clean apart from the owner's `package-lock.json` and this file). Production build redone (`npx shopify hydrogen build`; the bundle holds `min-[412px]:hidden` with the one word "Unavailable" and the full text; the CSS holds a `width>=412px` rule). Preview on 4410 with `.env.nodelivery`. Chromium, `--workers=1`, strictly one foreground run at a time (no shell loops), no Playwright MCP, never port 3400.
+
+| # | What | Result |
+|---|---|---|
+| V-E159 | `delivery-unavailable.spec.ts`, desktop-chromium, unchanged spec (production preview, unusable delivery secret) | **13 passed, 0 failed** (1.1 min): header text, three accessible-name and axe tests (320, 360, 1280 px), delivery page text, 503 on save, and the utility bar at 320, 360, 412, 768, 1023, 1024 and 1280 px |
+| V-E160 | Measured boxes of that run | 320 and 360 px: notice 103 px wide, store link 142 px, both at y 0, bar **44 px**. 412 px: notice 194 px, store at x 226, bar 44 px. 768, 1023, 1024, 1280 px: notice 194 px, store at x 234, bar 44 px. At 320 px the row needs 16 + 103 + 16 + 142 = 277 px of the 288 px available (11 px spare); no horizontal overflow at any width |
+| V-E161 | Same spec, mobile-chromium | **3 passed, 10 skipped, 0 failed** (width-setting tests run on desktop only, by design) |
+| V-E162 | brand-verification `-g "BV-006\|BV-013"`, desktop, `.env.beddingqa` | **14 passed, 1 skipped, 0 failed** (1.7 min) |
+| V-E163 | Same, mobile-chromium | **0 passed, 15 skipped, 0 failed**: every one of these tests sets its own width, so the phone project skips them by design (the desktop project covers every width) |
+
+**BV-015 verdict: fixed.** The previously failing 320 and 360 px tests pass with the spec unchanged, 412 px and wider still pass, the accessible name stays the full text and shows no serious axe violation. Verified on a production preview with an unusable secret, desktop Chromium only (WebKit and Firefox not run). The unavailable state is not reachable in the dev server, so the default-env suites do not exercise it (a11y-audit was not re-run in this round; it passed 113/2/0 desktop and 152/49/0 phone at `e036062`, whose markup differs only by the breakpoint class).
+
+**Cleanup:** the servers started by Playwright are stopped (no listener on 6200, 4410, 3100 or 3400); no `chrome-headless-shell` running.
