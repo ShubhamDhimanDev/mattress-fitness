@@ -11,7 +11,11 @@
 //     fixed vocabulary (no shopper data) and skipped. It never throws into the page and never retries in a loop.
 //  5. Consent withdrawn mid-visit stops sending at once, asks the adapter to revoke and drops its queue; consent
 //     given again re-enables the loaded adapter without loading the script a second time.
-//  6. The safe-page guard (`page-context.ts`): on a page that fails the check (the private area, a personal-looking
+//  6. Like the page view, the page's own view events (view_item, search, view_item_list) are remembered in memory for
+//     the page the shopper is on, never sent, and replayed to a provider when it becomes active on that same page: a
+//     shopper who agrees on a product page is counted as having viewed it. view_cart and every cart or click event
+//     are not remembered (they are actions, not the page).
+//  7. The safe-page guard (`page-context.ts`): on a page that fails the check (the private area, a personal-looking
 //     address) no event is sent, no script is loaded and a loaded Google tag is paused; the next safe page resumes.
 //     On a safe page the adapters get the reduced address, title and referrer (`setPage`).
 
@@ -26,6 +30,12 @@ import type {ConsentSnapshot} from '~/lib/analytics/consent-store';
 import type {PageContext, PageDecision} from '~/lib/analytics/page-context';
 
 export const MAX_QUEUED_EVENTS = 25;
+const MAX_REMEMBERED_EVENTS = 10;
+const PAGE_SCOPED_EVENTS: ReadonlySet<string> = new Set([
+  'view_item',
+  'search',
+  'view_item_list',
+]);
 
 type ProviderState = 'idle' | 'scheduled' | 'loading' | 'ready' | 'failed';
 
@@ -80,6 +90,11 @@ export function createAnalyticsRuntime(
   }));
   let lastPageView: AnalyticsEvent | null = null;
   let lastContext: PageContext | null = null;
+  // The page's own view events, with the address of the page they belong to.
+  let remembered: {key: string; events: AnalyticsEvent[]} = {
+    key: '',
+    events: [],
+  };
   let unsubscribe: (() => void) | null = null;
   let stopped = false;
 
@@ -158,6 +173,10 @@ export function createAnalyticsRuntime(
    * Schedules the load for idle time. The page the shopper is on is reported once they agree, so its page_view
    * seeds the queue (unless it is the event being tracked right now, which the caller queues itself).
    */
+  function keyOf(page: PageDecision): string {
+    return page.safe ? (page.context?.pageLocation ?? '') : '';
+  }
+
   function startLoad(entry: Entry, current?: AnalyticsEvent): void {
     if (entry.state !== 'idle') return;
     if (lastContext) {
@@ -166,6 +185,13 @@ export function createAnalyticsRuntime(
     }
     if (lastPageView && lastPageView !== current) {
       entry.queue.push(lastPageView);
+    }
+    if (remembered.key === keyOf(currentPage())) {
+      for (const event of remembered.events) {
+        if (event !== current && entry.queue.length < MAX_QUEUED_EVENTS) {
+          entry.queue.push(event);
+        }
+      }
     }
     entry.state = 'scheduled';
     entry.cancelSchedule = options.schedule(() => {
@@ -216,6 +242,7 @@ export function createAnalyticsRuntime(
       // Nothing is sent from this page, nothing is remembered for it, and a loaded Google tag stops its own hits.
       lastPageView = null;
       lastContext = null;
+      remembered = {key: '', events: []};
       for (const entry of entries) {
         entry.queue = [];
         applyPageState(entry, false);
@@ -238,6 +265,14 @@ export function createAnalyticsRuntime(
         safely(() => entry.adapter.send(event));
       } else if (entry.queue.length < MAX_QUEUED_EVENTS) {
         entry.queue.push(event);
+      }
+    }
+    // After the loop, so a provider that starts loading on this very event is not given it twice.
+    if (PAGE_SCOPED_EVENTS.has(event.name)) {
+      const key = keyOf(page);
+      if (remembered.key !== key) remembered = {key, events: []};
+      if (remembered.events.length < MAX_REMEMBERED_EVENTS) {
+        remembered.events.push(event);
       }
     }
   }

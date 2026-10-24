@@ -23,6 +23,7 @@ import {
   EMAIL,
   isPrivatePath,
   looksPersonal,
+  queryValueLooksPersonal,
   sanitizePageLocation,
   sanitizeSearchTerm,
 } from '~/lib/analytics/privacy';
@@ -118,10 +119,18 @@ export function evaluatePage(input: PageInput): PageDecision {
   const search = isSearchPath(url.pathname);
   for (const [key, value] of url.searchParams) {
     if (OPAQUE_QUERY_KEYS.has(key.toLowerCase())) continue;
-    if (!looksPersonal(value)) continue;
+    const isSearchTerm = search && key === 'q';
+    // The search term has its own, stricter rule (seven digits) that also covers the page's title; the other values
+    // are judged as address parts.
+    if (
+      isSearchTerm
+        ? !looksPersonal(value)
+        : !queryValueLooksPersonal(key, value)
+    )
+      continue;
     return {
       safe: false,
-      reason: search && key === 'q' ? 'personal-search' : 'personal-query',
+      reason: isSearchTerm ? 'personal-search' : 'personal-query',
     };
   }
   const term = url.searchParams.get('q');

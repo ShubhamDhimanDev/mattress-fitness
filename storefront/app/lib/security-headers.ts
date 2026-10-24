@@ -156,7 +156,9 @@ const SHOPIFY_ACCOUNT = 'https://shopify.com';
  * configured so that policy stays exactly as it was. Hydrogen's script and image sources fall back to
  * `default-src` (self, its nonce, the Shopify CDN and shopify.com); naming `script-src` or `img-src` replaces that
  * fallback, so the same Shopify sources are repeated here and only the provider hosts are added (the nonce is
- * appended by Hydrogen). `connect-src` is merged by Hydrogen itself, so only the new hosts go in.
+ * appended by Hydrogen). `connect-src` is merged by Hydrogen itself, so only the new hosts go in. For GA4 that is five connect entries, two of
+ * them wildcards (`*.google-analytics.com`, `*.analytics.google.com`): an exception to SECURITY_HEADERS.md that needs the
+ * owner's written approval BEFORE any environment sets the GA4 id (see `~/lib/analytics/hosts`).
  */
 export function enforcedCspExtras(input: AnalyticsCspInput | undefined): {
   scriptSrc?: string[];

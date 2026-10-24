@@ -6,14 +6,14 @@ import {
   screen,
   within,
 } from '@testing-library/react';
-import {useState, useSyncExternalStore} from 'react';
+import {useEffect, useState, useSyncExternalStore} from 'react';
 import {MemoryRouter} from 'react-router';
 import {afterEach, describe, expect, it} from 'vitest';
 import {ConsentBanner} from '~/components/consent/ConsentBanner';
 import {ConsentPreferences} from '~/components/consent/ConsentPreferences';
-import {ConsentContext} from '~/components/consent/consent-context';
+import {consentHandle} from '~/lib/analytics/gate';
 import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
-import {parseAnalyticsConfig} from '~/lib/analytics/config';
+import {hasProviders, parseAnalyticsConfig} from '~/lib/analytics/config';
 import {createConsentStore} from '~/lib/analytics/consent-store';
 
 // P7-01, NFR-011, NFR-003: the banner and preferences are keyboard and screen-reader usable, offer an equal
@@ -39,6 +39,12 @@ function Harness({
       }),
     };
   });
+  // What the consent chunk does: publish the store, only when a provider is configured (the footer button reads it).
+  useEffect(() => {
+    if (!hasProviders(config)) return;
+    consentHandle.publish(store);
+    return () => consentHandle.publish(null);
+  }, [config, store]);
   const snapshot = useSyncExternalStore(
     store.subscribe,
     store.getSnapshot,
@@ -46,12 +52,10 @@ function Harness({
   );
   return (
     <MemoryRouter>
-      <ConsentContext.Provider value={{config, store, snapshot}}>
-        <ConsentBanner config={config} store={store} />
-        <ConsentPreferences config={config} store={store} />
-        <PrivacyChoicesButton />
-        <output data-testid="state">{JSON.stringify(snapshot.choice)}</output>
-      </ConsentContext.Provider>
+      <ConsentBanner config={config} store={store} />
+      <ConsentPreferences config={config} store={store} />
+      <PrivacyChoicesButton />
+      <output data-testid="state">{JSON.stringify(snapshot.choice)}</output>
     </MemoryRouter>
   );
 }
@@ -90,7 +94,7 @@ describe('<ConsentBanner>', () => {
     const {unmount} = render(<Harness env={BOTH} mode="opt-in" />);
     expect(
       screen.getByText(
-        /only load analytics and advertising tools from Google and Meta after you agree/,
+        /only load analytics tools from Google and advertising tools from Meta after you agree/,
       ),
     ).toBeInTheDocument();
     unmount();

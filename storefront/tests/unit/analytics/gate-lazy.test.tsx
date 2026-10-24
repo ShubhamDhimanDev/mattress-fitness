@@ -151,10 +151,10 @@ describe('with a provider id', () => {
   });
 });
 
-describe("Hydrogen's canTrack", () => {
-  it('is false without consent, true for any consented provider, and follows a withdrawal', async () => {
+describe('what Hydrogen is told (canTrack)', () => {
+  it('"consented" is false without a choice, true for any consented provider, and follows a withdrawal', async () => {
     renderGate({PUBLIC_GA4_MEASUREMENT_ID: 'G-ABCD1234'});
-    expect(consentHandle.canTrack()).toBe(false);
+    expect(consentHandle.consented()).toBe(false);
     await runIdle();
     await screen.findByTestId('runtime');
     const store = published.store as {
@@ -163,34 +163,11 @@ describe("Hydrogen's canTrack", () => {
       save: (choice: {analytics: boolean; marketing: boolean}) => void;
     };
     await act(async () => store.acceptAll());
-    expect(consentHandle.canTrack()).toBe(true);
+    expect(consentHandle.consented()).toBe(true);
     await act(async () => store.save({analytics: false, marketing: true}));
-    expect(consentHandle.canTrack()).toBe(true);
+    expect(consentHandle.consented()).toBe(true);
     await act(async () => store.rejectAll());
-    expect(consentHandle.canTrack()).toBe(false);
-  });
-
-  it("still honours Shopify's own consent answer", () => {
-    Reflect.set(window, 'Shopify', {
-      customerPrivacy: {
-        consentStatus: 'loaded',
-        analyticsProcessingAllowed: () => true,
-      },
-    });
-    try {
-      expect(consentHandle.canTrack()).toBe(true);
-      Reflect.set(window, 'Shopify', {
-        customerPrivacy: {
-          consentStatus: 'loaded',
-          analyticsProcessingAllowed: () => {
-            throw new Error('broken');
-          },
-        },
-      });
-      expect(consentHandle.canTrack()).toBe(false);
-    } finally {
-      Reflect.deleteProperty(window, 'Shopify');
-    }
+    expect(consentHandle.consented()).toBe(false);
   });
 });
 

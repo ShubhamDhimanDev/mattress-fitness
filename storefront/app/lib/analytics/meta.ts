@@ -36,21 +36,28 @@ export type MetaCall = {
   readonly params: Readonly<Record<string, unknown>>;
 };
 
-function contents(items: readonly AnalyticsItem[]): Record<string, unknown>[] {
-  return items.map((item) => ({
-    id: item.id,
-    quantity: item.quantity,
-    item_price: dollarsFromCents(item.priceCents) ?? 0,
-  }));
+/** Items whose price cannot be written as dollars are left out, never given a made-up price. */
+function priced(
+  items: readonly AnalyticsItem[],
+): Array<{item: AnalyticsItem; price: number}> {
+  return items.flatMap((item) => {
+    const price = dollarsFromCents(item.priceCents);
+    return price === undefined ? [] : [{item, price}];
+  });
 }
 
 function commerceParams(event: AnalyticsEvent): Record<string, unknown> | null {
   const data = event.ecommerce;
-  if (!data || data.items.length === 0) return null;
+  const entries = data ? priced(data.items) : [];
+  if (!data || entries.length === 0) return null;
   const params: Record<string, unknown> = {
     content_type: 'product',
-    content_ids: data.items.map((item) => item.id),
-    contents: contents(data.items),
+    content_ids: entries.map(({item}) => item.id),
+    contents: entries.map(({item, price}) => ({
+      id: item.id,
+      quantity: item.quantity,
+      item_price: price,
+    })),
     currency: ANALYTICS_CURRENCY,
   };
   if (data.valueCents !== undefined) {

@@ -2,12 +2,15 @@
 import {cleanup, fireEvent, render, screen} from '@testing-library/react';
 import {createRoutesStub} from 'react-router';
 import {afterEach, describe, expect, it} from 'vitest';
-import {ConsentContext} from '~/components/consent/consent-context';
 import {SiteFooter} from '~/components/layout/SiteFooter';
-import {parseAnalyticsConfig} from '~/lib/analytics/config';
+import {hasProviders, parseAnalyticsConfig} from '~/lib/analytics/config';
 import {createConsentStore} from '~/lib/analytics/consent-store';
+import {consentHandle} from '~/lib/analytics/gate';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  consentHandle.publish(null);
+});
 
 // NFR-011: a shopper can withdraw consent from the footer, as easily as they gave it. With no analytics id there is
 // nothing to choose, so the footer shows no control.
@@ -18,16 +21,12 @@ function renderFooter(env: Record<string, string>) {
     mode: config.consentMode,
     storage: {read: () => null, write: () => {}},
   });
+  // The consent chunk publishes its store only when a provider is configured; the footer reads it from there.
+  if (hasProviders(config)) consentHandle.publish(store);
   const Stub = createRoutesStub([
     {
       path: '/',
-      Component: () => (
-        <ConsentContext.Provider
-          value={{config, store, snapshot: store.getSnapshot()}}
-        >
-          <SiteFooter />
-        </ConsentContext.Provider>
-      ),
+      Component: () => <SiteFooter />,
     },
   ]);
   render(<Stub initialEntries={['/']} />);

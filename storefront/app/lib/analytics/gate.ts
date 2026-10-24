@@ -24,23 +24,6 @@ function bump(): void {
   }
 }
 
-/** Shopify's own consent answer, the same check Hydrogen's default uses. Guarded: it must never throw. */
-function shopifyAllowsAnalytics(): boolean {
-  try {
-    const shopify: unknown = Reflect.get(window, 'Shopify');
-    if (typeof shopify !== 'object' || shopify === null) return false;
-    const privacy: unknown = Reflect.get(shopify, 'customerPrivacy');
-    if (typeof privacy !== 'object' || privacy === null) return false;
-    if (Reflect.get(privacy, 'consentStatus') !== 'loaded') return false;
-    const allowed: unknown = Reflect.get(privacy, 'analyticsProcessingAllowed');
-    return typeof allowed === 'function'
-      ? allowed.call(privacy) === true
-      : false;
-  } catch {
-    return false;
-  }
-}
-
 export const consentHandle = {
   subscribe(listener: () => void): () => void {
     listeners.add(listener);
@@ -63,16 +46,41 @@ export const consentHandle = {
   /** The lazy chunk calls this when the shopper's choice changed, so the shell re-renders. */
   notify: bump,
   /**
-   * Hydrogen's `canTrack`: any consented provider counts (the runtime then routes each event to the providers whose
-   * own category is allowed), and Shopify's own answer still counts, so its sales-channel analytics behave as before.
-   * Hydrogen recomputes what it publishes whenever the provider re-renders, which `notify` causes.
+   * True once the shopper has allowed any provider (the runtime then routes each event to the providers whose own
+   * category is allowed). The gate gives Hydrogen a `canTrack` of `() => true` only then; otherwise it passes none and
+   * Hydrogen uses its default, Shopify's own consent answer, so its sales-channel analytics behave as before. That is
+   * the same as "any category allowed, or Shopify says yes", without a copy of Shopify's check here.
    */
-  canTrack(): boolean {
+  consented(): boolean {
     const choice = published?.getSnapshot().choice;
-    return (
-      (choice !== undefined && (choice.analytics || choice.marketing)) ||
-      shopifyAllowsAnalytics()
-    );
+    return choice !== undefined && (choice.analytics || choice.marketing);
+  },
+};
+
+/**
+ * The page's own view events (a product viewed, a search), kept until the lazy chunk has subscribed. Hydrogen publishes
+ * them once, when the page renders, and does not replay them to a subscriber that arrives later; the chunk arrives
+ * after hydration and idle, so without this the first page's `view_item` and `search` would be lost even for a
+ * shopper who already agreed. `take` hands over the newest payload of each kind once and stops the keeping, so the
+ * cart inside a payload (which holds the buyer's details) is not held longer than needed.
+ */
+const early = new Map<string, unknown>();
+let keepingEarly = true;
+export const earlyViews = {
+  /** `event` is Hydrogen's event name (`product_viewed`, `search_viewed`). */
+  keep(event: string, payload: unknown): void {
+    if (keepingEarly) early.set(event, payload);
+  },
+  take(): Array<[string, unknown]> {
+    keepingEarly = false;
+    const taken = [...early];
+    early.clear();
+    return taken;
+  },
+  /** For a chunk that unmounts and mounts again, and for tests. */
+  reset(): void {
+    keepingEarly = true;
+    early.clear();
   },
 };
 

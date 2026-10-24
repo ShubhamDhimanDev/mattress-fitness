@@ -30,17 +30,22 @@ export type Ga4Call = {
   readonly params: Readonly<Record<string, unknown>>;
 };
 
-function toGa4Item(item: AnalyticsItem): Record<string, unknown> {
-  return {
-    item_id: item.id,
-    item_name: item.name,
-    ...(item.brand ? {item_brand: item.brand} : {}),
-    ...(item.variant ? {item_variant: item.variant} : {}),
-    ...(item.category ? {item_category: item.category} : {}),
-    price: dollarsFromCents(item.priceCents) ?? 0,
-    quantity: item.quantity,
-    ...(item.index === undefined ? {} : {index: item.index}),
-  };
+/** An item whose price cannot be written as dollars is left out: a made-up price would be worse than none. */
+function toGa4Item(item: AnalyticsItem): Record<string, unknown>[] {
+  const price = dollarsFromCents(item.priceCents);
+  if (price === undefined) return [];
+  return [
+    {
+      item_id: item.id,
+      item_name: item.name,
+      ...(item.brand ? {item_brand: item.brand} : {}),
+      ...(item.variant ? {item_variant: item.variant} : {}),
+      ...(item.category ? {item_category: item.category} : {}),
+      price,
+      quantity: item.quantity,
+      ...(item.index === undefined ? {} : {index: item.index}),
+    },
+  ];
 }
 
 /** The `gtag('event', name, params)` call for an event, or null when the event is not one we forward. */
@@ -54,7 +59,7 @@ export function toGa4Call(event: AnalyticsEvent): Ga4Call | null {
       const value = dollarsFromCents(ecommerce.valueCents);
       if (value !== undefined) params.value = value;
     }
-    params.items = ecommerce.items.slice(0, MAX_GA4_ITEMS).map(toGa4Item);
+    params.items = ecommerce.items.slice(0, MAX_GA4_ITEMS).flatMap(toGa4Item);
     if (ecommerce.listId) params.item_list_id = ecommerce.listId;
     if (ecommerce.listName) params.item_list_name = ecommerce.listName;
   }

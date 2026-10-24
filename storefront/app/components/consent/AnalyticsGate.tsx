@@ -1,4 +1,9 @@
-import {Analytics, useNonce} from '@shopify/hydrogen';
+import {
+  Analytics,
+  AnalyticsEvent as HydrogenEvent,
+  useAnalytics,
+  useNonce,
+} from '@shopify/hydrogen';
 import {
   Suspense,
   lazy,
@@ -11,7 +16,7 @@ import {
 } from 'react';
 import type {ConsentRuntimeProps} from '~/components/consent/consent-context';
 import type {PublicAnalyticsConfig} from '~/lib/analytics/config';
-import {consentHandle, scheduleIdle} from '~/lib/analytics/gate';
+import {consentHandle, earlyViews, scheduleIdle} from '~/lib/analytics/gate';
 
 // Everything in this file is part of every route's JavaScript, which has a budget (scripts/perf). It imports no
 // helper module that the consent chunk also uses (they would become small shared chunks, each with its own
@@ -49,6 +54,23 @@ function useAfterIdle(enabled: boolean): boolean {
 }
 
 /**
+ * Keeps the page's first product and search views for the consent chunk (see `earlyViews`). Renders nothing. Hydrogen
+ * keeps its subscribers in a module-level map keyed by the callback's source text, so this does not collide with the
+ * chunk's own subscriptions.
+ */
+function EarlyViews() {
+  const {subscribe} = useAnalytics();
+  useEffect(() => {
+    // One function per event: Hydrogen keys a subscriber by event and by the callback's source text.
+    const keep = (event: string) => (payload: unknown) =>
+      earlyViews.keep(event, payload);
+    subscribe(HydrogenEvent.PRODUCT_VIEWED, keep(HydrogenEvent.PRODUCT_VIEWED));
+    subscribe(HydrogenEvent.SEARCH_VIEWED, keep(HydrogenEvent.SEARCH_VIEWED));
+  }, [subscribe]);
+  return null;
+}
+
+/**
  * Replaces `<Analytics.Provider>` in the root (P7-01): the same provider, in the initial JavaScript, plus a request
  * for the lazy `ConsentRuntime` chunk.
  *
@@ -82,8 +104,13 @@ export function AnalyticsGate({
       cart={cart}
       shop={shop}
       consent={consent}
-      {...(providers ? {canTrack: consentHandle.canTrack} : {})}
+      // Present only while the shopper has allowed a provider, and then a new function each render (so Hydrogen, which
+      // memoises on this reference, asks again whenever the choice changes); absent, Hydrogen uses Shopify's own answer.
+      {...(providers && consentHandle.consented()
+        ? {canTrack: () => true}
+        : {})}
     >
+      {providers ? <EarlyViews /> : null}
       {providers && mountRuntime ? (
         <Suspense fallback={null}>
           <ConsentRuntime
@@ -91,6 +118,7 @@ export function AnalyticsGate({
             nonce={nonce}
             publishStore={consentHandle.publish}
             notify={consentHandle.notify}
+            takeEarlyViews={earlyViews.take}
             schedule={scheduleIdle}
           />
         </Suspense>

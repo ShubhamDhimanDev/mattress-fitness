@@ -4,6 +4,7 @@ import {useLocation} from 'react-router';
 import {track} from '~/lib/analytics';
 import {
   SELECT_ITEM_ATTRIBUTE,
+  get,
   mapBeginCheckout,
   mapCartLineChange,
   mapCartViewed,
@@ -13,6 +14,9 @@ import {
 } from '~/lib/analytics/hydrogen-events';
 
 const CHECKOUT_DEBOUNCE_MS = 2000;
+
+// True while an `AnalyticsBridge` is mounted; see the subscriptions below.
+let mounted = false;
 // Written out, not imported from `~/lib/cart/checkout`: that module is shared with the cart chunk, and importing it here
 // adds a file to the consent chunk's preload list in the root route (bundle budget, scripts/perf). A test pins the two.
 export const CHECKOUT_LINK_PATH = '/checkout-steps';
@@ -31,30 +35,50 @@ export const CHECKOUT_LINK_PATH = '/checkout-steps';
  *  - select_item is sent on a click inside an element marked with the `data-si` attribute (`cardSelectItemAttributes`).
  * Every handler goes through `track()`, which never throws, and the runtime drops what consent does not allow.
  */
-export function AnalyticsBridge() {
+export function AnalyticsBridge({
+  takeEarlyViews,
+}: {
+  /** The page's first product and search views, kept by the shell until now (`earlyViews` in `~/lib/analytics/gate`). */
+  takeEarlyViews: () => Array<[string, unknown]>;
+}) {
   const {subscribe, cart} = useAnalytics();
   const cartRef = useRef(cart);
   cartRef.current = cart;
 
-  // Hydrogen keeps subscribers in a module-level map keyed by the callback's source text and has no unsubscribe,
-  // so this runs once and the callbacks hold nothing that can go stale (they only call the global `track`).
+  // Hydrogen keeps subscribers in a module-level map keyed by the callback's source text and has no unsubscribe, so a
+  // subscription outlives this component. The callbacks therefore act only while it is mounted (`mounted`): between
+  // two mounts a lingering callback would send an event that the next mount sends again from the early views.
   useEffect(() => {
+    mounted = true;
     subscribe(HydrogenEvent.PRODUCT_VIEWED, (payload) => {
-      sendIfPresent(mapProductViewed(payload));
+      if (mounted) sendIfPresent(mapProductViewed(payload));
     });
     subscribe(HydrogenEvent.SEARCH_VIEWED, (payload) => {
-      sendIfPresent(mapSearchViewed(payload));
+      if (mounted) sendIfPresent(mapSearchViewed(payload));
     });
     subscribe(HydrogenEvent.CART_VIEWED, (payload) => {
-      sendIfPresent(mapCartViewed(payload));
+      if (mounted) sendIfPresent(mapCartViewed(payload));
     });
     subscribe(HydrogenEvent.PRODUCT_ADD_TO_CART, (payload) => {
-      sendIfPresent(mapCartLineChange('add', payload));
+      if (mounted) sendIfPresent(mapCartLineChange('add', payload));
     });
     subscribe(HydrogenEvent.PRODUCT_REMOVED_FROM_CART, (payload) => {
-      sendIfPresent(mapCartLineChange('remove', payload));
+      if (mounted) sendIfPresent(mapCartLineChange('remove', payload));
     });
-  }, [subscribe]);
+    // Hydrogen published this page's views before this chunk existed and does not replay them to a late subscriber,
+    // so the shell kept them; send those that belong to the page the shopper is still on, once.
+    for (const [kind, payload] of takeEarlyViews()) {
+      if (!isThisPage(payload)) continue;
+      sendIfPresent(
+        kind === HydrogenEvent.PRODUCT_VIEWED
+          ? mapProductViewed(payload)
+          : mapSearchViewed(payload),
+      );
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [subscribe, takeEarlyViews]);
 
   useEffect(() => {
     let lastCheckout = 0;
@@ -86,6 +110,19 @@ export function AnalyticsBridge() {
   }, []);
 
   return <PageViewTracker />;
+}
+
+/** A kept view belongs to this page when its address (path and query) is the one now showing. */
+function isThisPage(payload: unknown): boolean {
+  try {
+    const url = new URL(String(get(payload, 'url')));
+    return (
+      url.pathname + url.search ===
+      window.location.pathname + window.location.search
+    );
+  } catch {
+    return false;
+  }
 }
 
 function sendIfPresent(event: ReturnType<typeof mapProductViewed>): void {

@@ -279,7 +279,7 @@ describe('select_item on a card click (fake runtime)', () => {
   it('fires the mapped event once, with price, list and position (no brand), for a click on the title link', () => {
     renderRoutes(
       <>
-        <AnalyticsBridge />
+        <AnalyticsBridge takeEarlyViews={() => []} />
         <ProductItem product={product(7)} index={5} listId="firm-mattresses" />
       </>,
       '/collections/firm-mattresses',
@@ -332,7 +332,7 @@ describe('select_item on a card click (fake runtime)', () => {
   ])('does not fire for %s', (_label, card, link) => {
     renderRoutes(
       <>
-        <AnalyticsBridge />
+        <AnalyticsBridge takeEarlyViews={() => []} />
         {card}
       </>,
       '/search',
@@ -345,7 +345,7 @@ describe('select_item on a card click (fake runtime)', () => {
   it('home featured cards carry the featured collection handle as the list and their position', () => {
     renderRoutes(
       <>
-        <AnalyticsBridge />
+        <AnalyticsBridge takeEarlyViews={() => []} />
         <FeaturedProducts
           id="featured"
           heading={null}

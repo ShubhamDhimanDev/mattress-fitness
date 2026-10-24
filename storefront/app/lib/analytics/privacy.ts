@@ -23,6 +23,24 @@ export function looksPersonal(value: string): boolean {
   return EMAIL.test(value) || LONG_DIGITS.test(value);
 }
 
+// Ten or more digits in a row (allowing separators): a US phone number, a card, a long account number. Used for the
+// values in a page address, where ordinary things (dates, product and variant ids, campaign names) hold digits too.
+export const PHONE_LIKE = /(?:\d[\s().-]*){10,}/;
+
+/**
+ * Whether a query value in a page address looks like personal data. Stricter than free text would be if it used the
+ * seven-digit rule: campaign tags (`utm_*`) are blocked only on an email, `variant` is a Shopify id and never checked
+ * (a 14-digit variant id is normal), and everything else needs an email or a phone-like run of ten digits. Dates
+ * (`2026-10-23`, `20261023`) have eight digits and pass.
+ */
+export function queryValueLooksPersonal(key: string, value: string): boolean {
+  const name = key.toLowerCase();
+  if (name === 'variant') return false;
+  if (EMAIL.test(value)) return true;
+  if (name.startsWith('utm_')) return false;
+  return PHONE_LIKE.test(value);
+}
+
 /**
  * The flat parameters of an event, reduced to what is safe: a valid name, a finite number or a short string that
  * does not look like an email or a long number. Strings are cut at 100 characters (the GA4 limit).
@@ -132,12 +150,12 @@ export function sanitizePageLocation(raw: unknown): string | null {
   const kept = new URLSearchParams();
   for (const [key, value] of url.searchParams) {
     // Click ids are opaque tokens whose letters and digits can look like a long number; only free-text campaign
-    // tags are checked for personal data.
+    // tags are checked, and only for an email (a campaign named after a date is normal).
     const free = key.startsWith('utm_');
     if (
       ALLOWED_QUERY_KEYS.has(key) &&
       value.length <= MAX_PARAM_VALUE_LENGTH &&
-      !(free && looksPersonal(value))
+      !(free && EMAIL.test(value))
     ) {
       kept.append(key, value);
     }

@@ -24,6 +24,7 @@ import {
 // Re-exported so existing imports and tests keep one place to look.
 export {
   ANALYTICS_CURRENCY,
+  get,
   SELECT_ITEM_ATTRIBUTE,
   centsFrom,
   itemFromProductPayload,

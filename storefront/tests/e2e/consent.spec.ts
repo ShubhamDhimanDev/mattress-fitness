@@ -1,6 +1,6 @@
 import {expect, test, type Page} from '@playwright/test';
 import {expectNoSeriousA11yViolations} from './helpers/a11y';
-import {gotoReady} from './helpers/catalog';
+import {firstProductPath, gotoReady} from './helpers/catalog';
 import {
   collectConsoleErrorsWithUrls,
   unexpectedErrors,
@@ -274,6 +274,45 @@ test.describe('providers configured, opt-in mode', () => {
     await expect
       .poll(() => requests.some((url) => GA_HOST.test(url)))
       .toBe(true);
+  });
+
+  test('with consent already stored, a product page sends view_item exactly once, also though the consent chunk loads after the page (review M-1)', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await stubProviders(page);
+    const stored = JSON.stringify({
+      version: 1,
+      analytics: true,
+      marketing: true,
+      decidedAt: Math.floor(Date.now() / 1000),
+    });
+    await context.addCookies([
+      {
+        name: 'mf_consent',
+        value: encodeURIComponent(stored),
+        url: baseURL ?? '',
+      },
+    ]);
+    const product = await firstProductPath(page, '/collections/all');
+    await gotoReady(page, product);
+    const viewItems = () =>
+      page.evaluate(() => {
+        const layer: unknown = Reflect.get(window, 'dataLayer');
+        return Array.isArray(layer)
+          ? layer.filter(
+              (entry) =>
+                typeof entry === 'object' &&
+                entry !== null &&
+                Reflect.get(entry, '1') === 'view_item',
+            ).length
+          : 0;
+      });
+    await expect.poll(viewItems).toBe(1);
+    // Give a second, duplicate send the chance to arrive before asserting there is none.
+    await page.waitForTimeout(1500);
+    expect(await viewItems()).toBe(1);
   });
 
   test('consent can be withdrawn from the footer link, and sending stops', async ({

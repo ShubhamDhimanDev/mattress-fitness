@@ -1,30 +1,7 @@
-import {createContext, useContext} from 'react';
 import type {PublicAnalyticsConfig} from '~/lib/analytics/config';
-import type {
-  ConsentSnapshot,
-  ConsentStore,
-} from '~/lib/analytics/consent-store';
+import type {ConsentStore} from '~/lib/analytics/consent-store';
 
-// Kept to React and type imports only: the footer imports this file, so it is part of every route's JavaScript.
-
-export type ConsentContextValue = {
-  readonly config: PublicAnalyticsConfig;
-  /** Null on the server and until the consent chunk has loaded; the banner and dialog render nothing then. */
-  readonly store: ConsentStore | null;
-  readonly snapshot: ConsentSnapshot;
-};
-
-/**
- * An override for the footer button (`PrivacyChoicesButton`): tests and isolated components provide a store here.
- * In the running site nothing provides it and the button reads the store the consent chunk publishes to
- * `consentHandle` (`~/lib/analytics/gate`), which keeps a React context provider out of the initial JavaScript.
- */
-export const ConsentContext = createContext<ConsentContextValue | null>(null);
-
-/** The override, or null. */
-export function useConsent(): ConsentContextValue | null {
-  return useContext(ConsentContext);
-}
+// Types only: nothing here reaches a bundle.
 
 /**
  * What the page shell hands the lazy consent chunk. The shell passes its helpers in as props instead of the chunk
@@ -36,6 +13,8 @@ export type ConsentRuntimeProps = {
   readonly nonce: string | undefined;
   /** Publishes the chunk's consent store to the shell (null when the chunk unmounts). */
   readonly publishStore: (store: ConsentStore | null) => void;
+  /** Hands over the page's first product and search views, kept by the shell (`earlyViews`). */
+  readonly takeEarlyViews: () => Array<[string, unknown]>;
   /** Tells the shell the shopper's choice changed, so Hydrogen's provider asks `canTrack` again. */
   readonly notify: () => void;
   /** Runs a callback when the browser is idle and returns the canceller. */
