@@ -86,6 +86,8 @@ export function FeaturedProducts({
             <ProductItem
               product={product}
               loading={index < 4 ? 'eager' : 'lazy'}
+              index={index}
+              listId={featured.handle ?? 'featured-products'}
             />
           </li>
         ))}

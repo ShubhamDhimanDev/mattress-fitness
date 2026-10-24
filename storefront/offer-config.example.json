@@ -1,0 +1,361 @@
+{
+  "_WARNING_DEV_STORE_ONLY": "DEVELOPMENT STORE ONLY. NEVER USE THIS FILE, OR ANY VALUE IN IT, IN PRODUCTION OR ON THE CLIENT'S LIVE STORE. The offers, thresholds, discount titles and every id are made-up placeholders (DEC-082); a copy in production would run fake promotions and gate the cart on ids that do not exist. Production offer rules come from the client (CLR-011, Q-020) and are set in the host environment, never from this example.",
+  "_placeholder": "PLACEHOLDER OFFER SETUP (DEC-082, owner decision 2026-10-23). The gift and bundle rules below are made up for the development store and tests. They are not the client's offers (CLR-011, Q-020). Every id is a fake placeholder: replace each one with the real Shopify id of the product or variant created from scripts/catalog/sample/offer-products.csv (see docs/integrations/OFFER_SETUP_DEVSTORE.md). Keys that start with an underscore are notes; the parser ignores them.",
+  "_idScheme": "Placeholder product ids are listed in _products. A placeholder variant id is the product number times 10 plus the size position (Twin 1, Twin XL 2, Full 3, Queen 4, King 5, California King 6, Split California King 7). The haul-away service has one variant and uses position 1.",
+  "_products": {
+    "luxe-hybrid": "gid://shopify/Product/7001",
+    "luxe-foam": "gid://shopify/Product/7002",
+    "cloudmere-hybrid": "gid://shopify/Product/7003",
+    "sample-foundation": "gid://shopify/Product/7101",
+    "sample-protector": "gid://shopify/Product/7102",
+    "sample-pillow": "gid://shopify/Product/7103",
+    "sample-gift-pillow": "gid://shopify/Product/7104",
+    "sample-sheets": "gid://shopify/Product/7105",
+    "recycle-and-disposal-service": "gid://shopify/Product/7106"
+  },
+  "rules": {
+    "gifts": [
+      {
+        "id": "placeholder-gift-pillow",
+        "name": "Free pillow with a queen or larger mattress (placeholder)",
+        "qualifyingProductIds": [
+          "gid://shopify/Product/7001",
+          "gid://shopify/Product/7002"
+        ],
+        "qualifyingCollectionIds": [],
+        "giftVariantIdsBySize": {
+          "Queen": "gid://shopify/ProductVariant/71044",
+          "King": "gid://shopify/ProductVariant/71045"
+        },
+        "maxQuantity": 1
+      }
+    ],
+    "bundles": [
+      {
+        "id": "placeholder-sleep-set-luxe-hybrid",
+        "name": "Sleep set: mattress, protector and pillow (placeholder)",
+        "discountTitle": "Sleep set 10% off (placeholder)",
+        "anchorProductId": "gid://shopify/Product/7001",
+        "members": [
+          {
+            "productId": "gid://shopify/Product/7102",
+            "quantity": 1,
+            "variants": {
+              "type": "by-size",
+              "variantIdBySize": {
+                "Twin": "gid://shopify/ProductVariant/71021",
+                "Twin XL": "gid://shopify/ProductVariant/71022",
+                "Full": "gid://shopify/ProductVariant/71023",
+                "Queen": "gid://shopify/ProductVariant/71024",
+                "King": "gid://shopify/ProductVariant/71025",
+                "California King": "gid://shopify/ProductVariant/71026",
+                "Split California King": "gid://shopify/ProductVariant/71027"
+              }
+            }
+          },
+          {
+            "productId": "gid://shopify/Product/7103",
+            "quantity": 1,
+            "variants": {
+              "type": "single",
+              "variantId": "gid://shopify/ProductVariant/71034"
+            }
+          }
+        ]
+      },
+      {
+        "id": "placeholder-sleep-set-luxe-foam",
+        "name": "Sleep set: mattress, protector and pillow (placeholder)",
+        "discountTitle": "Sleep set 10% off (placeholder)",
+        "anchorProductId": "gid://shopify/Product/7002",
+        "members": [
+          {
+            "productId": "gid://shopify/Product/7102",
+            "quantity": 1,
+            "variants": {
+              "type": "by-size",
+              "variantIdBySize": {
+                "Twin": "gid://shopify/ProductVariant/71021",
+                "Twin XL": "gid://shopify/ProductVariant/71022",
+                "Full": "gid://shopify/ProductVariant/71023",
+                "Queen": "gid://shopify/ProductVariant/71024",
+                "King": "gid://shopify/ProductVariant/71025",
+                "California King": "gid://shopify/ProductVariant/71026",
+                "Split California King": "gid://shopify/ProductVariant/71027"
+              }
+            }
+          },
+          {
+            "productId": "gid://shopify/Product/7103",
+            "quantity": 1,
+            "variants": {
+              "type": "single",
+              "variantId": "gid://shopify/ProductVariant/71034"
+            }
+          }
+        ]
+      },
+      {
+        "id": "placeholder-sleep-set-cloudmere-hybrid",
+        "name": "Sleep set: mattress, protector and pillow (placeholder)",
+        "discountTitle": "Sleep set 10% off (placeholder)",
+        "anchorProductId": "gid://shopify/Product/7003",
+        "members": [
+          {
+            "productId": "gid://shopify/Product/7102",
+            "quantity": 1,
+            "variants": {
+              "type": "by-size",
+              "variantIdBySize": {
+                "Twin": "gid://shopify/ProductVariant/71021",
+                "Twin XL": "gid://shopify/ProductVariant/71022",
+                "Full": "gid://shopify/ProductVariant/71023",
+                "Queen": "gid://shopify/ProductVariant/71024",
+                "King": "gid://shopify/ProductVariant/71025",
+                "California King": "gid://shopify/ProductVariant/71026",
+                "Split California King": "gid://shopify/ProductVariant/71027"
+              }
+            }
+          },
+          {
+            "productId": "gid://shopify/Product/7103",
+            "quantity": 1,
+            "variants": {
+              "type": "single",
+              "variantId": "gid://shopify/ProductVariant/71034"
+            }
+          }
+        ]
+      }
+    ],
+    "comfortGuarantee": {
+      "qualifyingProductIds": [
+        "gid://shopify/Product/7001",
+        "gid://shopify/Product/7002",
+        "gid://shopify/Product/7003"
+      ],
+      "protectorVariantIdBySize": {
+        "Twin": "gid://shopify/ProductVariant/71021",
+        "Twin XL": "gid://shopify/ProductVariant/71022",
+        "Full": "gid://shopify/ProductVariant/71023",
+        "Queen": "gid://shopify/ProductVariant/71024",
+        "King": "gid://shopify/ProductVariant/71025",
+        "California King": "gid://shopify/ProductVariant/71026",
+        "Split California King": "gid://shopify/ProductVariant/71027"
+      }
+    },
+    "matchingAddOns": {
+      "foundations": [
+        {
+          "mattressProductId": "gid://shopify/Product/7001",
+          "size": "Queen",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71014"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7001",
+          "size": "King",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71015"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7001",
+          "size": "California King",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71016"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7001",
+          "size": "Split California King",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71017"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7002",
+          "size": "Queen",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71014"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7002",
+          "size": "King",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71015"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7002",
+          "size": "California King",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71016"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Twin",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71011"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Twin XL",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71012"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Full",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71013"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Queen",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71014"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "King",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71015"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "California King",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71016"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Split California King",
+          "productId": "gid://shopify/Product/7101",
+          "variantId": "gid://shopify/ProductVariant/71017"
+        }
+      ],
+      "protectors": [],
+      "pillows": [
+        {
+          "mattressProductId": "gid://shopify/Product/7001",
+          "size": null,
+          "productId": "gid://shopify/Product/7103",
+          "variantId": "gid://shopify/ProductVariant/71034"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7002",
+          "size": null,
+          "productId": "gid://shopify/Product/7103",
+          "variantId": "gid://shopify/ProductVariant/71034"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": null,
+          "productId": "gid://shopify/Product/7103",
+          "variantId": "gid://shopify/ProductVariant/71034"
+        }
+      ],
+      "bedding": [
+        {
+          "mattressProductId": "gid://shopify/Product/7001",
+          "size": "Queen",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71054"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7001",
+          "size": "King",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71055"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7001",
+          "size": "California King",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71056"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7001",
+          "size": "Split California King",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71057"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7002",
+          "size": "Queen",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71054"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7002",
+          "size": "King",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71055"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7002",
+          "size": "California King",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71056"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Twin",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71051"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Twin XL",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71052"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Full",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71053"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Queen",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71054"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "King",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71055"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "California King",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71056"
+        },
+        {
+          "mattressProductId": "gid://shopify/Product/7003",
+          "size": "Split California King",
+          "productId": "gid://shopify/Product/7105",
+          "variantId": "gid://shopify/ProductVariant/71057"
+        }
+      ]
+    },
+    "haulAway": {
+      "variantId": "gid://shopify/ProductVariant/71061",
+      "maxPieces": 2
+    },
+    "freeDelivery": {
+      "thresholdCents": 99900
+    }
+  },
+  "zone": {
+    "name": "Placeholder metro zone",
+    "postalCodes": "60601, 60602, 60603, 60645",
+    "feeCents": 14900,
+    "freeOverCents": 99900,
+    "promise": {
+      "inHome": "Placeholder wording: in-home delivery and setup is available in your area.",
+      "parcel": "Placeholder wording: this item ships to your door.",
+      "pickup": "Placeholder wording: ready for pickup at the store."
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import {Analytics, getShopAnalytics, useNonce} from '@shopify/hydrogen';
+import {getShopAnalytics, useNonce} from '@shopify/hydrogen';
 import {
   Outlet,
   useRouteError,
@@ -12,6 +12,8 @@ import {
 } from 'react-router';
 import type {Route} from './+types/root';
 import {BRAND_HEAD_LINKS, BRAND_THEME_COLOR} from '~/lib/brand';
+import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
+import {parseAnalyticsConfig} from '~/lib/analytics/config';
 import {FOOTER_QUERY} from '~/lib/fragments';
 import tailwindCss from './styles/tailwind.css?url';
 import {formatPageTitle} from '~/components/layout/documentTitle';
@@ -146,6 +148,8 @@ export async function loader(args: Route.LoaderArgs) {
       import.meta.env.DEV,
     ),
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
+    // Public identifiers and the consent mode (P7-01). Unset ids mean no provider: nothing loads (REQ-ANL-001/002).
+    analytics: parseAnalyticsConfig(env),
     shop: getShopAnalytics({
       storefront,
       publicStorefrontId: env.PUBLIC_STOREFRONT_ID,
@@ -221,10 +225,11 @@ export default function App() {
   }
 
   return (
-    <Analytics.Provider
+    <AnalyticsGate
       cart={data.cart}
       shop={data.shop}
       consent={data.consent}
+      config={data.analytics}
     >
       <PageLayout
         cart={data.cart}
@@ -237,7 +242,7 @@ export default function App() {
       >
         <Outlet />
       </PageLayout>
-    </Analytics.Provider>
+    </AnalyticsGate>
   );
 }
 
@@ -318,10 +323,11 @@ export function ErrorBoundary() {
   }
 
   return (
-    <Analytics.Provider
+    <AnalyticsGate
       cart={data.cart}
       shop={data.shop}
       consent={data.consent}
+      config={data.analytics}
     >
       <PageLayout
         cart={data.cart}
@@ -334,6 +340,6 @@ export function ErrorBoundary() {
       >
         {content}
       </PageLayout>
-    </Analytics.Provider>
+    </AnalyticsGate>
   );
 }

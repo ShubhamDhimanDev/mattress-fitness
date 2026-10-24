@@ -7,9 +7,11 @@ import {
 } from '@shopify/hydrogen';
 import type {EntryContext} from 'react-router';
 import {errorFields, logError} from '~/lib/logging/logger';
+import {parseAnalyticsConfig} from '~/lib/analytics/config';
 import {
   applySecurityHeaders,
   buildReportOnlyCsp,
+  enforcedCspExtras,
   withSecurityHeaders,
 } from '~/lib/security-headers';
 import {canonicalLinkHeader, canonicalUrl} from '~/lib/seo/canonical';
@@ -30,11 +32,19 @@ export default async function handleRequest(
   reactRouterContext: EntryContext,
   context: HydrogenRouterContextProvider,
 ) {
+  // A provider host is added only for a provider whose id is set (P7-01, T-10); with none set both are empty and
+  // the policies are exactly what they were.
+  const analyticsConfig = parseAnalyticsConfig(context.env);
+  const analyticsCsp = {
+    ga4: analyticsConfig.ga4MeasurementId !== null,
+    meta: analyticsConfig.metaPixelId !== null,
+  };
   const {nonce, header, NonceProvider} = createContentSecurityPolicy({
     shop: {
       checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
       storeDomain: context.env.PUBLIC_STORE_DOMAIN,
     },
+    ...enforcedCspExtras(analyticsCsp),
   });
 
   const body = await renderToReadableStream(
@@ -69,6 +79,7 @@ export default async function handleRequest(
     storeDomain: context.env.PUBLIC_STORE_DOMAIN,
     checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
     development: import.meta.env.DEV,
+    analytics: analyticsCsp,
   });
   if (reportOnly) {
     responseHeaders.set('Content-Security-Policy-Report-Only', reportOnly);

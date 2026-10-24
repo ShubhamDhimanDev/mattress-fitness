@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate, useSearchParams} from 'react-router';
 import {ActiveFilters, FilterPanel} from '~/components/collection/FilterPanel';
 import {PromoTileCard} from '~/components/collection/PromoTileCard';
@@ -14,6 +14,8 @@ import {
   parseFilterParams,
   type SortKey,
 } from '~/lib/filters';
+import type {ReportedList} from '~/lib/listing-events';
+import {listIdForPath} from '~/lib/listing-path';
 import {
   hrefForReset,
   hrefForSort,
@@ -70,6 +72,23 @@ export function ProductListing({
     buildHref: (cursor) =>
       hrefForState(pathname, nextPageState(state, cursor), base),
   });
+
+  // view_item_list (REQ-ANL-001). All of it (which products are new, the numbering, the event) lives in a module
+  // fetched here with import(), which keeps it out of the route's initial JavaScript (scripts/perf). It records what
+  // it has reported in the `reported` ref, so each product is counted once per list view, also when this effect runs twice.
+  // `track()` holds the event until the consent layer is ready and the runtime drops what consent does not allow.
+  const listId = listIdForPath(pathname);
+  const reported = useRef<ReportedList | null>(null);
+  const visibleProducts = list.products;
+  useEffect(() => {
+    import('~/lib/listing-events').then(
+      (events) =>
+        events.reportListing(reported, resetKey, visibleProducts, listId),
+      () => {
+        // The chunk could not be fetched (offline, a deploy replaced it): analytics never breaks the page (NFR-013).
+      },
+    );
+  }, [resetKey, visibleProducts, listId]);
 
   const sortOptions = sortKeys.map((key) => ({
     value: key,
@@ -177,6 +196,7 @@ export function ProductListing({
                         index={item.productIndex}
                         layout="row"
                         loading={item.productIndex < 4 ? 'eager' : 'lazy'}
+                        listId={listId}
                       />
                     </li>
                   ),

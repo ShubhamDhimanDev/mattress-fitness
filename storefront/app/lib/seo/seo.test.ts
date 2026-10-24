@@ -71,6 +71,8 @@ describe('canonical URL (REQ-SEO-001, DEC-044)', () => {
     '/discount/SAVE10',
     '/search',
     '/compare',
+    '/track-order',
+    '/Track-Order',
     '/sitemap.xml',
     '/sitemap/products/1.xml',
     '/robots.txt',
@@ -103,6 +105,11 @@ describe('canonical URL (REQ-SEO-001, DEC-044)', () => {
       {tagName: 'link', rel: 'canonical', href: url},
     ]);
     expect(canonicalMeta(null)).toEqual([]);
+  });
+
+  it('keeps /track-order out of the indexable set but not in the robots block (L-6, REQ-ACC-003)', () => {
+    expect(NON_INDEXABLE_PREFIXES).toContain('/track-order');
+    expect(ROBOTS_DISALLOWED_PREFIXES).not.toContain('/track-order');
   });
 
   it('keeps every robots-blocked path out of the indexable set', () => {

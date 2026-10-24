@@ -180,13 +180,46 @@ async function* limitBytes(source, maxBytes) {
   }
 }
 
-function toHeaders(req) {
+/**
+ * Client-address headers that only another platform's edge may set. Off that platform a client can send any of them, and
+ * the storefront's guest-lookup limiter reads one of them as the shopper's address (security review M-1, T-09, T-13), so
+ * they never reach the application from here.
+ */
+export const UNTRUSTED_ADDRESS_HEADERS = Object.freeze(['oxygen-buyer-ip', 'cf-connecting-ip', 'true-client-ip']);
+
+/** Set by a proxy, so believed only when the operator says one sits in front (TRUST_PROXY). */
+const PROXY_ADDRESS_HEADERS = Object.freeze(['x-real-ip', 'x-forwarded-for']);
+
+/** `::ffff:203.0.113.5` is the same peer as `203.0.113.5`; the application should see one spelling. */
+function socketAddress(address) {
+  if (typeof address !== 'string' || address === '') return undefined;
+  return /^::ffff:\d{1,3}(\.\d{1,3}){3}$/i.test(address) ? address.slice(7) : address;
+}
+
+/**
+ * The headers the application sees. Hop-by-hop headers go, the three platform address headers always go, and when no
+ * proxy is trusted `x-real-ip` and `x-forwarded-for` go too and `x-real-ip` is set from the socket, so
+ * TRUSTED_CLIENT_IP_HEADER=x-real-ip is correct on both setups. With a trusted proxy (loopback-only, enforced in
+ * config.mjs) the proxy's own `x-real-ip` passes through.
+ *
+ * @param {readonly string[]} rawHeaders `req.rawHeaders`: name, value, name, value ...
+ * @param {{trustProxy: boolean, remoteAddress?: string}} options
+ * @returns {Headers}
+ */
+export function buildRequestHeaders(rawHeaders, { trustProxy, remoteAddress }) {
   const headers = new Headers();
-  for (let i = 0; i + 1 < req.rawHeaders.length; i += 2) {
-    const name = req.rawHeaders[i];
-    const value = req.rawHeaders[i + 1];
-    if (name === undefined || value === undefined || HOP_BY_HOP.has(name.toLowerCase())) continue;
+  for (let i = 0; i + 1 < rawHeaders.length; i += 2) {
+    const name = rawHeaders[i];
+    const value = rawHeaders[i + 1];
+    if (name === undefined || value === undefined) continue;
+    const lower = name.toLowerCase();
+    if (HOP_BY_HOP.has(lower) || UNTRUSTED_ADDRESS_HEADERS.includes(lower)) continue;
+    if (!trustProxy && PROXY_ADDRESS_HEADERS.includes(lower)) continue;
     headers.append(name, value);
+  }
+  if (!trustProxy) {
+    const address = socketAddress(remoteAddress);
+    if (address !== undefined) headers.set('x-real-ip', address);
   }
   return headers;
 }
@@ -216,7 +249,14 @@ function toWebRequest(req, settings, signal) {
   }
 
   const method = req.method ?? 'GET';
-  const init = { method, headers: toHeaders(req), signal };
+  const init = {
+    method,
+    headers: buildRequestHeaders(req.rawHeaders, {
+      trustProxy: settings.trustProxy,
+      remoteAddress: req.socket?.remoteAddress,
+    }),
+    signal,
+  };
   if (method !== 'GET' && method !== 'HEAD') {
     const declared = Number(req.headers['content-length'] ?? 0);
     if (declared > settings.maxBodyBytes) throw new HttpError(413, 'Request body too large');

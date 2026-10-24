@@ -1,5 +1,6 @@
 import {useId, useState} from 'react';
 import {Link} from 'react-router';
+import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
 import {FooterLogo} from '~/components/layout/BrandLogo';
 import {cn} from '~/components/ui/cn';
 import {BRAND_TAGLINE} from '~/lib/brand';
@@ -156,6 +157,10 @@ export function SiteFooter({
                 </Link>
               </li>
             ))}
+            {/* Withdrawal of consent must be as easy as giving it (NFR-011). The button renders nothing while no analytics id is set and until the consent chunk has loaded (its store comes from `useSyncExternalStore` with a server snapshot, so the server HTML and the hydrating render agree), so `empty:hidden` removes its list item and leaves no stray gap. */}
+            <li className="empty:hidden">
+              <PrivacyChoicesButton />
+            </li>
             {supportPhone ? (
               <li>
                 <a

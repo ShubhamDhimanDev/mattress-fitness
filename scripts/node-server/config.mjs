@@ -144,6 +144,47 @@ export function readSettings(env) {
   };
 }
 
+/** The one address header this host's proxy template sets and the adapter guarantees (nginx.conf.example, adapter.mjs). */
+export const EXPECTED_CLIENT_IP_HEADER = 'x-real-ip';
+
+/**
+ * Start-up warning about TRUSTED_CLIENT_IP_HEADER (security re-review 2026-10-24, N-1). Not an error: the application
+ * stays safe either way, only stricter or pointed at a header nothing here vouches for.
+ *
+ *  - `unset` (or blank): the guest order lookup treats every shopper as one address, so the whole site shares one
+ *    bucket of 10 attempts per 15 minutes. Raised on any host, because it is wrong for a real store whatever TRUST_PROXY says.
+ *  - `not_x_real_ip`: only while TRUST_PROXY=true (the VPS template, nginx in front). The proxy overwrites X-Real-IP and
+ *    the adapter blanks the platform headers, so any other name is read from a header nothing on this host controls
+ *    (oxygen-buyer-ip, cf-connecting-ip, true-client-ip are forgeable) or one that is not set at all.
+ *
+ * The application reads the variable on each request, but from the copy of the environment this process took at start,
+ * so a change in the environment file only takes effect after a restart, which is also when this warning is evaluated.
+ * Returns the setting's name and a reason, never the configured value; null when there is nothing to say.
+ *
+ * @param {Record<string, string | undefined>} env
+ * @param {{trustProxy: boolean}} settings
+ * @returns {{setting: string, reason: 'unset' | 'not_x_real_ip', effect: string} | null}
+ */
+export function readClientIpHeaderWarning(env, settings) {
+  const raw = env.TRUSTED_CLIENT_IP_HEADER;
+  const configured = raw === undefined ? '' : raw.trim().toLowerCase();
+  if (configured === '') {
+    return {
+      setting: 'TRUSTED_CLIENT_IP_HEADER',
+      reason: 'unset',
+      effect: 'the guest order lookup shares one bucket (10 attempts per 15 minutes) across the whole site',
+    };
+  }
+  if (settings.trustProxy && configured !== EXPECTED_CLIENT_IP_HEADER) {
+    return {
+      setting: 'TRUSTED_CLIENT_IP_HEADER',
+      reason: 'not_x_real_ip',
+      effect: `behind the proxy only ${EXPECTED_CLIENT_IP_HEADER} is set by this host; any other header can be chosen by the client or is absent`,
+    };
+  }
+  return null;
+}
+
 /**
  * Names (never values) of required storefront variables that are missing, plus a note for a SESSION_SECRET that the
  * application would refuse in production.

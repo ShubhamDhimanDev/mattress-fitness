@@ -1,0 +1,5 @@
+# Image file names used by offer-products.csv (synthetic; no real files). Only the two mattresses need images.
+halden-luxe-hybrid-1.jpg
+halden-luxe-hybrid-2.jpg
+halden-luxe-foam-1.jpg
+halden-luxe-foam-2.jpg

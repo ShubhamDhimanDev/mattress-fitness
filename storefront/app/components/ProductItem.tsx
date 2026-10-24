@@ -5,13 +5,20 @@ import {Badge} from '~/components/ui/Badge';
 import {cn} from '~/components/ui/cn';
 import {getPriceView, Price} from '~/components/ui/Price';
 import {Rating} from '~/components/ui/Rating';
+import {cardSelectItemAttributes} from '~/lib/listing-analytics';
 import type {ProductCardView} from '~/lib/shopify/types';
 
 type ProductItemProps = {
   product: ProductCardView;
   loading?: 'eager' | 'lazy';
-  /** Position in the list, used by "Load more" to move focus to the first new card. */
+  /**
+   * Zero-based position among the list's products (promo tiles do not count). "Load more" uses it to move focus to
+   * the first new card, and a card that has one reports a click as select_item (REQ-ANL-001); without it the card
+   * reports nothing.
+   */
   index?: number;
+  /** The list the card belongs to, for the select_item event (a collection handle, `search`, `all`, `brand-<handle>`). */
+  listId?: string;
   /**
    * `stack` puts the image above the text. `row` puts them side by side below 768 px and stacks from there
    * (listings and search). The DOM order is the same either way, so reading and focus order never change.
@@ -38,6 +45,7 @@ export function ProductItem({
   loading,
   index,
   layout = 'stack',
+  listId,
 }: ProductItemProps) {
   const saleView =
     product.price && product.compareAt
@@ -106,9 +114,11 @@ export function ProductItem({
         ) : null}
         <h3 className="text-base font-bold text-fg md:text-lg">
           {/* The link's ::after covers the card, so the full card is the target without nesting links. The focus ring is the global one on this link (the e2e tab-walk checks the focused element paints it). The four-line clamp sits on the span INSIDE the link, not on the heading: an `overflow: hidden` ancestor would cut the 3 px ring off (BV-001). The link is a block so the ring surrounds the whole title box. */}
+          {/* On the link, not the article: the compare toggle sits inside the article and must not count as opening the product. */}
           <Link
             to={`/products/${product.handle}`}
             prefetch="intent"
+            {...cardSelectItemAttributes(product, index, listId)}
             className="group/title block after:absolute after:inset-0"
           >
             <span className="group-hover/title:underline md:line-clamp-4">

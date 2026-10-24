@@ -1,17 +1,36 @@
 {
-  "status": "PROPOSED, pending client approval (Q-012, NFR-002). A regression guard about 5 percent above the 2026-10-16 local build after the P7-06 lazy-loading of the cart, menu, ZIP form and search suggestions (before that: 7 to 10 percent above the 2026-10-15 baseline). See docs/testing/PERFORMANCE.md.",
-  "unit": "kB of gzip (level 9) JavaScript needed to start the route on a cold load, entry and root included",
+  "status": "PROPOSED budgets, re-baselined 2026-10-24 per route: each route's budget is its measured size plus about 1.5 kB, rounded up to the next 0.5 kB (\"routes\" map); a group's maxGzipKb is only the fallback for a route without its own entry. Still pending client approval (Q-012, NFR-002). Earlier: group budgets about 5 percent above the 2026-10-16 build, which the analytics consent chunk (P7-01) then used up, and group budgets that left 12 to 16 kB of slack on the smaller routes (code review m-8). Rule: a feature that needs more than the headroom must split code, or justify the increase and re-baseline with a recorded decision. See docs/testing/PERFORMANCE.md.",
+  "unit": "kB of gzip (level 9) JavaScript needed to start the route on a cold load, entry and root included. \"routes\" overrides the group's maxGzipKb for the named route.",
+  "routes": {
+    "routes/_index": 130.5,
+    "routes/collections.$handle": 139.5,
+    "routes/collections.all": 137.5,
+    "routes/products.$handle": 141.5,
+    "routes/cart": 137,
+    "routes/checkout-steps": 126.5,
+    "routes/search": 137.5,
+    "routes/quiz._index": 132,
+    "routes/compare": 130,
+    "routes/brands.$handle": 138.5,
+    "routes/brands._index": 124.5,
+    "routes/stores._index": 124.5,
+    "routes/stores.$state.$city.$slug": 125.5,
+    "routes/account": 122.5,
+    "routes/account.orders._index": 125.5,
+    "routes/pages.$handle": 123.5,
+    "routes/policies.$handle": 123.5
+  },
   "groups": [
-    { "name": "home", "routes": ["routes/_index"], "maxGzipKb": 129 },
-    { "name": "collection", "routes": ["routes/collections.$handle", "routes/collections.all"], "maxGzipKb": 138 },
-    { "name": "product", "routes": ["routes/products.$handle"], "maxGzipKb": 140 },
+    { "name": "home", "routes": ["routes/_index"], "maxGzipKb": 130.5 },
+    { "name": "collection", "routes": ["routes/collections.$handle", "routes/collections.all"], "maxGzipKb": 139.5 },
+    { "name": "product", "routes": ["routes/products.$handle"], "maxGzipKb": 141.5 },
     { "name": "cart", "routes": ["routes/cart", "routes/checkout-steps"], "maxGzipKb": 137 },
-    { "name": "search", "routes": ["routes/search"], "maxGzipKb": 136 },
+    { "name": "search", "routes": ["routes/search"], "maxGzipKb": 137.5 },
     { "name": "quiz", "routes": ["routes/quiz._index"], "maxGzipKb": 133 },
-    { "name": "compare", "routes": ["routes/compare"], "maxGzipKb": 129 },
-    { "name": "brand", "routes": ["routes/brands.$handle", "routes/brands._index"], "maxGzipKb": 137 },
-    { "name": "stores", "routes": ["routes/stores._index", "routes/stores.$state.$city.$slug"], "maxGzipKb": 124 },
-    { "name": "account", "routes": ["routes/account", "routes/account.orders._index"], "maxGzipKb": 124 },
-    { "name": "content", "routes": ["routes/pages.$handle", "routes/policies.$handle"], "maxGzipKb": 122 }
+    { "name": "compare", "routes": ["routes/compare"], "maxGzipKb": 130 },
+    { "name": "brand", "routes": ["routes/brands.$handle", "routes/brands._index"], "maxGzipKb": 138.5 },
+    { "name": "stores", "routes": ["routes/stores._index", "routes/stores.$state.$city.$slug"], "maxGzipKb": 125.5 },
+    { "name": "account", "routes": ["routes/account", "routes/account.orders._index"], "maxGzipKb": 125.5 },
+    { "name": "content", "routes": ["routes/pages.$handle", "routes/policies.$handle"], "maxGzipKb": 123.5 }
   ]
 }
