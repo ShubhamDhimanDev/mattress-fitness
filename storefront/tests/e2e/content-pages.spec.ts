@@ -70,6 +70,58 @@ test.describe('REQ-CNT-001 footer links to content pages', () => {
   });
 });
 
+const CONTENT_HREF = /^\/(pages|policies|blogs)\//;
+
+/** Hrefs of the Shopify-content links inside a locator's scope. */
+async function contentHrefs(scope: ReturnType<Page['locator']>) {
+  const hrefs = await scope
+    .locator('a[href]')
+    .evaluateAll((links) =>
+      links.map((link) => link.getAttribute('href') ?? ''),
+    );
+  return [...new Set(hrefs.filter((href) => CONTENT_HREF.test(href)))];
+}
+
+test.describe('REQ-CNT-001 header and menu links never 404', () => {
+  test('every page, policy and blog link in the header and the desktop menu resolves', async ({
+    page,
+    request,
+  }) => {
+    await gotoReady(page, '/');
+    const hrefs = await contentHrefs(page.getByRole('banner'));
+    for (const href of hrefs) {
+      const response = await request.get(href);
+      expect(response.status(), `${href} is not a 404 link`).toBe(200);
+    }
+  });
+
+  test('the utility bar has no "Chat with us" link while no chat provider exists', async ({
+    page,
+  }) => {
+    await gotoReady(page, '/');
+    await expect(page.getByRole('link', {name: 'Chat with us'})).toHaveCount(0);
+  });
+
+  test('every page, policy and blog link in the mobile menu resolves', async ({
+    page,
+    request,
+  }) => {
+    await page.setViewportSize({width: 360, height: 800});
+    await gotoReady(page, '/');
+    await page.getByRole('banner').getByRole('button', {name: 'Menu'}).click();
+    const drawer = page.getByRole('dialog', {name: 'Menu'});
+    await expect(drawer).toBeVisible();
+    // The drawer's navigation is a lazy chunk: wait for the help links it ends with.
+    await expect(drawer.getByRole('link', {name: 'Track order'})).toBeVisible();
+    // Accordion sections are collapsed; their links are in the DOM, which is all the check needs.
+    const hrefs = await contentHrefs(drawer);
+    for (const href of hrefs) {
+      const response = await request.get(href);
+      expect(response.status(), `${href} is not a 404 link`).toBe(200);
+    }
+  });
+});
+
 test.describe('REQ-CNT-001 a content page', () => {
   async function firstLinkedPage(page: Page): Promise<string | null> {
     const paths = await footerContentPaths(page);
@@ -196,13 +248,18 @@ test.describe('REQ-CNT-001 not found and redirects', () => {
     ] as const) {
       const response = await request.get(path, {maxRedirects: 0});
       const status = response.status();
-      // 301 to the policy when the store has the policy and no page with that handle, 200 when a page has that
-      // handle, 404 when neither exists; never anything else.
-      expect([200, 301, 404], path).toContain(status);
-      if (status === 301) {
+      // 302 to the policy when the store has the policy and no page with text has that handle (a temporary redirect
+      // that no cache may keep: the answer follows data the client edits; changed from 301 on 2026-10-25, V-E214),
+      // 200 when a page with text has that handle, 404 when neither exists; never anything else.
+      expect([200, 302, 404], path).toContain(status);
+      if (status === 302) {
         expect(
           new URL(response.headers().location ?? '', 'http://x').pathname,
         ).toBe(policy);
+        expect(
+          response.headers()['cache-control'],
+          `${path} is not cacheable`,
+        ).toContain('no-store');
       }
     }
   });
@@ -233,12 +290,11 @@ test.describe('REQ-CNT-002 blog', () => {
   async function firstBlogPath(page: Page): Promise<string | null> {
     const response = await gotoReady(page, '/blogs');
     if (response?.status() !== 200) return null;
-    const href = await page
-      .locator('main a[href^="/blogs/"]')
-      .first()
-      .getAttribute('href')
-      .catch(() => null);
-    return href;
+    // count() answers at once; getAttribute() on a missing link would wait out the whole test timeout (V-E214: the
+    // index of a store with no blog is a 200 page with no blog link, and the test hit its 30 s limit instead of skipping).
+    const first = page.locator('main a[href^="/blogs/"]').first();
+    if ((await first.count()) === 0) return null;
+    return first.getAttribute('href');
   }
 
   test('the blog index lists the blogs under one h1', async ({page}) => {

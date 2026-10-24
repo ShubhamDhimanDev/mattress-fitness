@@ -10,6 +10,14 @@ import {
   expectNoSeriousA11yViolations,
   isBlockedTelemetryRefusal,
 } from './helpers/a11y';
+import {
+  checkFooterContract,
+  contentHrefs,
+  expectFooterContract,
+  footerGroupSizes,
+  footerLinks,
+  revealFooterLink,
+} from './helpers/footer';
 
 // P2-05 / P2-07: the responsive shell. Covers REQ-NAV-001 (header, menu, drawer and footer keyboard-operable,
 // no horizontal scroll at 360/768/1280), NFR-001 (mobile first at 360, 768, 1024, 1280, 1536 px),
@@ -188,12 +196,27 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
       await expect(
         header.getByRole('link', {name: 'Track order'}),
       ).toBeVisible();
-      await expect(
-        header.getByRole('link', {name: 'Contact us'}),
-      ).toBeVisible();
+      // "Contact us" needs the Shopify contact page (REQ-CNT-001, P6-09): shown only when /pages/contact answers 200,
+      // never as a link that 404s. "Chat with us" has no provider yet (Q-011, P7-03), so it is never shown.
+      const contactStatus = (
+        await page.request.get('/pages/contact', {maxRedirects: 0})
+      ).status();
+      const contact = header.getByRole('link', {name: 'Contact us'});
+      if (contactStatus === 404) {
+        await expect(
+          contact,
+          '/pages/contact answers 404: no link',
+        ).toHaveCount(0);
+      } else {
+        // 200 with text: the link shows; 200 without text: absent. Either way it is never a dead link.
+        expect(contactStatus).toBe(200);
+        if ((await contact.count()) > 0)
+          await expect(contact).toHaveAttribute('href', '/pages/contact');
+      }
       await expect(
         header.getByRole('link', {name: 'Chat with us'}),
-      ).toBeVisible();
+        'no chat provider is configured, so there is no chat link',
+      ).toHaveCount(0);
       // Development shows a labelled placeholder; a real number needs PUBLIC_SUPPORT_PHONE (REQ-CNT-001).
       await expect(
         header.getByRole('link', {name: /555-0100 \(dev placeholder\)/}),
@@ -231,8 +254,12 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
     );
   });
 
-  test('the footer makes no comfort or price guarantee claim', async ({
+  // REQ-CNT-001 / P6-09: a footer link exists only for a Shopify page that exists with content, so the guarantee
+  // links appear only once the client has written those pages. The always-present "Find a store" link proves the
+  // About group is open; the guarantee links, when shown, must be the registry pages and must resolve.
+  test('the footer makes no comfort or price guarantee claim the client has not written', async ({
     page,
+    request,
     isMobile,
   }) => {
     await gotoReady(page);
@@ -240,27 +267,50 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
     if (isMobile) {
       await footer.getByRole('button', {name: 'About', exact: true}).click();
     }
-    await expect(footer.getByRole('link', {name: 'About us'})).toBeVisible();
     await expect(
-      footer.getByRole('link', {name: /Comfort guarantee|Price guarantee/}),
-    ).toHaveCount(0);
+      footer.getByRole('link', {name: 'Find a store'}),
+    ).toBeVisible();
+    const guarantees = footer.getByRole('link', {
+      name: /Comfort guarantee|Price guarantee/,
+    });
+    const hrefs = await guarantees.evaluateAll((links) =>
+      links.map((link) => link.getAttribute('href') ?? ''),
+    );
+    for (const href of hrefs) {
+      expect(
+        ['/pages/comfort-guarantee', '/pages/price-guarantee'],
+        'a guarantee link goes only to its registry page',
+      ).toContain(href);
+      const response = await request.get(href);
+      expect(response.status(), `${href} is not a 404 link`).toBe(200);
+    }
+    // With no link (the client has written neither page) the loop above has nothing to check: nothing is promised.
   });
 
-  test('the footer links no financing or warranty page that does not exist yet', async ({
+  test('the footer links no financing or warranty page that does not exist', async ({
     page,
-    isMobile,
+    request,
   }) => {
     await gotoReady(page);
     const footer = page.getByRole('contentinfo');
-    if (isMobile) {
-      await footer
-        .getByRole('button', {name: 'Customer support', exact: true})
-        .click();
+    for (const [path, name] of [
+      ['/pages/financing', 'Financing'],
+      ['/pages/warranty-and-returns', 'Warranty and returns'],
+    ] as const) {
+      const status = (await request.get(path, {maxRedirects: 0})).status();
+      const byHref = footer.locator(`a[href="${path}"]`);
+      const byName = footer.getByRole('link', {name, exact: true});
+      if (status === 404) {
+        // Missing page: no link under its href or its name (a 404 link is the defect this contract prevents).
+        await expect(byHref, `${path} answers 404: no link`).toHaveCount(0);
+        await expect(byName, `${path} answers 404: no "${name}"`).toHaveCount(
+          0,
+        );
+      } else {
+        // The page exists: a link is allowed (not required: a page with no text is treated as absent).
+        expect(status, `${path} is a 404 or a 200 page`).toBe(200);
+      }
     }
-    await expect(footer.getByRole('link', {name: 'Contact us'})).toBeVisible();
-    await expect(
-      footer.getByRole('link', {name: /Financing|Warranty and returns/}),
-    ).toHaveCount(0);
   });
 
   // REQ-LOC-003 / P3B-10: the header shows the store from the my_store cookie. The cookie is validated on
@@ -813,8 +863,10 @@ test.describe('REQ-NAV-001 footer', () => {
   }) => {
     await gotoReady(page);
     const footer = page.getByRole('contentinfo');
+    // Groups made only of fixed links are always there. "Customer support" holds only Shopify page links (its fixed
+    // "Track your order" link waits for content), so it shows when the store has at least one such page and a group
+    // with no link is dropped, never an empty heading (REQ-CNT-001, P6-09).
     const groups = [
-      'Customer support',
       'Sleep guide',
       'About',
       'Shop by size',
@@ -832,6 +884,29 @@ test.describe('REQ-NAV-001 footer', () => {
         ).toBeVisible();
       }
     }
+    const sizes = await footerGroupSizes(page);
+    for (const [heading, count] of Object.entries(sizes)) {
+      expect(
+        count,
+        `footer group "${heading}" has at least one link`,
+      ).toBeGreaterThan(0);
+    }
+    // No support group means no support page link anywhere in the footer.
+    if (!('Customer support' in sizes)) {
+      const supportTexts = [
+        'Contact us',
+        'Delivery and shipping',
+        'Financing',
+        'Warranty and returns',
+        'FAQ',
+      ];
+      expect(
+        (await footerLinks(page)).filter((link) =>
+          supportTexts.includes(link.text),
+        ),
+        'no support group, so no support page link',
+      ).toEqual([]);
+    }
   });
 
   test('groups collapse on a phone and open with the keyboard; on desktop every link shows', async ({
@@ -840,51 +915,200 @@ test.describe('REQ-NAV-001 footer', () => {
   }) => {
     await gotoReady(page);
     const footer = page.getByRole('contentinfo');
-    const contact = footer.getByRole('link', {name: 'Contact us'});
+    // "Sleep quiz" is a fixed link, so this holds on every store (the Shopify page links come and go with content).
+    const quiz = footer.getByRole('link', {name: 'Sleep quiz'});
 
     if (!isMobile) {
-      await expect(contact).toBeVisible();
+      await expect(quiz).toBeVisible();
       await expect(footer.getByRole('link', {name: 'Queen'})).toBeVisible();
       return;
     }
 
-    const support = footer.getByRole('button', {name: 'Customer support'});
-    await expect(support).toHaveAttribute('aria-expanded', 'false');
-    await expect(contact).toBeHidden();
-    await support.focus();
+    const guide = footer.getByRole('button', {name: 'Sleep guide'});
+    await expect(guide).toHaveAttribute('aria-expanded', 'false');
+    await expect(quiz).toBeHidden();
+    await guide.focus();
     await page.keyboard.press('Enter');
-    await expect(support).toHaveAttribute('aria-expanded', 'true');
-    await expect(contact).toBeVisible();
+    await expect(guide).toHaveAttribute('aria-expanded', 'true');
+    await expect(quiz).toBeVisible();
     await page.keyboard.press('Space');
-    await expect(contact).toBeHidden();
+    await expect(quiz).toBeHidden();
   });
 
-  test('a footer link navigates', async ({page, isMobile}) => {
+  test('a fixed footer link navigates', async ({page, isMobile}) => {
     await gotoReady(page);
     const footer = page.getByRole('contentinfo');
     if (isMobile) {
       await footer.getByRole('button', {name: 'About', exact: true}).click();
     }
-    await footer.getByRole('link', {name: 'About us'}).click();
-    await expect(page).toHaveURL(/\/pages\/about$/);
-    await expect(page.getByRole('contentinfo')).toBeVisible(); // the shell survives a not-found page
+    await footer.getByRole('link', {name: 'Find a store'}).click();
+    await expect(page).toHaveURL(/\/stores$/);
+    await expect(page.getByRole('contentinfo')).toBeVisible();
   });
 
-  test('the legal links and the (development placeholder) phone number are present', async ({
+  // The link to a Shopify page exists only when the page does, so which one is first depends on the store.
+  test('a footer link to a Shopify page navigates to a page that renders', async ({
     page,
   }) => {
     await gotoReady(page);
+    const [href] = contentHrefs(await footerLinks(page)).filter((value) =>
+      value.startsWith('/pages/'),
+    );
+    test.skip(
+      href === undefined,
+      'The connected store has none of the 15 pages with content, so the footer links none (REQ-CNT-001, P6-09); the link-present case is covered by the unit tests (shell-content.test.ts, content-pages.test.ts).',
+    );
+    if (href === undefined) return;
+    const link = page
+      .getByRole('contentinfo')
+      .locator(`a[href="${href}"]`)
+      .first();
+    await revealFooterLink(link);
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`${href}$`));
+    await expect(page.getByRole('heading', {level: 1})).toHaveCount(1);
+    await expect(page.getByRole('heading', {level: 1})).not.toHaveText(
+      'Page not found',
+    );
+    await expect(page.getByRole('contentinfo')).toBeVisible();
+  });
+
+  // Replaces the old "About us is always there" expectation. The page read is server-side, so no browser stub can
+  // add or remove a page; the rule is proved against the connected store by asking the page routes (helpers/footer.ts).
+  test('every Shopify-content footer link resolves, and a page that does not exist has no link', async ({
+    page,
+    request,
+  }, info) => {
+    await gotoReady(page);
+    const report = await expectFooterContract(page, request);
+    info.annotations.push({
+      type: 'footer links shown',
+      description: JSON.stringify(report.linked),
+    });
+    info.annotations.push({
+      type: 'registry pages with no footer link',
+      description: report.notLinked.join(', '),
+    });
+  });
+
+  test('the legal links follow the policies and pages that exist; the (development placeholder) phone number is present', async ({
+    page,
+    request,
+  }) => {
+    await gotoReady(page);
     const footer = page.getByRole('contentinfo');
-    await expect(
-      footer.getByRole('link', {name: 'Privacy policy'}),
-    ).toBeVisible();
-    await expect(footer.getByRole('link', {name: 'Terms'})).toBeVisible();
-    await expect(
-      footer.getByRole('link', {name: 'Accessibility'}).last(),
-    ).toBeVisible();
+    const legal = [
+      {
+        name: 'Privacy policy',
+        allowed: ['/policies/privacy-policy', '/pages/privacy-policy'],
+      },
+      {
+        name: 'Terms',
+        allowed: ['/policies/terms-of-service', '/pages/terms'],
+      },
+      {name: 'Accessibility', allowed: ['/pages/accessibility']},
+    ];
+    for (const {name, allowed} of legal) {
+      const link = footer.getByRole('link', {name, exact: true});
+      const shown = await link.count();
+      const answers = await Promise.all(
+        allowed.map(async (path) =>
+          (await request.get(path, {maxRedirects: 0})).status(),
+        ),
+      );
+      if (answers.every((status) => status !== 200)) {
+        // Neither the policy nor a page exists: no link rather than a link that 404s.
+        await expect(link, `${name}: nothing to link to`).toHaveCount(0);
+        continue;
+      }
+      if (shown === 0) continue; // a page with no text is treated as absent
+      expect(shown, `${name} is one link`).toBe(1);
+      const href = (await link.getAttribute('href')) ?? '';
+      expect(allowed, `${name} goes to a policy or page URL`).toContain(href);
+      expect(
+        (await request.get(href)).status(),
+        `${name} (${href}) is not a 404 link`,
+      ).toBe(200);
+    }
     await expect(
       footer.getByRole('link', {name: /555-0100 \(dev placeholder\)/}),
     ).toBeVisible();
+  });
+});
+
+// REQ-CNT-001 / REQ-NAV-002 (P6-09): the fixed navigation, the utility links and the footer lead only to Shopify pages and
+// blogs that exist. The existence read is server-side (no browser stub), so this checks the rendered links against the
+// page routes of the connected store, with the Guides menu open because its links sit in a closed panel.
+test.describe('REQ-CNT-001 header, menu and footer never link to a missing Shopify page', () => {
+  test('every page, policy and blog link on the home page, with the Guides menu open, answers 200', async ({
+    page,
+    request,
+    isMobile,
+  }, info) => {
+    await gotoReady(page);
+    if (isMobile) {
+      const menuButton = page
+        .getByRole('banner')
+        .getByRole('button', {name: 'Menu'});
+      const drawer = page.getByRole('dialog', {name: 'Menu'});
+      await openUntilVisible(menuButton, drawer);
+      await drawer.getByRole('button', {name: 'Guides'}).click();
+    } else {
+      const guides = mainNav(page).getByRole('button', {name: 'Guides'});
+      await guides.focus();
+      await page.keyboard.press('Enter');
+      await expect(guides).toHaveAttribute('aria-expanded', 'true');
+    }
+    const hrefs = await page
+      .locator('a[href^="/pages/"], a[href^="/policies/"], a[href^="/blogs/"]')
+      .evaluateAll((links) => [
+        ...new Set(links.map((link) => link.getAttribute('href') ?? '')),
+      ]);
+    const statuses: Record<string, number> = {};
+    for (const href of hrefs) {
+      statuses[href] = (await request.get(href)).status();
+    }
+    info.annotations.push({
+      type: 'content links on the page and their status',
+      description: JSON.stringify(statuses),
+    });
+    expect(
+      Object.entries(statuses).filter(([, status]) => status !== 200),
+      'content links that do not answer 200',
+    ).toEqual([]);
+  });
+});
+
+// Negative control for the footer contract check above: the page read is server-side, so a missing page cannot be
+// staged, but the document can be rewritten in the browser. With scripts off (no hydration to undo the edit), one
+// footer link to a page that answers 404 is added; the same check that passes on the real document must now fail.
+test.describe('REQ-CNT-001 the footer contract check detects a dead footer link (negative control)', () => {
+  test.use({javaScriptEnabled: false});
+
+  test('a footer link to a missing page is reported', async ({
+    page,
+    request,
+  }) => {
+    await page.route(
+      (url) => url.pathname === '/',
+      async (route) => {
+        if (route.request().resourceType() !== 'document') {
+          await route.fallback();
+          return;
+        }
+        const response = await route.fetch();
+        const html = (await response.text()).replace(
+          '</footer>',
+          '<a href="/pages/qa-dead-link-p6-09">QA dead link</a></footer>',
+        );
+        await route.fulfill({response, body: html});
+      },
+    );
+    await page.goto('/');
+    const report = await checkFooterContract(page, request);
+    expect(report.problems).toContain(
+      'footer links /pages/qa-dead-link-p6-09 but it answers 404',
+    );
   });
 });
 
