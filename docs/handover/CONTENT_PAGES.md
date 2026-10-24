@@ -1,12 +1,12 @@
 # Content pages: what your team writes, where it goes and how to publish it
 
-**Draft 1, dated 2026-10-25.** For the client's team (store managers, customer service, whoever writes the website text). Part of the handover pack; it extends section 6.7 of the [Admin guide](ADMIN_GUIDE.md). Requirement: REQ-CNT-001 (the 15 pages) and REQ-CNT-002 (blog listing and articles); the client's final text is item CLR-016.
+**Draft 2, dated 2026-10-25.** Draft 1 was written before the developer finished the content pages and said several things that are no longer true (that the footer does not check whether a page exists, that a developer must remove a flag to show most links, that the privacy and terms links conflict, that page SEO fields and the FAQ markup are unused, and that blog listings show no author or excerpt). This draft was rewritten from the committed code (branch `feat/content-pages-and-signup`, latest commit `ae8e606`). For the client's team (store managers, customer service, whoever writes the website text). Part of the handover pack; it extends section 6.7 of the [Admin guide](ADMIN_GUIDE.md). Requirement: REQ-CNT-001 (the 15 pages) and REQ-CNT-002 (blog listing and articles); the client's final text is item CLR-016.
 
 ## 0. How much of this has been checked
 
 Nothing in this document has been tried in a development store yet. Every statement carries one of two marks:
 
-- `[FROM CODE]` read from the storefront code on 2026-10-25. It describes what the code does. It has not been seen running against your store.
+- `[FROM CODE]` read from the storefront code on 2026-10-25 (the files are named in section 10). It describes what the code does. It has not been seen running against your store, and the code was not run to produce this document: no browser, no development store, no test run.
 - `[ADMIN, NOT SEEN]` how Shopify admin normally behaves, written from general knowledge of Shopify. Menu names and button labels can differ in your admin. Nothing was verified in a development store.
 
 **Verified in a development store: none.** The first time someone follows sections 2 to 7 on a development store, the developer or QA should replace each mark with a dated "verified" note or correct the text.
@@ -15,52 +15,95 @@ Nothing in this document has been tried in a development store yet. Every statem
 
 ## 1. The 15 pages at a glance
 
-The web address of a page is `/pages/<handle>`, where the handle is the "URL handle" in Shopify. The handle must match the table exactly. A page with a different handle will not be found by the links. `[FROM CODE]` Handles are taken from the footer, header and reassurance-strip links in `storefront/app/lib/navigation.ts`. The file `storefront/app/lib/pages/content-pages.ts` does not exist yet, so **confirm each handle with the developer before you create the pages.**
+The web address of a page is `/pages/<handle>`, where the handle is the "URL handle" in Shopify. The handle must match the table exactly: the links look for a page by that handle, and a page with a different handle gets no link. `[FROM CODE]` The 15 handles, the footer group and the link text of each are the registry in `storefront/app/lib/pages/content-pages.ts` (read 2026-10-25). The table below is copied from it. Privacy policy and Terms are the two exceptions: they live in Settings > Policies (section 4).
 
-| # | Page | Handle (exact) | Where the storefront links to it | Link today (`[FROM CODE]`) |
+| # | Page | Handle (exact) | Footer group and link text | Other places it is linked from |
 |---|---|---|---|---|
-| 1 | Delivery and shipping | `delivery-and-shipping` | Footer, Customer support; footer quick-links row; header strip "In-home delivery & setup" | Footer support link is shown. The quick-links row link and the header strip item are hidden until a developer removes a flag |
-| 2 | Financing | `financing` | Footer, Customer support | Hidden until a developer removes a flag |
-| 3 | Comfort guarantee | `comfort-guarantee` | Footer, About; header strip | Hidden until a developer removes a flag |
-| 4 | Price guarantee | `price-guarantee` | Footer, About; header strip | Hidden until a developer removes a flag |
-| 5 | Warranty and returns | `warranty-and-returns` | Footer, Customer support | Hidden until a developer removes a flag |
-| 6 | FAQ | `faq` | Footer, Customer support | Shown |
-| 7 | About | `about` | Footer, About ("About us") | Shown |
-| 8 | Contact | `contact` | Footer, Customer support ("Contact us"); utility bar at the top ("Contact us" and "Chat with us", both lead here until a chat provider exists); footer quick-links row ("Get in touch") | Footer support link and utility bar are shown. The quick-links row link is hidden until a developer removes a flag |
-| 9 | Size guide | `size-guide` | Footer, Sleep guide; Guides menu, Buying guides | Shown |
-| 10 | Comfort guide | `comfort-guide` | Footer, Sleep guide; Guides menu | Shown |
-| 11 | Mattress types guide | `mattress-types-guide` | Footer, Sleep guide; Guides menu | Shown |
-| 12 | Adjustable base guide | `adjustable-base-guide` | Footer, Sleep guide; Guides menu | Shown |
-| 13 | Privacy policy | see section 4.3 (conflict to settle) | Footer legal row ("Privacy policy"); cookie-consent banner | The footer link points at `/pages/privacy-policy`; see 4.3 |
-| 14 | Terms | see section 4.3 (conflict to settle) | Footer legal row ("Terms") | The footer link points at `/pages/terms`; see 4.3 |
-| 15 | Accessibility | `accessibility` | Footer legal row; footer, About | Shown |
+| 1 | Delivery and shipping | `delivery-and-shipping` | Customer support, "Delivery and shipping" | Footer quick-links row, "Delivery information". The header strip item "In-home delivery & setup" is still held back (section 3.4) |
+| 2 | Financing | `financing` | Customer support, "Financing" | none |
+| 3 | Comfort guarantee | `comfort-guarantee` | About, "Comfort guarantee" | The header strip item is still held back (section 3.4) |
+| 4 | Price guarantee | `price-guarantee` | About, "Price guarantee" | The header strip item is still held back (section 3.4) |
+| 5 | Warranty and returns | `warranty-and-returns` | Customer support, "Warranty and returns" | none |
+| 6 | FAQ | `faq` | Customer support, "FAQ" | none |
+| 7 | About | `about` | About, "About us" | none |
+| 8 | Contact | `contact` | Customer support, "Contact us" | Footer quick-links row, "Get in touch"; the header top bar and the phone menu, "Contact us" |
+| 9 | Size guide | `size-guide` | Sleep guide, "Size guide" | Guides menu, Buying guides (when the fixed menu is in use) |
+| 10 | Comfort guide | `comfort-guide` | Sleep guide, "Comfort guide" | Guides menu, Buying guides |
+| 11 | Mattress types guide | `mattress-types-guide` | Sleep guide, "Mattress types guide" | Guides menu, Buying guides |
+| 12 | Adjustable base guide | `adjustable-base-guide` | Sleep guide, "Adjustable base guide" | Guides menu, Buying guides |
+| 13 | Privacy policy | Shopify policy; fallback page handle `privacy-policy` | Legal row, "Privacy policy" | The cookie-consent banner links to `/policies/privacy-policy` |
+| 14 | Terms | Shopify policy; fallback page handle `terms` | Legal row, "Terms" | none |
+| 15 | Accessibility | `accessibility` | Legal row, "Accessibility" | none |
 
-Also in the code, not one of the 15: the Guides menu heading leads to `/pages/guides`, and the sleep journal link leads to `/blogs/journal`. The developer should confirm whether you want a `guides` page. Until one exists, that menu heading is a dead link. `[FROM CODE]` A Shopify navigation menu, when switched on (Admin guide 6.6), replaces the header menu and can point at any page.
+Also in the registry, not one of the 15: the **sleep journal** blog, handle `journal` (footer group Sleep guide, link text "Sleep journal"; also in the Guides menu under Help choosing). See section 8.
+
+**Every link in this table appears automatically, and only, when its Shopify page exists and has content** (the rule is in section 3). You do not ask a developer to switch a link on. The exceptions are the header strip items and the order-tracking links, section 3.4.
+
+`[FROM CODE]` Any page you create with another handle is still served at `/pages/<that handle>`, but nothing links to it. A Shopify navigation menu, when switched on (Admin guide 6.6), replaces the header menu and can point at any page.
 
 ## 2. How to create a page
 
 `[ADMIN, NOT SEEN]` unless noted.
 
 1. In Shopify admin open **Online Store > Pages** and click **Add page**.
-2. **Title:** the name shoppers see at the top of the page. Use plain words. `[FROM CODE]` The storefront prints the title as the one main heading on the page, and the browser tab shows "Title, then the store name".
-3. **Content:** write in the editor. Use the heading styles (Heading 2, Heading 3), paragraphs, bullet and numbered lists, links and tables. Do not use Heading 1; the title is already one. `[FROM CODE]` A Heading 1 in the content is shown as a Heading 2.
-4. **What the storefront keeps and drops** `[FROM CODE]`: it keeps paragraphs, line breaks, bold, italic, underline, headings 2 to 6, bullet and numbered lists, quotes, links, images (with alt text), simple tables, definition lists, and figure captions. It removes scripts, styles, embedded frames (for example an embedded video, map or financing widget), forms and form fields, and colour or size settings. Links must start with `https://`, `http://`, `mailto:` or `tel:`. This means: **a contact form, a payment-calculator widget or an embedded video cannot be put in a page body.** Paste a link instead.
-5. **Images:** give every image alt text that says what the image shows. Use an image only if you own it or have the right to use it.
+2. **Title:** the name shoppers see at the top of the page. Use plain words. `[FROM CODE]` The storefront prints the title as the one main heading on the page. If Shopify gives an empty title, the registry's title for that page is used instead (for example "Frequently asked questions" for the FAQ page). The browser tab shows "Title | store name", where Title is the SEO title (section 6) if you set one and the page title otherwise.
+3. **Content:** write in the editor. Use the heading styles (Heading 2, Heading 3), paragraphs, bullet and numbered lists, links and tables. Do not use Heading 1; the title is already one. `[FROM CODE]` A Heading 1 in the content is shown as a Heading 2. When a page has three or more Heading 2 and Heading 3 headings that contain text, the storefront adds an "On this page" list of links under the title, built from them. It is not shown when there are fewer than three. `[FROM CODE]` Pages show a "Last updated" date taken from Shopify's own last-edit time; you do not type it. Policies show no date.
+4. **What the storefront keeps and drops** `[FROM CODE]` (`storefront/app/lib/shopify/sanitize-html.ts`, read 2026-10-25): it keeps paragraphs, line breaks, horizontal rules, bold, italic, underline, strikethrough, subscript, superscript, headings 2 to 6, bullet and numbered lists, quotes, links, images (with alt text), tables, definition lists, and figure captions. It removes scripts, styles, embedded frames (for example an embedded video, map or financing widget), objects, embeds, forms and form fields, and every colour, size and class setting. The content of a script, style or embedded frame is removed with it. Form and unknown tags are dropped but ordinary text inside them may stay, so check how it reads. Link addresses must start with `https://`, `http://`, `mailto:` or `tel:`, or be a site path starting `/` (or `#`, `?`); anything else loses its link. An image is kept only if its address starts with `https://`. Text beyond 300,000 characters is cut. This means: **a contact form, a payment-calculator widget or an embedded video cannot be put in a page body.** Paste a link instead.
+5. **Images:** give every image alt text that says what the image shows. Use an image only if you own it or have the right to use it. `[FROM CODE]` A page that holds only an image still counts as having content (section 3.1).
 6. **Search engine listing:** click **Edit website SEO** (the "Search engine listing" block) and set the **URL handle** to the exact handle from section 1. Shopify makes a handle from the title by default, and it may not match. Fill the page title and description as in section 6.
-7. **Visibility:** the page is only available to the storefront when it is visible. `[ADMIN, NOT SEEN]` A hidden page is not returned to the storefront, so the address shows "not found". Pages that are visible also appear in the site's sitemap. `[FROM CODE]` The sitemap includes everything Shopify lists for pages.
-8. Save. After saving, wait for the delay in Admin guide section 10.2 (content pages are kept for a while before the website re-reads them; the guide states the range) and open `/pages/<handle>` on the website to check it.
+7. **Visibility:** the page is only available to the storefront when it is visible. `[ADMIN, NOT SEEN]` A hidden page is not returned to the storefront, so the address shows "not found" and **no footer or header link appears for it**. This is also how you hold back a promise page (Comfort guarantee, Price guarantee, Warranty and returns, Financing) until the client approves it: keep it hidden, or leave its content empty, until then. `[FROM CODE]` The links are decided only by whether the website can read the page and whether it has text; there is no separate approval switch in the code. Visible pages also appear in the site's sitemap. `[FROM CODE]` The sitemap routes ask Shopify's sitemap for the types pages, blogs and articles (`storefront/app/lib/seo/sitemap.ts`); which individual pages Shopify lists was not checked.
+8. Save. After saving, wait for the delay in Admin guide section 10.2 (see section 3.5 below: more than one copy is involved) and open `/pages/<handle>` on the website to check it, then check that the footer link has appeared.
 9. **Theme template** (an option Shopify may show): leave it alone. The storefront does not use Shopify themes. `[ADMIN, NOT SEEN]`
 
-To move or rename a page later, keep the handle the same. If the handle must change, tell the developer first, because links and the sitemap use it.
+To move or rename a page later, keep the handle the same. If the handle must change, tell the developer first, because links and the sitemap use it. If you change a registered page's handle without telling anyone, its footer link simply disappears (the website no longer finds a page at the old handle).
+
+**Printing** `[FROM CODE]`: when someone prints a page, the breadcrumb and the "On this page" list are left off. The rest of the site frame is printed as it is.
 
 ## 3. How links show in the footer (read this before you publish)
 
-`[FROM CODE]` **The footer does not check whether a page exists.** The footer is a fixed list of links in `storefront/app/lib/navigation.ts`. The code carries no information about which Shopify pages exist. Two things follow:
+### 3.1 The one rule: a link shows only when its page exists with text
 
-- **Hidden links:** Financing, Warranty and returns, Comfort guarantee, Price guarantee (and the header strip items and two quick-links) are held back on purpose. The wording of these promises is yours to supply, and the code will not show an invented promise. They appear only when a developer removes the "awaiting content" flag for that link, after the page is published and approved. **Writing the page in Shopify does not by itself make the link appear.** Ask the developer, naming the page.
-- **Links that are always shown:** the other links (Delivery and shipping in the support group, FAQ, About, Contact, the four guides, Accessibility, and the privacy and terms links) are on the site from day one. If the page does not exist or is hidden, the shopper reaches a "not found" page. Publish these pages before launch, or ask the developer to flag the links until they are ready.
+`[FROM CODE]` (`content-pages-data.ts`, `content-pages-html.ts`, `content-pages.ts`, read 2026-10-25) On every page load the website makes one batched read of Shopify asking, for each of the 15 handles in section 1, whether that page exists and what its body is, plus the two shop policies and the journal blog. A link to a Shopify page, policy or blog is shown only when the answer is yes. The same rule is used by the footer, the header and the page address itself, so they cannot disagree.
 
-So the rule your team follows: **page written and approved, then visible in Shopify, then ask the developer to unhide the link where one is held back.** A developer should consider adding a check that lists the pages missing for each link; that is not built.
+**What counts as "exists with content":**
+
+- The page exists and is visible to the storefront (`[ADMIN, NOT SEEN]` a hidden page is not returned).
+- After the storefront's clean-up (section 2, step 4) its body shows **text** or **an image**. Text is checked after special characters are decoded and spaces are trimmed, so a page whose only content is a non-breaking space (`&nbsp;`) or empty paragraphs counts as **empty**. A page that holds only an image counts as having content, provided the image address starts with `https://`. A page whose body is only a form, a video or map frame or a script counts as empty, because those are removed.
+- An empty page gets **no link**. If someone opens its address anyway, they see the title and "This page has no content yet." and the page asks search engines not to list it (section 6).
+- **Policies** (privacy and terms) are different: they count as existing when Shopify returns the policy at all. The code does not check its text. Whether Shopify returns a policy whose box is empty was not checked. `confirm with developer`
+- **The journal blog** counts only when a blog with the handle `journal` exists **and has at least one article** (section 8).
+
+**What this does to the links:**
+
+- **Footer:** the Customer support, Sleep guide, About and legal groups and the quick-links row ("Delivery information", "Get in touch") list only the links whose page exists with content. A group with no link left is not shown. Links appear in the order set in the registry.
+- **Header top bar and the phone menu:** "Contact us" appears only when the `contact` page exists with content. The phone number is separate: it shows only when a valid number is set (Admin guide 6.4).
+- **Menu and the fixed-navigation fallback:** the website's own designed menu (used when no Shopify menu is switched on or the Shopify menu is empty or unreadable) drops its links to `/pages/...` and `/blogs/...` that do not exist. That covers the four guides under Guides > Buying guides and "Sleep journal" under Guides > Help choosing. A group left empty is dropped. The **Guides** heading itself is plain text that opens the menu; it has no page of its own to link to. A menu you build in Shopify (Admin guide 6.6) is **not** checked this way: it is your own choice of links, so click each one after you save.
+- **If the read fails** (Shopify cannot be reached), the website treats it as "nothing exists": all of these links disappear until the next successful read. A missing link is chosen over a link that could show "not found". The failure is logged once per run of failures.
+- **Pages you have not written yet:** their links are not shown; nothing stands in for them.
+
+So the rule your team follows: **write and approve the page text, then make the page visible in Shopify, then wait for the delay in 3.5.** The link appears by itself. A developer is not needed, except for the items in 3.4.
+
+### 3.2 What the approval step now depends on
+
+Because a link appears as soon as a visible page has text, **the approval gate is now in Shopify, not in the code.** For the pages that make a promise (Financing, Warranty and returns, Comfort guarantee, Price guarantee) and for Privacy policy and Terms, do not make the page visible or put text in it until the person named in the checklist (section 7) has approved it. Saving a half-written draft in a visible page puts its link on the live site after the cache delay.
+
+### 3.3 Looking for a missing link
+
+If a link you expect is not on the site, check in this order: the handle matches section 1 exactly; the page is visible; the body has text or an image (not only blank lines); the cache delay (3.5) has passed. The code offers no list of which pages are missing. `confirm with developer` whether one is wanted.
+
+### 3.4 What still needs a developer
+
+`[FROM CODE]` Three things are still behind switches in code, not behind your content:
+
+- **"Track your order" and "Order tracking"** in the footer stay hidden by a code flag (`awaitingContent` in `storefront/app/lib/navigation.ts`) until a developer has verified the order lookup on a development store and your team has acknowledged change SD-05 (Admin guide section 12; `docs/integrations/GUEST_TRACKING.md`). The reason is that the lookup has not been tried with a real order, not that a page is missing. The top-bar link "Track order" is always shown (it needs no Shopify page); it opens the lookup form, or a notice that it is unavailable when the server settings for it are incomplete.
+- **The header strip** ("In-home delivery & setup", "Comfort guarantee", "Price guarantee", and the same items on the home page) stays hidden by the same kind of flag on each item. The wording is placeholder text and is yours to supply (B-15). Writing the pages does not show it. Ask the developer, naming the item, after the page is approved. The matching footer link, by contrast, appears by itself.
+- **"Chat with us"** in the top bar and the phone menu is never shown. There is no chat provider (Q-011, P7-03), and the old stand-in that sent "Chat with us" to the contact page promised a chat that does not exist. A developer enables it in code when a provider exists; no Shopify page makes it appear.
+
+### 3.5 How long a change takes to show
+
+`[FROM CODE]` The footer links, the header links and each page address are separate cached reads. They expire at different moments. After you add, edit, hide or empty a page, the footer link and the page itself may therefore change at different times, within the "long" window of Admin guide section 10.2 (the number is stated there; it has not been measured on a real store). Expect a window in which a link has appeared and its page still shows the old text, or the reverse. Check again after the full window before you report a problem. Whether a "not found" answer for an address you opened before the page existed is itself kept for the window is not known. `confirm with developer`
+
+The redirect for the privacy and terms addresses (section 4.3) is sent with a `no-store` instruction, so browsers and shared caches are told not to keep it; the policy check behind it still uses the same cached read.
 
 ## 4. Policies: privacy policy, terms, and shipping and refund policies
 
@@ -79,23 +122,28 @@ So the rule your team follows: **page written and approved, then visible in Shop
 | Terms of service | `/policies/terms-of-service` |
 | Refund policy | `/policies/refund-policy` |
 
-A policy you have not written answers "not found" and is left out of the sitemap. The subscription policy is not shown. Policies are kept for a while like other content (Admin guide 10.2).
+A policy you have not written answers "not found" and is left out of the sitemap. The subscription policy is not shown. Policies are kept for a while like other content (Admin guide 10.2). A policy page shows its title and text, with no "Last updated" date (Shopify gives none for policies), and its breadcrumb runs Home, Policies, the policy name. `[FROM CODE]` The footer links only to the privacy policy and the terms (4.3). The shipping and refund policies are shown at their addresses and in the `/policies` list, but the footer has no link to them.
 
-### 4.3 An open conflict for the developer and owner
+### 4.3 Privacy and terms: one copy, in Settings > Policies
 
-`[FROM CODE]` The footer's legal links point at `/pages/privacy-policy` and `/pages/terms`, while the real policy pages live at `/policies/privacy-policy` and `/policies/terms-of-service`. The cookie banner already links to `/policies/privacy-policy` (Admin guide section 13). As the code stands, the two footer links work only if you also create ordinary Pages with the handles `privacy-policy` and `terms`, which would mean two copies of a legal text. That is risky.
+`[FROM CODE]` (owner decision, 2026-10-25, recorded in `content-pages.ts`; behaviour read from `content-pages.ts`, `pages.$handle.tsx`, `policies.$handle.tsx`)
 
-Recommendation for decision (not made): keep one copy in **Settings > Policies**, and have the developer point the footer links at `/policies/privacy-policy` and `/policies/terms-of-service`. Do not create duplicate Pages in the meantime. Do not publish either until this is settled. `confirm with developer`
+- **Where to write them:** only in **Settings > Policies** (privacy policy, terms of service). **Recommendation: edit the policies there and do not create Pages for them.** One copy means one text to keep right.
+- **Footer links:** "Privacy policy" and "Terms" in the footer's legal row go to `/policies/privacy-policy` and `/policies/terms-of-service`, and appear when Shopify returns that policy (3.1).
+- **The page addresses `/pages/privacy-policy` and `/pages/terms`:** when no Shopify page with that handle has content, and the matching Shopify policy exists, these addresses send the visitor on to the policy with a **temporary redirect (302)**, marked `no-store` so no cache keeps it. It is temporary because the answer follows what you edit. Any other handle that does not exist still shows "not found". If the policy does not exist either, the address shows "not found" (or, if an empty page with that handle exists, the "no content yet" page).
+- **If you do create a Page with the handle `privacy-policy` or `terms` and give it text:** that page is shown at its own address, and the footer link still goes to the Shopify policy when one exists. You would then have two copies of a legal text. Do not do this; delete or empty the Page. `[FROM CODE]` The footer falls back to the Page only when no Shopify policy exists.
+- The cookie banner links to `/policies/privacy-policy` `[FROM CODE]` (`ConsentBanner.tsx`); its behaviour is in Admin guide section 13.
+- Who writes and approves the text is in sections 5.13 and 5.14. The project writes no legal wording.
 
 ### 4.4 Shipping and refund policies versus the pages
 
-Your "Delivery and shipping" and "Warranty and returns" pages are not the same objects as Shopify's shipping policy and refund policy. If you fill in Shopify's shipping and refund policies, they are shown by the storefront at `/policies/...`, may be linked from Shopify's checkout (`[ADMIN, NOT SEEN]`), and must **say the same thing** as the pages. Decide with your legal adviser which is the master text, and have the other point to it rather than repeat it.
+Your "Delivery and shipping" and "Warranty and returns" pages are not the same objects as Shopify's shipping policy and refund policy. If you fill in Shopify's shipping and refund policies, they are shown by the storefront at `/policies/shipping-policy` and `/policies/refund-policy`, may be linked from Shopify's checkout (`[ADMIN, NOT SEEN]`), and must **say the same thing** as the Delivery and shipping and the Warranty and returns pages. Decide with your legal adviser which is the master text, and have the other point to it rather than repeat it. The website cannot check that they agree: this is a manual check each time either one changes (section 7).
 
 ## 5. The pages, one by one
 
 For each page: the recommended headings (a suggestion; drop what does not apply), what shoppers usually expect to find, and the questions only you can answer. Answers must be your real, current business facts. Do not copy another retailer's text. Use plain words, short sentences, and descriptive link text (not "click here"). Use Heading 2 for the main sections and Heading 3 inside them.
 
-Every page should also end with one clear next step (for example, the contact page link or a link to shop) and show a "last updated" date where the facts can change, for the pages marked below.
+Every page should also end with one clear next step (for example, the contact page link or a link to shop). `[FROM CODE]` Pages show a "Last updated" date automatically (section 2, step 3), so do not type your own date line unless the facts have a date you want to state, such as an effective date for terms.
 
 ### 5.1 Delivery and shipping (`delivery-and-shipping`)
 
@@ -116,7 +164,7 @@ SEO suggestion: title that names the page and the shop ("Delivery and shipping")
 
 ### 5.2 Financing (`financing`)
 
-Footer: Customer support (hidden until you supply the content and the developer unhides it). Shoppers expect: who the lender is, how to apply, what is needed, what happens after, and clear statements that terms depend on approval. Recommended headings:
+Footer: Customer support (the link appears when the visible page has text, so keep the page hidden until the content is approved). Shoppers expect: who the lender is, how to apply, what is needed, what happens after, and clear statements that terms depend on approval. Recommended headings:
 
 - How financing works
 - Who provides it
@@ -130,7 +178,7 @@ Questions: Do you offer financing at all? Which provider or providers, and are t
 
 ### 5.3 Comfort guarantee (`comfort-guarantee`)
 
-Footer: About (hidden until supplied); header strip. Shoppers expect: exactly what is promised, for how long, what they must do, what it costs them, and what happens to the mattress. Recommended headings:
+Footer: About (the link appears when the visible page has text, so keep the page hidden until approved); the header strip item needs a developer (3.4). Shoppers expect: exactly what is promised, for how long, what they must do, what it costs them, and what happens to the mattress. Recommended headings:
 
 - What the comfort guarantee is
 - Which products it covers (and which it does not)
@@ -145,7 +193,7 @@ Questions: Do you offer a comfort guarantee, and does it apply to all brands or 
 
 ### 5.4 Price guarantee (`price-guarantee`)
 
-Footer: About (hidden until supplied); header strip. Shoppers expect: what price is matched, against whom, in what window, with what proof, and what is excluded. Recommended headings:
+Footer: About (the link appears when the visible page has text, so keep the page hidden until approved); the header strip item needs a developer (3.4). Shoppers expect: what price is matched, against whom, in what window, with what proof, and what is excluded. Recommended headings:
 
 - What the price guarantee is
 - What we will match
@@ -159,7 +207,7 @@ Questions: Do you offer a price guarantee? What exactly is matched or beaten, an
 
 ### 5.5 Warranty and returns (`warranty-and-returns`)
 
-Footer: Customer support (hidden until supplied). Shoppers expect: separate, clear answers for the manufacturer warranty and for returning an item, and what the optional accident protection adds. Recommended headings:
+Footer: Customer support (the link appears when the visible page has text, so keep the page hidden until approved). Shoppers expect: separate, clear answers for the manufacturer warranty and for returning an item, and what the optional accident protection adds. Recommended headings:
 
 - Returns: how to return an item (what can be returned, when, condition, who pays, refund method, timing)
 - Items we cannot take back
@@ -186,13 +234,23 @@ Questions: What are the 10 to 20 questions customers ask most (from email, phone
 
 #### 5.6a FAQ format, and the structured-data point
 
-Write each question as its own heading (Heading 3) and put the whole answer directly under it as normal paragraphs or a list, visible on the page, with no answer split into pieces under several headings. One question, one answer. Do not hide answers behind buttons or tabs that the editor creates. Use the same wording on the page as you would want shown elsewhere.
+**The format that works** `[FROM CODE]` (`extractFaqPairs` in `content-pages-html.ts`, read 2026-10-25). The storefront adds machine-readable FAQ data (schema.org FAQPage, hidden from shoppers) to the page with the handle `faq`, and only when all of this holds:
 
-What is and is not built `[FROM CODE]`:
+- Each question is its own **Heading 2 or Heading 3**, and its text **ends with a question mark** (`?`). A question of more than 300 characters is skipped.
+- The **very next thing** after the question heading is a **normal paragraph**. A list, table, image or another heading straight after the question means that question is skipped. If the answer is a list, put one sentence before it.
+- The answer is **all the text up to the next Heading 2 or Heading 3** (long answers are cut at 5,000 characters). Heading 4 and below do not end an answer. So put the closing "Still have questions?" text under its own Heading 2 that is not a question, or it becomes part of the last answer.
+- Headings that are not questions (the topic headings such as "Delivery and setup") are fine; they are skipped and they end the previous answer.
+- There must be **at least two** questions that pass. With fewer, no FAQ data is produced at all.
+- A page with no text produces none.
 
-- **Collection and product FAQs** use FAQ entries in **Content > Metaobjects > FAQ** (Admin guide 6.3), and the storefront builds the machine-readable FAQ data (schema.org FAQPage) from them.
-- **The FAQ content page does not.** The page route shows the page text only; it creates no FAQPage structured data. Writing questions and answers in the format above gives the cleanest page and is ready if the developer later reads questions from the page, but it does not produce structured data today. Producing it for this page is either a small developer change under REQ-SEO-001 (to be confirmed) or the use of FAQ entries; ask the developer. `confirm with developer`
-- Search engines also limit which sites get FAQ result displays. `[ADMIN, NOT SEEN]` (general knowledge, not checked against current search-engine documentation). Do not promise the client a search-result display.
+Example of the heading shape (the words are yours, this shows only the structure): Heading 2 "Delivery and setup", Heading 3 "Can I choose my delivery day?" followed by a paragraph that answers it, Heading 3 "What happens if I am out?" followed by a paragraph, and so on.
+
+One question, one answer. The text in the data is taken from the visible page, so the data says what the page says; keep the answer on the page, not behind buttons or tabs the editor creates.
+
+**What is separate:**
+
+- **Collection and product FAQs** use FAQ entries in **Content > Metaobjects > FAQ** (Admin guide 6.3), which have their own separate FAQ code (`storefront/app/lib/shopify/jsonld.ts`; only its existence was checked on 2026-10-25, not what it emits). They do not affect this page.
+- **Search results:** the data makes the page eligible to be understood as questions and answers. It does **not** mean a search engine will show anything special. Search engines decide that themselves and limit which sites get any FAQ display. Do not promise the client a search-result display. `[ADMIN, NOT SEEN]` (general knowledge, not checked against current search-engine documentation)
 
 ### 5.7 About (`about`)
 
@@ -208,7 +266,7 @@ Questions: What is the business's story, in your words? When did it start and wh
 
 ### 5.8 Contact (`contact`)
 
-Footer: Customer support, utility bar and quick-links row. Shoppers expect: every way to reach you, with hours, and what to have ready. Recommended headings:
+Footer: Customer support, the top bar and phone menu ("Contact us") and the quick-links row ("Get in touch"); all appear when the page has text. Shoppers expect: every way to reach you, with hours, and what to have ready. Recommended headings:
 
 - Call us
 - Email us
@@ -217,7 +275,7 @@ Footer: Customer support, utility bar and quick-links row. Shoppers expect: ever
 - What to have ready (order number, email)
 - Order questions (link to order tracking)
 
-Questions: What phone number, with which hours? (The site header shows a phone number only when the number is configured in the store settings; the developer sets it, `[FROM CODE]`; the page text should match.) What email address, and how fast do you answer? Which departments exist (sales, delivery, claims)? Is there a mailing address you want shown? Is chat offered now, and with which provider? (Today "Chat with us" leads to this page, `[FROM CODE]`.) A contact form cannot be put in the page body (section 2, step 4); if you want one, it is a change request.
+Questions: What phone number, with which hours? (The site header shows a phone number only when a valid US number is set, either in the Site settings entry (Admin guide 6.4) or by the developer in the website's settings, which wins if both are set `[FROM CODE]`; the page text should match.) What email address, and how fast do you answer? Which departments exist (sales, delivery, claims)? Is there a mailing address you want shown? Is chat offered now, and with which provider? (Today no "Chat with us" link is shown anywhere, `[FROM CODE]`; see 3.4.) A contact form cannot be put in the page body (section 2, step 4); if you want one, it is a change request.
 
 ### 5.9 Size guide (`size-guide`)
 
@@ -272,7 +330,7 @@ Questions: Which bases and features do you sell? Which of your mattress types wo
 
 ### 5.13 Privacy policy (Shopify policy, see section 4)
 
-Footer: legal row; the cookie banner links to it. Edit in **Settings > Policies**. Your legal adviser writes or approves it. Shoppers expect: what you collect, why, who receives it, how long you keep it, how to see or delete it, and how to opt out. Recommended headings:
+Footer: legal row (the link goes to the Shopify policy, section 4.3); the cookie banner links to it. Edit in **Settings > Policies**. Your legal adviser writes or approves it. Shoppers expect: what you collect, why, who receives it, how long you keep it, how to see or delete it, and how to opt out. Recommended headings:
 
 - What we collect and why
 - Who we share it with
@@ -290,7 +348,7 @@ Footer: legal row. Edit in **Settings > Policies**; your legal adviser writes it
 
 ### 5.15 Accessibility (`accessibility`)
 
-Footer: legal row; About group. Shoppers, including people using assistive technology, expect: your commitment, which standard you aim for, how to get help, and a person to contact. The project is built to aim at WCAG 2.2 level AA, which the client has not yet formally approved (requirement NFR-003). **Do not claim that the site conforms to a standard until QA has tested it and the owner agrees the wording.** Recommended headings:
+Footer: legal row. Shoppers, including people using assistive technology, expect: your commitment, which standard you aim for, how to get help, and a person to contact. The project is built to aim at WCAG 2.2 level AA, which the client has not yet formally approved (requirement NFR-003). **Do not claim that the site conforms to a standard until QA has tested it and the owner agrees the wording.** Recommended headings:
 
 - Our commitment
 - The standard we aim for
@@ -304,11 +362,19 @@ Questions: What commitment statement do you want, and has your legal adviser app
 
 `[ADMIN, NOT SEEN]` In **Edit website SEO** on each page, fill in:
 
-- **Page title** (about 50 to 60 characters): the page's subject first, then the shop name is added by the storefront. Unique on every page.
+- **Page title** (about 50 to 60 characters): the page's subject first; the storefront adds the shop name after a bar ("Title | store name"). Unique on every page.
 - **Meta description** (about 150 to 160 characters): one plain sentence on what the page tells the shopper, in your own words, with no promises that the page does not make.
 - **URL handle:** exactly as in section 1.
 
-What the storefront does with them `[FROM CODE]`: the page route reads the SEO title and description from Shopify but only uses the **page title** for the browser tab; it sets no meta description from the page's SEO fields. Fill the fields anyway, because they do no harm and are ready, but **do not rely on them yet.** The developer should confirm whether to wire them in (ask: is the meta description for content pages in scope under REQ-SEO-001?). `confirm with developer` For the privacy and terms policies there are no separate SEO fields.
+What the storefront does with them `[FROM CODE]` (`content-pages-seo.ts`, `content-pages-view.ts`, `pages.$handle.tsx`, read 2026-10-25). The SEO fields are used:
+
+- **Title:** the SEO title if you filled one, otherwise the page title (and, if that is empty, the registry's title). Tags are stripped, spaces tidied, and it is cut at **120 characters**.
+- **Description:** the SEO description if you filled one (cut at **300 characters**); otherwise the storefront uses the **first 160 characters of the visible text of the page**. So an empty description field never leaves the page without one, but a description you write will read better than a cut-off first paragraph. Search engines usually show about 160 characters; a longer text may be shortened by them.
+- **Search engines:** a page with text asks to be listed (`index,follow`). A page with no text asks **not** to be listed (`noindex,follow`), so a blank page cannot enter results.
+- **Address and sharing:** the page declares its own address (canonical) and carries sharing tags (title, description, site name). The canonical address and the `og:url` tag are built from the website's configured public address (`PUBLIC_SITE_URL`, set by the developer at deployment); **if that is not set on the live site, the page has neither tag** (it is not guessed from the request outside development). `confirm with developer` that it is set at go-live.
+- **Also added, not typed by you:** a breadcrumb (Home, then the page) in machine-readable form, and the FAQ data for the FAQ page (5.6a).
+
+**Policies** (privacy, terms and the others) have no separate SEO fields in the code: the title is the policy's title and the description is the first 160 characters of its text.
 
 Do not put the same title or description on two pages. Do not stuff keywords. Do not claim a guarantee, price, rate or period in a description unless the page states it and the client approved it.
 
@@ -318,17 +384,17 @@ For each page, a named person ticks every line.
 
 - [ ] The facts come from the client's business, not from another site or from this document. No sample numbers remain.
 - [ ] Legal, warranty, financing, guarantee, return and privacy text is approved in writing by the person you named (and your legal adviser where needed). Approval status per page is recorded (CLR-016).
-- [ ] The handle is exactly as in section 1 (or section 4.2 for policies).
+- [ ] The handle is exactly as in section 1 (or section 4.2 for policies). Privacy and terms are written in Settings > Policies only, with no duplicate Page (4.3).
 - [ ] Title is clear; there is no Heading 1 in the content; headings go in order (2, then 3).
 - [ ] Every image has alt text; there are no embedded frames, forms or widgets (they would be removed).
 - [ ] Links work: each starts with `https://`, `mailto:` or `tel:`, or is a site path starting `/`; link text says where it goes.
 - [ ] Phone, email, hours and addresses match the store settings and the store entries.
-- [ ] Policy pages agree with each other (section 4.4) and with checkout.
-- [ ] SEO title and description are filled and unique.
+- [ ] Shopify's shipping and refund policies agree with the Delivery and shipping and the Warranty and returns pages, and with checkout (section 4.4).
+- [ ] SEO title and description are filled and unique. For the FAQ page: each question is a Heading 2 or 3 ending in "?" and followed directly by a paragraph, and there are at least two (5.6a).
 - [ ] The page is read once on a phone-size screen, and by someone who did not write it.
-- [ ] Visibility is set to visible only when everything above is done.
-- [ ] After the Admin guide 10.2 delay, `/pages/<handle>` loads on the website and the footer link works. For a held-back link, the developer has unhidden it.
-- [ ] If the page makes a promise (guarantee, delivery, returns), the matching header strip item and links are checked with the developer.
+- [ ] Visibility is set to visible only when everything above is done (the footer link appears by itself once the page is visible and has text, so a visible draft goes live, 3.2).
+- [ ] After the Admin guide 10.2 delay (see 3.5), `/pages/<handle>` loads on the website and the footer link has appeared.
+- [ ] If the page makes a promise (guarantee, delivery), ask the developer about the matching header strip item (3.4); it does not appear by itself.
 
 ### How to preview
 
@@ -336,32 +402,44 @@ For each page, a named person ticks every line.
 
 ## 8. Blog: listing and articles
 
-The footer and Guides menu link to the sleep journal at `/blogs/journal`. `[FROM CODE]` So the blog's handle should be `journal`. `confirm with developer` Create or open it in `[ADMIN, NOT SEEN]` **Online Store > Blog posts > Manage blogs**, where the blog's handle is set under the same "Search engine listing" block. Blog text is shown on the storefront by the same sanitiser as pages (section 2, step 4).
+**The journal handle.** `[FROM CODE]` The sleep journal is the blog whose handle is **`journal`** (constant `JOURNAL_BLOG_HANDLE` in `content-pages.ts`). Create or open it in `[ADMIN, NOT SEEN]` **Online Store > Blog posts > Manage blogs**, where the blog's handle is set under the same "Search engine listing" block. The links "Sleep journal" in the footer (Sleep guide) and in the Guides menu (Help choosing) appear **only when a blog with that handle exists and has at least one article**. A blog with no articles gets no link, so a shopper is never sent to an empty listing. Blog text goes through the same clean-up as pages (section 2, step 4). Every blog is also reachable at `/blogs/<handle>` and listed at `/blogs`, whether or not it is linked. The handle `journal` is written in three places in the code (the constant, the existence read in `content-pages-data.ts` and the fixed menu in `navigation.ts`); a different handle is a developer change to all three.
+
+**The listing** `[FROM CODE]` (`blogs.$blogHandle._index.tsx`, `ArticleList.tsx`): shows **12 articles per page**, newest publish date first. Each card has the image (if any), the title, the date and the author ("October 5, 2026 · Name"), and the excerpt (cut at 200 characters). **Load more** is a real link that adds the next 12 (it also works without JavaScript); A "Load previous" link is also built in for a visitor who arrives part-way down; whether it shows only then was not checked. A web address with a damaged or unrecognised paging value shows the first page instead. With no articles it says "No articles yet." The listing's title and description come from the blog's own SEO fields (Shopify's blog "Search engine listing"), and every page of the listing declares the plain blog address as its canonical address.
 
 For each article:
 
-| Field in Shopify | What to put | What the storefront does with it (`[FROM CODE]`) |
+| Field in Shopify | What to put | What the storefront does with it (`[FROM CODE]`, read 2026-10-25) |
 |---|---|---|
-| Title | A clear, specific title | Shown as the main heading, in the listing and in the tab title |
-| Content | Body text with Heading 2 and 3, short paragraphs, lists | Shown after the same filter as pages |
-| Author | The real person's name, or the team name you want shown | Shown next to the date on the article. If none is set, the author is blank |
-| Publish date | The real date; leave as it is unless you are scheduling | Shown as "Month day, year" on the article and in the listing |
-| Featured image | An image you have the right to use | Shown at the top of the article and in the listing (as a 3:2 crop) |
-| Image alt text | One sentence saying what is in the image | Used in the listing; if empty, the article title is used instead |
-| Excerpt (summary) | One or two sentences | Not read by the storefront today; fill it only if you want it ready |
-| Tags | A few topic words | Not read by the storefront today; keep them tidy for later |
-| SEO title and description | As in section 6 | Read from Shopify but not yet used for the tab title or meta description |
+| Title | A clear, specific title | Main heading, listing title, and tab title ("Title | store name") unless an SEO title is set |
+| Content | Body text with Heading 2 and 3, short paragraphs, lists | Shown after the same filter as pages. It is not given an "On this page" list |
+| Author | The real person's name, or the team name you want shown | Shown as "By Name" next to the date on the article, and next to the date in the listing. If none is set, no author is shown. Also in the Article data (below) |
+| Publish date | The real date; leave as it is unless you are scheduling | Shown as "Month day, year" (for example October 5, 2026) in the listing and on the article. The date is formatted in UTC so every visitor sees the same day; an article published late in the evening in the US may therefore show the next calendar day. Order in the listing follows this date |
+| Featured image | An image you have the right to use | Top of the article and in the listing (3:2 crop). Also the sharing image |
+| Image alt text | One sentence saying what is in the image | Used as the article image's description. In the listing the image is treated as decoration (the title carries the link), so alt text is not read there |
+| Excerpt (summary) | One or two sentences | **Used**: shown on the listing card (cut at 200 characters), and used as the description when no SEO description is set |
+| Tags | A few topic words | **Used**: shown as a list of tags under the article, and in the sharing and Article data. At most 10 per article; each is cut at 40 characters, duplicates removed |
+| SEO title and description | As in section 6 | **Used**: the SEO title is the tab and sharing title; the description is the SEO description, else the excerpt, else the first 160 characters of the article text |
 | URL handle | Short, lower-case, words separated by hyphens | Forms `/blogs/journal/<handle>` |
 
-The listing page shows four articles at a time, newest first as Shopify returns them, each with the image, title and date, with paging controls for the rest (their exact look was not checked). It shows no author, excerpt or tags. `[FROM CODE]` An article page has no related-articles block, no share buttons and no article structured data in its route code; if wanted, they are change requests (CR process, `plans/BACKLOG.md`). Articles that are published are included in the sitemap.
+**What an article page also gets** `[FROM CODE]`: sharing tags for social sites (Open Graph and Twitter: type article, title, description, image, publish time, the blog name as the section, and the tags), a canonical address (needs `PUBLIC_SITE_URL`, 6), machine-readable **Article** data (headline, publish date, description, image, author, keywords and address; it is left out when the publish date or title is missing; **no publisher and no "modified" date are claimed**, because the data for them does not exist yet, REQ-SEO-001), a machine-readable breadcrumb, and **Newer / older** links under the article. These links come from the **100 newest** articles of the blog; an article further back than that has no such links, which is deliberate. Link order: the older article is on the left with an arrow, the newer on the right. There is no related-articles block and no share buttons; if wanted, they are change requests (CR process, `plans/BACKLOG.md`). Published articles are in the sitemap (the sitemap route covers the type articles).
 
 Before publishing an article use the section 7 checklist, plus: no health claims, no medical advice, and no product claim you cannot support from the manufacturer's information.
 
 ## 9. Open items for the developer (confirm, then update this document)
 
-1. Confirm the 15 handles in section 1 and whether a `guides` page and the `journal` blog are wanted.
-2. Settle the privacy and terms link conflict (4.3).
-3. Decide whether page SEO title and description are used (6) and whether the FAQ page should produce FAQPage data (5.6a).
-4. Provide a way to see which linked pages are missing, or flag the always-shown links until their pages exist (3).
-5. Run through sections 2 to 8 on a development store and replace the `[ADMIN, NOT SEEN]` marks. Confirm the visibility, preview and URL-handle steps and the Settings > Policies layout.
-6. When the code file `storefront/app/lib/pages/content-pages.ts` appears, replace the handles in section 1 from it.
+Items that were open in draft 1 and are now settled in the code: the registry file exists and the 15 handles come from it; links appear only for pages that exist (3.1); privacy and terms are one copy in Settings > Policies (4.3); SEO title and description are used (6); the FAQ page produces FAQ data when its structure allows (5.6a); the Guides heading is plain text; the journal link depends on the blog having articles (8). What is really open:
+
+1. **Verify everything on a development store.** Nothing here has been seen running. In particular check: a page with only `&nbsp;`, an image-only page and an empty page each behave as in 3.1; `/pages/privacy-policy` and `/pages/terms` redirect (302) to the policy when only the policy exists, and are not redirected when a page with text has that handle; the FAQ example in 5.6a produces FAQ data (QA can view the page source); the journal link appears only once the blog has an article; the "Load more" link; replace the `[ADMIN, NOT SEEN]` marks, including the visibility, preview and URL-handle steps and the Settings > Policies layout. Owner: developer or QA.
+2. **Empty policy.** The footer link for privacy and terms depends on Shopify returning the policy, not on its text (3.1). Confirm on a development store whether an empty policy box is returned; if it is, an empty policy gets a footer link to a "no content yet" page. Owner: developer.
+3. **Three switches still in code** (3.4): the two order-tracking footer links (after the lookup is verified and SD-05 is acknowledged, then `tests/unit/pages/shell-content.test.ts` changes too, per `docs/integrations/GUEST_TRACKING.md`); the three header-strip items (after the client's wording and pages exist); "Chat with us" (needs a provider, Q-011, P7-03, and a code change). Owner: developer, on the client's instruction.
+4. **Public site address.** Canonical and sharing address tags and the sitemap need `PUBLIC_SITE_URL` on the live site (6). Confirm it is set at deployment (`docs/deployment/DEPLOYMENT.md`). Owner: devops.
+5. **Cache delay not measured** (3.5, Admin guide 10.2). The footer read and each page read expire separately; whether a "not found" for an address opened before the page existed is kept is unknown. Owner: developer, on a development store.
+6. **Journal handle** is a constant plus two literals (8); if the client's blog has another handle, one developer change to all three. Owner: developer.
+7. **A Shopify menu is not checked** (3.1). If the client switches one on (Admin guide 6.6), a link to a page that does not exist shows "not found". The client's own check after saving the menu is the only protection. Owner: client, with developer on request.
+8. **Printing.** `[FROM CODE]` Printing a page or article hides the breadcrumb, the "On this page" list and the newer/older links only. The site header, footer and any other element still print; a print stylesheet for the whole site is not part of this work. If that matters, it is a change request.
+9. **No list of missing pages.** The code does not report which of the 15 pages are missing (3.3). Say so if the client wants one.
+10. **Other documents may still describe the old behaviour** (for example the design and verification notes that say the quick links and "Chat with us" are hidden or lead to the contact page). Those are outside this document.
+
+## 10. Code read for this draft (2026-10-25)
+
+All under `storefront/app/`: `lib/pages/content-pages.ts`, `content-pages-html.ts`, `content-pages-seo.ts`, `content-pages-view.ts`, `content-pages-blog.ts`, `content-pages-article.ts`; `lib/shopify/content-pages-data.ts`, `sanitize-html.ts`, `cache.ts`; `lib/navigation.ts`; `lib/seo/canonical.ts`, `sitemap.ts`; `lib/site-origin.ts`; `root.tsx`; `routes/pages.$handle.tsx`, `policies.$handle.tsx`, `policies._index.tsx`, `blogs._index.tsx`, `blogs.$blogHandle._index.tsx`, `blogs.$blogHandle.$articleHandle.tsx`, `track-order.tsx`; `components/pages/ContentArticle.tsx`, `ArticleList.tsx`; `components/layout/UtilityBar.tsx`, `MobileNav.tsx`, `SiteFooter.tsx` (link wiring only). No test was run and nothing was opened in a browser. This document is the Draft 2 of 2026-10-25 and states what it does not cover in section 0.
