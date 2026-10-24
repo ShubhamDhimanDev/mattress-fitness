@@ -131,7 +131,7 @@ describe('REQ-CNT-001 /pages/:handle loader', () => {
     ['privacy-policy', 'privacyPolicy', '/policies/privacy-policy'],
     ['terms', 'termsOfService', '/policies/terms-of-service'],
   ])(
-    'redirects /pages/%s with a 301 to the Shopify policy when no page has that handle',
+    'redirects /pages/%s with a 302 (never cached) to the Shopify policy when no page has that handle',
     async (handle, field, target) => {
       const {storefront} = fakeStorefront((call) =>
         isQuery(call, 'Page')
@@ -141,10 +141,59 @@ describe('REQ-CNT-001 /pages/:handle loader', () => {
       const response = await thrown(() =>
         pageLoader(args(`/pages/${handle}`, {handle}, storefront)),
       );
-      expect(response.status).toBe(301);
+      expect(response.status).toBe(302);
       expect(response.headers.get('location')).toBe(target);
+      expect(response.headers.get('cache-control')).toBe('no-store');
     },
   );
+
+  it.each([
+    ['', 'an empty body'],
+    ['<p>&nbsp;</p>', 'only a non-breaking space'],
+    ['<p><br></p>', 'only a line break'],
+  ])(
+    'redirects /pages/terms to the policy when a page with that handle is empty (%j: %s)',
+    async (body) => {
+      const {storefront} = fakeStorefront((call) =>
+        isQuery(call, 'Page')
+          ? {page: page({handle: 'terms', title: 'Terms', body})}
+          : {shop: {termsOfService: {id: 'gid://shopify/ShopPolicy/2'}}},
+      );
+      const response = await thrown(() =>
+        pageLoader(args('/pages/terms', {handle: 'terms'}, storefront)),
+      );
+      expect(response.status).toBe(302);
+      expect(response.headers.get('location')).toBe(
+        '/policies/terms-of-service',
+      );
+    },
+  );
+
+  it('serves an empty legal page (noindex) when there is no policy to send the shopper to', async () => {
+    const {storefront} = fakeStorefront((call) =>
+      isQuery(call, 'Page')
+        ? {page: page({handle: 'terms', title: 'Terms', body: ''})}
+        : {shop: {termsOfService: null}},
+    );
+    const data = await pageLoader(
+      args('/pages/terms', {handle: 'terms'}, storefront),
+    );
+    expect(data.view.empty).toBe(true);
+  });
+
+  it('serves an image-only page as content (the footer counts it too)', async () => {
+    const {storefront} = fakeStorefront(() => ({
+      page: page({
+        handle: 'about',
+        title: 'About',
+        body: '<img src="https://cdn.shopify.com/a.png" alt="">',
+      }),
+    }));
+    const data = await pageLoader(
+      args('/pages/about', {handle: 'about'}, storefront),
+    );
+    expect(data.view.empty).toBe(false);
+  });
 
   it('answers 404 for the legal handles when the policy does not exist either', async () => {
     const {storefront} = fakeStorefront((call) =>
@@ -301,6 +350,61 @@ describe('REQ-CNT-002 blog loaders', () => {
         (tag) => 'href' in tag && tag.href === `${SITE}/blogs/journal`,
       ),
     ).toBe(true);
+  });
+
+  it.each([
+    ['cursor=a%22%2C%20first%3A%20250'],
+    ['cursor=%3Cscript%3Ealert(1)%3C%2Fscript%3E'],
+    ['cursor=abc&direction=evil'],
+    ['cursor=' + 'x'.repeat(600)],
+    ['cursor=a%0Ab'],
+  ])(
+    'never lets the hostile pagination query %s reach Shopify (first page instead)',
+    async (query) => {
+      const {storefront, calls} = fakeStorefront(() => ({
+        blog: {
+          title: 'J',
+          handle: 'journal',
+          seo: null,
+          articles: {
+            nodes: [],
+            pageInfo: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: null,
+              endCursor: null,
+            },
+          },
+        },
+      }));
+      await blogLoader(
+        args(`/blogs/journal?${query}`, {blogHandle: 'journal'}, storefront),
+      );
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.variables).toEqual({
+        blogHandle: 'journal',
+        first: 12,
+        endCursor: null,
+      });
+    },
+  );
+
+  it('does the same for the list of blogs', async () => {
+    const {storefront, calls} = fakeStorefront(() => ({
+      blogs: {
+        nodes: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+      },
+    }));
+    await blogsLoader(
+      args('/blogs?cursor=a%22%20x&direction=previous', {}, storefront),
+    );
+    expect(calls[0]?.variables).toEqual({first: 12, endCursor: null});
   });
 
   it('answers 404 for an unknown or invalid blog', async () => {

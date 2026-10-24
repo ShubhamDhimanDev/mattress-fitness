@@ -1,11 +1,13 @@
 import {Link, useLoaderData} from 'react-router';
-import {getPaginationVariables} from '@shopify/hydrogen';
 import type {Route} from './+types/blogs._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PaginatedList} from '~/components/pages/ArticleList';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {SITE_NAME} from '~/lib/navigation';
-import {blogPath} from '~/lib/pages/content-pages-blog';
+import {
+  blogPaginationVariables,
+  blogPath,
+} from '~/lib/pages/content-pages-blog';
 import {buildSeo} from '~/lib/pages/content-pages-seo';
 import {canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
@@ -18,7 +20,11 @@ export const meta: Route.MetaFunction = ({data}) => [
 
 export async function loader({context, request}: Route.LoaderArgs) {
   const {storefront} = context;
-  const paginationVariables = getPaginationVariables(request, {pageBy: 12});
+  // The cursor and direction are checked before they reach the query; a bad one serves the first page.
+  const paginationVariables = blogPaginationVariables(
+    new URL(request.url).searchParams,
+    12,
+  );
 
   const {blogs} = await storefront.query(BLOGS_QUERY, {
     cache: catalogCache(storefront),

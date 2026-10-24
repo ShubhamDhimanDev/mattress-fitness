@@ -17,6 +17,7 @@ import {canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {catalogCache} from '~/lib/shopify/cache';
 import {isValidHandle} from '~/lib/shopify/collection-data';
+import {pageHasContent} from '~/lib/pages/content-pages-html';
 import {loadContentAvailability} from '~/lib/shopify/content-pages-data';
 
 // Title, description, robots, canonical, social tags and structured data are all prepared by the loader
@@ -37,14 +38,26 @@ export async function loader({context, request, params}: Route.LoaderArgs) {
     variables: {handle},
   });
 
+  // Privacy policy and terms are kept in Shopify Settings > Policies as one copy. A page with that handle only
+  // counts when it has content (the footer's rule): a missing or empty one sends the shopper to the policy. The
+  // answer follows data the client edits, so it is a temporary redirect that no cache may keep. The read is the
+  // footer's cached one.
+  if (
+    (!page || !pageHasContent(page.body)) &&
+    contentPageByHandle(handle)?.policy
+  ) {
+    const target = policyRedirectFor(
+      handle,
+      await loadContentAvailability(storefront),
+    );
+    if (target) {
+      throw redirect(target, {
+        status: 302,
+        headers: {'Cache-Control': 'no-store'},
+      });
+    }
+  }
   if (!page) {
-    // Privacy policy and terms are kept in Shopify Settings > Policies as one copy; the old page URL leads there
-    // unless a page with that handle exists (checked above). The read is the footer's cached one.
-    const registered = contentPageByHandle(handle);
-    const target = registered?.policy
-      ? policyRedirectFor(handle, await loadContentAvailability(storefront))
-      : null;
-    if (target) throw redirect(target, 301);
     throw new Response('Not Found', {status: 404});
   }
 

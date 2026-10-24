@@ -1,3 +1,4 @@
+import {availableParallelism} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {defineConfig} from 'vitest/config';
 
@@ -19,7 +20,10 @@ export default defineConfig({
     testTimeout: 20000,
     // Eight workers on an eight-core machine starve timing-sensitive jsdom tests (a different one failed on each full run);
     // four workers pass every run at the cost of about a minute (measured: 174 s for 5829 tests).
-    maxWorkers: 4,
+    // Never more than the machine has: a two-core CI box must not be asked for four.
+    maxWorkers: Math.min(4, availableParallelism()),
+    // A test slower than this is reported as slow, so a creeping one is seen before it needs a longer ceiling.
+    slowTestThreshold: 5000,
     hookTimeout: 20000,
     // Hydrogen's CartForm calls react-router's hooks; left external it loads a second copy of react-router and
     // cannot see the test's data router (B-20 tests). Processing it here makes both share one copy.

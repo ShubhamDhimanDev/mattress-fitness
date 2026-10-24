@@ -269,13 +269,72 @@ export const MAIN_NAV: readonly MainNavItem[] = [
 
 export type UtilityLink = {id: string; label: string; to: string};
 
-/** Right side of the utility bar. The phone number is rendered separately from SUPPORT_PHONE. */
+/**
+ * The utility links that need no Shopify content, and so the default of the bar and the mobile menu. The phone
+ * number is rendered separately from SUPPORT_PHONE. The links to the contact page and the chat are added by
+ * `buildUtilityLinks` only when they can work (P6-09).
+ */
 export const UTILITY_LINKS: readonly UtilityLink[] = [
   {id: 'track', label: 'Track order', to: '/track-order'},
-  {id: 'contact', label: 'Contact us', to: '/pages/contact'},
-  // Falls back to the contact page until a chat provider is chosen (Q-011, REQ-ANL-004).
-  {id: 'chat', label: 'Chat with us', to: '/pages/contact'},
 ];
+
+/** Paths that belong to Shopify-written pages and blogs: a fixed link to one shows only when it exists. */
+const SHOPIFY_CONTENT_PATH = /^\/(pages|blogs)\//;
+
+/** The paths of the Shopify pages and blogs that exist with content, from the footer's existence read. */
+export function existingContentPaths(
+  pages: readonly FooterPageLink[],
+): ReadonlySet<string> {
+  return new Set(pages.map((page) => page.to));
+}
+
+function linkExists(to: string | undefined, existing: ReadonlySet<string>) {
+  return to === undefined || !SHOPIFY_CONTENT_PATH.test(to) || existing.has(to);
+}
+
+/**
+ * The header utility links for the pages that exist. "Contact us" needs the contact page. "Chat with us" is a chat
+ * provider link, and no provider is configured (Q-011, P7-03), so it stays hidden: the old stand-in, a link
+ * to the contact page under a chat label, promised a chat that does not exist. Pass `chat: true` when P7-03 lands.
+ */
+export function buildUtilityLinks(
+  existing: ReadonlySet<string>,
+  options: {readonly chat?: boolean} = {},
+): UtilityLink[] {
+  return [
+    ...UTILITY_LINKS,
+    ...(existing.has('/pages/contact')
+      ? [{id: 'contact', label: 'Contact us', to: '/pages/contact'}]
+      : []),
+    ...(options.chat === true
+      ? [{id: 'chat', label: 'Chat with us', to: '/pages/contact'}]
+      : []),
+  ];
+}
+
+/**
+ * The fixed navigation without its links to Shopify pages and blogs that do not exist (guides, journal). Groups
+ * left empty and menus left with nothing to open are dropped. It applies to the fixed fallback only; a menu
+ * edited in Shopify admin is the client's own choice of links.
+ */
+export function pruneMainNav(
+  items: readonly MainNavItem[],
+  existing: ReadonlySet<string>,
+): MainNavItem[] {
+  return items.flatMap((item): MainNavItem[] => {
+    if (item.kind === 'link')
+      return linkExists(item.to, existing) ? [item] : [];
+    const groups = item.groups
+      .map((group) => ({
+        ...group,
+        links: group.links.filter((link) => linkExists(link.to, existing)),
+      }))
+      .filter((group) => group.links.length > 0);
+    const next: NavMenuItem = {...item, groups};
+    if (!linkExists(item.to, existing)) delete next.to;
+    return groups.length === 0 && next.to === undefined ? [] : [next];
+  });
+}
 
 export const STORE_LOCATOR_PATH = '/stores';
 

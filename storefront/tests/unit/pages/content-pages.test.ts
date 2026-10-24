@@ -1,7 +1,12 @@
 import {describe, expect, it} from 'vitest';
 import {
   FOOTER_SUPPORT_GROUPS,
+  MAIN_NAV,
   buildFooterLinks,
+  buildUtilityLinks,
+  existingContentPaths,
+  pruneMainNav,
+  type MainNavItem,
   footerGroupLinks,
   visibleQuickLinks,
   FOOTER_QUICK_LINKS_END_DRAFT,
@@ -21,6 +26,7 @@ import {
 } from '~/lib/pages/content-pages';
 import {
   articleNeighbours,
+  blogPaginationVariables,
   articlePath,
   blogPath,
   formatLongDate,
@@ -418,5 +424,143 @@ describe('REQ-CNT-001 the footer link model built by the root loader', () => {
       'stores',
       'contact',
     ]);
+  });
+});
+
+describe('REQ-CNT-001 header links to Shopify content', () => {
+  const existing = (...paths: string[]) => new Set(paths);
+
+  it('shows only "Track order" when no page exists, and never the chat stand-in', () => {
+    expect(buildUtilityLinks(existing()).map((link) => link.id)).toEqual([
+      'track',
+    ]);
+    // Even with the contact page there is no chat link: no chat provider is configured (P7-03).
+    expect(
+      buildUtilityLinks(existing('/pages/contact')).map((link) => link.id),
+    ).toEqual(['track', 'contact']);
+  });
+
+  it('adds the chat link only when a chat provider is switched on', () => {
+    expect(
+      buildUtilityLinks(existing('/pages/contact'), {chat: true}).map(
+        (link) => link.id,
+      ),
+    ).toEqual(['track', 'contact', 'chat']);
+  });
+
+  it('derives the existing paths from the footer page links', () => {
+    expect(
+      existingContentPaths(
+        footerPageLinks(available({pages: ['contact'], blogs: ['journal']})),
+      ),
+    ).toEqual(new Set(['/pages/contact', '/blogs/journal']));
+  });
+
+  const paths = (items: ReturnType<typeof pruneMainNav>) =>
+    items.flatMap((item) =>
+      item.kind === 'menu'
+        ? [item.to, ...item.groups.flatMap((g) => g.links.map((l) => l.to))]
+        : [item.to],
+    );
+
+  it('removes every fixed link to a missing page or blog, and keeps the rest', () => {
+    const pruned = pruneMainNav(MAIN_NAV, new Set());
+    const left = paths(pruned);
+    expect(left.filter((to) => /^\/(pages|blogs)\//.test(to ?? ''))).toEqual(
+      [],
+    );
+    expect(left).toContain('/collections/mattresses');
+    expect(left).toContain('/quiz');
+    expect(left).toContain('/compare');
+  });
+
+  it('keeps exactly the guide and journal links whose page exists', () => {
+    const pruned = pruneMainNav(
+      MAIN_NAV,
+      new Set(['/pages/size-guide', '/blogs/journal']),
+    );
+    const left = paths(pruned).filter((to) =>
+      /^\/(pages|blogs)\//.test(to ?? ''),
+    );
+    expect(left).toEqual(['/pages/size-guide', '/blogs/journal']);
+  });
+
+  it('drops a menu left with no groups, and a group left with no links', () => {
+    const items: MainNavItem[] = [
+      {
+        kind: 'menu',
+        id: 'only-pages',
+        label: 'Only pages',
+        to: '/pages/x',
+        groups: [
+          {id: 'g', heading: 'G', links: [{label: 'X', to: '/pages/x'}]},
+        ],
+      },
+      {
+        kind: 'menu',
+        id: 'mixed',
+        label: 'Mixed',
+        to: '/pages/y',
+        groups: [
+          {id: 'a', heading: 'A', links: [{label: 'Y', to: '/pages/y'}]},
+          {id: 'b', heading: 'B', links: [{label: 'S', to: '/stores'}]},
+        ],
+      },
+      {kind: 'link', id: 'faq', label: 'FAQ', to: '/pages/faq'},
+    ];
+    const pruned = pruneMainNav(items, new Set());
+    expect(pruned.map((item) => item.id)).toEqual(['mixed']);
+    const [mixed] = pruned;
+    expect(mixed?.kind === 'menu' ? mixed.groups.map((g) => g.id) : []).toEqual(
+      ['b'],
+    );
+    // The menu's own link to the missing page goes too.
+    expect(mixed?.to).toBeUndefined();
+  });
+
+  it('does not change the fixed navigation it is given', () => {
+    const before = JSON.stringify(MAIN_NAV);
+    pruneMainNav(MAIN_NAV, new Set());
+    expect(JSON.stringify(MAIN_NAV)).toBe(before);
+  });
+});
+
+describe('REQ-CNT-002 blog pagination variables (cursor and direction are validated)', () => {
+  const vars = (query: string) =>
+    blogPaginationVariables(new URLSearchParams(query), 12);
+
+  it('serves the first page without a cursor', () => {
+    expect(vars('')).toEqual({first: 12, endCursor: null});
+    expect(vars('direction=next')).toEqual({first: 12, endCursor: null});
+  });
+
+  it('passes a well-formed cursor forward or back', () => {
+    expect(vars('cursor=eyJsYXN0X2lkIjoxfQ==')).toEqual({
+      first: 12,
+      endCursor: 'eyJsYXN0X2lkIjoxfQ==',
+    });
+    expect(vars('cursor=abc123&direction=next')).toEqual({
+      first: 12,
+      endCursor: 'abc123',
+    });
+    expect(vars('cursor=abc123&direction=previous')).toEqual({
+      last: 12,
+      startCursor: 'abc123',
+    });
+  });
+
+  it.each([
+    ['a quote', "cursor=a'b"],
+    ['a space', 'cursor=a%20b'],
+    ['markup', 'cursor=%3Cscript%3E'],
+    ['a graphql fragment', 'cursor=a%22%2C%20first%3A%20250'],
+    ['a newline', 'cursor=a%0Ab'],
+    ['too long', `cursor=${'a'.repeat(513)}`],
+    ['empty', 'cursor='],
+    ['an unknown direction', 'cursor=abc&direction=sideways'],
+    ['an empty direction', 'cursor=abc&direction='],
+    ['a hostile direction', 'cursor=abc&direction=next%27%20OR%201'],
+  ])('drops %s and serves the first page', (_name, query) => {
+    expect(vars(query)).toEqual({first: 12, endCursor: null});
   });
 });

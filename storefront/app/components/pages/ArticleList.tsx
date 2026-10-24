@@ -94,7 +94,11 @@ export function PaginatedList<NodeType>({
       {({nodes, isLoading, PreviousLink, NextLink}) => (
         <div className="flex flex-col gap-6">
           <PreviousLink className={MORE_LINK}>
-            {isLoading ? 'Loading...' : 'Load previous'}
+            {isLoading ? (
+              <span aria-live="polite">Loading...</span>
+            ) : (
+              'Load previous'
+            )}
           </PreviousLink>
           <ul
             aria-label={label}
@@ -103,7 +107,11 @@ export function PaginatedList<NodeType>({
             {nodes.map((node, index) => children(node, index))}
           </ul>
           <NextLink className={MORE_LINK}>
-            {isLoading ? 'Loading...' : 'Load more'}
+            {isLoading ? (
+              <span aria-live="polite">Loading...</span>
+            ) : (
+              'Load more'
+            )}
           </NextLink>
         </div>
       )}

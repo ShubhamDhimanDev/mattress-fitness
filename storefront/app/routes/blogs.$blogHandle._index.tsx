@@ -1,5 +1,4 @@
 import {useLoaderData} from 'react-router';
-import {getPaginationVariables} from '@shopify/hydrogen';
 import type {Route} from './+types/blogs.$blogHandle._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {
@@ -12,7 +11,10 @@ import {cn} from '~/components/ui/cn';
 import {displayHeadingClass} from '~/lib/display-type';
 import {SITE_NAME} from '~/lib/navigation';
 import {buildBlogDocument} from '~/lib/pages/content-pages-article';
-import {blogPath} from '~/lib/pages/content-pages-blog';
+import {
+  blogPaginationVariables,
+  blogPath,
+} from '~/lib/pages/content-pages-blog';
 import {seoText} from '~/lib/pages/content-pages-seo';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {canonicalUrl} from '~/lib/seo/canonical';
@@ -38,9 +40,11 @@ export async function loader({context, request, params}: Route.LoaderArgs) {
     throw new Response('Blog not found', {status: 404});
   }
   const {storefront} = context;
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: ARTICLES_PER_PAGE,
-  });
+  // The cursor and direction are checked before they reach the query; a bad one serves the first page.
+  const paginationVariables = blogPaginationVariables(
+    new URL(request.url).searchParams,
+    ARTICLES_PER_PAGE,
+  );
 
   // Articles hold no price or availability: the long catalog cache. The cursor is part of the cache key.
   const {blog} = await storefront.query(BLOG_QUERY, {

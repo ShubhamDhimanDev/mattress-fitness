@@ -10,6 +10,7 @@ import {Skeleton} from '~/components/ui/Skeleton';
 import type {
   FooterLinks,
   MainNavItem,
+  UtilityLink,
   PromoMessage,
   SupportPhone,
 } from '~/lib/navigation';
@@ -26,6 +27,10 @@ type PageLayoutProps = {
   mainNav?: readonly MainNavItem[] | null;
   /** Footer links that depend on Shopify content, built by the root loader (REQ-CNT-001); none shows none of them. */
   footerLinks?: FooterLinks;
+  /** The fixed navigation minus links to Shopify pages that do not exist, used when no admin menu is set (REQ-CNT-001). */
+  fallbackNav?: readonly MainNavItem[] | null;
+  /** The header and drawer utility links whose page exists (REQ-CNT-001). */
+  utilityLinks?: readonly UtilityLink[];
   /** The client's number (PUBLIC_SUPPORT_PHONE or site_settings), or null: no phone link is rendered without one (REQ-CNT-001). */
   supportPhone?: SupportPhone | null;
   /** False when the deployment cannot save a ZIP; the header then offers no ZIP entry. */
@@ -44,6 +49,8 @@ export function PageLayout({
   promo = null,
   mainNav = null,
   footerLinks,
+  fallbackNav = null,
+  utilityLinks,
   supportPhone = null,
   deliveryZipAvailable = true,
   children = null,
@@ -55,6 +62,8 @@ export function PageLayout({
         isLoggedIn={isLoggedIn}
         promo={promo}
         mainNav={mainNav}
+        fallbackNav={fallbackNav ?? undefined}
+        utilityLinks={utilityLinks}
         storeName={myStore?.name ?? null}
         supportPhone={supportPhone}
         deliveryZipAvailable={deliveryZipAvailable}
@@ -69,7 +78,12 @@ export function PageLayout({
       <SiteFooter supportPhone={supportPhone} links={footerLinks} />
       <CartAside cart={cart} />
       <Aside type="mobile" heading="Menu" side="left">
-        <MobileMenuContent mainNav={mainNav} supportPhone={supportPhone} />
+        <MobileMenuContent
+          mainNav={mainNav}
+          supportPhone={supportPhone}
+          fallbackNav={fallbackNav ?? undefined}
+          utilityLinks={utilityLinks}
+        />
       </Aside>
     </Aside.Provider>
   );

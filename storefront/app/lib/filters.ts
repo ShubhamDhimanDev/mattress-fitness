@@ -194,7 +194,7 @@ export const MANAGED_FILTER_PARAMS: readonly string[] = [
 // A hostile URL can repeat a parameter thousands of times; look at a bounded number.
 const MAX_RAW_VALUES_PER_PARAM = 50;
 const MAX_RAW_VALUE_LENGTH = 200;
-const CURSOR_PATTERN = /^[A-Za-z0-9+/=_.~:-]{1,512}$/;
+export const CURSOR_PATTERN = /^[A-Za-z0-9+/=_.~:-]{1,512}$/;
 // Catalog-sourced values (brand names and the like): letters, digits, spaces and
 // a small set of punctuation. No angle brackets, quotes, control characters.
 const OPEN_VALUE_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} &'’.,+()/-]{0,79}$/u;

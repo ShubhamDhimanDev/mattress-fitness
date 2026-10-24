@@ -17,8 +17,11 @@
     "routes/stores.$state.$city.$slug": 125.5,
     "routes/account": 122.5,
     "routes/account.orders._index": 125.5,
-    "routes/pages.$handle": 123.5,
-    "routes/policies.$handle": 123.5
+    "routes/pages.$handle": 124.5,
+    "routes/policies.$handle": 124.5,
+    "routes/blogs._index": 124.5,
+    "routes/blogs.$blogHandle._index": 124.5,
+    "routes/blogs.$blogHandle.$articleHandle": 126.5
   },
   "groups": [
     { "name": "home", "routes": ["routes/_index"], "maxGzipKb": 130.5 },
@@ -31,6 +34,7 @@
     { "name": "brand", "routes": ["routes/brands.$handle", "routes/brands._index"], "maxGzipKb": 138.5 },
     { "name": "stores", "routes": ["routes/stores._index", "routes/stores.$state.$city.$slug"], "maxGzipKb": 125.5 },
     { "name": "account", "routes": ["routes/account", "routes/account.orders._index"], "maxGzipKb": 125.5 },
-    { "name": "content", "routes": ["routes/pages.$handle", "routes/policies.$handle"], "maxGzipKb": 123.5 }
+    { "name": "content", "routes": ["routes/pages.$handle", "routes/policies.$handle"], "maxGzipKb": 124.5 },
+    { "name": "blog", "routes": ["routes/blogs._index", "routes/blogs.$blogHandle._index", "routes/blogs.$blogHandle.$articleHandle"], "maxGzipKb": 126.5 }
   ]
 }

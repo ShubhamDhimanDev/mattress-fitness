@@ -671,22 +671,26 @@ export type ContentPagesQueryVariables = StorefrontAPI.Exact<{
 }>;
 
 export type ContentPagesQuery = {
-  page0?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page1?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page2?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page3?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page4?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page5?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page6?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page7?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page8?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page9?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page10?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page11?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page12?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page13?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  page14?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'bodySummary'>>;
-  blog0?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Blog, 'handle'>>;
+  page0?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page1?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page2?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page3?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page4?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page5?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page6?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page7?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page8?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page9?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page10?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page11?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page12?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page13?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page14?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  blog0?: StorefrontAPI.Maybe<
+    Pick<StorefrontAPI.Blog, 'handle'> & {
+      articles: {nodes: Array<Pick<StorefrontAPI.Article, 'id'>>};
+    }
+  >;
   shop: {
     privacyPolicy?: StorefrontAPI.Maybe<Pick<StorefrontAPI.ShopPolicy, 'id'>>;
     termsOfService?: StorefrontAPI.Maybe<Pick<StorefrontAPI.ShopPolicy, 'id'>>;
@@ -1709,7 +1713,7 @@ interface GeneratedQueryTypes {
     return: CatalogBrandPageQuery;
     variables: CatalogBrandPageQueryVariables;
   };
-  '#graphql\n  query ContentPages($country: CountryCode, $language: LanguageCode)\n    @inContext(country: $country, language: $language) {\n    page0: page(handle: "contact") { bodySummary }\n    page1: page(handle: "delivery-and-shipping") { bodySummary }\n    page2: page(handle: "financing") { bodySummary }\n    page3: page(handle: "warranty-and-returns") { bodySummary }\n    page4: page(handle: "faq") { bodySummary }\n    page5: page(handle: "size-guide") { bodySummary }\n    page6: page(handle: "comfort-guide") { bodySummary }\n    page7: page(handle: "mattress-types-guide") { bodySummary }\n    page8: page(handle: "adjustable-base-guide") { bodySummary }\n    page9: page(handle: "about") { bodySummary }\n    page10: page(handle: "comfort-guarantee") { bodySummary }\n    page11: page(handle: "price-guarantee") { bodySummary }\n    page12: page(handle: "privacy-policy") { bodySummary }\n    page13: page(handle: "terms") { bodySummary }\n    page14: page(handle: "accessibility") { bodySummary }\n    blog0: blog(handle: "journal") { handle }\n    shop {\n      privacyPolicy { id }\n      termsOfService { id }\n    }\n  }\n': {
+  '#graphql\n  query ContentPages($country: CountryCode, $language: LanguageCode)\n    @inContext(country: $country, language: $language) {\n    page0: page(handle: "contact") { body }\n    page1: page(handle: "delivery-and-shipping") { body }\n    page2: page(handle: "financing") { body }\n    page3: page(handle: "warranty-and-returns") { body }\n    page4: page(handle: "faq") { body }\n    page5: page(handle: "size-guide") { body }\n    page6: page(handle: "comfort-guide") { body }\n    page7: page(handle: "mattress-types-guide") { body }\n    page8: page(handle: "adjustable-base-guide") { body }\n    page9: page(handle: "about") { body }\n    page10: page(handle: "comfort-guarantee") { body }\n    page11: page(handle: "price-guarantee") { body }\n    page12: page(handle: "privacy-policy") { body }\n    page13: page(handle: "terms") { body }\n    page14: page(handle: "accessibility") { body }\n    blog0: blog(handle: "journal") { handle articles(first: 1) { nodes { id } } }\n    shop {\n      privacyPolicy { id }\n      termsOfService { id }\n    }\n  }\n': {
     return: ContentPagesQuery;
     variables: ContentPagesQueryVariables;
   };

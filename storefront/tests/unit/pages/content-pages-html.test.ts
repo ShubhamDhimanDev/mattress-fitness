@@ -5,6 +5,7 @@ import {
   capText,
   extractFaqPairs,
   hasVisibleContent,
+  pageHasContent,
   plainText,
   scanHeadings,
 } from '~/lib/pages/content-pages-html';
@@ -174,6 +175,12 @@ describe('REQ-CNT-001 plain text and content checks', () => {
     expect(plainText('')).toBe('');
   });
 
+  it('keeps a "<" that starts no tag as text', () => {
+    expect(plainText('sizes 2 < 3 > 1')).toBe('sizes 2 < 3 > 1');
+    expect(plainText('a <b>bold</b> < c')).toBe('a bold < c');
+    expect(plainText('<!-- note -->kept')).toBe('kept');
+  });
+
   it('removes control characters and collapses whitespace', () => {
     expect(plainText('a\u0000b\u0007  \n\t c')).toBe('a b c');
   });
@@ -189,6 +196,27 @@ describe('REQ-CNT-001 plain text and content checks', () => {
     expect(capText('one two three four five', 14)).toBe('one two three…');
     expect(capText('x'.repeat(50), 10)).toBe(`${'x'.repeat(9)}…`);
     expect(capText('x'.repeat(50), 10).length).toBeLessThanOrEqual(10);
+  });
+
+  it('does not count a bare <img> whose src the sanitiser dropped', () => {
+    const bare = clean('<img src="javascript:alert(1)" alt="x">');
+    expect(bare).toContain('<img');
+    expect(hasVisibleContent(bare)).toBe(false);
+    expect(pageHasContent('<img src="http://insecure.example/a.png">')).toBe(
+      false,
+    );
+  });
+
+  it('applies one rule to a page body: text, non-breaking spaces and images', () => {
+    expect(pageHasContent(null)).toBe(false);
+    expect(pageHasContent('')).toBe(false);
+    expect(pageHasContent('<p>&nbsp;&#160; </p>')).toBe(false);
+    expect(pageHasContent('<p>Hello</p>')).toBe(true);
+    expect(pageHasContent('<img src="https://cdn.shopify.com/a.png">')).toBe(
+      true,
+    );
+    // Asked twice, answered the same (the answer is remembered per body).
+    expect(pageHasContent('<p>Hello</p>')).toBe(true);
   });
 
   it('treats a page as empty without text or images, and as content with either', () => {

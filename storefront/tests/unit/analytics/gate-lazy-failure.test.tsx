@@ -46,6 +46,12 @@ describe('a consent chunk that fails to load', () => {
     await act(async () => {
       await Promise.resolve();
     });
+    // Let a macrotask pass, then count again: a second report (a retry, a remount) would arrive late, and the
+    // wait above stops at the first line, so it could not see one.
+    await act(async () => {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
+    expect(failureLines()).toHaveLength(1);
     expect(screen.getByText('the page')).toBeInTheDocument();
     // React reports an uncaught render error with console.error; there must be none.
     expect(errors).not.toHaveBeenCalled();

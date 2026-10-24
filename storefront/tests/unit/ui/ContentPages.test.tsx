@@ -5,7 +5,14 @@ import {afterEach, describe, expect, it} from 'vitest';
 import {ArticleCard} from '~/components/pages/ArticleList';
 import {ContentArticle} from '~/components/pages/ContentArticle';
 import {SiteFooter} from '~/components/layout/SiteFooter';
-import {buildFooterLinks} from '~/lib/navigation';
+import {MobileNav} from '~/components/layout/MobileNav';
+import {UtilityBar} from '~/components/layout/UtilityBar';
+import {
+  MAIN_NAV,
+  buildFooterLinks,
+  buildUtilityLinks,
+  pruneMainNav,
+} from '~/lib/navigation';
 import {footerPageLinks} from '~/lib/pages/content-pages';
 import {scanHeadings} from '~/lib/pages/content-pages-html';
 import {sanitizeHtml} from '~/lib/shopify/sanitize-html';
@@ -284,5 +291,46 @@ describe('REQ-CNT-002 article card', () => {
     await screen.findByRole('link', {name: 'Choosing a mattress'});
     expect(screen.queryByText(/Sam Sleeper/)).not.toBeInTheDocument();
     expect(screen.queryByText('A short guide.')).not.toBeInTheDocument();
+  });
+});
+
+describe('REQ-CNT-001 utility links in the header bar and the mobile menu', () => {
+  const withContact = buildUtilityLinks(new Set(['/pages/contact']));
+
+  it('the bar shows only "Track order" by default, and "Contact us" once the page exists', async () => {
+    renderIn(<UtilityBar>left</UtilityBar>);
+    expect(
+      await screen.findByRole('link', {name: 'Track order'}),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Contact us'})).toBeNull();
+    expect(screen.queryByRole('link', {name: 'Chat with us'})).toBeNull();
+    cleanup();
+    renderIn(<UtilityBar links={withContact}>left</UtilityBar>);
+    expect(
+      await screen.findByRole('link', {name: 'Contact us'}),
+    ).toHaveAttribute('href', '/pages/contact');
+    expect(screen.queryByRole('link', {name: 'Chat with us'})).toBeNull();
+  });
+
+  it('the mobile menu lists the same links, and no guide link for a missing page', async () => {
+    const items = pruneMainNav(MAIN_NAV, new Set(['/pages/size-guide']));
+    renderIn(
+      <MobileNav
+        items={items}
+        onNavigate={() => {}}
+        utilityLinks={withContact}
+      />,
+    );
+    expect(
+      await screen.findByRole('link', {name: 'Contact us'}),
+    ).toBeInTheDocument();
+    const hrefs = screen
+      .getAllByRole('link', {hidden: true})
+      .map((link) => link.getAttribute('href') ?? '');
+    expect(hrefs.filter((href) => href.startsWith('/pages/'))).toEqual([
+      '/pages/size-guide',
+      '/pages/contact',
+    ]);
+    expect(hrefs).not.toContain('/blogs/journal');
   });
 });

@@ -20,7 +20,8 @@ type ContentArticleProps = {
 /**
  * Layout of a Shopify-written page or policy (REQ-CNT-001): breadcrumb, one h1, an optional "on this page"
  * list, the text at a readable line length (SafeHtml sets `max-w-prose`), and a last-updated line. The
- * breadcrumb and the contents are hidden when printing so the page prints as a plain document.
+ * breadcrumb and the contents are hidden when printing; the site header and footer are not (that needs a global
+ * print stylesheet, which this layout does not add).
  */
 export function ContentArticle({
   title,

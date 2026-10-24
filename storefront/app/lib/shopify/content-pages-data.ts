@@ -1,7 +1,8 @@
-// Which of the registry's pages exist in Shopify with content (REQ-CNT-001, P6-09), so the footer links only to
-// pages that resolve. One batched Storefront request: every page is an aliased `page(handle:)` field in a single
-// query, next to the two shop policies and the journal blog. Existence is judged from `bodySummary` (the first
-// 150 characters of text), so no page body travels through the cache for this read.
+// Which of the registry's pages exist in Shopify with content (REQ-CNT-001, P6-09), so links only go to pages that
+// resolve. One batched Storefront request: every page is an aliased `page(handle:)` field in a single query, next
+// to the two shop policies and the journal blog. A page has content by the rule the page route uses
+// (`pageHasContent`: text or an image after sanitising), which needs the body; the response is cached for an hour and
+// the rule is remembered per body, so the cost is one read per cache window.
 //
 // The answer holds no price, availability or shopper data, so it uses the long catalog cache (cache.ts): an edit
 // in admin shows after the cache window. It never rejects: a failed or partial read means "nothing exists", which
@@ -11,6 +12,7 @@
 import type {Storefront} from '@shopify/hydrogen';
 import type {ContentPagesQuery} from 'storefrontapi.generated';
 import {errorFields, logError} from '~/lib/logging/logger';
+import {pageHasContent} from '~/lib/pages/content-pages-html';
 import {
   CONTENT_BLOGS,
   CONTENT_PAGES,
@@ -28,22 +30,22 @@ import {catalogCache} from '~/lib/shopify/cache';
 export const CONTENT_PAGES_QUERY = `#graphql
   query ContentPages($country: CountryCode, $language: LanguageCode)
     @inContext(country: $country, language: $language) {
-    page0: page(handle: "contact") { bodySummary }
-    page1: page(handle: "delivery-and-shipping") { bodySummary }
-    page2: page(handle: "financing") { bodySummary }
-    page3: page(handle: "warranty-and-returns") { bodySummary }
-    page4: page(handle: "faq") { bodySummary }
-    page5: page(handle: "size-guide") { bodySummary }
-    page6: page(handle: "comfort-guide") { bodySummary }
-    page7: page(handle: "mattress-types-guide") { bodySummary }
-    page8: page(handle: "adjustable-base-guide") { bodySummary }
-    page9: page(handle: "about") { bodySummary }
-    page10: page(handle: "comfort-guarantee") { bodySummary }
-    page11: page(handle: "price-guarantee") { bodySummary }
-    page12: page(handle: "privacy-policy") { bodySummary }
-    page13: page(handle: "terms") { bodySummary }
-    page14: page(handle: "accessibility") { bodySummary }
-    blog0: blog(handle: "journal") { handle }
+    page0: page(handle: "contact") { body }
+    page1: page(handle: "delivery-and-shipping") { body }
+    page2: page(handle: "financing") { body }
+    page3: page(handle: "warranty-and-returns") { body }
+    page4: page(handle: "faq") { body }
+    page5: page(handle: "size-guide") { body }
+    page6: page(handle: "comfort-guide") { body }
+    page7: page(handle: "mattress-types-guide") { body }
+    page8: page(handle: "adjustable-base-guide") { body }
+    page9: page(handle: "about") { body }
+    page10: page(handle: "comfort-guarantee") { body }
+    page11: page(handle: "price-guarantee") { body }
+    page12: page(handle: "privacy-policy") { body }
+    page13: page(handle: "terms") { body }
+    page14: page(handle: "accessibility") { body }
+    blog0: blog(handle: "journal") { handle articles(first: 1) { nodes { id } } }
     shop {
       privacyPolicy { id }
       termsOfService { id }
@@ -55,11 +57,21 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null;
 }
 
-function hasText(value: unknown): boolean {
+function hasContent(value: unknown): boolean {
   return (
     isRecord(value) &&
-    typeof value.bodySummary === 'string' &&
-    value.bodySummary.trim() !== ''
+    typeof value.body === 'string' &&
+    pageHasContent(value.body)
+  );
+}
+
+/** A blog counts when it has at least one article: a link to an empty listing would promise reading that is not there. */
+function hasArticles(value: Readonly<Record<string, unknown>>): boolean {
+  const articles = value.articles;
+  return (
+    isRecord(articles) &&
+    Array.isArray(articles.nodes) &&
+    articles.nodes.length > 0
   );
 }
 
@@ -72,12 +84,14 @@ export function availabilityFrom(
   const record: Readonly<Record<string, unknown>> = data;
   const pages = new Set<string>();
   CONTENT_PAGES.forEach((page, index) => {
-    if (hasText(record[`page${index}`])) pages.add(page.handle);
+    if (hasContent(record[`page${index}`])) pages.add(page.handle);
   });
   const blogs = new Set<string>();
   CONTENT_BLOGS.forEach((blog, index) => {
     const found = record[`blog${index}`];
-    if (isRecord(found) && found.handle === blog.handle) blogs.add(blog.handle);
+    if (isRecord(found) && found.handle === blog.handle && hasArticles(found)) {
+      blogs.add(blog.handle);
+    }
   });
   const policies = new Set<PolicyField>();
   const shop = record.shop;

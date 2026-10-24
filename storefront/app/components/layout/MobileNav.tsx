@@ -9,6 +9,7 @@ import {
   type MainNavItem,
   type NavMenuItem,
   type SupportPhone,
+  type UtilityLink,
 } from '~/lib/navigation';
 
 export type MobileNavProps = {
@@ -17,6 +18,8 @@ export type MobileNavProps = {
   onNavigate: () => void;
   /** The client's number; without one no phone link is rendered. */
   supportPhone?: SupportPhone | null;
+  /** The help links to show; the root loader leaves out those whose page does not exist (P6-09). */
+  utilityLinks?: readonly UtilityLink[];
 };
 
 const LINK_CLASSES =
@@ -96,6 +99,7 @@ export function MobileNav({
   items,
   onNavigate,
   supportPhone = null,
+  utilityLinks = UTILITY_LINKS,
 }: MobileNavProps) {
   const accordionItems: AccordionItem[] = items.map((item) =>
     item.kind === 'link'
@@ -125,7 +129,7 @@ export function MobileNav({
       </nav>
       <nav aria-label="Help and contact">
         <ul>
-          {UTILITY_LINKS.map((link) => (
+          {utilityLinks.map((link) => (
             <li key={link.id}>
               <Link to={link.to} onClick={onNavigate} className={LINK_CLASSES}>
                 {link.id === 'chat' ? <ChatIcon className="size-5" /> : null}

@@ -23,7 +23,13 @@ import {Button} from '~/components/ui/Button';
 import {loadDeliverySummary} from '~/lib/delivery-runtime/summary';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {PRIVATE_REVALIDATE_HEADERS} from '~/lib/pages/private-response';
-import {buildFooterLinks} from '~/lib/navigation';
+import {
+  MAIN_NAV,
+  buildFooterLinks,
+  buildUtilityLinks,
+  existingContentPaths,
+  pruneMainNav,
+} from '~/lib/navigation';
 import {loadFooterPageLinks} from '~/lib/shopify/content-pages-data';
 import {loadMainNav} from '~/lib/shopify/menu-data';
 import {
@@ -145,6 +151,12 @@ export async function loader(args: Route.LoaderArgs) {
     // Footer links to the Shopify pages, policies and blog that exist with content (REQ-CNT-001, P6-09): one
     // cached batched read, empty on failure. No price, no shopper data.
     footerLinks: buildFooterLinks(footerPages),
+    // The fixed navigation and the utility links without links to Shopify pages that do not exist (REQ-CNT-001);
+    // the fixed navigation is only sent when no admin menu is in use.
+    fallbackNav: mainNav
+      ? null
+      : pruneMainNav(MAIN_NAV, existingContentPaths(footerPages)),
+    utilityLinks: buildUtilityLinks(existingContentPaths(footerPages)),
     ...delivery,
     // The promotion bar and the phone come from the `site_settings` entry (P3B-13). The phone is shown only when
     // valid: PUBLIC_SUPPORT_PHONE overrides the admin value; development shows a labelled placeholder when
@@ -246,6 +258,8 @@ export default function App() {
         promo={data.promo}
         mainNav={data.mainNav}
         footerLinks={data.footerLinks}
+        fallbackNav={data.fallbackNav}
+        utilityLinks={data.utilityLinks}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
       >
@@ -345,6 +359,8 @@ export function ErrorBoundary() {
         promo={data.promo}
         mainNav={data.mainNav}
         footerLinks={data.footerLinks}
+        fallbackNav={data.fallbackNav}
+        utilityLinks={data.utilityLinks}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
       >

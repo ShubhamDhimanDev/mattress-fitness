@@ -9,10 +9,10 @@ import {
   resetContentPagesLogMemory,
 } from '~/lib/shopify/content-pages-data';
 
-// REQ-CNT-001: one cached batched read tells the footer which pages exist; it never rejects.
+// REQ-CNT-001: one cached batched read tells the links which pages exist; it never rejects.
 
 function answer(
-  pages: Record<string, string | null> = {},
+  bodies: Record<string, string | null> = {},
   extra: Record<string, unknown> = {},
 ) {
   const data: Record<string, unknown> = {
@@ -21,12 +21,13 @@ function answer(
     ...extra,
   };
   CONTENT_PAGES.forEach((page, index) => {
-    const summary = pages[page.handle];
-    data[`page${index}`] =
-      summary === undefined || summary === null ? null : {bodySummary: summary};
+    const body = bodies[page.handle];
+    data[`page${index}`] = body === undefined || body === null ? null : {body};
   });
   return data;
 }
+
+const JOURNAL = {handle: 'journal', articles: {nodes: [{id: 'gid://a/1'}]}};
 
 beforeEach(() => resetContentPagesLogMemory());
 afterEach(() => vi.restoreAllMocks());
@@ -52,19 +53,45 @@ describe('REQ-CNT-001 the batched query', () => {
     expect(CONTENT_PAGES_QUERY).toContain('termsOfService');
   });
 
-  it('reads a short summary, not the page bodies', () => {
-    expect(CONTENT_PAGES_QUERY).toContain('bodySummary');
-    expect(CONTENT_PAGES_QUERY).not.toMatch(/\bbody\b(?!Summary)/);
+  it('reads the body, so a page counts by the same rule the page route uses', () => {
+    expect(CONTENT_PAGES_QUERY).toMatch(/\{ body \}/);
+    expect(CONTENT_PAGES_QUERY).not.toContain('bodySummary');
+  });
+
+  it('asks for one article of the journal, to know the blog is not empty', () => {
+    expect(CONTENT_PAGES_QUERY).toMatch(/articles\(first: 1\)/);
   });
 });
 
 describe('REQ-CNT-001 availabilityFrom', () => {
-  it('counts a page with text, and not one that is missing or has a blank summary', () => {
+  it('counts a page with text, and not one that is missing or blank', () => {
     const result = availabilityFrom(
-      // The generated type allows only `bodySummary` per page; the answer is shaped like Shopify's.
-      answer({faq: 'Questions', contact: '   ', about: ''}) as never,
+      // The generated type allows only the queried fields; the answer is shaped like Shopify's.
+      answer({faq: '<p>Questions</p>', contact: '   ', about: ''}) as never,
     );
     expect([...result.pages]).toEqual(['faq']);
+  });
+
+  it('does not count a page whose only content is non-breaking spaces or empty markup', () => {
+    const result = availabilityFrom(
+      answer({
+        contact: '<p>&nbsp;</p><p>&#160;</p><p>  </p>',
+        about: '<p><br></p><div> </div>',
+        faq: '<script>alert(1)</script>',
+      }) as never,
+    );
+    expect(result.pages.size).toBe(0);
+  });
+
+  it('counts an image-only page, but not an image the sanitiser refuses', () => {
+    const result = availabilityFrom(
+      answer({
+        about: '<img src="https://cdn.shopify.com/a.png" alt="">',
+        contact: '<img src="javascript:alert(1)">',
+        faq: '<img>',
+      }) as never,
+    );
+    expect([...result.pages]).toEqual(['about']);
   });
 
   it('counts the policies and the journal blog that exist', () => {
@@ -72,7 +99,7 @@ describe('REQ-CNT-001 availabilityFrom', () => {
       answer(
         {},
         {
-          blog0: {handle: 'journal'},
+          blog0: JOURNAL,
           shop: {privacyPolicy: {id: 'p'}, termsOfService: null},
         },
       ) as never,
@@ -81,10 +108,26 @@ describe('REQ-CNT-001 availabilityFrom', () => {
     expect([...result.blogs]).toEqual(['journal']);
   });
 
+  it('does not count a blog with no articles', () => {
+    expect(
+      availabilityFrom(
+        answer(
+          {},
+          {blog0: {handle: 'journal', articles: {nodes: []}}},
+        ) as never,
+      ).blogs.size,
+    ).toBe(0);
+    expect(
+      availabilityFrom(answer({}, {blog0: {handle: 'journal'}}) as never).blogs
+        .size,
+    ).toBe(0);
+  });
+
   it('does not trust a blog whose handle differs', () => {
     expect(
-      availabilityFrom(answer({}, {blog0: {handle: 'other'}}) as never).blogs
-        .size,
+      availabilityFrom(
+        answer({}, {blog0: {...JOURNAL, handle: 'other'}}) as never,
+      ).blogs.size,
     ).toBe(0);
   });
 
@@ -102,7 +145,7 @@ describe('REQ-CNT-001 availabilityFrom', () => {
 describe('REQ-CNT-001 loadContentAvailability and loadFooterPageLinks', () => {
   it('makes one request with the long catalog cache and no shopper data', async () => {
     const {storefront, calls} = fakeStorefront(() =>
-      answer({faq: 'Questions'}),
+      answer({faq: '<p>Questions</p>'}),
     );
     const links = await loadFooterPageLinks(storefront);
     expect(calls).toHaveLength(1);

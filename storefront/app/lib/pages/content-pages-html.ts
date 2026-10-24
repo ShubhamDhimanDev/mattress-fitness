@@ -9,6 +9,8 @@
 //
 // Pure functions with no framework imports; they run in the page loader on the server.
 
+import {sanitizeHtml} from '~/lib/shopify/sanitize-html';
+
 export type TocEntry = {
   readonly id: string;
   readonly text: string;
@@ -65,7 +67,12 @@ export function plainText(html: string | null | undefined): string {
   if (!html) return '';
   // Script and style blocks are removed with their content: it is code, not text a shopper reads.
   const withoutCode = html.replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, ' ');
-  return tidy(decodeEntities(withoutCode.replace(/<[^>]*>/g, ' ')));
+  // Only real tags and comments go: a "<" that starts no tag ("sizes 2 < 3 > 1") is text.
+  const withoutTags = withoutCode.replace(
+    /<\/?[a-zA-Z][^>]*>|<!--[\s\S]*?-->/g,
+    ' ',
+  );
+  return tidy(decodeEntities(withoutTags));
 }
 
 /** Text cut to `max` characters at a word boundary, with an ellipsis when something was cut. */
@@ -81,7 +88,28 @@ export function capText(text: string, max: number): string {
  * shopper may have followed an old link) but with `noindex`, so a blank page never enters search results.
  */
 export function hasVisibleContent(cleanHtml: string): boolean {
-  return plainText(cleanHtml) !== '' || /<img\b/.test(cleanHtml);
+  // The sanitiser drops an image whose src it refuses, leaving a bare <img>: that shows nothing, so it is no content.
+  return plainText(cleanHtml) !== '' || /<img\b[^>]*\ssrc="/.test(cleanHtml);
+}
+
+// The footer asks this of up to 15 page bodies on every request, and the answer for a body never changes, so it is
+// remembered per body. The map is cleared when full: cheap, and a miss only costs one sanitising pass.
+const CONTENT_MEMORY_LIMIT = 64;
+const contentMemory = new Map<string, boolean>();
+
+/**
+ * The one rule for "this Shopify page has content", used by the footer's existence read and by the page route
+ * (through \`hasVisibleContent\`), so the two can never disagree: text after entities are decoded and whitespace
+ * (including &nbsp;) is trimmed, or an image the sanitiser keeps. An empty page does not count as a page.
+ */
+export function pageHasContent(body: string | null | undefined): boolean {
+  if (!body) return false;
+  const known = contentMemory.get(body);
+  if (known !== undefined) return known;
+  const answer = hasVisibleContent(sanitizeHtml(body));
+  if (contentMemory.size >= CONTENT_MEMORY_LIMIT) contentMemory.clear();
+  contentMemory.set(body, answer);
+  return answer;
 }
 
 function slugOf(text: string): string {
