@@ -13,6 +13,26 @@ const CONTENT_CLASSES = [
   '[&_img]:h-auto [&_img]:max-w-full',
 ].join(' ');
 
+const HEADING_OPEN = /<h([23])>/g;
+const SAFE_ANCHOR = /^[a-z0-9-]{1,80}$/;
+
+/**
+ * Gives the n-th h2 or h3 of already sanitised markup the n-th id, for the page's table of contents (P6-09). The
+ * ids come from our own loader (never from Shopify), and an id that is not plain lower-case letters, digits and
+ * hyphens is skipped. The sanitiser writes headings as bare tags, so only an id is ever added.
+ */
+export function anchorHeadings(
+  clean: string,
+  ids: readonly string[] | undefined,
+): string {
+  if (!ids || ids.length === 0) return clean;
+  let position = 0;
+  return clean.replace(HEADING_OPEN, (tag, level: string) => {
+    const id = ids[position++] ?? '';
+    return SAFE_ANCHOR.test(id) ? `<h${level} id="${id}">` : tag;
+  });
+}
+
 /**
  * The only place Shopify HTML (pages, policies, blog articles) reaches the DOM. The markup goes through the
  * allow-list sanitiser first (T-07); the sanitiser is deterministic, so server and client agree.
@@ -20,11 +40,17 @@ const CONTENT_CLASSES = [
 export function SafeHtml({
   html,
   className,
+  headingIds,
 }: {
   html: string | null | undefined;
   className?: string;
+  /** Anchors for the h2/h3 headings in order, from `scanHeadings` in the loader (content pages only). */
+  headingIds?: readonly string[];
 }) {
-  const clean = useMemo(() => sanitizeHtml(html), [html]);
+  const clean = useMemo(
+    () => anchorHeadings(sanitizeHtml(html), headingIds),
+    [html, headingIds],
+  );
   if (clean === '') return null;
   return (
     <div

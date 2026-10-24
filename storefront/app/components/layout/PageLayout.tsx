@@ -7,7 +7,12 @@ import {MAIN_CONTENT_ID} from '~/components/layout/SkipLink';
 import {MobileMenuContent, SiteHeader} from '~/components/layout/SiteHeader';
 import {SiteFooter} from '~/components/layout/SiteFooter';
 import {Skeleton} from '~/components/ui/Skeleton';
-import type {MainNavItem, PromoMessage, SupportPhone} from '~/lib/navigation';
+import type {
+  FooterLinks,
+  MainNavItem,
+  PromoMessage,
+  SupportPhone,
+} from '~/lib/navigation';
 import type {MyStoreSummary} from '~/lib/pages/my-store-summary';
 
 type PageLayoutProps = {
@@ -19,6 +24,8 @@ type PageLayoutProps = {
   promo?: PromoMessage | null;
   /** The main navigation from the Shopify admin menu (REQ-NAV-002); null shows the fixed navigation. */
   mainNav?: readonly MainNavItem[] | null;
+  /** Footer links that depend on Shopify content, built by the root loader (REQ-CNT-001); none shows none of them. */
+  footerLinks?: FooterLinks;
   /** The client's number (PUBLIC_SUPPORT_PHONE or site_settings), or null: no phone link is rendered without one (REQ-CNT-001). */
   supportPhone?: SupportPhone | null;
   /** False when the deployment cannot save a ZIP; the header then offers no ZIP entry. */
@@ -36,6 +43,7 @@ export function PageLayout({
   myStore = null,
   promo = null,
   mainNav = null,
+  footerLinks,
   supportPhone = null,
   deliveryZipAvailable = true,
   children = null,
@@ -58,7 +66,7 @@ export function PageLayout({
       >
         {children}
       </main>
-      <SiteFooter supportPhone={supportPhone} />
+      <SiteFooter supportPhone={supportPhone} links={footerLinks} />
       <CartAside cart={cart} />
       <Aside type="mobile" heading="Menu" side="left">
         <MobileMenuContent mainNav={mainNav} supportPhone={supportPhone} />

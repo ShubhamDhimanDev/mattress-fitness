@@ -7,13 +7,11 @@ import {BRAND_TAGLINE} from '~/lib/brand';
 import {displayHeadingClass} from '~/lib/display-type';
 import {ChevronDownIcon, PhoneIcon} from '~/components/ui/Icons';
 import {
-  FOOTER_LEGAL_LINKS,
-  FOOTER_QUICK_LINKS_END,
-  FOOTER_QUICK_LINKS_START,
   FOOTER_SHOP_GROUPS,
-  FOOTER_SUPPORT_GROUPS,
+  NO_FOOTER_LINKS,
   SITE_NAME,
   type FooterGroup,
+  type FooterLinks,
   type FooterQuickLink,
   type SupportPhone,
 } from '~/lib/navigation';
@@ -114,9 +112,12 @@ function QuickLinks({links}: {links: readonly FooterQuickLink[]}) {
 
 export function SiteFooter({
   supportPhone = null,
+  links = NO_FOOTER_LINKS,
 }: {
   /** The client's number; without one no phone link is rendered. */
   supportPhone?: SupportPhone | null;
+  /** The links that depend on Shopify content, built by the root loader (P6-09); none shows none of them. */
+  links?: FooterLinks;
 }) {
   return (
     // Light grey with one red rule on top, the only brand accent in the footer (BA-05). No signup band and no
@@ -132,11 +133,11 @@ export function SiteFooter({
         className="mx-auto flex max-w-page flex-col gap-8 px-4 pt-2 pb-8 md:px-6 md:pt-4 md:pb-12"
       >
         <div className="flex flex-col gap-x-8 border-b border-ink-300 pb-6 md:flex-row md:items-center md:justify-between">
-          <QuickLinks links={FOOTER_QUICK_LINKS_START} />
-          <QuickLinks links={FOOTER_QUICK_LINKS_END} />
+          <QuickLinks links={links.quickStart} />
+          <QuickLinks links={links.quickEnd} />
         </div>
         <FooterGroups
-          groups={FOOTER_SUPPORT_GROUPS}
+          groups={links.supportGroups}
           className="grid gap-0 md:grid-cols-3 md:gap-8"
         />
         <FooterGroups
@@ -150,7 +151,7 @@ export function SiteFooter({
             &copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
           </p>
           <ul className="flex flex-wrap items-center gap-x-4">
-            {FOOTER_LEGAL_LINKS.map((link) => (
+            {links.legal.map((link) => (
               <li key={link.to}>
                 <Link to={link.to} className={LINK_CLASSES}>
                   {link.label}

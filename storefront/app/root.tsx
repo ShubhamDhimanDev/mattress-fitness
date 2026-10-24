@@ -23,6 +23,8 @@ import {Button} from '~/components/ui/Button';
 import {loadDeliverySummary} from '~/lib/delivery-runtime/summary';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {PRIVATE_REVALIDATE_HEADERS} from '~/lib/pages/private-response';
+import {buildFooterLinks} from '~/lib/navigation';
+import {loadFooterPageLinks} from '~/lib/shopify/content-pages-data';
 import {loadMainNav} from '~/lib/shopify/menu-data';
 import {
   chooseSupportPhone,
@@ -122,14 +124,17 @@ export async function loader(args: Route.LoaderArgs) {
   const deferredData = loadDeferredData(args);
   const {storefront, env} = args.context;
 
-  // The store lookup, the ZIP cookie read, the site settings and the menu are independent of each other, so
-  // they run together. None of them fails the page: each degrades to "nothing" or to the fixed navigation.
-  const [myStore, delivery, siteSettings, mainNav] = await Promise.all([
-    loadMyStore(args.request),
-    loadDeliverySummary(args.request, env),
-    loadSiteSettings(storefront),
-    loadMainNav(storefront, env),
-  ]);
+  // The store lookup, the ZIP cookie read, the site settings, the menu and the footer's page links are independent
+  // of each other, so they run together. None of them fails the page: each degrades to "nothing" or to the fixed
+  // navigation.
+  const [myStore, delivery, siteSettings, mainNav, footerPages] =
+    await Promise.all([
+      loadMyStore(args.request),
+      loadDeliverySummary(args.request, env),
+      loadSiteSettings(storefront),
+      loadMainNav(storefront, env),
+      loadFooterPageLinks(storefront),
+    ]);
 
   return {
     ...deferredData,
@@ -137,6 +142,9 @@ export async function loader(args: Route.LoaderArgs) {
     // The Shopify admin menu (REQ-NAV-002), or null: the layout then shows the fixed navigation. No price, no
     // shopper data: safe for the long catalog cache.
     mainNav,
+    // Footer links to the Shopify pages, policies and blog that exist with content (REQ-CNT-001, P6-09): one
+    // cached batched read, empty on failure. No price, no shopper data.
+    footerLinks: buildFooterLinks(footerPages),
     ...delivery,
     // The promotion bar and the phone come from the `site_settings` entry (P3B-13). The phone is shown only when
     // valid: PUBLIC_SUPPORT_PHONE overrides the admin value; development shows a labelled placeholder when
@@ -237,6 +245,7 @@ export default function App() {
         myStore={data.myStore}
         promo={data.promo}
         mainNav={data.mainNav}
+        footerLinks={data.footerLinks}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
       >
@@ -335,6 +344,7 @@ export function ErrorBoundary() {
         myStore={data.myStore}
         promo={data.promo}
         mainNav={data.mainNav}
+        footerLinks={data.footerLinks}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
       >
