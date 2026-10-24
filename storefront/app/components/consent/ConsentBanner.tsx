@@ -86,6 +86,25 @@ function isCompact(): boolean {
   );
 }
 
+/**
+ * A cue that the text scrolls (QA-ANL-3), shown only while there is more to read in that direction: the classic
+ * "scroll shadows" (a shadow at an edge that fades once the text is scrolled to it, `local` attachment) painted from
+ * the theme's own colours, plus a thin scrollbar where the browser draws one. Inline, so the style sheet is unchanged.
+ */
+const SCROLL_CUE_STYLE = {
+  backgroundImage: [
+    'linear-gradient(var(--color-surface) 30%, transparent)',
+    'linear-gradient(transparent, var(--color-surface) 70%)',
+    'radial-gradient(farthest-side at 50% 0, color-mix(in srgb, var(--color-ink-900) 25%, transparent), transparent)',
+    'radial-gradient(farthest-side at 50% 100%, color-mix(in srgb, var(--color-ink-900) 25%, transparent), transparent)',
+  ].join(', '),
+  backgroundRepeat: 'no-repeat',
+  backgroundSize: '100% 24px, 100% 24px, 100% 8px, 100% 8px',
+  backgroundPosition: 'top, bottom, top, bottom',
+  backgroundAttachment: 'local, local, scroll, scroll',
+  scrollbarWidth: 'thin',
+} as const;
+
 /** The most of the window the banner may take; the text scrolls inside it, the buttons never do. */
 export const BANNER_MAX_HEIGHT = '40dvh';
 const PRIVACY_POLICY_PATH = '/policies/privacy-policy';
@@ -149,21 +168,22 @@ export function ConsentBanner({
         compact ? 'gap-2 p-2' : 'gap-3 p-4',
       )}
     >
-      {/* The text is the part that scrolls when the window is small; the link inside keeps the region keyboard-reachable. */}
-      <p
-        className={cn(
-          'min-h-0 overflow-y-auto text-fg',
-          compact ? 'text-xs' : 'text-sm',
-        )}
+      {/* The text is the part that scrolls when the window is small. Its padding (and the matching negative margin, as in the gallery strip) leaves room for the link's focus ring, a 3 px outline 2 px off the link, which an `overflow` box would otherwise clip (QA-ANL-2). The link inside also keeps the region keyboard-reachable. */}
+      <div
+        data-scroll-cue=""
+        style={SCROLL_CUE_STYLE}
+        className="-m-1.5 min-h-0 overflow-y-auto p-1.5"
       >
-        {bannerSentence(config, optOut)}
-        <Link
-          to={PRIVACY_POLICY_PATH}
-          className="font-bold underline hover:text-primary-700"
-        >
-          Privacy policy
-        </Link>
-      </p>
+        <p className={cn('text-fg', compact ? 'text-xs' : 'text-sm')}>
+          {bannerSentence(config, optOut)}
+          <Link
+            to={PRIVACY_POLICY_PATH}
+            className="font-bold underline hover:text-primary-700"
+          >
+            Privacy policy
+          </Link>
+        </p>
+      </div>
       <div role="status" className="sr-only">
         {announcement}
       </div>
@@ -177,25 +197,30 @@ export function ConsentBanner({
           variant="primary"
           size="sm"
           fullWidth
+          className="min-w-0"
+          aria-label={compact ? 'Accept all' : undefined}
           onClick={() => store.acceptAll()}
         >
-          Accept all
+          {compact ? <span className="text-xs">Accept</span> : 'Accept all'}
         </Button>
         <Button
           variant="secondary"
           size="sm"
           fullWidth
+          className="min-w-0"
+          aria-label={compact ? 'Reject all' : undefined}
           onClick={() => store.rejectAll()}
         >
-          Reject all
+          {compact ? <span className="text-xs">Reject</span> : 'Reject all'}
         </Button>
         <Button
           variant="ghost"
           size="sm"
           fullWidth
+          className="min-w-0"
           onClick={() => store.openPreferences()}
         >
-          Choose
+          {compact ? <span className="text-xs">Choose</span> : 'Choose'}
         </Button>
       </div>
     </div>

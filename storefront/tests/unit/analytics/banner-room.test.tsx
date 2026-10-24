@@ -110,8 +110,8 @@ describe('the banner is capped on a small window (QA-ANL-1, WCAG 1.4.10)', () =>
     const region = screen.getByRole('region', {name: 'Privacy choices'});
     expect(BANNER_MAX_HEIGHT).toBe('40dvh');
     expect(region.style.maxHeight).toBe('40dvh');
-    const text = region.querySelector('p');
-    expect(text?.className).toContain('overflow-y-auto');
+    const scroller = region.querySelector('[data-scroll-cue]');
+    expect(scroller?.className).toContain('overflow-y-auto');
     const buttons = screen.getByRole('button', {
       name: 'Accept all',
     }).parentElement;
@@ -175,5 +175,63 @@ describe('the announcement survives StrictMode (F-2)', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       CONSENT_BANNER_ANNOUNCEMENT,
     );
+  });
+});
+
+describe('the scrolling text (QA-ANL-2, QA-ANL-3)', () => {
+  it('has padding all round, with a matching negative margin, so the link focus ring (3 px + 2 px offset) is not clipped', () => {
+    render(<Harness />);
+    const scroller = screen
+      .getByRole('region', {name: 'Privacy choices'})
+      .querySelector('[data-scroll-cue]');
+    expect(scroller).toHaveClass('overflow-y-auto', 'p-1.5', '-m-1.5');
+    // 6 px of room is more than the 5 px the ring needs (3 px outline + 2 px offset).
+    expect(scroller).toContainElement(
+      screen.getByRole('link', {name: 'Privacy policy'}),
+    );
+  });
+
+  it('shows a scroll cue: edge shadows from the theme colours that appear only while there is more to read, and a thin scrollbar', () => {
+    render(<Harness />);
+    const scroller = screen
+      .getByRole('region', {name: 'Privacy choices'})
+      .querySelector<HTMLElement>('[data-scroll-cue]');
+    expect(scroller).not.toBeNull();
+    const style = scroller?.getAttribute('style') ?? '';
+    expect(style).toContain(
+      'background-attachment: local, local, scroll, scroll',
+    );
+    expect(style).toContain('var(--color-surface)');
+    expect(style).toContain('var(--color-ink-900)');
+    expect(style).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
+    expect(style).toContain('scrollbar-width: thin');
+  });
+});
+
+describe('compact labels never break inside a word (QA-ANL-3)', () => {
+  it('shows short visible labels, with the full action as the accessible name starting with the visible text', () => {
+    compactMatches = true;
+    render(<Harness />);
+    const accept = screen.getByRole('button', {name: 'Accept all'});
+    const reject = screen.getByRole('button', {name: 'Reject all'});
+    const choose = screen.getByRole('button', {name: 'Choose'});
+    expect(accept).toHaveTextContent(/^Accept$/);
+    expect(reject).toHaveTextContent(/^Reject$/);
+    expect(choose).toHaveTextContent(/^Choose$/);
+    expect(accept.getAttribute('aria-label')).toMatch(/^Accept/);
+    expect(reject.getAttribute('aria-label')).toMatch(/^Reject/);
+    for (const button of [accept, reject, choose]) {
+      expect(button).toHaveClass('min-w-0');
+      expect(button.querySelector('span')).toHaveClass('text-xs');
+      expect(button.className).not.toContain('break-all');
+      expect(button.className).not.toContain('break-words');
+    }
+  });
+
+  it('keeps the full labels, and no aria-label override, in the normal layout', () => {
+    render(<Harness />);
+    const accept = screen.getByRole('button', {name: 'Accept all'});
+    expect(accept).toHaveTextContent(/^Accept all$/);
+    expect(accept).not.toHaveAttribute('aria-label');
   });
 });
