@@ -1,6 +1,6 @@
 import {AnalyticsEvent as HydrogenEvent, useAnalytics} from '@shopify/hydrogen';
 import {useEffect, useRef} from 'react';
-import {useLocation} from 'react-router';
+import {useLocation, useNavigation} from 'react-router';
 import {track} from '~/lib/analytics';
 import {
   SELECT_ITEM_ATTRIBUTE,
@@ -17,6 +17,8 @@ const CHECKOUT_DEBOUNCE_MS = 2000;
 
 // True while an `AnalyticsBridge` is mounted; see the subscriptions below.
 let mounted = false;
+/** How long a click on a link to a private page holds the providers if the navigation never starts. */
+const PENDING_CLICK_MS = 3000;
 // Written out, not imported from `~/lib/cart/checkout`: that module is shared with the cart chunk, and importing it here
 // adds a file to the consent chunk's preload list in the root route (bundle budget, scripts/perf). A test pins the two.
 export const CHECKOUT_LINK_PATH = '/checkout-steps';
@@ -37,9 +39,15 @@ export const CHECKOUT_LINK_PATH = '/checkout-steps';
  */
 export function AnalyticsBridge({
   takeEarlyViews,
+  resetEarlyViews,
+  setNavigationTarget,
 }: {
   /** The page's first product and search views, kept by the shell until now (`earlyViews` in `~/lib/analytics/gate`). */
   takeEarlyViews: () => Array<[string, unknown]>;
+  /** Starts keeping the views again when this bridge goes away, so a remounted one can take them. */
+  resetEarlyViews: () => void;
+  /** Tells the runtime where the shopper is about to go (or null), so a private target pauses the providers first. */
+  setNavigationTarget: (href: string | null) => void;
 }) {
   const {subscribe, cart} = useAnalytics();
   const cartRef = useRef(cart);
@@ -77,8 +85,9 @@ export function AnalyticsBridge({
     }
     return () => {
       mounted = false;
+      resetEarlyViews();
     };
-  }, [subscribe, takeEarlyViews]);
+  }, [subscribe, takeEarlyViews, resetEarlyViews]);
 
   useEffect(() => {
     let lastCheckout = 0;
@@ -109,7 +118,12 @@ export function AnalyticsBridge({
     return () => document.removeEventListener('click', onClick);
   }, []);
 
-  return <PageViewTracker />;
+  return (
+    <>
+      <PageViewTracker />
+      <NavigationGuard setNavigationTarget={setNavigationTarget} />
+    </>
+  );
 }
 
 /** A kept view belongs to this page when its address (path and query) is the one now showing. */
@@ -154,5 +168,67 @@ function PageViewTracker() {
       params: {page_location: window.location.href},
     });
   }, [key]);
+  return null;
+}
+
+/**
+ * Pauses the providers BEFORE the address changes when the shopper is going to a private page (security review
+ * A-M1). The runtime's own pause runs when the new page's view is tracked, after the navigation has committed, and
+ * Google's own history-change page view can fire on the address change before that. Two signals, both cleared when
+ * the navigation ends:
+ *  - React Router's pending navigation (`useNavigation().location`), which exists while the next page loads and
+ *    before the history entry is pushed;
+ *  - a click, in the capture phase, on a link into a private prefix, which covers the instant before the router has
+ *    started (and is released after a few seconds if no navigation follows, for example a cancelled click).
+ * The runtime decides which targets are private.
+ */
+function NavigationGuard({
+  setNavigationTarget,
+}: {
+  setNavigationTarget: (href: string | null) => void;
+}) {
+  const navigation = useNavigation();
+  const pending = navigation.location
+    ? navigation.location.pathname + navigation.location.search
+    : null;
+  const stateRef = useRef(navigation.state);
+  stateRef.current = navigation.state;
+
+  useEffect(() => {
+    setNavigationTarget(pending);
+  }, [pending, setNavigationTarget]);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    function onClickCapture(event: MouseEvent) {
+      if (
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest('a[href]');
+      if (!link) return;
+      const where = link.getAttribute('target');
+      if (where && where !== '_self') return;
+      setNavigationTarget(link.getAttribute('href'));
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        // Still on the same page and no navigation under way: the click led nowhere.
+        if (stateRef.current === 'idle') setNavigationTarget(null);
+      }, PENDING_CLICK_MS);
+    }
+    document.addEventListener('click', onClickCapture, true);
+    return () => {
+      document.removeEventListener('click', onClickCapture, true);
+      clearTimeout(timer);
+    };
+  }, [setNavigationTarget]);
+
   return null;
 }

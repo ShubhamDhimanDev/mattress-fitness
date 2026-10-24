@@ -21,6 +21,7 @@
 
 import {
   EMAIL,
+  fragmentLooksPersonal,
   isPrivatePath,
   looksPersonal,
   queryValueLooksPersonal,
@@ -39,6 +40,7 @@ export type UnsafePageReason =
   | 'private-path'
   | 'personal-path'
   | 'personal-query'
+  | 'personal-fragment'
   | 'personal-search';
 
 export type PageDecision =
@@ -54,21 +56,11 @@ export type PageInput = {
   readonly title: string;
 };
 
-/** Click ids are opaque tokens whose characters can look like a long number; they are not personal data. */
-const OPAQUE_QUERY_KEYS: ReadonlySet<string> = new Set([
-  'gclid',
-  'gbraid',
-  'wbraid',
-  'dclid',
-  'fbclid',
-  'msclkid',
-  'srsltid',
-  '_kx',
-]);
-
 const SEARCH_TITLE = 'Search';
 const FALLBACK_TITLE = 'Page';
 const MAX_TITLE_LENGTH = 150;
+// "Order #1001", "Order 1001", "order no. 12": an order page's title, which names an order (four digits are enough).
+const ORDER_TITLE = /\border\b[^a-z0-9]{0,4}(?:no\.?|number)?[^a-z0-9]{0,3}\d/i;
 
 function isSearchPath(pathname: string): boolean {
   const path = pathname.toLowerCase();
@@ -77,7 +69,9 @@ function isSearchPath(pathname: string): boolean {
 
 function cleanTitle(title: string): string {
   const text = title.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE_LENGTH);
-  return text === '' || looksPersonal(text) ? FALLBACK_TITLE : text;
+  return text === '' || looksPersonal(text) || ORDER_TITLE.test(text)
+    ? FALLBACK_TITLE
+    : text;
 }
 
 /** An own page keeps its (sanitised, section-cut) address; another site is reduced to its origin; junk is nothing. */
@@ -118,7 +112,6 @@ export function evaluatePage(input: PageInput): PageDecision {
 
   const search = isSearchPath(url.pathname);
   for (const [key, value] of url.searchParams) {
-    if (OPAQUE_QUERY_KEYS.has(key.toLowerCase())) continue;
     const isSearchTerm = search && key === 'q';
     // The search term has its own, stricter rule (seven digits) that also covers the page's title; the other values
     // are judged as address parts.
@@ -132,6 +125,10 @@ export function evaluatePage(input: PageInput): PageDecision {
       safe: false,
       reason: isSearchTerm ? 'personal-search' : 'personal-query',
     };
+  }
+  // The fragment is never sent, but a page whose fragment holds an email or a phone number is not reported either.
+  if (fragmentLooksPersonal(url.hash)) {
+    return {safe: false, reason: 'personal-fragment'};
   }
   const term = url.searchParams.get('q');
   if (search && term !== null && term.trim() !== '') {

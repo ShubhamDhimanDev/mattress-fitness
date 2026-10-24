@@ -49,8 +49,10 @@ function useRoomForBannerWhileShown(element: HTMLElement | null) {
     const body = document.body;
     const scrollBefore = root.style.scrollPaddingBottom;
     const paddingBefore = body.style.paddingBottom;
-    const basePadding = parseFloat(getComputedStyle(body).paddingBottom) || 0;
     const apply = () => {
+      // The body's own padding is read afresh each time (a breakpoint can change it), with our inline value taken off.
+      body.style.paddingBottom = paddingBefore;
+      const basePadding = parseFloat(getComputedStyle(body).paddingBottom) || 0;
       const room = element.offsetHeight + 16;
       root.style.scrollPaddingBottom = `${room}px`;
       body.style.paddingBottom = `${basePadding + room}px`;
@@ -75,8 +77,13 @@ const COMPACT_QUERY = '(max-width: 360px), (max-height: 400px)';
 function subscribeCompact(listener: () => void): () => void {
   if (typeof window.matchMedia !== 'function') return () => {};
   const list = window.matchMedia(COMPACT_QUERY);
-  list.addEventListener('change', listener);
-  return () => list.removeEventListener('change', listener);
+  // Before Safari 14 a MediaQueryList has no addEventListener, only the older addListener.
+  if (typeof list.addEventListener === 'function') {
+    list.addEventListener('change', listener);
+    return () => list.removeEventListener('change', listener);
+  }
+  list.addListener(listener);
+  return () => list.removeListener(listener);
 }
 
 function isCompact(): boolean {

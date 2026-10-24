@@ -65,9 +65,32 @@ let sink: TrackSink | null = null;
 // page (page views, the listing, a Hydrogen view) can arrive before it has registered its sink. Those events are
 // held in memory, bounded, and replayed in order the moment the sink exists; the runtime behind it still drops
 // whatever consent does not allow, so holding sends nothing anywhere. With no provider configured no sink ever
-// arrives and the few held events are simply never used. Unregistering the sink empties the hold.
+// arrives and the few held events are simply never used. Unregistering the sink empties the hold. Each held event
+// carries the page (path and query) it was produced on, and is dropped at replay if the shopper has moved on, so an
+// event of one page is never attributed to another (code review m-2).
 const MAX_HELD_EVENTS = 25;
-let held: AnalyticsEvent[] = [];
+let held: Array<{event: AnalyticsEvent; page: string}> = [];
+
+function currentPage(): string {
+  return typeof window === 'undefined'
+    ? ''
+    : window.location.pathname + window.location.search;
+}
+
+/** Empties the hold without touching the sink (the sink was cleared by someone else, or a test starts over). */
+export function clearHeldEvents(): void {
+  held = [];
+}
+
+/**
+ * Unregisters `expected` only if it is still the registered sink. A teardown that arrives after a newer sink was
+ * registered (a remount) must not remove the newer one (code review M-1).
+ */
+export function clearTrackSink(expected: TrackSink): void {
+  if (sink !== expected) return;
+  sink = null;
+  held = [];
+}
 
 /** The consent layer registers its sender here; tests register a spy. Pass null to unregister. */
 export function setTrackSink(next: TrackSink | null): void {
@@ -75,7 +98,9 @@ export function setTrackSink(next: TrackSink | null): void {
   const replay = held;
   held = [];
   if (!next) return;
-  for (const event of replay) {
+  const page = currentPage();
+  for (const {event, page: producedOn} of replay) {
+    if (producedOn !== page) continue;
     try {
       next(event);
     } catch {
@@ -88,7 +113,7 @@ export function setTrackSink(next: TrackSink | null): void {
 export function track(event: AnalyticsEvent): void {
   if (!sink) {
     if (held.length >= MAX_HELD_EVENTS) held.shift();
-    held.push(event);
+    held.push({event, page: currentPage()});
   }
   try {
     sink?.(event);

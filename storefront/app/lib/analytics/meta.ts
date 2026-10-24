@@ -122,11 +122,18 @@ type Fbq = (...args: unknown[]) => void;
 
 // Meta's documented bootstrap, written out: calls made before fbevents.js arrives are queued (as `arguments`
 // objects, the shape the library reads) and replayed by it, which then supplies `callMethod`.
-function ensureFbq(globals: Globals): Fbq {
+// Which pixel ids have been initialised on a given fbq: a second adapter on the same page (a remounted layer, a module
+// loaded twice) adopts the running pixel instead of initialising it again.
+const initialised = new WeakMap<object, Set<string>>();
+
+function ensureFbq(globals: Globals): {call: Fbq; owner: object} {
   const existing = globals.get('fbq');
   if (typeof existing === 'function') {
-    return (...args) => {
-      Reflect.apply(existing, undefined, args);
+    return {
+      owner: existing,
+      call: (...args) => {
+        Reflect.apply(existing, undefined, args);
+      },
     };
   }
   const queue: unknown[] = [];
@@ -143,8 +150,11 @@ function ensureFbq(globals: Globals): Fbq {
   Object.assign(fbq, {queue, loaded: true, version: '2.0', push: fbq});
   globals.set('fbq', fbq);
   globals.set('_fbq', fbq);
-  return (...args) => {
-    Reflect.apply(fbq, undefined, args);
+  return {
+    owner: fbq,
+    call: (...args) => {
+      Reflect.apply(fbq, undefined, args);
+    },
   };
 }
 
@@ -162,16 +172,29 @@ export function createMetaAdapter(
   let fbq: Fbq | null = null;
   let granted = true;
 
+  function clearStored(): void {
+    try {
+      clearCookies?.(['_fbp', '_fbc']);
+    } catch {
+      // Best effort; see cookies.ts.
+    }
+  }
+
   return {
     id: 'meta',
     category: 'marketing',
     async load(): Promise<ProviderLoadResult> {
       try {
-        const call = ensureFbq(globals);
-        // Order matters: configuration first, then init. Consent is already given when this runs.
-        call('set', 'autoConfig', false, pixelId);
-        call('consent', 'grant');
-        call('init', pixelId);
+        const {call, owner} = ensureFbq(globals);
+        const done = initialised.get(owner) ?? new Set<string>();
+        initialised.set(owner, done);
+        if (!done.has(pixelId)) {
+          done.add(pixelId);
+          // Order matters: configuration first, then init. Consent is already given when this runs.
+          call('set', 'autoConfig', false, pixelId);
+          call('consent', 'grant');
+          call('init', pixelId);
+        }
         const result = await loadScript(META_SCRIPT_URL);
         if (result.status === 'failed') {
           return {status: 'failed', reason: result.reason};
@@ -203,10 +226,11 @@ export function createMetaAdapter(
       granted = false;
       try {
         fbq?.('consent', 'revoke');
-        clearCookies?.(['_fbp', '_fbc']);
       } catch {
         // Best effort; see cookies.ts.
       }
+      clearStored();
     },
+    clearStored,
   };
 }

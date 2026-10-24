@@ -1,28 +1,22 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo} from 'react';
 import {AnalyticsBridge} from '~/components/consent/AnalyticsBridge';
 import {ConsentBanner} from '~/components/consent/ConsentBanner';
 import {ConsentPreferences} from '~/components/consent/ConsentPreferences';
-import {setTrackSink} from '~/lib/analytics';
-import {
-  attachConsentRefresh,
-  createBrowserAdapters,
-  createBrowserConsentStore,
-  evaluateCurrentPage,
-} from '~/lib/analytics/browser';
 import type {ConsentRuntimeProps} from '~/components/consent/consent-context';
 import {moveFocusAfterDecision} from '~/components/consent/focus-after-decision';
-import {createDeferredLifecycle} from '~/lib/analytics/deferred-lifecycle';
-import {createAnalyticsRuntime} from '~/lib/analytics/runtime';
-import {logWarn} from '~/lib/logging/logger';
+import {acquireAnalytics} from '~/lib/analytics/live';
 
 /**
- * The consent layer proper (P7-01): the consent store, the runtime that loads GA4 and the Meta pixel only after
- * agreement and on idle, the bridge from the page's events to `track()`, the banner and the preferences dialog.
+ * The consent layer's React side (P7-01): the bridge from the page's events to `track()`, the banner and the
+ * preferences dialog. The consent store, the runtime that loads GA4 and the Meta pixel only after agreement and on
+ * idle, and the provider adapters are NOT owned by this component: they are the page's single running layer
+ * (`~/lib/analytics/live`), created by the first mount and adopted by every later one. The root renders one
+ * `AnalyticsGate` in the App and another in the ErrorBoundary, and a 404 swaps them, so this component can unmount and
+ * mount again; a second runtime would load the provider scripts twice and send every hit twice (code re-review M-1).
  *
  * This module is a lazy chunk. `AnalyticsGate` (in the initial JavaScript) mounts it only after hydration and only
  * when a provider id is set, so a store with neither id never downloads any of it (bundle budget, scripts/perf).
- * It publishes its store to the gate, which hands it to the footer button, the banner and the Hydrogen provider.
- * It renders inside `<Analytics.Provider>` and the consent context, both supplied by the gate.
+ * It publishes its store to the gate, which hands it to the footer button and Hydrogen's `canTrack`.
  */
 export function ConsentRuntime({
   config,
@@ -31,63 +25,18 @@ export function ConsentRuntime({
   notify,
   schedule,
   takeEarlyViews,
+  resetEarlyViews,
 }: ConsentRuntimeProps) {
-  const {consentMode, ga4MeasurementId, metaPixelId} = config;
-  const store = useMemo(
-    () => createBrowserConsentStore(consentMode, window),
-    [consentMode],
+  // During render, on purpose: the running layer has to exist (and have registered its sink, replaying the events
+  // `track()` held) before the bridge's effects send the page view. Idempotent, so StrictMode's second render and a
+  // later remount simply get the same layer back.
+  const live = useMemo(
+    () => acquireAnalytics({config, nonce, schedule}),
+    [config, nonce, schedule],
   );
+  const {store, runtime} = live;
 
-  // Released a tick late (QA F-1): React's StrictMode cleans this effect up and runs it again at once in development,
-  // and a runtime torn down in between would take the replayed held events with it.
-  const [lifecycle] = useState(() => createDeferredLifecycle<void>());
-
-  // The runtime must be started BEFORE the sink is registered: registering the sink replays, synchronously, the events
-  // `track()` held while this chunk was loading, and those only reach a provider that is already active (a started
-  // runtime has marked the consented providers active and queued their load). The other way round every replayed
-  // event met an inactive provider and was dropped.
-  useEffect(() => {
-    lifecycle.acquire(
-      `${consentMode}|${ga4MeasurementId}|${metaPixelId}|${nonce}`,
-      () => {
-        const adapters = createBrowserAdapters(
-          {consentMode, ga4MeasurementId, metaPixelId},
-          window,
-          nonce,
-        );
-        const runtime = createAnalyticsRuntime({
-          adapters,
-          consent: store,
-          schedule,
-          // No event, and no script load, from a private or personal-looking page (review M-1, L-4).
-          page: () => evaluateCurrentPage(window),
-          // Fixed words only: which provider and why, never anything about the shopper.
-          onFailure: (provider, reason) =>
-            logWarn('analytics.provider_failed', {provider, reason}),
-        });
-        runtime.start();
-        setTrackSink(runtime.track);
-        return {
-          value: undefined,
-          dispose: () => {
-            runtime.stop();
-            setTrackSink(null);
-          },
-        };
-      },
-    );
-    return () => lifecycle.release();
-  }, [
-    lifecycle,
-    store,
-    consentMode,
-    ga4MeasurementId,
-    metaPixelId,
-    nonce,
-    schedule,
-  ]);
-
-  // Hand the store to the page shell (footer button, banner context, Hydrogen's `canTrack`).
+  // Hand the store to the page shell (footer button, Hydrogen's `canTrack`).
   useEffect(() => {
     publishStore(store);
     // Hydrogen's provider asks canTrack again after every change of choice.
@@ -98,15 +47,16 @@ export function ConsentRuntime({
     };
   }, [store, publishStore, notify]);
 
-  // The shopper's choice in another tab (storage event, and a re-read when this tab is shown or focused).
-  useEffect(() => attachConsentRefresh(store, window), [store]);
-
   // After the shopper answers the banner (or its dialog), the element that had focus is gone: put focus on the page.
   useEffect(() => moveFocusAfterDecision(store, window), [store]);
 
   return (
     <>
-      <AnalyticsBridge takeEarlyViews={takeEarlyViews} />
+      <AnalyticsBridge
+        takeEarlyViews={takeEarlyViews}
+        resetEarlyViews={resetEarlyViews}
+        setNavigationTarget={runtime.setNavigationTarget}
+      />
       <ConsentBanner config={config} store={store} />
       <ConsentPreferences config={config} store={store} />
     </>

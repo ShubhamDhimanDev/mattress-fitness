@@ -28,6 +28,7 @@ import type {
 } from '~/lib/analytics/adapter';
 import type {ConsentSnapshot} from '~/lib/analytics/consent-store';
 import type {PageContext, PageDecision} from '~/lib/analytics/page-context';
+import {isPrivatePath} from '~/lib/analytics/privacy';
 
 export const MAX_QUEUED_EVENTS = 25;
 const MAX_REMEMBERED_EVENTS = 10;
@@ -47,6 +48,8 @@ type Entry = {
   active: boolean;
   /** The adapter was told the current page sends nothing. */
   paused: boolean;
+  /** Its stored cookies were removed because the provider has no consent (done once per start). */
+  cleared: boolean;
   cancelSchedule: (() => void) | null;
 };
 
@@ -70,12 +73,40 @@ export type AnalyticsRuntime = {
   readonly track: (event: AnalyticsEvent) => void;
   readonly start: () => void;
   readonly stop: () => void;
+  /**
+   * The address the shopper is about to navigate to (a pending React Router navigation, or a click on a link), or null
+   * when there is none. A private target pauses the providers BEFORE the address changes, so a provider's own
+   * history-change page view cannot report it (review A-M1); null puts the page state back.
+   */
+  readonly setNavigationTarget: (href: string | null) => void;
   /** For tests and diagnostics: the state of each provider. */
   readonly states: () => Readonly<Record<string, ProviderState>>;
 };
 
+/** The same event again (a revisit of the page republishes its views): equal name, parameters and ecommerce data. */
+/** Whether a link or navigation target leads to a private page; an unreadable one is not assumed private. */
+function isPrivateTarget(href: string): boolean {
+  try {
+    return isPrivatePath(new URL(href, 'http://self.invalid').pathname);
+  } catch {
+    return false;
+  }
+}
+
+function sameEvent(a: AnalyticsEvent, b: AnalyticsEvent): boolean {
+  return (
+    a.name === b.name &&
+    JSON.stringify([a.params, a.ecommerce]) ===
+      JSON.stringify([b.params, b.ecommerce])
+  );
+}
+
 const ANY_PAGE: PageDecision = {safe: true, context: null};
 const UNKNOWN_PAGE: PageDecision = {safe: false, reason: 'unreadable'};
+const PENDING_PRIVATE_PAGE: PageDecision = {
+  safe: false,
+  reason: 'private-path',
+};
 
 export function createAnalyticsRuntime(
   options: RuntimeOptions,
@@ -86,6 +117,7 @@ export function createAnalyticsRuntime(
     queue: [],
     active: false,
     paused: false,
+    cleared: false,
     cancelSchedule: null,
   }));
   let lastPageView: AnalyticsEvent | null = null;
@@ -97,6 +129,8 @@ export function createAnalyticsRuntime(
   };
   let unsubscribe: (() => void) | null = null;
   let stopped = false;
+  // A navigation to a private page has started but the address has not changed yet.
+  let pendingPrivate = false;
 
   function safely(action: () => void): void {
     try {
@@ -107,6 +141,7 @@ export function createAnalyticsRuntime(
   }
 
   function currentPage(): PageDecision {
+    if (pendingPrivate) return PENDING_PRIVATE_PAGE;
     if (!options.page) return ANY_PAGE;
     try {
       return options.page();
@@ -143,6 +178,12 @@ export function createAnalyticsRuntime(
     if (stopped) return;
     entry.state = 'loading';
     entry.cancelSchedule = null;
+    // The reduced address, title and referrer go to the provider before it is configured, so its first hit has them.
+    const page = currentPage();
+    if (page.safe && page.context) {
+      const context = page.context;
+      safely(() => entry.adapter.setPage?.(context));
+    }
     let result: ProviderLoadResult;
     try {
       result = await entry.adapter.load();
@@ -213,8 +254,13 @@ export function createAnalyticsRuntime(
 
   function deactivate(entry: Entry): void {
     entry.active = false;
-    entry.paused = false;
     entry.queue = [];
+    // A provider that was paused on a private page is resumed first, so a later grant on a safe page starts clean
+    // (otherwise its disable flag would stay set).
+    if (entry.paused && entry.state === 'ready') {
+      safely(() => entry.adapter.resume?.());
+    }
+    entry.paused = false;
     if (entry.state === 'scheduled') {
       entry.cancelSchedule?.();
       entry.cancelSchedule = null;
@@ -222,6 +268,8 @@ export function createAnalyticsRuntime(
     } else if (entry.state === 'ready') {
       safely(() => entry.adapter.revoke());
     }
+    // Whatever the state: an earlier visit may have left the provider's cookies (review A-L3).
+    safely(() => entry.adapter.clearStored?.());
     // 'loading': load() sees `active` is false when it finishes and revokes then.
   }
 
@@ -232,6 +280,13 @@ export function createAnalyticsRuntime(
       const allowed = choice[entry.adapter.category];
       if (allowed && !entry.active) activate(entry);
       else if (!allowed && entry.active) deactivate(entry);
+      else if (!allowed && !entry.cleared) {
+        // First look without consent (no decision, a refusal, or a decision that has expired): remove what an earlier
+        // visit may have left.
+        entry.cleared = true;
+        safely(() => entry.adapter.clearStored?.());
+      }
+      if (allowed) entry.cleared = false;
     }
   }
 
@@ -247,6 +302,15 @@ export function createAnalyticsRuntime(
         entry.queue = [];
         applyPageState(entry, false);
       }
+      return;
+    }
+    // The same page view twice in a row is one visit: a remounted bridge (the App and the ErrorBoundary swap) reports
+    // the page it finds again.
+    if (
+      event.name === 'page_view' &&
+      lastPageView &&
+      sameEvent(lastPageView, event)
+    ) {
       return;
     }
     if (event.name === 'page_view') {
@@ -271,7 +335,8 @@ export function createAnalyticsRuntime(
     if (PAGE_SCOPED_EVENTS.has(event.name)) {
       const key = keyOf(page);
       if (remembered.key !== key) remembered = {key, events: []};
-      if (remembered.events.length < MAX_REMEMBERED_EVENTS) {
+      const seen = remembered.events.some((known) => sameEvent(known, event));
+      if (!seen && remembered.events.length < MAX_REMEMBERED_EVENTS) {
         remembered.events.push(event);
       }
     }
@@ -289,9 +354,18 @@ export function createAnalyticsRuntime(
       unsubscribe?.();
       unsubscribe = null;
       for (const entry of entries) {
-        entry.cancelSchedule?.();
+        safely(() => entry.cancelSchedule?.());
         entry.queue = [];
       }
+    },
+    setNavigationTarget(href) {
+      if (stopped) return;
+      const wasPending = pendingPrivate;
+      pendingPrivate = href !== null && isPrivateTarget(href);
+      if (pendingPrivate === wasPending) return;
+      // Entering: pause what is loaded. Leaving: put each provider back according to the page that is showing.
+      const safe = currentPage().safe;
+      for (const entry of entries) applyPageState(entry, safe);
     },
     states: () =>
       Object.fromEntries(entries.map((e) => [e.adapter.id, e.state])),

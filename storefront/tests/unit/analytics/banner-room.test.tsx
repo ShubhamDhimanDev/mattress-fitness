@@ -244,3 +244,42 @@ describe('compact labels never break inside a word (QA-ANL-3)', () => {
     expect(accept).not.toHaveAttribute('aria-label');
   });
 });
+
+describe('older browsers and a changing body padding (review nits)', () => {
+  it('works with a MediaQueryList that only has addListener (before Safari 14)', () => {
+    const added: Array<() => void> = [];
+    const removed: Array<() => void> = [];
+    Reflect.set(window, 'matchMedia', () => ({
+      matches: false,
+      addListener: (listener: () => void) => added.push(listener),
+      removeListener: (listener: () => void) => removed.push(listener),
+    }));
+    const {unmount} = render(<Harness />);
+    expect(added).toHaveLength(1);
+    expect(screen.getByRole('region', {name: 'Privacy choices'})).toBeVisible();
+    unmount();
+    expect(removed).toEqual(added);
+  });
+
+  it('reads the body padding again on resize, so a changed base padding is followed', () => {
+    document.body.style.paddingBottom = '10px';
+    render(<Harness />);
+    expect(document.body.style.paddingBottom).toBe('146px');
+    // A breakpoint changes the page's own padding; the banner keeps its height on top of it.
+    const original = window.getComputedStyle.bind(window);
+    window.getComputedStyle = ((element: Element) => {
+      const real = original(element);
+      return element === document.body
+        ? ({paddingBottom: '40px'} as CSSStyleDeclaration)
+        : real;
+    }) as typeof window.getComputedStyle;
+    try {
+      act(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+      expect(document.body.style.paddingBottom).toBe('176px');
+    } finally {
+      window.getComputedStyle = original;
+    }
+  });
+});

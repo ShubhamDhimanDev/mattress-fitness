@@ -28,16 +28,36 @@ function httpsOrigin(src: string): string {
   }
 }
 
+// The outcome of each script this module added, so a second request for the same address (a second loader, a remount of
+// the layer, a module loaded twice) adopts the element instead of appending another (code re-review M-1).
+const inFlight = new WeakMap<Element, Promise<ScriptLoadResult>>();
+
+function findScript(doc: Document, src: string): HTMLScriptElement | undefined {
+  try {
+    return Array.from(doc.scripts).find((script) => script.src === src);
+  } catch {
+    return undefined;
+  }
+}
+
 export function createScriptLoader(options: ScriptLoaderOptions): ScriptLoader {
   const allowed = options.allowedOrigins ?? PROVIDER_SCRIPT_ORIGINS;
   const timeoutMs = options.timeoutMs ?? SCRIPT_TIMEOUT_MS;
 
-  return (src) =>
-    new Promise<ScriptLoadResult>((resolve) => {
-      if (!allowed.has(httpsOrigin(src))) {
-        resolve({status: 'failed', reason: 'origin-refused'});
-        return;
-      }
+  return (src) => {
+    if (!allowed.has(httpsOrigin(src))) {
+      return Promise.resolve<ScriptLoadResult>({
+        status: 'failed',
+        reason: 'origin-refused',
+      });
+    }
+    const existing = findScript(options.doc, src);
+    if (existing) {
+      // Ours and still loading: wait for the same outcome. Not ours: it is already in the page, so there is nothing to add.
+      return inFlight.get(existing) ?? Promise.resolve({status: 'loaded'});
+    }
+    let created: HTMLScriptElement | undefined;
+    const outcome = new Promise<ScriptLoadResult>((resolve) => {
       try {
         const script = options.doc.createElement('script');
         script.async = true;
@@ -62,8 +82,12 @@ export function createScriptLoader(options: ScriptLoaderOptions): ScriptLoader {
           settle({status: 'failed', reason: 'error'}),
         );
         (options.doc.head ?? options.doc.documentElement).appendChild(script);
+        created = script;
       } catch {
         resolve({status: 'failed', reason: 'unavailable'});
       }
     });
+    if (created) inFlight.set(created, outcome);
+    return outcome;
+  };
 }

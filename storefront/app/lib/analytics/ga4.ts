@@ -76,10 +76,23 @@ export function ga4ScriptUrl(measurementId: string): string {
 
 type Gtag = (...args: unknown[]) => void;
 
-function ensureGtag(globals: Globals): Gtag {
+// Which measurement ids have had their `js` and `config` calls on a given data layer: a second adapter on the same
+// page (a remounted layer, a module loaded twice) adopts the running tag instead of configuring it again.
+const configured = new WeakMap<object, Set<string>>();
+
+function ensureGtag(globals: Globals): {call: Gtag; dataLayer: unknown[]} {
   const existing = globals.get('dataLayer');
   const dataLayer: unknown[] = Array.isArray(existing) ? existing : [];
   globals.set('dataLayer', dataLayer);
+  const resident = globals.get('gtag');
+  if (typeof resident === 'function' && Array.isArray(existing)) {
+    return {
+      dataLayer,
+      call: (...args) => {
+        Reflect.apply(resident, undefined, args);
+      },
+    };
+  }
   // gtag.js reads `Arguments` objects off the data layer and ignores plain arrays, so this keeps Google's
   // documented snippet shape on purpose.
   const gtag: Gtag = function gtag() {
@@ -87,7 +100,7 @@ function ensureGtag(globals: Globals): Gtag {
     dataLayer.push(arguments);
   };
   globals.set('gtag', gtag);
-  return gtag;
+  return {call: gtag, dataLayer};
 }
 
 export type Ga4AdapterOptions = {
@@ -118,6 +131,14 @@ export function createGa4Adapter(options: Ga4AdapterOptions): ProviderAdapter {
     });
   }
 
+  function clearStored(): void {
+    try {
+      clearCookies?.(['_ga', `_ga_${measurementId.replace(/^G-/, '')}`]);
+    } catch {
+      // Best effort; see cookies.ts.
+    }
+  }
+
   return {
     id: 'ga4',
     category: 'analytics',
@@ -125,15 +146,21 @@ export function createGa4Adapter(options: Ga4AdapterOptions): ProviderAdapter {
       try {
         // Google's documented opt-out flag, cleared before the tag starts (unless this page sends nothing).
         globals.set(disableFlag, paused);
-        const call = ensureGtag(globals);
+        const {call, dataLayer} = ensureGtag(globals);
         gtag = call;
-        call('js', new Date());
+        const done = configured.get(dataLayer) ?? new Set<string>();
+        configured.set(dataLayer, done);
+        const first = !done.has(measurementId);
+        done.add(measurementId);
+        if (first) call('js', new Date());
         applyPage(call);
-        call('config', measurementId, {
-          send_page_view: false,
-          allow_google_signals: false,
-          allow_ad_personalization_signals: false,
-        });
+        if (first) {
+          call('config', measurementId, {
+            send_page_view: false,
+            allow_google_signals: false,
+            allow_ad_personalization_signals: false,
+          });
+        }
         const result = await loadScript(ga4ScriptUrl(measurementId));
         if (result.status === 'failed') {
           return {status: 'failed', reason: result.reason};
@@ -176,11 +203,8 @@ export function createGa4Adapter(options: Ga4AdapterOptions): ProviderAdapter {
     revoke() {
       granted = false;
       globals.set(disableFlag, true);
-      try {
-        clearCookies?.(['_ga', `_ga_${measurementId.replace(/^G-/, '')}`]);
-      } catch {
-        // Best effort; see cookies.ts.
-      }
+      clearStored();
     },
+    clearStored,
   };
 }

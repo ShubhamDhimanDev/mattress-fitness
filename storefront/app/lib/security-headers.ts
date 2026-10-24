@@ -7,6 +7,7 @@
 // are in docs/security/SECURITY_HEADERS.md.
 
 import {GA4_CSP, META_CSP, type ProviderCsp} from '~/lib/analytics/hosts';
+import {privatePathSection} from '~/lib/analytics/privacy';
 
 const LOOPBACK_NAMES: ReadonlySet<string> = new Set(['localhost']);
 const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
@@ -100,6 +101,30 @@ export function applySecurityHeaders(
   }
   if (shouldSendHsts(input))
     headers.set('Strict-Transport-Security', HSTS_VALUE);
+  if (isReferrerSensitivePath(input.requestUrl)) {
+    headers.set('Referrer-Policy', REFERRER_POLICY_PRIVATE);
+  }
+}
+
+/**
+ * The account area and the guest order lookup send only the origin as referrer, also to our own pages: with the
+ * default policy a full page load that follows a click from `/account/orders/<id>` would carry that address in
+ * `document.referrer`, where Google's and Meta's scripts read it (review A-L2, T-05). The policy of the page being left
+ * decides, so it is set on these responses and not site-wide.
+ */
+export const REFERRER_POLICY_PRIVATE = 'origin';
+const REFERRER_SENSITIVE_SECTIONS: ReadonlySet<string> = new Set([
+  '/account',
+  '/track-order',
+]);
+
+function isReferrerSensitivePath(requestUrl: string): boolean {
+  try {
+    const section = privatePathSection(new URL(requestUrl).pathname);
+    return section !== null && REFERRER_SENSITIVE_SECTIONS.has(section);
+  } catch {
+    return false;
+  }
 }
 
 // --- Content-Security-Policy-Report-Only -----------------------------------------------------------------

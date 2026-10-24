@@ -15,6 +15,9 @@ const PARAM_NAME = /^[a-z][a-z0-9_]{0,39}$/;
 // A parameter whose name suggests personal data is dropped even if a caller tries to send it.
 const PII_PARAM_NAME =
   /email|e_mail|phone|mobile|zip|postal|postcode|address|street|first_?name|last_?name|full_?name|customer|order_?(id|number|name)|card|password|token|secret/;
+// In a page address a bare `name` key (or one ending in `_name`) carries a person's name; event parameters such as
+// `item_name` are product names, so this applies to address keys only.
+const URL_NAME_KEY = /(?:^|[_.-])name$/;
 export const EMAIL = /[^\s@]+@[^\s@]+/;
 // Seven or more digits in a row (allowing the usual separators) looks like a phone number, card or order number.
 const LONG_DIGITS = /(?:\d[\s().-]*){7,}/;
@@ -23,22 +26,92 @@ export function looksPersonal(value: string): boolean {
   return EMAIL.test(value) || LONG_DIGITS.test(value);
 }
 
-// Ten or more digits in a row (allowing separators): a US phone number, a card, a long account number. Used for the
-// values in a page address, where ordinary things (dates, product and variant ids, campaign names) hold digits too.
+// Ten or more digits in a row (allowing separators): a US phone number, a card, a long account number.
 export const PHONE_LIKE = /(?:\d[\s().-]*){10,}/;
+// A value that is, as a whole, a US phone number (with or without +1, spaces, dots, dashes or brackets).
+const PHONE_WHOLE = /^\+?1?[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{4}$/;
+// A date written as a whole value: 2026-10-23 or 20261023.
+const DATE_WHOLE = /^(?:\d{4}-\d{2}-\d{2}|\d{8})$/;
+const SHOPIFY_GID = /^gid:\/\/shopify\/[A-Za-z]+\/\d{1,20}$/;
+const PLAIN_ID = /^\d{1,20}$/;
 
 /**
- * Whether a query value in a page address looks like personal data. Stricter than free text would be if it used the
- * seven-digit rule: campaign tags (`utm_*`) are blocked only on an email, `variant` is a Shopify id and never checked
- * (a 14-digit variant id is normal), and everything else needs an email or a phone-like run of ten digits. Dates
- * (`2026-10-23`, `20261023`) have eight digits and pass.
+ * Query keys whose values are opaque tokens (ad-click ids and email-tool ids) that hold long digit runs by design.
+ * They are exempt from the digit rules only: they are still checked for an email.
+ */
+export const OPAQUE_QUERY_KEYS: ReadonlySet<string> = new Set([
+  'gclid',
+  'gbraid',
+  'wbraid',
+  'dclid',
+  'fbclid',
+  'msclkid',
+  'srsltid',
+  '_kx',
+  'mc_eid',
+  'mc_cid',
+]);
+
+/** The value as typed, once decoded and twice decoded (a double-encoded "%2540" is still an @ after two rounds). */
+function decodedForms(value: string): string[] {
+  const forms = [value];
+  let current = value;
+  for (let round = 0; round < 2; round += 1) {
+    try {
+      const next = decodeURIComponent(current);
+      if (next === current) break;
+      forms.push(next);
+      current = next;
+    } catch {
+      break;
+    }
+  }
+  return forms;
+}
+
+export function containsEmail(value: string): boolean {
+  return decodedForms(value).some((form) => EMAIL.test(form));
+}
+
+/**
+ * Whether a query value in a page address looks like personal data. Every value is checked for an email, after up
+ * to two rounds of decoding. Then, by key:
+ *  - a key that names personal data (email, phone, zip, name, address, token...) with any value is personal;
+ *  - an ad-click or email-tool id (OPAQUE_QUERY_KEYS) may hold any digits;
+ *  - `utm_*` campaign tags may hold long id-like digit runs, but a value that is, as a whole, a phone number is personal;
+ *  - `variant` is a Shopify id: digits or a gid pass, any other shape is judged like an ordinary value;
+ *  - every other value is personal at seven or more digits (a phone number, a card, an order number), except a date
+ *    written as the whole value (`2026-10-23`, `20261023`).
  */
 export function queryValueLooksPersonal(key: string, value: string): boolean {
   const name = key.toLowerCase();
-  if (name === 'variant') return false;
-  if (EMAIL.test(value)) return true;
-  if (name.startsWith('utm_')) return false;
-  return PHONE_LIKE.test(value);
+  if (containsEmail(value)) return true;
+  if (
+    value.trim() !== '' &&
+    (PII_PARAM_NAME.test(name) || URL_NAME_KEY.test(name))
+  ) {
+    return true;
+  }
+  if (OPAQUE_QUERY_KEYS.has(name)) return false;
+  const trimmed = value.trim();
+  if (name.startsWith('utm_')) return PHONE_WHOLE.test(trimmed);
+  if (
+    name === 'variant' &&
+    (PLAIN_ID.test(trimmed) || SHOPIFY_GID.test(trimmed))
+  ) {
+    return false;
+  }
+  if (DATE_WHOLE.test(trimmed)) return false;
+  return LONG_DIGITS.test(value);
+}
+
+/** The URL fragment is never sent, but it is judged: an email or a phone-like run of digits makes the page unsafe. */
+export function fragmentLooksPersonal(hash: string): boolean {
+  const fragment = hash.startsWith('#') ? hash.slice(1) : hash;
+  return (
+    containsEmail(fragment) ||
+    decodedForms(fragment).some((form) => PHONE_LIKE.test(form))
+  );
 }
 
 /**
@@ -133,10 +206,10 @@ export function isPrivatePath(pathname: string): boolean {
 
 /**
  * The page address to report: origin and path, plus campaign parameters only. Search words, filters and every other
- * query value are dropped; private paths are cut to their section. Returns null for anything that is not an
- * http(s) URL. This is the address WE choose to send (the `page_location` parameter and the GA4 `set`); it cannot
- * change what a provider's own script reads from the document, which is why `evaluatePage` also stops events
- * from pages that fail the safety check.
+ * query value are dropped; private paths are cut to their section; the fragment is dropped. Returns null for anything
+ * that is not an http(s) URL. This is the address WE choose to send (the `page_location` parameter and the GA4
+ * `set`); it cannot change what a provider's own script reads from the document, which is why `evaluatePage` also
+ * stops events from pages that fail the safety check.
  */
 export function sanitizePageLocation(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
@@ -149,13 +222,10 @@ export function sanitizePageLocation(raw: unknown): string | null {
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
   const kept = new URLSearchParams();
   for (const [key, value] of url.searchParams) {
-    // Click ids are opaque tokens whose letters and digits can look like a long number; only free-text campaign
-    // tags are checked, and only for an email (a campaign named after a date is normal).
-    const free = key.startsWith('utm_');
     if (
       ALLOWED_QUERY_KEYS.has(key) &&
       value.length <= MAX_PARAM_VALUE_LENGTH &&
-      !(free && EMAIL.test(value))
+      !queryValueLooksPersonal(key, value)
     ) {
       kept.append(key, value);
     }

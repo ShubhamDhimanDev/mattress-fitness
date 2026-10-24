@@ -15,6 +15,8 @@ export type ConsentRuntimeProps = {
   readonly publishStore: (store: ConsentStore | null) => void;
   /** Hands over the page's first product and search views, kept by the shell (`earlyViews`). */
   readonly takeEarlyViews: () => Array<[string, unknown]>;
+  /** Starts keeping the page's views again (the bridge went away; a remounted one will take them). */
+  readonly resetEarlyViews: () => void;
   /** Tells the shell the shopper's choice changed, so Hydrogen's provider asks `canTrack` again. */
   readonly notify: () => void;
   /** Runs a callback when the browser is idle and returns the canceller. */

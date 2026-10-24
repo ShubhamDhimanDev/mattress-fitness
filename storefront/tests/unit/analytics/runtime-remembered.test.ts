@@ -133,10 +133,24 @@ describe('view events before consent', () => {
   it('are remembered only a few at a time', async () => {
     const ga = fakeAdapter('ga4');
     const {consent, runtime, idleTick} = setup([ga.adapter]);
-    for (let i = 0; i < 30; i += 1) runtime.track(LIST);
+    for (let i = 0; i < 30; i += 1) {
+      runtime.track({name: 'view_item_list', params: {n: i}});
+    }
     consent.acceptAll();
     await idleTick();
     expect(ga.sent).toHaveLength(10);
+  });
+
+  it('are not counted twice when the same page republishes them (a revisit, review m-3)', async () => {
+    const ga = fakeAdapter('ga4');
+    const {consent, runtime, idleTick} = setup([ga.adapter]);
+    runtime.track(VIEW_ITEM);
+    runtime.track(VIEW_ITEM);
+    runtime.track(SEARCH);
+    runtime.track(SEARCH);
+    consent.acceptAll();
+    await idleTick();
+    expect(ga.sent).toEqual(['view_item', 'search']);
   });
 });
 

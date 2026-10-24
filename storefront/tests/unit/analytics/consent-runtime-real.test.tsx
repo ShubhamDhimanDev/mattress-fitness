@@ -2,7 +2,7 @@
 import {AnalyticsEvent as HydrogenEvent, useAnalytics} from '@shopify/hydrogen';
 import {act, cleanup, render, screen, waitFor} from '@testing-library/react';
 import {StrictMode, useEffect} from 'react';
-import {MemoryRouter} from 'react-router';
+import {createMemoryRouter, RouterProvider} from 'react-router';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
 import {track, type AnalyticsEvent} from '~/lib/analytics';
@@ -10,6 +10,7 @@ import type {ProviderAdapter} from '~/lib/analytics/adapter';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
 import {serializeConsent} from '~/lib/analytics/consent';
 import {consentHandle, earlyViews} from '~/lib/analytics/gate';
+import {releaseAnalytics} from '~/lib/analytics/live';
 
 // P7-01 review 2026-10-24 (M-1): the REAL lazy chunk (ConsentRuntime, runtime, bridge, store, banner), the real
 // AnalyticsGate and Hydrogen's real Analytics.Provider. Only the provider adapters are replaced by a recorder, because
@@ -76,14 +77,19 @@ function PublishesProductView({url}: {url: string}) {
   return <p>product page</p>;
 }
 
+// A data router, as in the app: the bridge reads the pending navigation from it.
 function renderPage(children: React.ReactNode, strict = false) {
-  const page = (
-    <MemoryRouter>
-      <AnalyticsGate cart={null} shop={null} consent={{}} config={GA}>
-        {children}
-      </AnalyticsGate>
-    </MemoryRouter>
-  );
+  const router = createMemoryRouter([
+    {
+      path: '*',
+      element: (
+        <AnalyticsGate cart={null} shop={null} consent={{}} config={GA}>
+          {children}
+        </AnalyticsGate>
+      ),
+    },
+  ]);
+  const page = <RouterProvider router={router} />;
   return render(strict ? <StrictMode>{page}</StrictMode> : page);
 }
 
@@ -105,6 +111,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  releaseAnalytics();
   document.cookie = 'mf_consent=; Max-Age=0; Path=/';
   Reflect.deleteProperty(window, 'requestIdleCallback');
   Reflect.deleteProperty(window, 'cancelIdleCallback');

@@ -28,6 +28,11 @@ export type ProviderAdapter = {
   /** Consent withdrawn after the provider was loaded: stop sending and remove what it stored. */
   readonly revoke: () => void;
   /**
+   * Removes the cookies the provider is known to set, in any state: also before its script has loaded in this visit
+   * (an earlier visit may have left them) and when a stored decision has expired (review A-L3). Best effort.
+   */
+  readonly clearStored?: () => void;
+  /**
    * The reduced address, title and referrer for the page the shopper is on (see `page-context.ts`). Called on each
    * navigation and before a load starts; a provider that can override what its script reads applies it.
    */

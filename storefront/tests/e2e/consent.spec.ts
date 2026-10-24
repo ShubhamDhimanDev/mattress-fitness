@@ -868,11 +868,25 @@ test.describe('providers configured, opt-in mode (REQ-ANL-001, REQ-ANL-002, NFR-
       const path = await surface.open(page);
       test.skip(path === null, `no way into ${surface.label} on this store`);
       await gotoReady(page, path ?? '/');
+      // Not a skip (review m-6): a listing without cards, or a card with a USD price and no data-si, is a defect.
+      const articles = page.locator('article');
+      expect(
+        await articles.count(),
+        `${surface.label} shows product cards`,
+      ).toBeGreaterThan(0);
+      const priced = articles.filter({hasText: /$s?d/});
+      const pricedCount = await priced.count();
+      expect(
+        pricedCount,
+        `${surface.label} shows at least one card with a USD price`,
+      ).toBeGreaterThan(0);
+      for (let index = 0; index < pricedCount; index += 1) {
+        await expect(
+          priced.nth(index).locator('a[data-si]'),
+          `card ${index} with a USD price carries data-si`,
+        ).toHaveCount(1);
+      }
       const cards = page.locator('article a[data-si]');
-      test.skip(
-        (await cards.count()) === 0,
-        `${surface.label} shows no card with a USD price on this store (no data-si attribute)`,
-      );
       await expect
         .poll(async () =>
           (await dataLayer(page)).some((entry) => entry.kind === 'config'),

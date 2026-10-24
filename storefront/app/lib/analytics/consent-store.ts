@@ -37,6 +37,8 @@ export type ConsentStore = {
   readonly subscribe: (listener: () => void) => () => void;
   /** Re-reads storage, for a change made in another tab. */
   readonly refresh: () => void;
+  /** Where the last change of the decision came from: an answer given here, or one read back from storage. */
+  readonly lastSource: () => 'local' | 'refresh' | null;
   readonly acceptAll: () => void;
   readonly rejectAll: () => void;
   readonly save: (choice: ConsentChoice) => void;
@@ -61,6 +63,7 @@ export function createConsentStore(options: ConsentStoreOptions): ConsentStore {
 
   let stored: StoredConsent | null = null;
   let preferencesOpen = false;
+  let source: 'local' | 'refresh' | null = null;
   let snapshot: ConsentSnapshot;
 
   function compute(): ConsentSnapshot {
@@ -116,6 +119,7 @@ export function createConsentStore(options: ConsentStoreOptions): ConsentStore {
       // Kept in memory for this visit; asked again next time.
     }
     preferencesOpen = false;
+    source = 'local';
     update();
   }
 
@@ -132,8 +136,10 @@ export function createConsentStore(options: ConsentStoreOptions): ConsentStore {
     },
     refresh() {
       stored = readStored();
+      source = 'refresh';
       update();
     },
+    lastSource: () => source,
     acceptAll: () => decide(ALLOW_ALL),
     rejectAll: () => decide(DENY_ALL),
     save: (choice) =>

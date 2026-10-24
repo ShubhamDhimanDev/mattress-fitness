@@ -39,7 +39,19 @@ const ConsentRuntime = lazy(
   (): Promise<{default: ComponentType<ConsentRuntimeProps>}> =>
     import('~/components/consent/ConsentRuntime').then(
       (module) => ({default: module.ConsentRuntime}),
-      () => ({default: Nothing}),
+      (error: unknown) => {
+        // Nothing will ever take the kept views, and the consent layer is simply absent (NFR-013). One line, with the
+        // class of the failure only.
+        earlyViews.take();
+        // The project's logger, fetched only now: importing it statically would add about 2.5 kB gzip to every route
+        // (scripts/perf). If it cannot be fetched either, the line is simply not written.
+        const reason = error instanceof Error ? error.name : 'unknown';
+        void import('~/lib/logging/logger').then(
+          ({logWarn}) => logWarn('analytics.chunk_failed', {reason}),
+          () => {},
+        );
+        return {default: Nothing};
+      },
     ),
 );
 
@@ -119,6 +131,7 @@ export function AnalyticsGate({
             publishStore={consentHandle.publish}
             notify={consentHandle.notify}
             takeEarlyViews={earlyViews.take}
+            resetEarlyViews={earlyViews.reset}
             schedule={scheduleIdle}
           />
         </Suspense>

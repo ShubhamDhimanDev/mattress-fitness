@@ -1,5 +1,11 @@
+// @vitest-environment jsdom
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {setTrackSink, track, type AnalyticsEvent} from '~/lib/analytics';
+import {
+  clearTrackSink,
+  setTrackSink,
+  track,
+  type AnalyticsEvent,
+} from '~/lib/analytics';
 
 // P7-01 bundle budget: the consent layer registers its sink from a lazy chunk, after the page's first events. They
 // are held (bounded) and replayed in order; the runtime behind the sink still decides what consent allows.
@@ -71,5 +77,53 @@ describe('events that arrive before the sink exists', () => {
       }),
     ).not.toThrow();
     expect(seen).toEqual(['view_item']);
+  });
+});
+
+// Code re-review m-2 and M-1.
+describe('held events are tied to the page that produced them (m-2)', () => {
+  it('are dropped at replay when the shopper has moved to another page', () => {
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    window.history.replaceState({}, '', '/products/a');
+    track(event('view_item', 1));
+    window.history.replaceState({}, '', '/collections/all?x=1');
+    track(event('view_item_list', 2));
+    const seen: string[] = [];
+    setTrackSink((e) => seen.push(e.name));
+    expect(seen).toEqual(['view_item_list']);
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('are kept when the page is still the same, query included', () => {
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    window.history.replaceState({}, '', '/search?q=queen');
+    track(event('search', 1));
+    const seen: string[] = [];
+    setTrackSink((e) => seen.push(e.name));
+    expect(seen).toEqual(['search']);
+    window.history.replaceState({}, '', '/');
+  });
+});
+
+describe('clearTrackSink only removes the sink that asks (M-1)', () => {
+  it('leaves a newer sink in place', () => {
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const older = vi.fn();
+    const newer = vi.fn();
+    setTrackSink(older);
+    setTrackSink(newer);
+    clearTrackSink(older);
+    track(event('page_view'));
+    expect(newer).toHaveBeenCalledTimes(1);
+    expect(older).not.toHaveBeenCalled();
+  });
+
+  it('removes the sink when it is the current one', () => {
+    vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const sink = vi.fn();
+    setTrackSink(sink);
+    clearTrackSink(sink);
+    track(event('page_view'));
+    expect(sink).not.toHaveBeenCalled();
   });
 });
