@@ -206,6 +206,15 @@ describe('the scrolling text (QA-ANL-2, QA-ANL-3)', () => {
     expect(style).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
     expect(style).toContain('scrollbar-width: thin');
   });
+
+  it('keeps scroll padding in the scrollport so a focused link is scrolled clear of the edge (QA-ANL-4)', () => {
+    render(<Harness />);
+    const scroller = screen
+      .getByRole('region', {name: 'Privacy choices'})
+      .querySelector<HTMLElement>('[data-scroll-cue]');
+    const style = scroller?.getAttribute('style') ?? '';
+    expect(style).toMatch(/scroll-padding-block:\s*6px/);
+  });
 });
 
 describe('compact labels never break inside a word (QA-ANL-3)', () => {

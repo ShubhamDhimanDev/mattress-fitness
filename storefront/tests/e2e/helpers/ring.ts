@@ -249,9 +249,12 @@ export async function samplePaintedContrast(
   const shot = await page.screenshot({scale: 'css', type: 'png'});
   return page.evaluate(
     async ({data, box, colour}) => {
-      const image = new Image();
-      image.src = `data:image/png;base64,${data}`;
-      await image.decode();
+      // createImageBitmap on a Blob, not an <img> with a data: URL: with analytics ids set the page's enforced
+      // Content-Security-Policy names img-src without data:, so a data: image fails to decode ("EncodingError").
+      const bytes = Uint8Array.from(atob(data), (ch) => ch.charCodeAt(0));
+      const image = await createImageBitmap(
+        new Blob([bytes], {type: 'image/png'}),
+      );
       const canvas = document.createElement('canvas');
       canvas.width = image.width;
       canvas.height = image.height;

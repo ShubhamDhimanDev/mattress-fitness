@@ -103,6 +103,9 @@ const SCROLL_CUE_STYLE = {
   backgroundPosition: 'top, bottom, top, bottom',
   backgroundAttachment: 'local, local, scroll, scroll',
   scrollbarWidth: 'thin',
+  // The scrollport is the padding box, so the padding above does not count when the browser scrolls a focused link into
+  // view: without this, at 400 % zoom the link's bottom meets the scroller's edge and the focus ring is clipped (QA-ANL-4).
+  scrollPaddingBlock: '6px',
 } as const;
 
 /** The most of the window the banner may take; the text scrolls inside it, the buttons never do. */

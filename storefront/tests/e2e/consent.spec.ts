@@ -1158,6 +1158,76 @@ test.describe('banner layout at 320, 360 and 1280 px (NFR-001, NFR-003)', () => 
     ).toBeGreaterThanOrEqual(64);
   });
 
+  // WCAG 2.4.7 and 1.4.11 (QA-ANL-2 and its 320 x 256 remainder): the banner's text is a scroll container, which clips
+  // whatever lies outside its box, so after Tab the whole ring of the policy link (outline width plus offset on every
+  // side, on every line the link wraps to) has to lie inside that box. brand-verification measures this at its own
+  // widths; this one names the small windows, including the one where the text really scrolls.
+  for (const [width, height] of [
+    [1280, 800],
+    [360, 800],
+    [320, 568],
+    [320, 256],
+  ]) {
+    test(`${width} x ${height} px: after Tab the policy link's whole focus ring is inside the banner's scroll area`, async ({
+      page,
+    }, info) => {
+      test.skip(
+        info.project.name.includes('mobile'),
+        'The window size is set explicitly, so the desktop project covers it.',
+      );
+      await stubProviders(page);
+      await page.setViewportSize({width, height});
+      await gotoReady(page, '/');
+      await showBanner(page);
+      await settled(page);
+      let onLink = false;
+      for (let presses = 0; presses < 4 && !onLink; presses += 1) {
+        await page.keyboard.press('Tab');
+        onLink = await page.evaluate(
+          () =>
+            document.activeElement?.textContent?.trim() === 'Privacy policy',
+        );
+      }
+      expect(onLink, 'Tab reaches the banner policy link').toBe(true);
+      // Let a scroll the focus change caused finish before measuring.
+      await settled(page);
+      const room = await page.evaluate(() => {
+        const link = document.activeElement;
+        if (!link) return null;
+        const style = getComputedStyle(link);
+        const reach =
+          parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+        let scroller: Element | null = link.parentElement;
+        while (
+          scroller &&
+          !['auto', 'scroll'].includes(getComputedStyle(scroller).overflowY)
+        ) {
+          scroller = scroller.parentElement;
+        }
+        if (!scroller) return null;
+        const box = scroller.getBoundingClientRect();
+        const rect = link.getBoundingClientRect();
+        const round = (value: number) => Math.round(value * 10) / 10;
+        return {
+          reach,
+          left: round(rect.left - reach - box.left),
+          right: round(box.right - (rect.right + reach)),
+          top: round(rect.top - reach - box.top),
+          bottom: round(box.bottom - (rect.bottom + reach)),
+        };
+      });
+      expect(room, 'the link sits inside a scroll container').not.toBeNull();
+      expect(room?.reach, 'ring reach in px').toBeGreaterThan(0);
+      // Negative: that many px of the ring are cut off on that side.
+      for (const side of ['left', 'right', 'top', 'bottom'] as const) {
+        expect(
+          room?.[side],
+          `px of room for the ring on the ${side} (negative = clipped)`,
+        ).toBeGreaterThanOrEqual(0);
+      }
+    });
+  }
+
   test('the bottom scroll padding follows the banner when the window is resized', async ({
     page,
   }, info) => {
