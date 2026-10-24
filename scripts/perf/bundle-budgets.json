@@ -1,6 +1,25 @@
 {
-  "status": "PROPOSED budgets, re-baselined 2026-10-24 to the measured size plus about 1.5 kB (the quiz and cart groups keep their earlier, higher numbers because budgets are never reduced); still pending client approval (Q-012, NFR-002). Earlier baselines: about 5 percent above the 2026-10-16 build after the P7-06 lazy-loading, and the analytics consent chunk (P7-01) then used most of that margin. Rule: a feature that needs more than the headroom must split code, or justify the increase and re-baseline with a recorded decision. See docs/testing/PERFORMANCE.md.",
-  "unit": "kB of gzip (level 9) JavaScript needed to start the route on a cold load, entry and root included. A group's budget applies to each of its routes, so the largest route sets the headroom.",
+  "status": "PROPOSED budgets, re-baselined 2026-10-24 per route: each route's budget is its measured size plus about 1.5 kB, rounded up to the next 0.5 kB (\"routes\" map); a group's maxGzipKb is only the fallback for a route without its own entry. Still pending client approval (Q-012, NFR-002). Earlier: group budgets about 5 percent above the 2026-10-16 build, which the analytics consent chunk (P7-01) then used up, and group budgets that left 12 to 16 kB of slack on the smaller routes (code review m-8). Rule: a feature that needs more than the headroom must split code, or justify the increase and re-baseline with a recorded decision. See docs/testing/PERFORMANCE.md.",
+  "unit": "kB of gzip (level 9) JavaScript needed to start the route on a cold load, entry and root included. \"routes\" overrides the group's maxGzipKb for the named route.",
+  "routes": {
+    "routes/_index": 130.5,
+    "routes/collections.$handle": 139.5,
+    "routes/collections.all": 137.5,
+    "routes/products.$handle": 141.5,
+    "routes/cart": 137,
+    "routes/checkout-steps": 126.5,
+    "routes/search": 137.5,
+    "routes/quiz._index": 132,
+    "routes/compare": 130,
+    "routes/brands.$handle": 138.5,
+    "routes/brands._index": 124.5,
+    "routes/stores._index": 124.5,
+    "routes/stores.$state.$city.$slug": 125.5,
+    "routes/account": 122.5,
+    "routes/account.orders._index": 125.5,
+    "routes/pages.$handle": 123.5,
+    "routes/policies.$handle": 123.5
+  },
   "groups": [
     { "name": "home", "routes": ["routes/_index"], "maxGzipKb": 130.5 },
     { "name": "collection", "routes": ["routes/collections.$handle", "routes/collections.all"], "maxGzipKb": 139.5 },

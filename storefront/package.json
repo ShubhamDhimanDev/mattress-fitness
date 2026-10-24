@@ -21,7 +21,7 @@
     "e2e:ui": "playwright test --ui",
     "perf:bundle": "node ../scripts/perf/bundle-budget.mjs",
     "perf:lighthouse": "node ../scripts/perf/lighthouse-command.mjs",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run perf:bundle"
   },
   "prettier": "@shopify/prettier-config",
   "dependencies": {

@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
-import { WARN_HEADROOM_BYTES, evaluate, formatReport, formatSummary, headroomBytes, initialScripts, isTight, loadBuild, main, parseBudgets, parseManifest, routeChain, sizeOf, summarise } from './bundle-budget.mjs';
+import { WARN_HEADROOM_BYTES, evaluate, formatReport, formatSummary, headroomBytes, initialScripts, isTight, loadBuild, main, parseBudgets, parseManifest, parseRouteBudgets, routeChain, sizeOf, summarise } from './bundle-budget.mjs';
 
 // P7-06 groundwork (NFR-002): the bundle size check reads React Router's build manifest and compares the JavaScript a
 // route needs with budgets. These tests build a tiny fake build directory; no real build is needed.
@@ -245,5 +245,100 @@ test('main exits 0 with a warning for a tight route and prints headroom in --jso
   } finally {
     console.log = log;
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Per-route budgets (code review m-8): a "routes" map overrides the group budget so a small route cannot hide behind
+// the largest route of its group.
+
+const TWO_ROUTES = parseManifest(
+  `window.__reactRouterManifest=${JSON.stringify({
+    entry: { module: '/assets/e.js', imports: [], css: [] },
+    routes: {
+      'routes/big': { id: 'routes/big', module: '/assets/h.js', imports: [], css: [] },
+      'routes/small': { id: 'routes/small', module: '/assets/h.js', imports: [], css: [] },
+    },
+  })};`,
+);
+
+test('a per-route budget overrides the group budget, and the group budget is the fallback', () => {
+  const groups = [{ name: 'g', routes: ['routes/big', 'routes/small'], maxGzipKb: 100 }];
+  const sizes = fakeSizes(kbBytes(60));
+  const fallback = evaluate(TWO_ROUTES, sizes, groups).groups;
+  assert.deepEqual(fallback.map((row) => [row.maxGzipKb, row.budgetSource, row.status]), [[100, 'group', 'ok'], [100, 'group', 'ok']]);
+
+  const rows = evaluate(TWO_ROUTES, sizes, groups, { 'routes/small': 60.5 }).groups;
+  assert.deepEqual([rows[0].maxGzipKb, rows[0].budgetSource, rows[0].status], [100, 'group', 'ok']);
+  assert.deepEqual([rows[1].maxGzipKb, rows[1].budgetSource, rows[1].headroom, rows[1].tight, rows[1].status], [60.5, 'route', 512, true, 'ok']);
+
+  // The override can be tighter than the group budget: the route fails although the group budget would pass it.
+  const tighter = evaluate(TWO_ROUTES, sizes, groups, { 'routes/small': 59 }).groups[1];
+  assert.deepEqual([tighter.status, tighter.headroom], ['over', -1024]);
+  assert.equal(summarise(evaluate(TWO_ROUTES, sizes, groups, { 'routes/small': 59 })).failed, true);
+});
+
+test('a route with neither its own budget nor a group budget fails as no-budget', () => {
+  const groups = [{ name: 'g', routes: ['routes/big', 'routes/small'] }];
+  const result = evaluate(TWO_ROUTES, fakeSizes(kbBytes(60)), groups, { 'routes/big': 100 });
+  assert.deepEqual(result.groups.map((row) => row.status), ['ok', 'no-budget']);
+  assert.deepEqual([result.groups[1].maxGzipKb, result.groups[1].budgetSource, result.groups[1].headroom], [null, null, null]);
+  assert.equal(summarise(result).failed, true);
+  assert.match(formatReport(result), /small\s.*\s-\s+-\s+no-budget/);
+  assert.match(formatSummary(summarise(result)), /no budget/);
+  // A route missing from the build still reports as missing, whichever budget it has.
+  const gone = evaluate(TWO_ROUTES, fakeSizes(1), [{ name: 'g', routes: ['routes/gone'] }]).groups[0];
+  assert.equal(gone.status, 'missing-route');
+});
+
+test('parseBudgets allows a group without maxGzipKb; parseRouteBudgets checks the per-route map', () => {
+  const groups = parseBudgets({ groups: [{ name: 'a', routes: ['routes/x', 'routes/y'] }, { name: 'b', routes: ['routes/z'], maxGzipKb: 9 }] });
+  assert.equal('maxGzipKb' in groups[0], false);
+  assert.equal(groups[1].maxGzipKb, 9);
+  assert.throws(() => parseBudgets({ groups: [{ name: 'a', routes: ['x'], maxGzipKb: 'big' }] }), /Budgets group 0/);
+  assert.deepEqual(parseRouteBudgets({ groups: [] }, groups), {});
+  assert.deepEqual(parseRouteBudgets({ routes: { 'routes/x': 10.5 } }, groups), { 'routes/x': 10.5 });
+  assert.throws(() => parseRouteBudgets({ routes: [] }, groups), /must be an object/);
+  assert.throws(() => parseRouteBudgets({ routes: { 'routes/x': 0 } }, groups), /positive number/);
+  assert.throws(() => parseRouteBudgets({ routes: { 'routes/x': '10' } }, groups), /positive number/);
+  assert.throws(() => parseRouteBudgets({ routes: { 'routes/nowhere': 10 } }, groups), /not listed in any group/);
+});
+
+test('main applies per-route budgets from the file, fails a route without a budget, and refuses an unlisted override', () => {
+  const dir = fakeBuild();
+  const write = (name, data) => {
+    const file = path.join(dir, name);
+    writeFileSync(file, JSON.stringify(data));
+    return file;
+  };
+  const logs = [];
+  const log = console.log;
+  const error = console.error;
+  console.log = (message) => logs.push(String(message));
+  console.error = () => {};
+  try {
+    const groups = [{ name: 'acct', routes: ['routes/account', 'routes/home'], maxGzipKb: 100 }];
+    assert.equal(main(['--dist', dir, '--budgets', write('a.json', { groups, routes: { 'routes/home': 50 } })]), 0);
+    assert.equal(main(['--dist', dir, '--budgets', write('b.json', { groups, routes: { 'routes/home': 0.01 } }), '--json']), 1);
+    const rows = JSON.parse(logs.at(-1)).groups;
+    assert.deepEqual(rows.map((row) => [row.route, row.budgetSource, row.status]), [['routes/account', 'group', 'ok'], ['routes/home', 'route', 'over']]);
+    const noFallback = [{ name: 'acct', routes: ['routes/account', 'routes/home'] }];
+    assert.equal(main(['--dist', dir, '--budgets', write('c.json', { groups: noFallback, routes: { 'routes/home': 50 } })]), 1);
+    assert.equal(main(['--dist', dir, '--budgets', write('d.json', { groups, routes: { 'routes/ghost': 50 } })]), 2);
+  } finally {
+    console.log = log;
+    console.error = error;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('the shipped budgets give every listed route its own budget, never above its group fallback', () => {
+  const data = JSON.parse(readFileSync(new URL('./bundle-budgets.json', import.meta.url), 'utf8'));
+  const groups = parseBudgets(data);
+  const routes = parseRouteBudgets(data, groups);
+  for (const group of groups) {
+    for (const route of group.routes) {
+      assert.equal(typeof routes[route], 'number', `${route} needs its own budget`);
+      assert.ok(group.maxGzipKb === undefined || routes[route] <= group.maxGzipKb, `${route} must not exceed its group's fallback`);
+    }
   }
 });

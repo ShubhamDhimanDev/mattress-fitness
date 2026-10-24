@@ -9,9 +9,11 @@
 //
 // This is a LOCAL size check, not Lighthouse: it says nothing about LCP, INP or CLS. Zero dependencies: node: builtins
 // only. Usage:  node ../scripts/perf/bundle-budget.mjs [--dist dist/client] [--budgets <file>] [--json]
+// Budgets: the file's "routes" map gives a per-route budget; a route without an entry falls back to its group's
+// "maxGzipKb"; a route with neither fails ("no-budget"), so a new route cannot go unchecked.
 // Each route row shows its headroom in bytes (budget minus measured). Under 1 kB of headroom prints a WARNING but still
-// exits 0; only a route over budget fails.
-// Exit codes: 0 within budget (warnings allowed), 1 a route is over budget, 2 bad flags or an unreadable build.
+// exits 0; only a route over budget (or without a budget, or missing from the build) fails.
+// Exit codes: 0 within budget (warnings allowed), 1 a route failed, 2 bad flags, a bad budgets file or an unreadable build.
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
@@ -120,23 +122,44 @@ export function sizeOf(bytes) {
 
 /**
  * Route ids a budget group covers. A group lists exact route ids; an id that is not in the build is reported by
- * `evaluate` (a renamed route must not silently drop out of the check).
- * @typedef {{ name: string, routes: string[], maxGzipKb: number }} BudgetGroup
+ * `evaluate` (a renamed route must not silently drop out of the check). `maxGzipKb` is the group's fallback budget for
+ * a route without its own entry in the per-route map; a group may omit it when every route has its own.
+ * @typedef {{ name: string, routes: string[], maxGzipKb?: number }} BudgetGroup
+ * @typedef {Readonly<Record<string, number>>} RouteBudgets route id to budget in kB; overrides the group budget
  * @typedef {{ url: string, raw: number, gzip: number }} AssetSize
  */
+
+/**
+ * The budget that applies to a route: its own entry first, then its group's, else none (a failure, so a new route in a
+ * group without a fallback cannot go unchecked).
+ * @param {BudgetGroup} group
+ * @param {string} route
+ * @param {RouteBudgets} routeBudgets
+ * @returns {{ kb: number, source: 'route' | 'group' } | null}
+ */
+export function budgetFor(group, route, routeBudgets) {
+  const own = routeBudgets[route];
+  if (typeof own === 'number') return { kb: own, source: 'route' };
+  if (typeof group.maxGzipKb === 'number') return { kb: group.maxGzipKb, source: 'group' };
+  return null;
+}
 
 /**
  * @param {BuildManifest} manifest
  * @param {(url: string) => AssetSize | null} sizeLookup null when the file is missing from the build
  * @param {readonly BudgetGroup[]} groups
- * @returns {{ groups: Array<{ name: string, route: string, files: number, raw: number, gzip: number, maxGzipKb: number, headroom: number | null, tight: boolean, status: 'ok' | 'over' | 'missing-route' | 'missing-file', detail?: string }> }}
+ * @param {RouteBudgets} [routeBudgets] per-route budgets that override the group's
+ * @returns {{ groups: Array<{ name: string, route: string, files: number, raw: number, gzip: number, maxGzipKb: number | null, budgetSource: 'route' | 'group' | null, headroom: number | null, tight: boolean, status: 'ok' | 'over' | 'missing-route' | 'missing-file' | 'no-budget', detail?: string }> }}
  */
-export function evaluate(manifest, sizeLookup, groups) {
+export function evaluate(manifest, sizeLookup, groups, routeBudgets = {}) {
   const rows = [];
   for (const group of groups) {
     for (const route of group.routes) {
+      const budget = budgetFor(group, route, routeBudgets);
+      const maxGzipKb = budget ? budget.kb : null;
+      const budgetSource = budget ? budget.source : null;
       if (!manifest.routes[route]) {
-        rows.push({ name: group.name, route, files: 0, raw: 0, gzip: 0, maxGzipKb: group.maxGzipKb, headroom: null, tight: false, status: /** @type {const} */ ('missing-route') });
+        rows.push({ name: group.name, route, files: 0, raw: 0, gzip: 0, maxGzipKb, budgetSource, headroom: null, tight: false, status: /** @type {const} */ ('missing-route') });
         continue;
       }
       let raw = 0;
@@ -154,18 +177,23 @@ export function evaluate(manifest, sizeLookup, groups) {
         raw += size.raw;
         gzip += size.gzip;
       }
-      const headroom = headroomBytes(gzip, group.maxGzipKb);
-      const over = headroom < 0;
+      const headroom = budget ? headroomBytes(gzip, budget.kb) : null;
+      /** @type {'ok' | 'over' | 'missing-file' | 'no-budget'} */
+      let status = 'ok';
+      if (missing) status = 'missing-file';
+      else if (!budget) status = 'no-budget';
+      else if (headroom !== null && headroom < 0) status = 'over';
       rows.push({
         name: group.name,
         route,
         files,
         raw,
         gzip,
-        maxGzipKb: group.maxGzipKb,
+        maxGzipKb,
+        budgetSource,
         headroom: missing ? null : headroom,
-        tight: !missing && isTight(headroom),
-        status: missing ? 'missing-file' : over ? 'over' : 'ok',
+        tight: !missing && headroom !== null && isTight(headroom),
+        status,
         ...(missing ? { detail: missing } : {}),
       });
     }
@@ -221,7 +249,7 @@ export function formatReport(result) {
         String(row.files).padStart(5),
         kb(row.raw).padStart(8),
         kb(row.gzip).padStart(9),
-        String(row.maxGzipKb).padStart(10),
+        (row.maxGzipKb === null ? '-' : String(row.maxGzipKb)).padStart(10),
         (row.headroom === null ? '-' : String(row.headroom)).padStart(11),
         `  ${status}${row.detail ? ` (${row.detail})` : ''}`,
       ].join(' '),
@@ -235,7 +263,7 @@ export function formatReport(result) {
  * @param {ReturnType<typeof summarise>} summary
  */
 export function formatSummary(summary) {
-  if (summary.failed) return '\nOver budget, or a route or file is missing from the build.';
+  if (summary.failed) return '\nOver budget, a route has no budget, or a route or file is missing from the build.';
   const lines = ['\nAll routes within the proposed budgets.'];
   if (summary.tight.length > 0) {
     const names = summary.tight.map((row) => row.route.replace(/^routes\//, '')).join(', ');
@@ -262,14 +290,43 @@ export function parseBudgets(data) {
       !Array.isArray(group.routes) ||
       group.routes.length === 0 ||
       !group.routes.every((route) => typeof route === 'string') ||
-      typeof group.maxGzipKb !== 'number' ||
-      !Number.isFinite(group.maxGzipKb) ||
-      group.maxGzipKb <= 0
+      (group.maxGzipKb !== undefined && !isPositiveNumber(group.maxGzipKb))
     ) {
-      throw new Error(`Budgets group ${index} needs a name, routes (strings) and a positive maxGzipKb`);
+      throw new Error(`Budgets group ${index} needs a name, routes (strings) and, when present, a positive maxGzipKb`);
     }
-    return { name: group.name, routes: group.routes, maxGzipKb: group.maxGzipKb };
+    return {
+      name: group.name,
+      routes: group.routes,
+      ...(typeof group.maxGzipKb === 'number' ? { maxGzipKb: group.maxGzipKb } : {}),
+    };
   });
+}
+
+/** @param {unknown} value @returns {value is number} */
+function isPositiveNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+/**
+ * Reads the optional per-route budgets (`routes`: route id to kB). An entry for a route that no group lists would never
+ * be checked, so it is refused rather than ignored.
+ * @param {unknown} data the parsed budgets file
+ * @param {readonly BudgetGroup[]} groups
+ * @returns {Record<string, number>}
+ */
+export function parseRouteBudgets(data, groups) {
+  const raw = isRecord(data) ? data.routes : undefined;
+  if (raw === undefined) return {};
+  if (!isRecord(raw)) throw new Error('Budgets "routes" must be an object of route id to kB');
+  const listed = new Set(groups.flatMap((group) => group.routes));
+  /** @type {Record<string, number>} */
+  const budgets = {};
+  for (const [route, value] of Object.entries(raw)) {
+    if (!isPositiveNumber(value)) throw new Error(`Budget for route "${route}" must be a positive number of kB`);
+    if (!listed.has(route)) throw new Error(`Budget for route "${route}" is not listed in any group, so it would never be checked`);
+    budgets[route] = value;
+  }
+  return budgets;
 }
 
 /**
@@ -346,9 +403,11 @@ export function main(argv) {
   const distDir = path.resolve(typeof parsed.values.dist === 'string' ? parsed.values.dist : 'dist/client');
   const budgetsFile = typeof parsed.values.budgets === 'string' ? parsed.values.budgets : path.join(here, 'bundle-budgets.json');
   try {
-    const groups = parseBudgets(JSON.parse(readFileSync(budgetsFile, 'utf8')));
+    const budgetData = JSON.parse(readFileSync(budgetsFile, 'utf8'));
+    const groups = parseBudgets(budgetData);
+    const routeBudgets = parseRouteBudgets(budgetData, groups);
     const { manifest, sizeLookup } = loadBuild(distDir);
-    const result = evaluate(manifest, sizeLookup, groups);
+    const result = evaluate(manifest, sizeLookup, groups, routeBudgets);
     const summary = summarise(result);
     if (parsed.values.json === true) {
       console.log(JSON.stringify(result, null, 2));
