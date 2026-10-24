@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import {AnalyticsEvent as HydrogenEvent, useAnalytics} from '@shopify/hydrogen';
 import {act, cleanup, render, screen, waitFor} from '@testing-library/react';
-import {useEffect} from 'react';
+import {StrictMode, useEffect} from 'react';
 import {MemoryRouter} from 'react-router';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
@@ -76,14 +76,15 @@ function PublishesProductView({url}: {url: string}) {
   return <p>product page</p>;
 }
 
-function renderPage(children: React.ReactNode) {
-  return render(
+function renderPage(children: React.ReactNode, strict = false) {
+  const page = (
     <MemoryRouter>
       <AnalyticsGate cart={null} shop={null} consent={{}} config={GA}>
         {children}
       </AnalyticsGate>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+  return render(strict ? <StrictMode>{page}</StrictMode> : page);
 }
 
 beforeEach(() => {
@@ -179,5 +180,36 @@ describe('the real consent chunk before the shopper has answered (opt-in)', () =
       await new Promise((resolve) => setTimeout(resolve, 30));
     });
     expect(names()).toEqual(['page_view', 'view_item']);
+  });
+});
+
+// QA F-1: the dev server runs React in StrictMode, which cleans every effect up and runs it again at once. The consent
+// chunk must keep the events track() held (and the early product view) through that.
+describe('the real consent chunk under React StrictMode (development)', () => {
+  it('still sends the events track() held while the chunk loaded, once each', async () => {
+    storeConsent(true);
+    track({
+      name: 'view_item_list',
+      params: {},
+      ecommerce: {items: [], listId: 'all', listName: 'all'},
+    });
+    renderPage(<p>a listing</p>, true);
+    await waitFor(() => expect(count('view_item_list')).toBe(1));
+    await waitFor(() => expect(count('page_view')).toBe(1));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    expect(count('view_item_list')).toBe(1);
+    expect(count('page_view')).toBe(1);
+  });
+
+  it('still sends the product view published before the chunk existed, once', async () => {
+    storeConsent(true);
+    renderPage(<PublishesProductView url={window.location.href} />, true);
+    await waitFor(() => expect(count('view_item')).toBe(1));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    expect(count('view_item')).toBe(1);
   });
 });

@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {AnalyticsBridge} from '~/components/consent/AnalyticsBridge';
 import {ConsentBanner} from '~/components/consent/ConsentBanner';
 import {ConsentPreferences} from '~/components/consent/ConsentPreferences';
@@ -11,6 +11,7 @@ import {
 } from '~/lib/analytics/browser';
 import type {ConsentRuntimeProps} from '~/components/consent/consent-context';
 import {moveFocusAfterDecision} from '~/components/consent/focus-after-decision';
+import {createDeferredLifecycle} from '~/lib/analytics/deferred-lifecycle';
 import {createAnalyticsRuntime} from '~/lib/analytics/runtime';
 import {logWarn} from '~/lib/logging/logger';
 
@@ -37,33 +38,54 @@ export function ConsentRuntime({
     [consentMode],
   );
 
+  // Released a tick late (QA F-1): React's StrictMode cleans this effect up and runs it again at once in development,
+  // and a runtime torn down in between would take the replayed held events with it.
+  const [lifecycle] = useState(() => createDeferredLifecycle<void>());
+
   // The runtime must be started BEFORE the sink is registered: registering the sink replays, synchronously, the events
   // `track()` held while this chunk was loading, and those only reach a provider that is already active (a started
   // runtime has marked the consented providers active and queued their load). The other way round every replayed
   // event met an inactive provider and was dropped.
   useEffect(() => {
-    const adapters = createBrowserAdapters(
-      {consentMode, ga4MeasurementId, metaPixelId},
-      window,
-      nonce,
+    lifecycle.acquire(
+      `${consentMode}|${ga4MeasurementId}|${metaPixelId}|${nonce}`,
+      () => {
+        const adapters = createBrowserAdapters(
+          {consentMode, ga4MeasurementId, metaPixelId},
+          window,
+          nonce,
+        );
+        const runtime = createAnalyticsRuntime({
+          adapters,
+          consent: store,
+          schedule,
+          // No event, and no script load, from a private or personal-looking page (review M-1, L-4).
+          page: () => evaluateCurrentPage(window),
+          // Fixed words only: which provider and why, never anything about the shopper.
+          onFailure: (provider, reason) =>
+            logWarn('analytics.provider_failed', {provider, reason}),
+        });
+        runtime.start();
+        setTrackSink(runtime.track);
+        return {
+          value: undefined,
+          dispose: () => {
+            runtime.stop();
+            setTrackSink(null);
+          },
+        };
+      },
     );
-    const runtime = createAnalyticsRuntime({
-      adapters,
-      consent: store,
-      schedule,
-      // No event, and no script load, from a private or personal-looking page (review M-1, L-4).
-      page: () => evaluateCurrentPage(window),
-      // Fixed words only: which provider and why, never anything about the shopper.
-      onFailure: (provider, reason) =>
-        logWarn('analytics.provider_failed', {provider, reason}),
-    });
-    runtime.start();
-    setTrackSink(runtime.track);
-    return () => {
-      runtime.stop();
-      setTrackSink(null);
-    };
-  }, [store, consentMode, ga4MeasurementId, metaPixelId, nonce, schedule]);
+    return () => lifecycle.release();
+  }, [
+    lifecycle,
+    store,
+    consentMode,
+    ga4MeasurementId,
+    metaPixelId,
+    nonce,
+    schedule,
+  ]);
 
   // Hand the store to the page shell (footer button, banner context, Hydrogen's `canTrack`).
   useEffect(() => {

@@ -31,7 +31,6 @@ import {
 // consumes) and, for Meta, from `window.fbq.queue`.
 
 const ANALYTICS_ON = process.env.E2E_ANALYTICS === 'on';
-const PROD_PREVIEW = process.env.E2E_PROD_PREVIEW === '1';
 const GA_ID = process.env.E2E_GA4_ID ?? 'G-TESTTEST01';
 const GA_DISABLE_FLAG = `ga-disable-${GA_ID}`;
 const GA_HOST = /^https:\/\/www\.googletagmanager\.com\//;
@@ -40,18 +39,6 @@ const ANY_PROVIDER_HOST =
   /^https:\/\/(www\.googletagmanager\.com|connect\.facebook\.net|www\.facebook\.com|[a-z0-9-]+\.google-analytics\.com|analytics\.google\.com|[a-z0-9-]+\.analytics\.google\.com)\//;
 const CONSENT_CHUNK = /ConsentRuntime/;
 const LISTING_EVENTS_CHUNK = /listing-events/;
-
-// Finding F-1 (V-E166): in the DEV server React's StrictMode runs the consent chunk's effect twice. The first run
-// registers the sink and consumes the events track() held while the chunk loaded; its cleanup unregisters the sink; the
-// second run finds nothing to replay. The production build runs the effect once and passes. test.fail() records the
-// known dev-only behaviour (and turns red when it is fixed, so the marker gets removed); the same test is strict on the
-// production preview.
-const DEV_STRICTMODE_HELD_EVENTS =
-  'dev server only: StrictMode double effect drops the events track() held (F-1); asserted strictly on the production preview';
-// Finding F-2 (V-E166): ConsentBanner sets its "announced" ref before the timer and the effect cleanup cancels the
-// timer; under StrictMode the second effect run sees the ref and never announces.
-const DEV_STRICTMODE_ANNOUNCEMENT =
-  'dev server only: StrictMode double effect leaves the status region empty (F-2); asserted strictly on the production preview';
 
 const STUB_SCRIPT = {
   status: 200,
@@ -379,7 +366,6 @@ test.describe('providers configured, opt-in mode (REQ-ANL-001, REQ-ANL-002, NFR-
   test('accept all: the page view recorded before the decision is sent once after it, to Google and to Meta', async ({
     page,
   }) => {
-    test.fail(!PROD_PREVIEW, DEV_STRICTMODE_HELD_EVENTS);
     await stubProviders(page);
     await gotoReady(page, '/');
     await showBanner(page);
@@ -483,7 +469,6 @@ test.describe('providers configured, opt-in mode (REQ-ANL-001, REQ-ANL-002, NFR-
   test('the banner announces itself politely once and does not take focus', async ({
     page,
   }) => {
-    test.fail(!PROD_PREVIEW, DEV_STRICTMODE_ANNOUNCEMENT);
     await stubProviders(page);
     await gotoReady(page, '/');
     await showBanner(page);
@@ -943,7 +928,6 @@ test.describe('providers configured, opt-in mode (REQ-ANL-001, REQ-ANL-002, NFR-
     page,
     baseURL,
   }) => {
-    test.fail(!PROD_PREVIEW, DEV_STRICTMODE_HELD_EVENTS);
     await stubProviders(page);
     const listingChunk = watchRequests(page, LISTING_EVENTS_CHUNK);
     await storeDecision(page, baseURL, {analytics: true, marketing: true});

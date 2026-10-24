@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {Link} from 'react-router';
 import {Button} from '~/components/ui/Button';
+import {cn} from '~/components/ui/cn';
 import {
   configuredCategories,
   type PublicAnalyticsConfig,
@@ -34,28 +35,59 @@ export function bannerSentence(
 }
 
 /**
- * While the banner covers the bottom edge, a focused element must not end up under it (WCAG 2.4.11). The browser
- * keeps scrolled-to elements clear of `scroll-padding`, so the banner's height is set as the bottom scroll padding of
- * the page for as long as it is shown, and put back when it goes. Set inline, so no style sheet changes.
+ * While the banner covers the bottom edge the page makes room for it (WCAG 2.4.11 Focus Not Obscured, 1.4.10 Reflow):
+ *  - the banner's height is added as REAL bottom padding of the body, so the end of the document, with its footer
+ *    links, can be scrolled clear of the fixed banner (scroll padding alone does nothing at the end of the document);
+ *  - the same height is set as the page's bottom scroll padding, so a focused element scrolled into view stays clear.
+ * Both are set inline (no style sheet changes), updated when the banner resizes or the window does, and put back as
+ * they were when the banner goes. The body's own padding, if any, is kept and the banner's height added to it.
  */
-function useScrollPaddingWhileShown(element: HTMLElement | null) {
+function useRoomForBannerWhileShown(element: HTMLElement | null) {
   useEffect(() => {
     if (!element) return;
     const root = document.documentElement;
-    const before = root.style.scrollPaddingBottom;
+    const body = document.body;
+    const scrollBefore = root.style.scrollPaddingBottom;
+    const paddingBefore = body.style.paddingBottom;
+    const basePadding = parseFloat(getComputedStyle(body).paddingBottom) || 0;
     const apply = () => {
-      root.style.scrollPaddingBottom = `${element.offsetHeight + 16}px`;
+      const room = element.offsetHeight + 16;
+      root.style.scrollPaddingBottom = `${room}px`;
+      body.style.paddingBottom = `${basePadding + room}px`;
     };
     apply();
     const observer =
       typeof ResizeObserver === 'function' ? new ResizeObserver(apply) : null;
     observer?.observe(element);
+    window.addEventListener('resize', apply);
     return () => {
       observer?.disconnect();
-      root.style.scrollPaddingBottom = before;
+      window.removeEventListener('resize', apply);
+      root.style.scrollPaddingBottom = scrollBefore;
+      body.style.paddingBottom = paddingBefore;
     };
   }, [element]);
 }
+
+/** A narrow or short window (a phone in landscape, 400 percent zoom): the banner switches to a compact layout. */
+const COMPACT_QUERY = '(max-width: 360px), (max-height: 400px)';
+
+function subscribeCompact(listener: () => void): () => void {
+  if (typeof window.matchMedia !== 'function') return () => {};
+  const list = window.matchMedia(COMPACT_QUERY);
+  list.addEventListener('change', listener);
+  return () => list.removeEventListener('change', listener);
+}
+
+function isCompact(): boolean {
+  return (
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia(COMPACT_QUERY).matches
+  );
+}
+
+/** The most of the window the banner may take; the text scrolls inside it, the buttons never do. */
+export const BANNER_MAX_HEIGHT = '40dvh';
 const PRIVACY_POLICY_PATH = '/policies/privacy-policy';
 
 /**
@@ -79,19 +111,25 @@ export function ConsentBanner({
   );
   const [element, setElement] = useState<HTMLElement | null>(null);
   const shown = !snapshot.decided && configuredCategories(config).length > 0;
-  useScrollPaddingWhileShown(shown ? element : null);
+  useRoomForBannerWhileShown(shown ? element : null);
+  const compact = useSyncExternalStore(
+    subscribeCompact,
+    isCompact,
+    () => false,
+  );
 
   // A polite message, set a moment after the banner appears so assistive technology announces it, once. Focus stays
   // where it was.
   const [announcement, setAnnouncement] = useState('');
+  // Marked as done only when the message is actually set, so an effect that is cleaned up and run again at once (React
+  // StrictMode in development) schedules the timer again instead of finding it already spent.
   const announced = useRef(false);
   useEffect(() => {
     if (!shown || announced.current) return;
-    announced.current = true;
-    const timer = setTimeout(
-      () => setAnnouncement(CONSENT_BANNER_ANNOUNCEMENT),
-      100,
-    );
+    const timer = setTimeout(() => {
+      announced.current = true;
+      setAnnouncement(CONSENT_BANNER_ANNOUNCEMENT);
+    }, 100);
     return () => clearTimeout(timer);
   }, [shown]);
 
@@ -104,9 +142,20 @@ export function ConsentBanner({
       data-consent="banner"
       role="region"
       aria-label={CONSENT_BANNER_LABEL}
-      className="fixed inset-x-0 bottom-0 z-40 flex flex-col gap-3 border-t border-line bg-surface p-4 shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:max-w-dialog md:rounded-panel md:border"
+      data-compact={compact ? '' : undefined}
+      style={{maxHeight: BANNER_MAX_HEIGHT}}
+      className={cn(
+        'fixed inset-x-0 bottom-0 z-40 flex flex-col border-t border-line bg-surface shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:max-w-dialog md:rounded-panel md:border',
+        compact ? 'gap-2 p-2' : 'gap-3 p-4',
+      )}
     >
-      <p className="text-sm text-fg">
+      {/* The text is the part that scrolls when the window is small; the link inside keeps the region keyboard-reachable. */}
+      <p
+        className={cn(
+          'min-h-0 overflow-y-auto text-fg',
+          compact ? 'text-xs' : 'text-sm',
+        )}
+      >
         {bannerSentence(config, optOut)}
         <Link
           to={PRIVACY_POLICY_PATH}
@@ -118,7 +167,12 @@ export function ConsentBanner({
       <div role="status" className="sr-only">
         {announcement}
       </div>
-      <div className="flex flex-col gap-2 md:flex-row">
+      <div
+        className={cn(
+          'flex shrink-0 gap-2',
+          compact ? 'flex-row' : 'flex-col md:flex-row',
+        )}
+      >
         <Button
           variant="primary"
           size="sm"
