@@ -874,7 +874,7 @@ test.describe('providers configured, opt-in mode (REQ-ANL-001, REQ-ANL-002, NFR-
         await articles.count(),
         `${surface.label} shows product cards`,
       ).toBeGreaterThan(0);
-      const priced = articles.filter({hasText: /$s?d/});
+      const priced = articles.filter({hasText: /\$\s?\d/});
       const pricedCount = await priced.count();
       expect(
         pricedCount,
