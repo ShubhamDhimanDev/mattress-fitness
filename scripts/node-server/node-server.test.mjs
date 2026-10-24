@@ -14,7 +14,14 @@ import {
   staticCacheControl,
 } from './adapter.mjs';
 import { createCacheStorage } from './cache.mjs';
-import { DEFAULTS, REQUIRED_NAMES, isLoopback, readSettings, readStorefrontProblems } from './config.mjs';
+import {
+  DEFAULTS,
+  REQUIRED_NAMES,
+  isLoopback,
+  readClientIpHeaderWarning,
+  readSettings,
+  readStorefrontProblems,
+} from './config.mjs';
 
 // ---- config ----------------------------------------------------------------------------------------------------
 
@@ -146,6 +153,53 @@ test('readStorefrontProblems: a complete environment has no problems', () => {
     }),
     [],
   );
+});
+
+test('readClientIpHeaderWarning: unset or blank warns on any host, naming the setting and the reason', () => {
+  for (const trustProxy of [true, false]) {
+    for (const env of [{}, { TRUSTED_CLIENT_IP_HEADER: '' }, { TRUSTED_CLIENT_IP_HEADER: '   ' }]) {
+      const warning = readClientIpHeaderWarning(env, { trustProxy });
+      assert.equal(warning?.setting, 'TRUSTED_CLIENT_IP_HEADER');
+      assert.equal(warning?.reason, 'unset');
+      assert.match(warning?.effect ?? '', /10 attempts per 15 minutes/);
+    }
+  }
+});
+
+test('readClientIpHeaderWarning: x-real-ip is quiet, in any letter case and with spaces, with or without a proxy', () => {
+  for (const trustProxy of [true, false]) {
+    for (const value of ['x-real-ip', 'X-Real-IP', '  x-real-ip ']) {
+      assert.equal(readClientIpHeaderWarning({ TRUSTED_CLIENT_IP_HEADER: value }, { trustProxy }), null, value);
+    }
+  }
+});
+
+test('readClientIpHeaderWarning: another header warns only while TRUST_PROXY=true', () => {
+  for (const value of ['oxygen-buyer-ip', 'cf-connecting-ip', 'true-client-ip', 'x-forwarded-for', 'nonsense']) {
+    const warning = readClientIpHeaderWarning({ TRUSTED_CLIENT_IP_HEADER: value }, { trustProxy: true });
+    assert.equal(warning?.reason, 'not_x_real_ip', value);
+    assert.equal(readClientIpHeaderWarning({ TRUSTED_CLIENT_IP_HEADER: value }, { trustProxy: false }), null, value);
+  }
+});
+
+test('readClientIpHeaderWarning: never contains the configured value, only the setting name', () => {
+  const marker = 'secret-looking-header-value';
+  const warning = readClientIpHeaderWarning({ TRUSTED_CLIENT_IP_HEADER: marker }, { trustProxy: true });
+  assert.ok(warning !== null);
+  assert.ok(!JSON.stringify(warning).includes(marker));
+});
+
+test('readClientIpHeaderWarning: a warning is not a problem; readSettings and readStorefrontProblems stay clean', () => {
+  const env = {
+    TRUST_PROXY: 'true',
+    SESSION_SECRET: 'x'.repeat(32),
+    PUBLIC_STORE_DOMAIN: 'example.myshopify.com',
+    PUBLIC_STOREFRONT_API_TOKEN: 'y'.repeat(32),
+    PUBLIC_CHECKOUT_DOMAIN: 'example.myshopify.com',
+  };
+  assert.deepEqual(readSettings(env).problems, []);
+  assert.deepEqual(readStorefrontProblems(env), []);
+  assert.equal(readClientIpHeaderWarning(env, readSettings(env).settings)?.reason, 'unset');
 });
 
 // ---- cache -----------------------------------------------------------------------------------------------------

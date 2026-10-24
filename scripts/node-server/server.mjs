@@ -12,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createNodeServer, errorName } from './adapter.mjs';
 import { createCacheStorage } from './cache.mjs';
-import { readSettings, readStorefrontProblems } from './config.mjs';
+import { readClientIpHeaderWarning, readSettings, readStorefrontProblems } from './config.mjs';
 
 const storefrontDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../storefront');
 
@@ -31,6 +31,10 @@ async function main() {
     log('error', 'node_server.config_invalid', { problems: [...problems, ...storefrontProblems] });
     process.exit(1);
   }
+
+  // One warning, not an error (N-1): names and a reason only, never the configured value.
+  const clientIpWarning = readClientIpHeaderWarning(process.env, settings);
+  if (clientIpWarning !== null) log('warn', 'node_server.client_ip_header_warning', clientIpWarning);
 
   // The bundle uses the Workers `caches` global at request time (app/lib/context.ts, replay-store); install the stand-in first.
   globalThis.caches = createCacheStorage({ maxEntries: settings.cacheMaxEntries, maxBytes: settings.cacheMaxBytes });
