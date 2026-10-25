@@ -1,7 +1,11 @@
 import {describe, expect, it} from 'vitest';
 import {anchorHeadings} from '~/components/SafeHtml';
 import {
+  MAX_FAQ_PAIRS,
+  MAX_HEADINGS,
+  MAX_TOC_ENTRIES,
   MIN_TOC_ENTRIES,
+  cleanBody,
   capText,
   extractFaqPairs,
   hasVisibleContent,
@@ -282,5 +286,77 @@ describe('REQ-CNT-001 question and answer pairs for the FAQ page', () => {
       clean(`<h2>Long?</h2><p>${'word '.repeat(3000)}</p>`),
     );
     expect(pair?.answer.length).toBeLessThanOrEqual(5000);
+  });
+});
+
+// Security review C-M1, C-L1, C-L2, C-I4: a hostile page must stay cheap and bounded.
+function elapsedMs(run: () => unknown): number {
+  const started = performance.now();
+  run();
+  return performance.now() - started;
+}
+
+describe('REQ-CNT-001 hostile pages stay cheap and bounded (security C-M1, C-L1)', () => {
+  it('scans 8000 identically titled headings in well under 200 ms, with unique anchors', () => {
+    const html = clean('<h2>Same</h2><p>x</p>'.repeat(8000));
+    let result: ReturnType<typeof scanHeadings> | undefined;
+    const ms = elapsedMs(() => {
+      result = scanHeadings(html);
+    });
+    expect(ms).toBeLessThan(200);
+    // Only the first MAX_HEADINGS are anchored; the list stays unique.
+    expect(result?.anchors).toHaveLength(MAX_HEADINGS);
+    expect(new Set(result?.anchors).size).toBe(MAX_HEADINGS);
+  });
+
+  it('caps the contents list and the FAQ pairs', () => {
+    const headings = Array.from(
+      {length: 400},
+      (_, i) => `<h2>Question ${i}?</h2><p>Answer ${i}.</p>`,
+    ).join('');
+    const html = clean(headings);
+    expect(scanHeadings(html).toc).toHaveLength(MAX_TOC_ENTRIES);
+    expect(extractFaqPairs(html)).toHaveLength(MAX_FAQ_PAIRS);
+  });
+
+  it('keeps anchors unique when a heading is named like a generated suffix', () => {
+    const {anchors} = scanHeadings(
+      clean('<h2>FAQ</h2><h2>FAQ 2</h2><h2>FAQ</h2><h2>FAQ</h2>'),
+    );
+    expect(new Set(anchors).size).toBe(4);
+  });
+
+  it.each([
+    ['unclosed tags', '<a'.repeat(32_000)],
+    ['unclosed comments', '<!--'.repeat(75_000)],
+    ['unclosed scripts', '<script>'.repeat(40_000)],
+    ['unclosed styles', '<style '.repeat(40_000)],
+    ['lone angle brackets', '< '.repeat(150_000)],
+    ['closing tags without end', '</a'.repeat(100_000)],
+  ])('strips %s in linear time', (_name, hostile) => {
+    expect(elapsedMs(() => plainText(hostile))).toBeLessThan(200);
+  });
+
+  it('still reads the text around broken markup', () => {
+    // An open tag runs to the first ">" (here the one of <b>), as it always did.
+    expect(plainText('before <a href="x and <b>after</b>')).toBe(
+      'before after',
+    );
+    expect(plainText('x <!-- never closed and text')).toBe(
+      'x <!-- never closed and text',
+    );
+    expect(plainText('a<script>1</script>b<STYLE>x</style >c')).toBe('a b c');
+  });
+
+  it('treats a body made of zero-width characters as empty', () => {
+    expect(plainText('<p>&#8203;&#x200B;\u200b\ufeff</p>')).toBe('');
+    expect(pageHasContent('<p>&#8203;</p>')).toBe(false);
+  });
+
+  it('sanitises one body once and hands back the same clean text', () => {
+    const body = '<h1>T</h1><p>text</p><script>x</script>';
+    expect(cleanBody(body)).toBe(sanitizeHtml(body));
+    expect(cleanBody(body)).toBe(cleanBody(body));
+    expect(cleanBody(null)).toBe('');
   });
 });

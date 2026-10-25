@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {fakeStorefront, type RecordedCall} from '../catalog/fake-storefront';
+import {resetContentCacheMemory} from '~/lib/shopify/content-pages-cache';
 import {resetContentPagesLogMemory} from '~/lib/shopify/content-pages-data';
 import {loader as articleLoader} from '~/routes/blogs.$blogHandle.$articleHandle';
 import {loader as blogLoader} from '~/routes/blogs.$blogHandle._index';
@@ -49,7 +50,10 @@ function page(overrides: Record<string, unknown> = {}) {
   };
 }
 
-beforeEach(() => resetContentPagesLogMemory());
+beforeEach(() => {
+  resetContentPagesLogMemory();
+  resetContentCacheMemory();
+});
 afterEach(() => vi.restoreAllMocks());
 
 describe('REQ-CNT-001 /pages/:handle loader', () => {
@@ -335,7 +339,8 @@ describe('REQ-CNT-002 blog loaders', () => {
       first: 12,
       endCursor: 'abc',
     });
-    expect(calls[0]?.cache).toEqual({mode: 'long'});
+    // Not yet known to exist, so the first read is short; the next one is long (see the cache tests below).
+    expect(calls[0]?.cache).toEqual({mode: 'short'});
     const [card] = data.blog.articles.nodes;
     expect(card).toMatchObject({
       title: 'Choosing a mattress',
@@ -505,7 +510,7 @@ describe('REQ-CNT-002 blog loaders', () => {
         ),
       ).toBe(true);
       expect(calls).toHaveLength(1);
-      expect(calls[0]?.cache).toEqual({mode: 'long'});
+      expect(calls[0]?.cache).toEqual({mode: 'short'});
       expect(calls[0]?.variables).toMatchObject({neighbours: 100});
     });
 
@@ -539,5 +544,93 @@ describe('REQ-CNT-002 blog loaders', () => {
       ).toBe(404);
       expect(noBlog.calls).toHaveLength(1);
     });
+  });
+});
+
+describe('REQ-CNT-001 junk handles and cursors leave no long cache entries (security C-M2)', () => {
+  it('reads a handle outside the registry on the short window, then long once the page exists', async () => {
+    const {storefront, calls} = fakeStorefront(() => ({
+      page: page({handle: 'extra', title: 'Extra'}),
+    }));
+    const run = () =>
+      pageLoader(args('/pages/extra', {handle: 'extra'}, storefront));
+    await run();
+    await run();
+    expect(calls.map((call) => call.cache)).toEqual([
+      {mode: 'short'},
+      {mode: 'long'},
+    ]);
+  });
+
+  it('never moves a handle that does not exist to the long window', async () => {
+    const {storefront, calls} = fakeStorefront(() => ({page: null}));
+    for (let i = 0; i < 3; i += 1) {
+      await thrown(() =>
+        pageLoader(args('/pages/junk', {handle: 'junk'}, storefront)),
+      );
+    }
+    expect(calls.map((call) => call.cache)).toEqual([
+      {mode: 'short'},
+      {mode: 'short'},
+      {mode: 'short'},
+    ]);
+  });
+
+  it('keeps the 15 registry handles on the long window even when the page is missing', async () => {
+    const {storefront, calls} = fakeStorefront(() => ({page: null}));
+    await thrown(() =>
+      pageLoader(args('/pages/faq', {handle: 'faq'}, storefront)),
+    );
+    expect(calls[0]?.cache).toEqual({mode: 'long'});
+  });
+
+  it('reads an unknown article and an unknown blog short, and a known article long', async () => {
+    const missing = fakeStorefront(() => ({blog: null}));
+    await thrown(() =>
+      articleLoader(
+        args(
+          '/blogs/a/b',
+          {blogHandle: 'a', articleHandle: 'b'},
+          missing.storefront,
+        ),
+      ),
+    );
+    await thrown(() =>
+      blogLoader(args('/blogs/a', {blogHandle: 'a'}, missing.storefront)),
+    );
+    expect(missing.calls.map((call) => call.cache)).toEqual([
+      {mode: 'short'},
+      {mode: 'short'},
+    ]);
+  });
+
+  it('reads any page reached by a cursor on the short window, even for a known blog', async () => {
+    const blog = {
+      title: 'J',
+      handle: 'journal',
+      seo: null,
+      articles: {
+        nodes: [],
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+          startCursor: null,
+          endCursor: null,
+        },
+      },
+    };
+    const {storefront, calls} = fakeStorefront(() => ({blog}));
+    const first = () =>
+      blogLoader(args('/blogs/journal', {blogHandle: 'journal'}, storefront));
+    await first();
+    await first();
+    await blogLoader(
+      args('/blogs/journal?cursor=abc', {blogHandle: 'journal'}, storefront),
+    );
+    expect(calls.map((call) => call.cache)).toEqual([
+      {mode: 'short'},
+      {mode: 'long'},
+      {mode: 'short'},
+    ]);
   });
 });

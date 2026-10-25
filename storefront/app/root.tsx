@@ -24,13 +24,13 @@ import {loadDeliverySummary} from '~/lib/delivery-runtime/summary';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {PRIVATE_REVALIDATE_HEADERS} from '~/lib/pages/private-response';
 import {
-  MAIN_NAV,
   buildFooterLinks,
   buildUtilityLinks,
   existingContentPaths,
-  pruneMainNav,
+  buildFallbackNav,
 } from '~/lib/navigation';
 import {loadFooterPageLinks} from '~/lib/shopify/content-pages-data';
+import {publicSignupConfig} from '~/lib/signup/config';
 import {loadMainNav} from '~/lib/shopify/menu-data';
 import {
   chooseSupportPhone,
@@ -53,9 +53,13 @@ export const meta: Route.MetaFunction = () => [{title: formatPageTitle()}];
  */
 export const shouldRevalidate: ShouldRevalidateFunction = ({
   formMethod,
+  formAction,
   currentUrl,
   nextUrl,
 }) => {
+  // The signup post (P7-02, SU-L4) changes nothing the loaders read: its action answer is enough.
+  if (formAction?.split('?')[0] === '/signup') return false;
+
   // revalidate when a mutation is performed e.g add to cart, login...
   if (formMethod && formMethod !== 'GET') return true;
 
@@ -142,6 +146,8 @@ export async function loader(args: Route.LoaderArgs) {
       loadFooterPageLinks(storefront),
     ]);
 
+  const footerLinks = buildFooterLinks(footerPages);
+
   return {
     ...deferredData,
     myStore,
@@ -150,12 +156,24 @@ export async function loader(args: Route.LoaderArgs) {
     mainNav,
     // Footer links to the Shopify pages, policies and blog that exist with content (REQ-CNT-001, P6-09): one
     // cached batched read, empty on failure. No price, no shopper data.
-    footerLinks: buildFooterLinks(footerPages),
+    footerLinks,
+    // Where the consent banner's privacy link goes: the policy, or a page with that handle, whichever exists (the
+    // same rule as the footer); null hides the link instead of linking a 404 (REQ-CNT-001, NFR-011).
+    privacyPath:
+      footerPages.find((page) => page.id === 'page:privacy-policy')?.to ?? null,
+    // The email signup (REQ-ANL-003, P7-02): null unless Klaviyo is configured, and then the page renders no form and
+    // requests no signup code. Carries no key and no list id; the privacy link only when that page exists.
+    signup: publicSignupConfig(
+      env,
+      footerLinks.legal.find((link) => link.to.endsWith('/privacy-policy'))
+        ?.to ?? null,
+      {allowUnapprovedSms: import.meta.env.DEV},
+    ),
     // The fixed navigation and the utility links without links to Shopify pages that do not exist (REQ-CNT-001);
     // the fixed navigation is only sent when no admin menu is in use.
     fallbackNav: mainNav
       ? null
-      : pruneMainNav(MAIN_NAV, existingContentPaths(footerPages)),
+      : buildFallbackNav(existingContentPaths(footerPages)),
     utilityLinks: buildUtilityLinks(existingContentPaths(footerPages)),
     ...delivery,
     // The promotion bar and the phone come from the `site_settings` entry (P3B-13). The phone is shown only when
@@ -250,6 +268,7 @@ export default function App() {
       shop={data.shop}
       consent={data.consent}
       config={data.analytics}
+      privacyPath={data.privacyPath}
     >
       <PageLayout
         cart={data.cart}
@@ -262,6 +281,7 @@ export default function App() {
         utilityLinks={data.utilityLinks}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
+        signup={data.signup}
       >
         <Outlet />
       </PageLayout>
@@ -351,6 +371,7 @@ export function ErrorBoundary() {
       shop={data.shop}
       consent={data.consent}
       config={data.analytics}
+      privacyPath={data.privacyPath}
     >
       <PageLayout
         cart={data.cart}
@@ -363,6 +384,7 @@ export function ErrorBoundary() {
         utilityLinks={data.utilityLinks}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
+        signup={data.signup}
       >
         {content}
       </PageLayout>

@@ -15,6 +15,7 @@ import type {
   SupportPhone,
 } from '~/lib/navigation';
 import type {MyStoreSummary} from '~/lib/pages/my-store-summary';
+import type {SignupPublicConfig} from '~/lib/signup/shared';
 
 type PageLayoutProps = {
   cart: Promise<CartApiQueryFragment | null>;
@@ -35,6 +36,8 @@ type PageLayoutProps = {
   supportPhone?: SupportPhone | null;
   /** False when the deployment cannot save a ZIP; the header then offers no ZIP entry. */
   deliveryZipAvailable?: boolean;
+  /** The footer's email signup (P7-02); null or absent renders nothing and requests no code. */
+  signup?: SignupPublicConfig | null;
   children?: React.ReactNode;
 };
 
@@ -53,6 +56,7 @@ export function PageLayout({
   utilityLinks,
   supportPhone = null,
   deliveryZipAvailable = true,
+  signup = null,
   children = null,
 }: PageLayoutProps) {
   return (
@@ -75,7 +79,11 @@ export function PageLayout({
       >
         {children}
       </main>
-      <SiteFooter supportPhone={supportPhone} links={footerLinks} />
+      <SiteFooter
+        supportPhone={supportPhone}
+        links={footerLinks}
+        signup={signup}
+      />
       <CartAside cart={cart} />
       <Aside type="mobile" heading="Menu" side="left">
         <MobileMenuContent

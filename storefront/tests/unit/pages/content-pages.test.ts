@@ -5,6 +5,7 @@ import {
   buildFooterLinks,
   buildUtilityLinks,
   existingContentPaths,
+  buildFallbackNav,
   pruneMainNav,
   type MainNavItem,
   footerGroupLinks,
@@ -24,9 +25,9 @@ import {
   policyRedirectFor,
   type ContentAvailability,
 } from '~/lib/pages/content-pages';
+import {cursorPaginationVariables} from '~/lib/pages/cursor-pagination';
 import {
   articleNeighbours,
-  blogPaginationVariables,
   articlePath,
   blogPath,
   formatLongDate,
@@ -464,7 +465,7 @@ describe('REQ-CNT-001 header links to Shopify content', () => {
     );
 
   it('removes every fixed link to a missing page or blog, and keeps the rest', () => {
-    const pruned = pruneMainNav(MAIN_NAV, new Set());
+    const pruned = buildFallbackNav(new Set());
     const left = paths(pruned);
     expect(left.filter((to) => /^\/(pages|blogs)\//.test(to ?? ''))).toEqual(
       [],
@@ -475,8 +476,7 @@ describe('REQ-CNT-001 header links to Shopify content', () => {
   });
 
   it('keeps exactly the guide and journal links whose page exists', () => {
-    const pruned = pruneMainNav(
-      MAIN_NAV,
+    const pruned = buildFallbackNav(
       new Set(['/pages/size-guide', '/blogs/journal']),
     );
     const left = paths(pruned).filter((to) =>
@@ -520,6 +520,7 @@ describe('REQ-CNT-001 header links to Shopify content', () => {
 
   it('does not change the fixed navigation it is given', () => {
     const before = JSON.stringify(MAIN_NAV);
+    buildFallbackNav(new Set());
     pruneMainNav(MAIN_NAV, new Set());
     expect(JSON.stringify(MAIN_NAV)).toBe(before);
   });
@@ -527,7 +528,7 @@ describe('REQ-CNT-001 header links to Shopify content', () => {
 
 describe('REQ-CNT-002 blog pagination variables (cursor and direction are validated)', () => {
   const vars = (query: string) =>
-    blogPaginationVariables(new URLSearchParams(query), 12);
+    cursorPaginationVariables(new URLSearchParams(query), 12);
 
   it('serves the first page without a cursor', () => {
     expect(vars('')).toEqual({first: 12, endCursor: null});
@@ -562,5 +563,47 @@ describe('REQ-CNT-002 blog pagination variables (cursor and direction are valida
     ['a hostile direction', 'cursor=abc&direction=next%27%20OR%201'],
   ])('drops %s and serves the first page', (_name, query) => {
     expect(vars(query)).toEqual({first: 12, endCursor: null});
+  });
+});
+
+describe('REQ-CNT-001 the shell default navigation links nothing that could 404', () => {
+  it('holds no link to a Shopify page or blog in MAIN_NAV, which is what the header uses without availability data', () => {
+    const everyLink = MAIN_NAV.flatMap((item) =>
+      item.kind === 'menu'
+        ? [item.to, ...item.groups.flatMap((g) => g.links.map((l) => l.to))]
+        : [item.to],
+    );
+    expect(
+      everyLink.filter((to) => /^\/(pages|blogs)\//.test(to ?? '')),
+    ).toEqual([]);
+  });
+
+  it('adds the buying guides and the journal back, in place, when they exist', () => {
+    const full = buildFallbackNav(
+      new Set([
+        '/pages/size-guide',
+        '/pages/comfort-guide',
+        '/pages/mattress-types-guide',
+        '/pages/adjustable-base-guide',
+        '/blogs/journal',
+      ]),
+    );
+    const guides = full.find((item) => item.id === 'guides');
+    expect(
+      guides?.kind === 'menu' ? guides.groups.map((g) => g.id) : [],
+    ).toEqual(['guides-buying', 'guides-help']);
+    expect(
+      guides?.kind === 'menu'
+        ? guides.groups.flatMap((g) => g.links.map((l) => l.to))
+        : [],
+    ).toEqual([
+      '/pages/size-guide',
+      '/pages/comfort-guide',
+      '/pages/mattress-types-guide',
+      '/pages/adjustable-base-guide',
+      '/quiz',
+      '/compare',
+      `/blogs/${JOURNAL_BLOG_HANDLE}`,
+    ]);
   });
 });

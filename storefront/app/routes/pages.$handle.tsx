@@ -15,7 +15,7 @@ import {
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
-import {catalogCache} from '~/lib/shopify/cache';
+import {contentCache, rememberFound} from '~/lib/shopify/content-pages-cache';
 import {isValidHandle} from '~/lib/shopify/collection-data';
 import {pageHasContent} from '~/lib/pages/content-pages-html';
 import {loadContentAvailability} from '~/lib/shopify/content-pages-data';
@@ -33,18 +33,24 @@ export async function loader({context, request, params}: Route.LoaderArgs) {
   }
   const {storefront} = context;
 
+  // The 15 registry handles are cached long; any other handle starts short and moves to long only once Shopify has
+  // answered with a page for it, so junk handles leave no hour-long entries behind (security C-M2).
+  const cacheKey = `page:${handle}`;
   const {page} = await storefront.query(PAGE_QUERY, {
-    cache: catalogCache(storefront),
+    cache: contentCache(storefront, cacheKey, {
+      alwaysLong: contentPageByHandle(handle) !== null,
+    }),
     variables: {handle},
   });
+  if (page) rememberFound(cacheKey);
 
   // Privacy policy and terms are kept in Shopify Settings > Policies as one copy. A page with that handle only
   // counts when it has content (the footer's rule): a missing or empty one sends the shopper to the policy. The
   // answer follows data the client edits, so it is a temporary redirect that no cache may keep. The read is the
   // footer's cached one.
   if (
-    (!page || !pageHasContent(page.body)) &&
-    contentPageByHandle(handle)?.policy
+    contentPageByHandle(handle)?.policy &&
+    (!page || !pageHasContent(page.body))
   ) {
     const target = policyRedirectFor(
       handle,

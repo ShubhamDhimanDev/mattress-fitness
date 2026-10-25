@@ -243,29 +243,51 @@ export const MAIN_NAV: readonly MainNavItem[] = [
     label: 'Guides',
     // No `to`: "guides" is not one of the 15 content pages (REQ-CNT-001), so a heading link could 404. The
     // groups below are the way in; a Shopify admin menu can give the heading a page of its own (REQ-NAV-002).
+    // Only links that need no Shopify content. The guide pages and the journal are added by `buildFallbackNav`
+    // (server side) when they exist, so this constant, which is also the shell's default, can never link a 404.
     groups: [
-      {
-        id: 'guides-buying',
-        heading: 'Buying guides',
-        links: [
-          {label: 'Size guide', to: '/pages/size-guide'},
-          {label: 'Comfort guide', to: '/pages/comfort-guide'},
-          {label: 'Mattress types guide', to: '/pages/mattress-types-guide'},
-          {label: 'Adjustable base guide', to: '/pages/adjustable-base-guide'},
-        ],
-      },
       {
         id: 'guides-help',
         heading: 'Help choosing',
         links: [
           {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to},
           {label: 'Compare mattresses', to: COMPARE_PATH},
-          {label: 'Sleep journal', to: '/blogs/journal'},
         ],
       },
     ],
   },
 ];
+
+/**
+ * The Guides menu with its Shopify-written links (the four buying guides, the journal). Used only by
+ * `buildFallbackNav` on the server, so it does not reach the browser bundle.
+ */
+const GUIDES_WITH_CONTENT: NavMenuItem = {
+  kind: 'menu',
+  id: 'guides',
+  label: 'Guides',
+  groups: [
+    {
+      id: 'guides-buying',
+      heading: 'Buying guides',
+      links: [
+        {label: 'Size guide', to: '/pages/size-guide'},
+        {label: 'Comfort guide', to: '/pages/comfort-guide'},
+        {label: 'Mattress types guide', to: '/pages/mattress-types-guide'},
+        {label: 'Adjustable base guide', to: '/pages/adjustable-base-guide'},
+      ],
+    },
+    {
+      id: 'guides-help',
+      heading: 'Help choosing',
+      links: [
+        {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to},
+        {label: 'Compare mattresses', to: COMPARE_PATH},
+        {label: 'Sleep journal', to: '/blogs/journal'},
+      ],
+    },
+  ],
+};
 
 export type UtilityLink = {id: string; label: string; to: string};
 
@@ -334,6 +356,18 @@ export function pruneMainNav(
     if (!linkExists(item.to, existing)) delete next.to;
     return groups.length === 0 && next.to === undefined ? [] : [next];
   });
+}
+
+/**
+ * The fixed navigation for the pages that exist: `MAIN_NAV` with the Guides menu swapped for the full one, then
+ * pruned. `MAIN_NAV` itself holds no Shopify-written link, so a shell given no availability data (its default)
+ * links nothing that could 404.
+ */
+export function buildFallbackNav(existing: ReadonlySet<string>): MainNavItem[] {
+  return pruneMainNav(
+    MAIN_NAV.map((item) => (item.id === 'guides' ? GUIDES_WITH_CONTENT : item)),
+    existing,
+  );
 }
 
 export const STORE_LOCATOR_PATH = '/stores';
@@ -428,7 +462,10 @@ export const FOOTER_SUPPORT_GROUPS_DRAFT: readonly PageFooterGroup[] = [
     id: 'support',
     heading: 'Customer support',
     links: [
-      // No route until guest and account order tracking (P6-08): no link until then.
+      // The /track-order route exists (P6-08), and the header's "Track order" always links it. The footer links to it
+      // (here and in the quick links) stay held back by `awaitingContent` until the lookup has matched a real order
+      // (V-09, V-20, B-15): the footer is the page of promises, the header link is the plain entry point. This
+      // difference is a held decision, not a rule; remove the flag when the owner confirms the lookup.
       {
         label: 'Track your order',
         to: '/track-order',
@@ -528,7 +565,7 @@ export function visibleQuickLinks(
 /**
  * The footer's quick-links row (BA-05): the pages shoppers come back for, first the order and delivery side,
  * then the stores and help side. The Shopify pages (delivery, contact) appear only when the page exists with
- * content (`pageId`, P6-09); `/track-order` waits behind `awaitingContent` as before. The labels differ from the
+ * content (`pageId`, P6-09); `/track-order` waits behind `awaitingContent` (see the support group above; the header links it already). The labels differ from the
  * group links on purpose, so a screen-reader link list does not read two identical names for the same page.
  */
 export const FOOTER_QUICK_LINKS_START_DRAFT: readonly FooterQuickLink[] = [

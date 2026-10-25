@@ -8,10 +8,9 @@ import {SiteFooter} from '~/components/layout/SiteFooter';
 import {MobileNav} from '~/components/layout/MobileNav';
 import {UtilityBar} from '~/components/layout/UtilityBar';
 import {
-  MAIN_NAV,
   buildFooterLinks,
   buildUtilityLinks,
-  pruneMainNav,
+  buildFallbackNav,
 } from '~/lib/navigation';
 import {footerPageLinks} from '~/lib/pages/content-pages';
 import {scanHeadings} from '~/lib/pages/content-pages-html';
@@ -313,7 +312,7 @@ describe('REQ-CNT-001 utility links in the header bar and the mobile menu', () =
   });
 
   it('the mobile menu lists the same links, and no guide link for a missing page', async () => {
-    const items = pruneMainNav(MAIN_NAV, new Set(['/pages/size-guide']));
+    const items = buildFallbackNav(new Set(['/pages/size-guide']));
     renderIn(
       <MobileNav
         items={items}

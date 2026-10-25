@@ -20,7 +20,8 @@ export default defineConfig({
     testTimeout: 20000,
     // Eight workers on an eight-core machine starve timing-sensitive jsdom tests (a different one failed on each full run);
     // four workers pass every run at the cost of about a minute (measured: 174 s for 5829 tests).
-    // Never more than the machine has: a two-core CI box must not be asked for four.
+    // Never more than Node reports as usable (availableParallelism). Whether that honours a container CPU quota depends
+    // on the Node and libuv versions, so a CI job with a quota should still pass --maxWorkers.
     maxWorkers: Math.min(4, availableParallelism()),
     // A test slower than this is reported as slow, so a creeping one is seen before it needs a longer ceiling.
     slowTestThreshold: 5000,

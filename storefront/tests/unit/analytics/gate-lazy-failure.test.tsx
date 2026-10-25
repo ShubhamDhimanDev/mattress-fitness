@@ -43,15 +43,14 @@ describe('a consent chunk that fails to load', () => {
     // The logger is fetched with a dynamic import on the failure path only, so the line arrives a moment later: wait for it
     // instead of sleeping a fixed time (a fixed 20 ms flaked under a loaded machine).
     await waitFor(() => expect(failureLines()).toHaveLength(1));
-    await act(async () => {
-      await Promise.resolve();
-    });
-    // Let a macrotask pass, then count again: a second report (a retry, a remount) would arrive late, and the
+    // Let real timer ticks pass, then count again: a second report (a retry, a remount) would arrive late, and the
     // wait above stops at the first line, so it could not see one.
-    await act(async () => {
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    });
-    expect(failureLines()).toHaveLength(1);
+    for (let tick = 0; tick < 2; tick += 1) {
+      await act(async () => {
+        await new Promise<void>((resolve) => setTimeout(resolve, 30));
+      });
+      expect(failureLines()).toHaveLength(1);
+    }
     expect(screen.getByText('the page')).toBeInTheDocument();
     // React reports an uncaught render error with console.error; there must be none.
     expect(errors).not.toHaveBeenCalled();

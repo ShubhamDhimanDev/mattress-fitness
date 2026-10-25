@@ -11,15 +11,13 @@ import {cn} from '~/components/ui/cn';
 import {displayHeadingClass} from '~/lib/display-type';
 import {SITE_NAME} from '~/lib/navigation';
 import {buildBlogDocument} from '~/lib/pages/content-pages-article';
-import {
-  blogPaginationVariables,
-  blogPath,
-} from '~/lib/pages/content-pages-blog';
+import {blogPath} from '~/lib/pages/content-pages-blog';
+import {cursorPaginationVariables} from '~/lib/pages/cursor-pagination';
 import {seoText} from '~/lib/pages/content-pages-seo';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
-import {catalogCache} from '~/lib/shopify/cache';
+import {contentCache, rememberFound} from '~/lib/shopify/content-pages-cache';
 import {isValidHandle} from '~/lib/shopify/collection-data';
 
 // The loader prepares the head tags and structured data (`buildBlogDocument`); this only reads them.
@@ -41,16 +39,20 @@ export async function loader({context, request, params}: Route.LoaderArgs) {
   }
   const {storefront} = context;
   // The cursor and direction are checked before they reach the query; a bad one serves the first page.
-  const paginationVariables = blogPaginationVariables(
+  const paginationVariables = cursorPaginationVariables(
     new URL(request.url).searchParams,
     ARTICLES_PER_PAGE,
   );
 
-  // Articles hold no price or availability: the long catalog cache. The cursor is part of the cache key.
+  // Articles hold no price or availability, so a blog that exists is cached long. An unknown handle, and any page
+  // reached by a cursor (each is a cache entry of its own), get the short window (security C-M2).
+  const cacheKey = `blog:${blogHandle}`;
+  const paged = new URL(request.url).searchParams.has('cursor');
   const {blog} = await storefront.query(BLOG_QUERY, {
-    cache: catalogCache(storefront),
+    cache: paged ? storefront.CacheShort() : contentCache(storefront, cacheKey),
     variables: {blogHandle, ...paginationVariables},
   });
+  if (blog && !paged) rememberFound(cacheKey);
 
   if (!blog?.articles) {
     throw new Response('Blog not found', {status: 404});

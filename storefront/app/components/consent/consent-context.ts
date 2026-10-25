@@ -10,6 +10,8 @@ import type {ConsentStore} from '~/lib/analytics/consent-store';
  */
 export type ConsentRuntimeProps = {
   readonly config: PublicAnalyticsConfig;
+  /** Target of the banner's privacy link, or null to show none (P6-09); undefined keeps the banner's default. */
+  readonly privacyPath?: string | null;
   readonly nonce: string | undefined;
   /** Publishes the chunk's consent store to the shell (null when the chunk unmounts). */
   readonly publishStore: (store: ConsentStore | null) => void;

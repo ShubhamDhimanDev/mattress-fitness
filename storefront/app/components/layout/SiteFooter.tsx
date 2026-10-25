@@ -2,9 +2,11 @@ import {useId, useState} from 'react';
 import {Link} from 'react-router';
 import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
 import {FooterLogo} from '~/components/layout/BrandLogo';
+import {SignupSlot} from '~/components/signup/SignupSlot';
 import {cn} from '~/components/ui/cn';
 import {BRAND_TAGLINE} from '~/lib/brand';
 import {displayHeadingClass} from '~/lib/display-type';
+import type {SignupPublicConfig} from '~/lib/signup/shared';
 import {ChevronDownIcon, PhoneIcon} from '~/components/ui/Icons';
 import {
   FOOTER_SHOP_GROUPS,
@@ -113,21 +115,31 @@ function QuickLinks({links}: {links: readonly FooterQuickLink[]}) {
 export function SiteFooter({
   supportPhone = null,
   links = NO_FOOTER_LINKS,
+  signup = null,
 }: {
   /** The client's number; without one no phone link is rendered. */
   supportPhone?: SupportPhone | null;
   /** The links that depend on Shopify content, built by the root loader (P6-09); none shows none of them. */
   links?: FooterLinks;
+  /** The email signup (P7-02), or null when it is not configured: then nothing is rendered and no code is requested. */
+  signup?: SignupPublicConfig | null;
 }) {
   return (
-    // Light grey with one red rule on top, the only brand accent in the footer (BA-05). No signup band and no
-    // social icons: the providers, wording and URLs do not exist yet (REQ-CNT-001, B-15, P7-02).
+    // Light grey with one red rule on top, the only brand accent in the footer (BA-05). No social icons: the
+    // providers, wording and URLs do not exist yet (REQ-CNT-001, B-15). The signup block exists only when configured.
     <footer className="mt-auto border-t-4 border-primary-500 bg-surface-muted text-fg">
       <div className="mx-auto flex max-w-page items-center gap-4 px-4 pt-8 md:px-6 md:pt-12">
         <FooterLogo />
         {/* The client's own tagline, plain text; the logo's alt is the name only, so nothing is read twice. */}
         <p className="text-base font-bold text-fg">{BRAND_TAGLINE}</p>
       </div>
+      {signup ? (
+        <div className="mx-auto max-w-page px-4 pt-6 md:px-6">
+          <div className="max-w-xl">
+            <SignupSlot config={signup} surface="footer" />
+          </div>
+        </div>
+      ) : null}
       <nav
         aria-label="Footer"
         className="mx-auto flex max-w-page flex-col gap-8 px-4 pt-2 pb-8 md:px-6 md:pt-4 md:pb-12"

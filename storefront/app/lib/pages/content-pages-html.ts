@@ -7,6 +7,14 @@
 // tag in the string is always a real tag. The anchors are generated here from the heading text and never taken
 // from Shopify, so a page author cannot plant an id that clashes with the site's own (DOM clobbering).
 //
+// Limits that keep a hostile page cheap (security review C-M1, C-L1): every scan below is linear in the length of the
+// text, and the work that grows with the page is capped: at most MAX_HEADINGS headings are anchored, MAX_TOC_ENTRIES
+// are listed and MAX_FAQ_PAIRS are described.
+//
+// What the sanitiser leaves out is not seen here either (C-I4): it reads at most 300,000 characters of a body, and
+// an unclosed head, title, select, template, math, svg, script or style swallows everything after it. A page
+// that long, or with such a tag left open, therefore shows less than its author wrote; the content guide says so.
+//
 // Pure functions with no framework imports; they run in the page loader on the server.
 
 import {sanitizeHtml} from '~/lib/shopify/sanitize-html';
@@ -19,6 +27,10 @@ export type TocEntry = {
 
 /** A table of contents needs somewhere to go: fewer headings than this and none is shown. */
 export const MIN_TOC_ENTRIES = 3;
+/** Headings that get an anchor (the browser anchors by position, so the list must be the same length on both sides). */
+export const MAX_HEADINGS = 200;
+export const MAX_TOC_ENTRIES = 50;
+export const MAX_FAQ_PAIRS = 50;
 
 const MAX_ANCHOR_LENGTH = 60;
 
@@ -56,7 +68,87 @@ function tidy(text: string): string {
     const control = code < 0x20 || (code >= 0x7f && code <= 0x9f);
     result += control ? ' ' : char;
   }
-  return result.replace(/\s+/g, ' ').trim();
+  // Zero-width characters are invisible, so a body made of them alone is empty (\s does not match them).
+  return result
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const IS_LETTER = /[a-zA-Z]/;
+const CODE_BLOCK_NAME = /^(script|style)(?![a-zA-Z0-9_])/i;
+
+/**
+ * Removes comments, tags and the content of script and style blocks in ONE pass over the text. The first version used
+ * lazy regular expressions, which rescan to the end of the string for every "<" that never closes: 64 KB of "<a" took
+ * 1.8 s and 300 KB of "<!--" 12 s (security review C-L1). Here a search that finds nothing is never repeated, so the
+ * work stays linear however the markup is broken. A "<" that starts no tag ("sizes 2 < 3 > 1") stays as text.
+ */
+function stripMarkup(html: string): string {
+  const closers: Record<string, RegExp> = {
+    script: /<\/script\s*>/gi,
+    style: /<\/style\s*>/gi,
+  };
+  const missing = {comment: false, tagEnd: false, script: false, style: false};
+  let out = '';
+  let index = 0;
+  while (index < html.length) {
+    const lt = html.indexOf('<', index);
+    if (lt === -1) {
+      out += html.slice(index);
+      break;
+    }
+    out += html.slice(index, lt);
+    index = lt + 1;
+
+    if (html.startsWith('!--', lt + 1)) {
+      const end = missing.comment ? -1 : html.indexOf('-->', lt + 4);
+      if (end === -1) {
+        missing.comment = true;
+        out += '<';
+      } else {
+        out += ' ';
+        index = end + 3;
+      }
+      continue;
+    }
+
+    const closing = html.charCodeAt(lt + 1) === 47;
+    const first = html.charAt(lt + (closing ? 2 : 1));
+    if (!IS_LETTER.test(first)) {
+      out += '<';
+      continue;
+    }
+
+    if (!closing) {
+      const name = CODE_BLOCK_NAME.exec(
+        html.slice(lt + 1, lt + 8),
+      )?.[1]?.toLowerCase();
+      if (name === 'script' || name === 'style') {
+        const closer = closers[name];
+        if (closer && !missing[name]) {
+          closer.lastIndex = lt;
+          const found = closer.exec(html);
+          if (found) {
+            out += ' ';
+            index = found.index + found[0].length;
+            continue;
+          }
+          missing[name] = true;
+        }
+      }
+    }
+
+    const gt = missing.tagEnd ? -1 : html.indexOf('>', lt + 1);
+    if (gt === -1) {
+      missing.tagEnd = true;
+      out += '<';
+    } else {
+      out += ' ';
+      index = gt + 1;
+    }
+  }
+  return out;
 }
 
 /**
@@ -65,14 +157,7 @@ function tidy(text: string): string {
  */
 export function plainText(html: string | null | undefined): string {
   if (!html) return '';
-  // Script and style blocks are removed with their content: it is code, not text a shopper reads.
-  const withoutCode = html.replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, ' ');
-  // Only real tags and comments go: a "<" that starts no tag ("sizes 2 < 3 > 1") is text.
-  const withoutTags = withoutCode.replace(
-    /<\/?[a-zA-Z][^>]*>|<!--[\s\S]*?-->/g,
-    ' ',
-  );
-  return tidy(decodeEntities(withoutTags));
+  return tidy(decodeEntities(stripMarkup(html)));
 }
 
 /** Text cut to `max` characters at a word boundary, with an ellipsis when something was cut. */
@@ -92,24 +177,40 @@ export function hasVisibleContent(cleanHtml: string): boolean {
   return plainText(cleanHtml) !== '' || /<img\b[^>]*\ssrc="/.test(cleanHtml);
 }
 
-// The footer asks this of up to 15 page bodies on every request, and the answer for a body never changes, so it is
-// remembered per body. The map is cleared when full: cheap, and a miss only costs one sanitising pass.
-const CONTENT_MEMORY_LIMIT = 64;
-const contentMemory = new Map<string, boolean>();
+// A body is sanitised once per process and request, not once per question asked of it (security review C-L2): the
+// footer's existence read, the page route and the description all need the clean text. The memory is bounded by the
+// total characters held, and cleared when full: cheap, and a miss only costs one sanitising pass.
+const CLEAN_MEMORY_LIMIT_CHARS = 2_000_000;
+const cleanMemory = new Map<string, {clean: string; content: boolean}>();
+let cleanMemoryChars = 0;
+
+function remember(body: string) {
+  const known = cleanMemory.get(body);
+  if (known) return known;
+  const clean = sanitizeHtml(body);
+  const entry = {clean, content: hasVisibleContent(clean)};
+  cleanMemoryChars += body.length + clean.length;
+  if (cleanMemoryChars > CLEAN_MEMORY_LIMIT_CHARS) {
+    cleanMemory.clear();
+    cleanMemoryChars = body.length + clean.length;
+  }
+  cleanMemory.set(body, entry);
+  return entry;
+}
+
+/** The sanitised form of a Shopify body, computed once per body (the sanitiser is deterministic). */
+export function cleanBody(body: string | null | undefined): string {
+  return body ? remember(body).clean : '';
+}
 
 /**
  * The one rule for "this Shopify page has content", used by the footer's existence read and by the page route
- * (through \`hasVisibleContent\`), so the two can never disagree: text after entities are decoded and whitespace
- * (including &nbsp;) is trimmed, or an image the sanitiser keeps. An empty page does not count as a page.
+ * (through `hasVisibleContent`), so the two can never disagree: text after entities are decoded and whitespace
+ * (including &nbsp; and zero-width characters) is trimmed, or an image the sanitiser keeps. An empty page does
+ * not count as a page.
  */
 export function pageHasContent(body: string | null | undefined): boolean {
-  if (!body) return false;
-  const known = contentMemory.get(body);
-  if (known !== undefined) return known;
-  const answer = hasVisibleContent(sanitizeHtml(body));
-  if (contentMemory.size >= CONTENT_MEMORY_LIMIT) contentMemory.clear();
-  contentMemory.set(body, answer);
-  return answer;
+  return body ? remember(body).content : false;
 }
 
 function slugOf(text: string): string {
@@ -136,13 +237,15 @@ type Heading = {
  */
 function headingsOf(cleanHtml: string): Heading[] {
   const edge = /<\/h[23]>|<h[23]>/g;
-  return [...cleanHtml.matchAll(/<h([23])>/g)].map((open) => {
+  const found: Heading[] = [];
+  for (const open of cleanHtml.matchAll(/<h([23])>/g)) {
+    if (found.length >= MAX_HEADINGS) break;
     const start = open.index ?? 0;
     const bodyStart = start + open[0].length;
     edge.lastIndex = bodyStart;
     const next = edge.exec(cleanHtml);
     const bodyEnd = next ? next.index : cleanHtml.length;
-    return {
+    found.push({
       level: open[1] === '2' ? 2 : 3,
       text: plainText(cleanHtml.slice(bodyStart, bodyEnd)),
       start,
@@ -150,8 +253,9 @@ function headingsOf(cleanHtml: string): Heading[] {
         next !== null && next[0].startsWith('</')
           ? bodyEnd + next[0].length
           : bodyEnd,
-    };
-  });
+    });
+  }
+  return found;
 }
 
 export type HeadingScan = {
@@ -167,6 +271,8 @@ export type HeadingScan = {
  */
 export function scanHeadings(cleanHtml: string): HeadingScan {
   const used = new Set<string>();
+  // The next suffix to try per base id: a page of identical headings must not retry 2, 3, 4 ... for each one (C-M1).
+  const nextSuffix = new Map<string, number>();
   const anchors: string[] = [];
   const toc: TocEntry[] = [];
   let position = 0;
@@ -174,10 +280,17 @@ export function scanHeadings(cleanHtml: string): HeadingScan {
     position += 1;
     const base = `section-${slugOf(text) || position}`;
     let id = base;
-    for (let n = 2; used.has(id); n += 1) id = `${base}-${n}`;
+    let suffix = nextSuffix.get(base) ?? 2;
+    while (used.has(id)) {
+      id = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    nextSuffix.set(base, suffix);
     used.add(id);
     anchors.push(id);
-    if (text !== '') toc.push({id, text, level});
+    if (text !== '' && toc.length < MAX_TOC_ENTRIES) {
+      toc.push({id, text, level});
+    }
   }
   return {anchors, toc};
 }
@@ -197,6 +310,7 @@ export function extractFaqPairs(cleanHtml: string): FaqPair[] {
   const headings = headingsOf(cleanHtml);
   const pairs: FaqPair[] = [];
   headings.forEach((heading, index) => {
+    if (pairs.length >= MAX_FAQ_PAIRS) return;
     const question = heading.text;
     if (!/[?？]$/.test(question) || question.length > MAX_QUESTION_LENGTH) {
       return;

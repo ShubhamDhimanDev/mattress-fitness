@@ -6,6 +6,7 @@ import {
   FeaturedProducts,
   SizeTiles,
 } from '~/components/home/CatalogSections';
+import {SignupSlot} from '~/components/signup/SignupSlot';
 import {Button} from '~/components/ui/Button';
 import {
   HOME_ASSURANCE_ITEMS,
@@ -13,10 +14,15 @@ import {
   SLEEP_QUIZ_LINK,
   STORE_LOCATOR_PATH,
 } from '~/lib/navigation';
+import type {SignupPublicConfig} from '~/lib/signup/shared';
 import type {HomeData} from '~/lib/shopify/home-data';
 import type {HomeSection} from '~/lib/shopify/home-sections';
 
-type HomeSectionsProps = {home: HomeData};
+type HomeSectionsProps = {
+  home: HomeData;
+  /** The email signup (P7-02); null when it is not configured, which leaves the admin `signup` block empty. */
+  signup?: SignupPublicConfig | null;
+};
 
 function isTitleSection(section: HomeSection): boolean {
   return (
@@ -32,7 +38,7 @@ function isTitleSection(section: HomeSection): boolean {
  * first hero with a heading is the page's only h1; if admin has none, a visually hidden h1 keeps the page
  * titled. Catalog blocks hide themselves when the catalog has nothing for them.
  */
-export function HomeSections({home}: HomeSectionsProps) {
+export function HomeSections({home, signup = null}: HomeSectionsProps) {
   const titleId = home.sections.find(isTitleSection)?.id ?? null;
 
   return (
@@ -43,6 +49,7 @@ export function HomeSections({home}: HomeSectionsProps) {
           key={section.id}
           section={section}
           home={home}
+          signup={signup}
           asPageTitle={section.id === titleId}
         />
       ))}
@@ -53,10 +60,12 @@ export function HomeSections({home}: HomeSectionsProps) {
 function SectionView({
   section,
   home,
+  signup,
   asPageTitle,
 }: {
   section: HomeSection;
   home: HomeData;
+  signup: SignupPublicConfig | null;
   asPageTitle: boolean;
 }) {
   switch (section.kind) {
@@ -102,9 +111,15 @@ function SectionView({
         }
       }
     case 'signup':
-      // TODO(P7-02): email and text-message signup with recorded consent (Klaviyo) renders here. Until the
-      // submission exists nothing is shown: a form that discards what the shopper typed would be worse.
-      return null;
+      // The `signup` block placed in admin (P7-02). Nothing renders unless Klaviyo is configured (`signup` is null):
+      // a form that discards what the shopper typed would be worse than no form.
+      return signup ? (
+        <section className="my-8 rounded-panel bg-surface-muted px-6 py-8">
+          <div className="max-w-xl">
+            <SignupSlot config={signup} surface="home" />
+          </div>
+        </section>
+      ) : null;
     case 'placeholder-hero':
       return <PlaceholderHero />;
     case 'placeholder-assurance':

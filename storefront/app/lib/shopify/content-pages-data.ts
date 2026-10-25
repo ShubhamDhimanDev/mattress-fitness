@@ -105,32 +105,71 @@ export function availabilityFrom(
 // A shop outage would otherwise write the same line on every request of every page.
 let failureLogged = false;
 
-/** Test seam: forgets the logged failure, so each test starts like a fresh isolate. */
+// In front of the Storefront cache sits a small memory of the DERIVED answer (security review C-M2): which pages exist,
+// not their bodies. The root loader waits for it on every document request, and Hydrogen's in-memory cache holds only
+// 500 entries, so junk URLs could evict the 15-page entry and make every request parse 15 bodies again. The
+// memory holds booleans and paths only, so nothing a shopper sent and nothing from a shopper can be in it, and it is
+// the same for everyone. After FRESH_MS the next request refreshes it (through the Storefront cache); if that read
+// fails, the last good answer keeps serving for MAX_STALE_MS (stale-if-error) before the links are dropped. A refresh
+// is awaited, never left running after the response: a runtime may cut such work off, and a promise that never
+// settles would block every later refresh.
+export const AVAILABILITY_FRESH_MS = 60_000;
+export const AVAILABILITY_MAX_STALE_MS = 600_000;
+
+let memory: {readonly value: ContentAvailability; readonly at: number} | null =
+  null;
+let refresh: Promise<ContentAvailability> | null = null;
+
+/** Test seam: forgets the logged failure and the remembered answer, so each test starts like a fresh isolate. */
 export function resetContentPagesLogMemory(): void {
   failureLogged = false;
+  memory = null;
+  refresh = null;
 }
 
-export async function loadContentAvailability(
+async function readAvailability(
   storefront: Storefront,
+  now: number,
 ): Promise<ContentAvailability> {
   try {
     const data = await storefront.query(CONTENT_PAGES_QUERY, {
       cache: catalogCache(storefront),
     });
     failureLogged = false;
-    return availabilityFrom(data);
+    const value = availabilityFrom(data);
+    memory = {value, at: now};
+    return value;
   } catch (error: unknown) {
     if (!failureLogged) {
       failureLogged = true;
       logError('content.pages_read_failed', errorFields(error));
     }
+    if (memory && now - memory.at < AVAILABILITY_MAX_STALE_MS) {
+      return memory.value;
+    }
     return NO_CONTENT;
   }
+}
+
+/**
+ * Which registry pages, policies and blogs exist with content. Never rejects. Requests that arrive while a refresh
+ * is running share it, so a busy minute makes one read, not one per request.
+ */
+export async function loadContentAvailability(
+  storefront: Storefront,
+  now: number = Date.now(),
+): Promise<ContentAvailability> {
+  if (memory && now - memory.at < AVAILABILITY_FRESH_MS) return memory.value;
+  refresh ??= readAvailability(storefront, now).finally(() => {
+    refresh = null;
+  });
+  return refresh;
 }
 
 /** The footer's Shopify page links; an empty list when nothing exists or the read failed. */
 export async function loadFooterPageLinks(
   storefront: Storefront,
+  now?: number,
 ): Promise<FooterPageLink[]> {
-  return footerPageLinks(await loadContentAvailability(storefront));
+  return footerPageLinks(await loadContentAvailability(storefront, now));
 }

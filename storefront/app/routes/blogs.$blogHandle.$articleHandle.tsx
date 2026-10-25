@@ -16,7 +16,7 @@ import {
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 import {canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
-import {catalogCache} from '~/lib/shopify/cache';
+import {contentCache, rememberFound} from '~/lib/shopify/content-pages-cache';
 import {isValidHandle} from '~/lib/shopify/collection-data';
 
 // The loader prepares the head tags and structured data (`buildArticleDocument`); this only reads them.
@@ -40,8 +40,10 @@ export async function loader({context, request, params}: Route.LoaderArgs) {
   }
   const {storefront} = context;
 
+  // Long once Shopify has answered with the article, short before that and for unknown handles (security C-M2).
+  const cacheKey = `article:${blogHandle}/${articleHandle}`;
   const {blog} = await storefront.query(ARTICLE_QUERY, {
-    cache: catalogCache(storefront),
+    cache: contentCache(storefront, cacheKey),
     variables: {blogHandle, articleHandle, neighbours: NEIGHBOUR_WINDOW},
   });
 
@@ -49,6 +51,7 @@ export async function loader({context, request, params}: Route.LoaderArgs) {
   if (!blog || !article) {
     throw new Response('Not found', {status: 404});
   }
+  rememberFound(cacheKey);
 
   redirectIfHandleIsLocalized(
     request,

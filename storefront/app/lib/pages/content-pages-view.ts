@@ -8,6 +8,7 @@
 import {formatLongDate} from '~/lib/pages/content-pages-blog';
 import {
   MIN_TOC_ENTRIES,
+  cleanBody,
   extractFaqPairs,
   hasVisibleContent,
   plainText,
@@ -20,7 +21,6 @@ import {
   type MetaTag,
 } from '~/lib/pages/content-pages-seo';
 import {buildBreadcrumbJsonLd} from '~/lib/shopify/jsonld';
-import {sanitizeHtml} from '~/lib/shopify/sanitize-html';
 
 export type ContentDocumentInput = {
   readonly title: string;
@@ -88,8 +88,8 @@ export function buildContentDocument(
   input: ContentDocumentInput,
 ): ContentDocumentView {
   const title = input.title.trim() || input.fallbackTitle || '';
-  // The one sanitising pass for everything derived from the text; SafeHtml sanitises again for display.
-  const clean = sanitizeHtml(input.body);
+  // The one sanitising pass (shared with the footer's existence read) for everything derived from the text; SafeHtml sanitises again for display.
+  const clean = cleanBody(input.body);
   const empty = !hasVisibleContent(clean);
   const {anchors, toc} = scanHeadings(clean);
   const seo = buildSeo({

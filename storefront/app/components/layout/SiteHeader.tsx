@@ -41,7 +41,7 @@ import {
 type SiteHeaderProps = {
   /**
    * The navigation built from the Shopify admin menu (root loader, REQ-NAV-002). Null or empty means the fixed
-   * `MAIN_NAV` is shown instead.
+   * the fixed navigation (without links to pages that may not exist) is shown instead.
    */
   mainNav?: readonly MainNavItem[] | null;
   cart: Promise<CartApiQueryFragment | null>;

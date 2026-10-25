@@ -6,7 +6,7 @@
 // cleaned and capped by `buildSeo`; the description falls back to the excerpt, then to the start of the article.
 
 import {articlePath, blogPath} from '~/lib/pages/content-pages-blog';
-import {plainText} from '~/lib/pages/content-pages-html';
+import {cleanBody, plainText} from '~/lib/pages/content-pages-html';
 import {
   buildArticleJsonLd,
   buildSeo,
@@ -16,7 +16,6 @@ import {
   type SeoImage,
 } from '~/lib/pages/content-pages-seo';
 import {buildBreadcrumbJsonLd} from '~/lib/shopify/jsonld';
-import {sanitizeHtml} from '~/lib/shopify/sanitize-html';
 
 type Crumb = {readonly label: string; readonly to?: string};
 
@@ -99,7 +98,7 @@ export function buildArticleDocument(
     title: input.title,
     seoTitle: input.seoTitle,
     seoDescription: description,
-    bodyText: plainText(sanitizeHtml(input.contentHtml)),
+    bodyText: plainText(cleanBody(input.contentHtml)),
     canonical: input.canonical,
     indexable: true,
     type: 'article',

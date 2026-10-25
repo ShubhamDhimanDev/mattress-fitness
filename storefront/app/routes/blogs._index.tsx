@@ -4,14 +4,11 @@ import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PaginatedList} from '~/components/pages/ArticleList';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {SITE_NAME} from '~/lib/navigation';
-import {
-  blogPaginationVariables,
-  blogPath,
-} from '~/lib/pages/content-pages-blog';
+import {blogPath} from '~/lib/pages/content-pages-blog';
+import {cursorPaginationVariables} from '~/lib/pages/cursor-pagination';
 import {buildSeo} from '~/lib/pages/content-pages-seo';
 import {canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
-import {catalogCache} from '~/lib/shopify/cache';
 
 export const meta: Route.MetaFunction = ({data}) => [
   {title: formatPageTitle('Blogs')},
@@ -21,13 +18,15 @@ export const meta: Route.MetaFunction = ({data}) => [
 export async function loader({context, request}: Route.LoaderArgs) {
   const {storefront} = context;
   // The cursor and direction are checked before they reach the query; a bad one serves the first page.
-  const paginationVariables = blogPaginationVariables(
+  const paginationVariables = cursorPaginationVariables(
     new URL(request.url).searchParams,
     12,
   );
 
+  // The first page is cached long; a page reached by a cursor is one more entry per cursor, so it is short (C-M2).
+  const paged = new URL(request.url).searchParams.has('cursor');
   const {blogs} = await storefront.query(BLOGS_QUERY, {
-    cache: catalogCache(storefront),
+    cache: paged ? storefront.CacheShort() : storefront.CacheLong(),
     variables: paginationVariables,
   });
 

@@ -117,6 +117,7 @@ const SCROLL_CUE_STYLE = {
 
 /** The most of the window the banner may take; the text scrolls inside it, the buttons never do. */
 export const BANNER_MAX_HEIGHT = '40dvh';
+/** Where the privacy link goes when the caller says nothing; the shell passes the real target (null hides the link). */
 const PRIVACY_POLICY_PATH = '/policies/privacy-policy';
 
 /**
@@ -129,9 +130,15 @@ const PRIVACY_POLICY_PATH = '/policies/privacy-policy';
 export function ConsentBanner({
   config,
   store,
+  privacyPath = PRIVACY_POLICY_PATH,
 }: {
   config: PublicAnalyticsConfig;
   store: ConsentStore;
+  /**
+   * The privacy policy page that exists (the Shopify policy, or a page with the same handle), from the shell's content
+   * availability data (P6-09). Null when neither exists: the sentence then ends without a link rather than linking a 404.
+   */
+  privacyPath?: string | null;
 }) {
   const snapshot = useSyncExternalStore(
     store.subscribe,
@@ -186,12 +193,14 @@ export function ConsentBanner({
       >
         <p className={cn('text-fg', compact ? 'text-xs' : 'text-sm')}>
           {bannerSentence(config, optOut)}
-          <Link
-            to={PRIVACY_POLICY_PATH}
-            className="font-bold underline hover:text-primary-700"
-          >
-            Privacy policy
-          </Link>
+          {privacyPath === null ? null : (
+            <Link
+              to={privacyPath}
+              className="font-bold underline hover:text-primary-700"
+            >
+              Privacy policy
+            </Link>
+          )}
         </p>
       </div>
       <div role="status" className="sr-only">

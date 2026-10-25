@@ -93,12 +93,12 @@ export function PaginatedList<NodeType>({
     <Pagination connection={connection}>
       {({nodes, isLoading, PreviousLink, NextLink}) => (
         <div className="flex flex-col gap-6">
+          {/* Always in the page, so the change from empty to "Loading..." is announced (a region that appears together with its text is not). */}
+          <p role="status" className="sr-only">
+            {isLoading ? 'Loading more articles' : ''}
+          </p>
           <PreviousLink className={MORE_LINK}>
-            {isLoading ? (
-              <span aria-live="polite">Loading...</span>
-            ) : (
-              'Load previous'
-            )}
+            {isLoading ? 'Loading...' : 'Load previous'}
           </PreviousLink>
           <ul
             aria-label={label}
@@ -107,11 +107,7 @@ export function PaginatedList<NodeType>({
             {nodes.map((node, index) => children(node, index))}
           </ul>
           <NextLink className={MORE_LINK}>
-            {isLoading ? (
-              <span aria-live="polite">Loading...</span>
-            ) : (
-              'Load more'
-            )}
+            {isLoading ? 'Loading...' : 'Load more'}
           </NextLink>
         </div>
       )}
