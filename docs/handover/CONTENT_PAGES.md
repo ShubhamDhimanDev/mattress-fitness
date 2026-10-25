@@ -106,6 +106,24 @@ If a link you expect is not on the site, check in this order: the handle matches
 
 The redirect for the privacy and terms addresses (section 4.3) is sent with a `no-store` instruction, so browsers and shared caches are told not to keep it; the policy check behind it still uses the same cached read.
 
+### 3.6 Taking a page down quickly (for example for a legal reason)
+
+`[FROM CODE]` (`content-pages-data.ts`, `content-pages-cache.ts`; timings are the code's settings, not measured on a real store)
+
+Unpublishing is a two-part event with two different clocks:
+
+- **The links** to the page (footer, header, menu, cookie banner) disappear within the website's own memory of "which pages exist" (about **1 minute**), and, if Shopify cannot be read at that moment, up to **10 more minutes** (the last good answer is kept for that long). After a failed read the website also waits **15 seconds** before asking again.
+- **The page text itself** can stay visible at its address for the long cache window of Admin guide section 10.2 (about an **hour**; on a rarely visited address it can be longer, up to about **24 hours** in the worst case, because a cached copy is only replaced when someone asks for it). An address that is not a listed page or an existing article gets only a few seconds of caching, so only pages that existed are affected.
+
+To make it disappear sooner, in order of effort:
+
+1. **Wait** for the windows above. Nothing else to do.
+2. **Restart or redeploy the storefront** (a developer; on the own server this is a restart of the application, Q-003). That empties both the website's memory and its cached copies, so the page is gone as soon as the new process answers. It also resets the 10-minute and 15-second timers.
+3. **Replace the text instead of hiding the page:** if the page must read differently immediately, edit its text and wait the windows; this does not help with a copy already served.
+4. For search results, a page that is hidden or empty is not listed again after search engines next visit it; asking them to remove the address is done in their own tools, not here.
+
+The privacy policy and terms (Settings > Policies) follow the same clocks.
+
 ## 4. Policies: privacy policy, terms, and shipping and refund policies
 
 ### 4.1 Where they are edited

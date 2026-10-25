@@ -177,11 +177,36 @@ export type ContentAvailability = {
   readonly blogs: ReadonlySet<string>;
 };
 
-export const NO_CONTENT: ContentAvailability = {
-  pages: new Set(),
-  policies: new Set<PolicyField>(),
-  blogs: new Set(),
-};
+/**
+ * A set that cannot be changed: the answer is remembered and shared by every request, so one consumer adding to it
+ * would change what all the others see (security re-review RR-L4). `add`, `delete` and `clear` throw.
+ */
+class FrozenSet<T> extends Set<T> {
+  constructor(items: Iterable<T> = []) {
+    super();
+    for (const item of items) super.add(item);
+    Object.freeze(this);
+  }
+  override add(): never {
+    throw new TypeError('This set is read-only');
+  }
+  override delete(): never {
+    throw new TypeError('This set is read-only');
+  }
+  override clear(): never {
+    throw new TypeError('This set is read-only');
+  }
+}
+
+export function readOnlySet<T>(items: Iterable<T> = []): ReadonlySet<T> {
+  return new FrozenSet(items);
+}
+
+export const NO_CONTENT: ContentAvailability = Object.freeze({
+  pages: readOnlySet<string>(),
+  policies: readOnlySet<PolicyField>(),
+  blogs: readOnlySet<string>(),
+});
 
 export function contentPageByHandle(handle: unknown): ContentPage | null {
   if (typeof handle !== 'string') return null;

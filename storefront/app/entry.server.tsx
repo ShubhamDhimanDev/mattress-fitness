@@ -7,6 +7,7 @@ import {
 } from '@shopify/hydrogen';
 import type {EntryContext} from 'react-router';
 import {errorFields, logError} from '~/lib/logging/logger';
+import {logRequestError} from '~/lib/logging/request-error';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
 import {
   applySecurityHeaders,
@@ -118,4 +119,16 @@ export function handleDataRequest(
   {request}: {request: Request},
 ) {
   return withSecurityHeaders(response, headerInput(request));
+}
+
+/**
+ * Called by React Router for errors it handles itself (a loader or action that throws, a refused cross-site post).
+ * Without this export it prints the whole error with `console.error`, which for a failed Storefront call carries the
+ * query and its variables (security re-review RR-M1, T-05). Only the class name and the path are logged.
+ */
+export function handleError(
+  error: unknown,
+  {request}: {request: Request},
+): void {
+  logRequestError(error, request);
 }

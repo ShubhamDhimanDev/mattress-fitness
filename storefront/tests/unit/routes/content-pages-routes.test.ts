@@ -634,3 +634,41 @@ describe('REQ-CNT-001 junk handles and cursors leave no long cache entries (secu
     ]);
   });
 });
+
+describe('REQ-CNT-001 handle case does not earn the long cache window (security RR-L1)', () => {
+  it.each(['FAQ', 'fAq', 'FaQ'])(
+    '/pages/%s is read on the short window like any junk handle',
+    async (handle) => {
+      const {storefront, calls} = fakeStorefront(() => ({page: null}));
+      await thrown(() =>
+        pageLoader(args(`/pages/${handle}`, {handle}, storefront)),
+      );
+      expect(calls[0]?.cache).toEqual({mode: 'short'});
+    },
+  );
+
+  it('does not promote a handle when Shopify answers with a page whose handle differs in case', async () => {
+    const {storefront, calls} = fakeStorefront(() => ({
+      page: page({handle: 'extra'}),
+    }));
+    // The request asks for 'EXTRA'; Shopify answers 'extra', so the loader redirects to the canonical casing.
+    await thrown(() =>
+      pageLoader(args('/pages/EXTRA', {handle: 'EXTRA'}, storefront)),
+    );
+    await thrown(() =>
+      pageLoader(args('/pages/EXTRA', {handle: 'EXTRA'}, storefront)),
+    );
+    expect(calls.map((call) => call.cache)).toEqual([
+      {mode: 'short'},
+      {mode: 'short'},
+    ]);
+  });
+
+  it('keeps the exact registry spelling on the long window', async () => {
+    const {storefront, calls} = fakeStorefront(() => ({page: null}));
+    await thrown(() =>
+      pageLoader(args('/pages/faq', {handle: 'faq'}, storefront)),
+    );
+    expect(calls[0]?.cache).toEqual({mode: 'long'});
+  });
+});

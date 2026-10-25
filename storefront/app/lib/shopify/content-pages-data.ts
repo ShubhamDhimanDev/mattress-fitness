@@ -18,6 +18,7 @@ import {
   CONTENT_PAGES,
   NO_CONTENT,
   footerPageLinks,
+  readOnlySet,
   type ContentAvailability,
   type PolicyField,
 } from '~/lib/pages/content-pages';
@@ -99,7 +100,11 @@ export function availabilityFrom(
     if (isRecord(shop.privacyPolicy)) policies.add('privacyPolicy');
     if (isRecord(shop.termsOfService)) policies.add('termsOfService');
   }
-  return {pages, policies, blogs};
+  return Object.freeze({
+    pages: readOnlySet(pages),
+    policies: readOnlySet(policies),
+    blogs: readOnlySet(blogs),
+  });
 }
 
 // A shop outage would otherwise write the same line on every request of every page.
@@ -115,16 +120,48 @@ let failureLogged = false;
 // settles would block every later refresh.
 export const AVAILABILITY_FRESH_MS = 60_000;
 export const AVAILABILITY_MAX_STALE_MS = 600_000;
+// A caller waits at most this long for the shared read (security re-review RR-L2): past it, the page is built with the
+// last answer or none, and the read carries on for the next request. After a failure or a timeout the read is not
+// tried again for BACKOFF_MS (RR-L3), so a slow or broken Shopify costs each page nothing instead of a wait.
+export const AVAILABILITY_TIMEOUT_MS = 3_000;
+export const AVAILABILITY_BACKOFF_MS = 15_000;
 
 let memory: {readonly value: ContentAvailability; readonly at: number} | null =
   null;
 let refresh: Promise<ContentAvailability> | null = null;
+let backoffUntil = 0;
 
 /** Test seam: forgets the logged failure and the remembered answer, so each test starts like a fresh isolate. */
 export function resetContentPagesLogMemory(): void {
   failureLogged = false;
   memory = null;
   refresh = null;
+  backoffUntil = 0;
+}
+
+/** The last good answer while it is young enough, otherwise nothing. */
+function fallbackAnswer(now: number): ContentAvailability {
+  return memory && now - memory.at < AVAILABILITY_MAX_STALE_MS
+    ? memory.value
+    : NO_CONTENT;
+}
+
+/** The first of the read and the timer; the read is not cancelled, so it can still finish for the next request. */
+function raceTimeout(
+  work: Promise<ContentAvailability>,
+  onTimeout: () => ContentAvailability,
+): Promise<ContentAvailability> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(
+      () => resolve(onTimeout()),
+      AVAILABILITY_TIMEOUT_MS,
+    );
+    const done = (value: ContentAvailability) => {
+      clearTimeout(timer);
+      resolve(value);
+    };
+    work.then(done, () => done(onTimeout()));
+  });
 }
 
 async function readAvailability(
@@ -136,6 +173,7 @@ async function readAvailability(
       cache: catalogCache(storefront),
     });
     failureLogged = false;
+    backoffUntil = 0;
     const value = availabilityFrom(data);
     memory = {value, at: now};
     return value;
@@ -144,10 +182,8 @@ async function readAvailability(
       failureLogged = true;
       logError('content.pages_read_failed', errorFields(error));
     }
-    if (memory && now - memory.at < AVAILABILITY_MAX_STALE_MS) {
-      return memory.value;
-    }
-    return NO_CONTENT;
+    backoffUntil = now + AVAILABILITY_BACKOFF_MS;
+    return fallbackAnswer(now);
   }
 }
 
@@ -160,10 +196,15 @@ export async function loadContentAvailability(
   now: number = Date.now(),
 ): Promise<ContentAvailability> {
   if (memory && now - memory.at < AVAILABILITY_FRESH_MS) return memory.value;
+  if (now < backoffUntil) return fallbackAnswer(now);
   refresh ??= readAvailability(storefront, now).finally(() => {
     refresh = null;
   });
-  return refresh;
+  return raceTimeout(refresh, () => {
+    // A read that does not answer in time is treated like a failed one for the next BACKOFF_MS.
+    backoffUntil = now + AVAILABILITY_BACKOFF_MS;
+    return fallbackAnswer(now);
+  });
 }
 
 /** The footer's Shopify page links; an empty list when nothing exists or the read failed. */

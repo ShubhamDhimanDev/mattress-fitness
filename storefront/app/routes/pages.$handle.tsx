@@ -38,11 +38,13 @@ export async function loader({context, request, params}: Route.LoaderArgs) {
   const cacheKey = `page:${handle}`;
   const {page} = await storefront.query(PAGE_QUERY, {
     cache: contentCache(storefront, cacheKey, {
-      alwaysLong: contentPageByHandle(handle) !== null,
+      // Exact match: /pages/FAQ and /pages/fAq are different cache keys and must not each get an hour-long entry (RR-L1).
+      alwaysLong: contentPageByHandle(handle)?.handle === handle,
     }),
     variables: {handle},
   });
-  if (page) rememberFound(cacheKey);
+  // Promoted only when the returned handle is the one asked for, so a differently cased URL never earns the long window.
+  if (page?.handle === handle) rememberFound(cacheKey);
 
   // Privacy policy and terms are kept in Shopify Settings > Policies as one copy. A page with that handle only
   // counts when it has content (the footer's rule): a missing or empty one sends the shopper to the policy. The

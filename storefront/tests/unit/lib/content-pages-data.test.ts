@@ -1,9 +1,15 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {fakeStorefront} from '../catalog/fake-storefront';
-import {CONTENT_BLOGS, CONTENT_PAGES} from '~/lib/pages/content-pages';
 import {
+  CONTENT_BLOGS,
+  CONTENT_PAGES,
+  NO_CONTENT,
+} from '~/lib/pages/content-pages';
+import {
+  AVAILABILITY_BACKOFF_MS,
   AVAILABILITY_FRESH_MS,
   AVAILABILITY_MAX_STALE_MS,
+  AVAILABILITY_TIMEOUT_MS,
   CONTENT_PAGES_QUERY,
   availabilityFrom,
   loadContentAvailability,
@@ -178,9 +184,12 @@ describe('REQ-CNT-001 loadContentAvailability and loadFooterPageLinks', () => {
     });
     await loadContentAvailability(storefront, 0);
     fail = false;
-    await loadContentAvailability(storefront, 1_000);
+    await loadContentAvailability(storefront, AVAILABILITY_BACKOFF_MS + 1);
     fail = true;
-    await loadContentAvailability(storefront, 1_000 + AVAILABILITY_FRESH_MS);
+    await loadContentAvailability(
+      storefront,
+      AVAILABILITY_BACKOFF_MS + 1 + AVAILABILITY_FRESH_MS,
+    );
     expect(error).toHaveBeenCalledTimes(2);
   });
 
@@ -250,8 +259,122 @@ describe('REQ-CNT-001 the remembered answer in front of the Storefront cache (se
     expect((await loadContentAvailability(storefront, 0)).pages.size).toBe(0);
     fail = false;
     expect(
-      (await loadContentAvailability(storefront, 1)).pages.has('faq'),
+      (
+        await loadContentAvailability(storefront, AVAILABILITY_BACKOFF_MS + 1)
+      ).pages.has('faq'),
     ).toBe(true);
     expect(calls).toHaveLength(2);
+  });
+});
+
+describe('REQ-CNT-001 a slow or failing Shopify costs a page nothing (security RR-L2, RR-L3)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('stops waiting after the timeout and serves the last good answer, without cancelling the read', async () => {
+    vi.useFakeTimers();
+    let release: (value: unknown) => void = () => {};
+    let slow = false;
+    const {storefront, calls} = fakeStorefront(() =>
+      slow
+        ? new Promise((resolve) => {
+            release = resolve;
+          })
+        : answer({faq: '<p>Q</p>'}),
+    );
+    await loadContentAvailability(storefront, 0);
+    slow = true;
+    const waiting = loadContentAvailability(
+      storefront,
+      AVAILABILITY_FRESH_MS + 1,
+    );
+    await vi.advanceTimersByTimeAsync(AVAILABILITY_TIMEOUT_MS);
+    const served = await waiting;
+    expect(served.pages.has('faq')).toBe(true);
+    // The read is still running; when it finishes, the next request has the new answer.
+    release(answer({about: '<p>About</p>'}));
+    await vi.advanceTimersByTimeAsync(0);
+    const later = await loadContentAvailability(
+      storefront,
+      AVAILABILITY_FRESH_MS + 2_000,
+    );
+    expect([...later.pages]).toEqual(['about']);
+    expect(calls).toHaveLength(2);
+  });
+
+  it('serves nothing, after the timeout, when there is no earlier answer', async () => {
+    vi.useFakeTimers();
+    const {storefront} = fakeStorefront(() => new Promise(() => {}));
+    const waiting = loadContentAvailability(storefront, 0);
+    await vi.advanceTimersByTimeAsync(AVAILABILITY_TIMEOUT_MS);
+    expect((await waiting).pages.size).toBe(0);
+  });
+
+  it('does not make the next request wait after a timeout: it backs off for 15 seconds', async () => {
+    vi.useFakeTimers();
+    const {storefront, calls} = fakeStorefront(() => new Promise(() => {}));
+    const first = loadContentAvailability(storefront, 0);
+    await vi.advanceTimersByTimeAsync(AVAILABILITY_TIMEOUT_MS);
+    await first;
+    // Inside the back-off the answer is immediate (no timer to advance) and no new read is started.
+    const second = await loadContentAvailability(storefront, 5_000);
+    expect(second.pages.size).toBe(0);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('does not retry a failed read for 15 seconds, serving the last answer meanwhile', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let fail = false;
+    const {storefront, calls} = fakeStorefront(() => {
+      if (fail) throw new Error('down');
+      return answer({faq: '<p>Q</p>'});
+    });
+    await loadContentAvailability(storefront, 0);
+    fail = true;
+    const at = AVAILABILITY_FRESH_MS + 1;
+    expect(
+      (await loadContentAvailability(storefront, at)).pages.has('faq'),
+    ).toBe(true);
+    expect(calls).toHaveLength(2);
+    for (const offset of [1, 5_000, AVAILABILITY_BACKOFF_MS - 1]) {
+      const served = await loadContentAvailability(storefront, at + offset);
+      expect(served.pages.has('faq')).toBe(true);
+    }
+    expect(calls).toHaveLength(2);
+    await loadContentAvailability(storefront, at + AVAILABILITY_BACKOFF_MS);
+    expect(calls).toHaveLength(3);
+  });
+
+  it('serves nothing, not an error, inside the back-off when no answer was ever read', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const {storefront, calls} = fakeStorefront(() => {
+      throw new Error('down');
+    });
+    await loadContentAvailability(storefront, 0);
+    expect((await loadContentAvailability(storefront, 10)).pages.size).toBe(0);
+    expect(calls).toHaveLength(1);
+  });
+});
+
+describe('REQ-CNT-001 the shared answer cannot be changed by a consumer (security RR-L4)', () => {
+  it('hands out read-only sets', async () => {
+    const {storefront} = fakeStorefront(() => answer({faq: '<p>Q</p>'}));
+    const value = await loadContentAvailability(storefront, 0);
+    expect(() => (value.pages as Set<string>).add('hacked')).toThrow(TypeError);
+    expect(() => (value.pages as Set<string>).delete('faq')).toThrow(TypeError);
+    expect(() => (value.pages as Set<string>).clear()).toThrow(TypeError);
+    expect(Object.isFrozen(value)).toBe(true);
+    expect([...value.pages]).toEqual(['faq']);
+    expect(value.pages.has('faq')).toBe(true);
+  });
+
+  it('keeps the empty answer read-only too, since every failed read shares it', () => {
+    expect(() => (NO_CONTENT.pages as Set<string>).add('hacked')).toThrow(
+      TypeError,
+    );
+    expect(() => (NO_CONTENT.blogs as Set<string>).add('hacked')).toThrow(
+      TypeError,
+    );
+    expect(Object.isFrozen(NO_CONTENT)).toBe(true);
+    expect(NO_CONTENT.pages.size).toBe(0);
   });
 });
