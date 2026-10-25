@@ -6,20 +6,23 @@ import type {ChatNotice, ChatState} from '~/lib/chat/controller';
 
 export type ChatView = {
   /**
-   * hidden: no call-out. loading and ready: a button. failed: only after the shopper pressed it, a link to the contact
-   * page instead (a passive failure just hides chat).
+   * hidden: no call-out. loading and ready: a button. failed: only after the shopper pressed it (a passive failure just
+   * hides chat); the call-out goes away and the page-level notice says why.
    */
   readonly phase: 'hidden' | 'loading' | 'ready' | 'failed';
   /** The shopper pressed the call-out and is waiting. */
   readonly busy: boolean;
   /** For the polite live region; empty says nothing. */
   readonly message: string;
+  /** The shopper needs to see a notice, not only hear it: chat is unavailable or could not be opened. */
+  readonly alert: boolean;
 };
 
 export const HIDDEN_CHAT_VIEW: ChatView = {
   phase: 'hidden',
   busy: false,
   message: '',
+  alert: false,
 };
 
 const NOTICE_TEXT: Readonly<Record<Exclude<ChatNotice, null>, string>> = {
@@ -30,16 +33,18 @@ const NOTICE_TEXT: Readonly<Record<Exclude<ChatNotice, null>, string>> = {
 
 export function toChatView(state: ChatState): ChatView {
   const message = state.notice === null ? '' : NOTICE_TEXT[state.notice];
+  const alert =
+    state.notice === 'unavailable' || state.notice === 'open_failed';
   switch (state.phase) {
     case 'waiting':
       return HIDDEN_CHAT_VIEW;
     case 'loading':
-      return {phase: 'loading', busy: state.requested, message};
+      return {phase: 'loading', busy: state.requested, message, alert};
     case 'ready':
-      return {phase: 'ready', busy: false, message};
+      return {phase: 'ready', busy: false, message, alert};
     case 'failed':
       return state.requested
-        ? {phase: 'failed', busy: false, message}
+        ? {phase: 'failed', busy: false, message, alert}
         : HIDDEN_CHAT_VIEW;
     default: {
       const unreachable: never = state.phase;

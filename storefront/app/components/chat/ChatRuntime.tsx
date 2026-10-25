@@ -1,6 +1,10 @@
 import {useEffect, useMemo} from 'react';
 import type {ChatRuntimeProps} from '~/components/chat/chat-types';
-import {acquireChat} from '~/lib/chat/live';
+import {
+  acquireChat,
+  cancelDeferredWithdrawal,
+  deferWithdrawal,
+} from '~/lib/chat/live';
 import {toChatView} from '~/lib/chat/view';
 
 /**
@@ -26,9 +30,12 @@ export function ChatRuntime({config, allowed, publish}: ChatRuntimeProps) {
     };
   }, [controller, publish]);
 
-  // A withdrawal or a grant reaches the running controller, which unloads or loads the provider.
+  // A withdrawal or a grant reaches the running controller, which unloads or loads the provider. If this component goes
+  // away for good, the controller is told it is no longer allowed (a mount that follows at once cancels that).
   useEffect(() => {
+    cancelDeferredWithdrawal();
     controller.setAllowed(allowed);
+    return () => deferWithdrawal(controller);
   }, [controller, allowed]);
 
   return null;

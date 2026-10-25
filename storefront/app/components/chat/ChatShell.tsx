@@ -6,6 +6,8 @@ import {
   useSyncExternalStore,
   type ComponentType,
 } from 'react';
+import {createPortal} from 'react-dom';
+import {ChatNotice} from '~/components/chat/ChatNotice';
 import type {ChatConsent, ChatRuntimeProps} from '~/components/chat/chat-types';
 import type {PublicChatConfig} from '~/lib/chat/config';
 import {chatHandle} from '~/lib/chat/handle';
@@ -48,13 +50,24 @@ function whenIdle(callback: () => void): () => void {
  * consent is required, only once the shopper has allowed the `analytics` category. Once requested, the runtime stays
  * mounted so a later withdrawal reaches it and unloads the provider.
  */
+const never = () => () => {};
+
 export function ChatShell({
   config,
   consent,
+  contactTo,
 }: {
   readonly config: PublicChatConfig;
   readonly consent: ChatConsent;
+  /** The contact page when it exists, else null: where the notice sends a shopper whose chat failed. */
+  readonly contactTo: string | null;
 }) {
+  // Client only: the notice is portalled into the body, which the server render does not have.
+  const onClient = useSyncExternalStore(
+    never,
+    () => true,
+    () => false,
+  );
   useSyncExternalStore(
     consent.subscribe,
     consent.getVersion,
@@ -64,19 +77,27 @@ export function ChatShell({
     !config.requiresConsent ||
     consent.getStore()?.getSnapshot().choice.analytics === true;
 
-  const [armed, setArmed] = useState(false);
+  // A shell that mounts again after the runtime was running (the error-page swap) adopts it at once.
+  const [armed, setArmed] = useState(chatHandle.hasStarted);
   useEffect(() => {
     if (!allowed || armed) return;
     return whenIdle(() => setArmed(true));
   }, [allowed, armed]);
 
-  return armed ? (
-    <Suspense fallback={null}>
-      <ChatRuntime
-        config={config}
-        allowed={allowed}
-        publish={chatHandle.publish}
-      />
-    </Suspense>
-  ) : null;
+  return (
+    <>
+      {armed ? (
+        <Suspense fallback={null}>
+          <ChatRuntime
+            config={config}
+            allowed={allowed}
+            publish={chatHandle.publish}
+          />
+        </Suspense>
+      ) : null}
+      {onClient
+        ? createPortal(<ChatNotice contactTo={contactTo} />, document.body)
+        : null}
+    </>
+  );
 }

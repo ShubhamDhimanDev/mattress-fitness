@@ -1,6 +1,7 @@
 import {ChatCallout} from '~/components/chat/ChatCallout';
 import type {ChatEntryProps} from '~/components/chat/chat-types';
 import {ChatShell} from '~/components/chat/ChatShell';
+import {contactFallback} from '~/lib/chat/fallback';
 import type {UtilityLink} from '~/lib/navigation';
 
 function isChat(link: UtilityLink): boolean {
@@ -17,9 +18,17 @@ export function ChatEntry({consent, ...callout}: ChatEntryProps) {
   return (
     <>
       {config && consent ? (
-        <ChatShell config={config} consent={consent} />
+        <ChatShell
+          config={config}
+          consent={consent}
+          contactTo={contactFallback(callout.links)}
+        />
       ) : null}
-      <ChatCallout {...callout} />
+      <ChatCallout
+        className={callout.className}
+        dense={callout.dense}
+        onActivate={callout.onActivate}
+      />
     </>
   );
 }

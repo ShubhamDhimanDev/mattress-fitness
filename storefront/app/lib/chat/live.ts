@@ -31,8 +31,28 @@ export function acquireChat(config: PublicChatConfig): ChatController {
   return controller;
 }
 
+// A real unmount of the chat component (not StrictMode's immediate second run, not the error-page swap, which mount again
+// in the same commit) must still deliver a consent withdrawal: with nothing mounted, no effect would ever tell the
+// controller. So the unmount schedules "no longer allowed" for the next macrotask, and a mount that adopts the controller
+// before then cancels it. The mount that follows tells the controller the truth again.
+let pendingWithdrawal: ReturnType<typeof setTimeout> | null = null;
+
+export function cancelDeferredWithdrawal(): void {
+  if (pendingWithdrawal !== null) clearTimeout(pendingWithdrawal);
+  pendingWithdrawal = null;
+}
+
+export function deferWithdrawal(controller: ChatController): void {
+  cancelDeferredWithdrawal();
+  pendingWithdrawal = setTimeout(() => {
+    pendingWithdrawal = null;
+    controller.setAllowed(false);
+  }, 0);
+}
+
 /** Stops the running controller (a changed configuration, or a test starting over). */
 export function releaseChat(): void {
+  cancelDeferredWithdrawal();
   const current = live;
   if (!current) return;
   live = null;

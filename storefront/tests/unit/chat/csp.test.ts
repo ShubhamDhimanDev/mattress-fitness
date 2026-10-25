@@ -62,9 +62,14 @@ describe('REQ-ANL-004 chat CSP: a configured provider (synthetic) is in both pol
     expect(directive(report, 'connect-src')).toContain(
       'https://api.vendor.example',
     );
+    // The same base sources as the enforced policy plus the chat window's origin (n3: no policy refuses what the other allows).
     expect(directive(report, 'frame-src')).toEqual([
+      "'self'",
+      'https://cdn.shopify.com',
+      'https://shopify.com',
       'https://frame.vendor.example',
     ]);
+    expect(directive(report, 'frame-src')).toEqual(enforced.frameSrc);
     expect(directive(report, 'default-src')).toEqual(["'self'"]);
     expect(report).not.toContain('unsafe-eval');
     expect(report).not.toMatch(/(?:^|[ ;])\*(?:[ ;]|$)/);

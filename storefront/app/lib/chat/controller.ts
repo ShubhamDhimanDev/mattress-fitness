@@ -11,7 +11,8 @@
 //    one fixed reason word to `onFailure`; it never throws into the page (NFR-013);
 //  - `requestOpen` while loading is remembered and honoured the moment the widget is ready; while failed it only
 //    records that the shopper asked, so the call-out can offer the contact page instead of a dead button;
-//  - withdrawing consent unloads the provider (or reports that it cannot), also when it happens during the load;
+//  - withdrawing consent unloads the provider (or reports that it cannot) whatever state it was in, and a script that
+//    arrives after a timeout or a withdrawal is unloaded when it does arrive;
 //  - a fresh grant after a withdrawal or a failure tries once more (the shopper did something; there is no timer loop).
 
 import type {ChatProvider} from '~/lib/chat/provider';
@@ -87,6 +88,10 @@ export function createChatController(
   // Bumped by every start and every withdrawal; a step that finds it changed was overtaken and stands down.
   let generation = 0;
   let provider: ChatProvider | null = null;
+  // One creation at a time: overlapping starts (a grant, a withdrawal and a grant while the adapter is still being built)
+  // share it, so two providers are never built. A failed or empty creation is forgotten so a fresh grant tries again.
+  let creating: Promise<ChatProvider | null> | null = null;
+  let reportedNoUnload = false;
 
   function report(reason: ChatFailureReason): void {
     try {
@@ -119,7 +124,8 @@ export function createChatController(
   function teardown(): void {
     if (provider === null) return;
     if (provider.unload === undefined) {
-      report('unload_unsupported');
+      if (!reportedNoUnload) report('unload_unsupported');
+      reportedNoUnload = true;
       return;
     }
     try {
@@ -147,11 +153,38 @@ export function createChatController(
     }
   }
 
+  function create(): Promise<ChatProvider | null> {
+    creating ??= options.create().then(
+      (made) => {
+        if (made === null) creating = null;
+        return made;
+      },
+      (error: unknown) => {
+        creating = null;
+        throw error;
+      },
+    );
+    return creating;
+  }
+
+  /**
+   * A vendor script can arrive after the timeout, or after a withdrawal. It must not stay: if the attempt it belongs to is
+   * still the current (failed) one, or consent is gone, take it out when it does arrive.
+   */
+  function unloadIfItArrivesLate(loading: Promise<void>, mine: number): void {
+    loading.then(
+      () => {
+        if (mine === generation || !allowed) teardown();
+      },
+      () => {},
+    );
+  }
+
   async function start(): Promise<void> {
     const mine = ++generation;
     update({phase: 'loading', notice: state.requested ? 'starting' : null});
     try {
-      provider ??= await options.create();
+      provider ??= await create();
     } catch {
       if (mine === generation) fail('create_failed');
       return;
@@ -161,11 +194,14 @@ export function createChatController(
       fail('create_failed');
       return;
     }
+    const loading = provider.load();
     try {
-      await withTimeout(provider.load(), timeoutMs);
+      await withTimeout(loading, timeoutMs);
     } catch (error) {
+      const timedOut = error instanceof LoadTimeout;
+      if (timedOut) unloadIfItArrivesLate(loading, mine);
       if (mine !== generation) return;
-      fail(error instanceof LoadTimeout ? 'load_timeout' : 'load_failed');
+      fail(timedOut ? 'load_timeout' : 'load_failed');
       return;
     }
     if (mine !== generation) {
@@ -174,7 +210,13 @@ export function createChatController(
       if (!allowed) teardown();
       return;
     }
-    if (!provider.isReady()) {
+    let ready = false;
+    try {
+      ready = provider.isReady();
+    } catch {
+      // An adapter that throws here is as good as not ready.
+    }
+    if (!ready) {
       fail('not_ready');
       return;
     }
@@ -184,10 +226,10 @@ export function createChatController(
 
   function withdraw(): void {
     generation += 1;
-    const hadSomethingLoaded =
-      state.phase === 'loading' || state.phase === 'ready';
     update({phase: 'waiting', requested: false, notice: null});
-    if (hadSomethingLoaded) teardown();
+    // Always, once a provider exists: an attempt that timed out or failed may have left a script behind, and unloading is
+    // idempotent.
+    teardown();
   }
 
   return {

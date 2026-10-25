@@ -23,7 +23,9 @@ import {
 
 const CHAT_ON = process.env.E2E_CHAT === 'on';
 const CHAT_CONSENT = process.env.E2E_CHAT === 'consent';
-const CHAT_CHUNK = /ChatRuntime/;
+// The entry chunk (ChatEntry, which holds the shell and the call-out) and the runtime chunk. In the dev server each module
+// has its own name, so the shell and the callout are matched by name too.
+const CHAT_CHUNK = /Chat(Entry|Shell|Callout|Notice|Runtime)/;
 const FAKE_PANEL = '#fake-chat-panel';
 
 function watchRequests(page: Page, pattern: RegExp) {
@@ -62,7 +64,10 @@ test.describe('REQ-ANL-004 no chat provider configured (the default)', () => {
     const chunk = watchRequests(page, CHAT_CHUNK);
     await gotoReady(page, '/');
     await page.waitForTimeout(3500); // past the 3 s idle limit the lazy chunks use; a negative proof needs the wait
-    expect(chunk, 'the lazy chat chunk is never requested').toEqual([]);
+    expect(
+      chunk,
+      'no chat chunk (entry, shell, call-out, notice or runtime) is requested',
+    ).toEqual([]);
     await expect(page.locator(FAKE_PANEL)).toHaveCount(0);
     if (isMobile) {
       await page.getByRole('button', {name: 'Menu'}).click();
@@ -99,9 +104,12 @@ test.describe('REQ-ANL-004 call-out (fake provider, consent not required)', () =
     ).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    if (!isMobile) await expect(callout).toBeFocused();
-    // On a phone the drawer closed when the call-out was pressed, so focus goes back to where the menu button is; the
-    // widget itself (a vendor's) decides where focus lands in a real provider: UNVERIFIED for any real one.
+    // On a phone the call-out was in the menu drawer: the drawer closed and gave focus back to the Menu button first, the
+    // widget opened after that, so closing it returns focus to the Menu button. A real vendor's widget decides where
+    // focus lands: UNVERIFIED for any real one.
+    await expect(
+      isMobile ? page.getByRole('button', {name: 'Menu'}) : callout,
+    ).toBeFocused();
   });
 
   test('pressed before the widget is ready: announced as starting, then opens (no dead button)', async ({
@@ -113,12 +121,11 @@ test.describe('REQ-ANL-004 call-out (fake provider, consent not required)', () =
     const callout = await chatCallout(page, isMobile);
     await expect(callout).toBeVisible();
     await callout.click();
-    if (!isMobile) {
-      await expect(callout).toHaveAttribute('aria-busy', 'true');
-      await expect(
-        page.getByRole('status').filter({hasText: 'Starting chat.'}),
-      ).toBeVisible();
-    }
+    if (!isMobile) await expect(callout).toHaveAttribute('aria-busy', 'true');
+    // The page-level live region speaks on both layouts (the menu has closed on a phone).
+    await expect(
+      page.getByRole('status').filter({hasText: 'Starting chat.'}),
+    ).toHaveCount(1);
     await expect(page.getByRole('dialog', {name: 'Test chat'})).toBeVisible();
   });
 
@@ -166,10 +173,10 @@ test.describe('NFR-013 chat provider failure never blocks the shop', () => {
     await expect(page.getByRole('button', {name: 'Chat with us'})).toHaveCount(
       0,
     );
-    // Either the contact page exists and a link replaced the button (never a dead one), or the call-out went away.
-    const fallback = page.getByRole('link', {
-      name: 'Chat unavailable: contact us',
-    });
+    // The notice is page-level, so a phone shopper sees it too. Either the contact page exists and the notice links to it
+    // (never a dead link), or it has only a Dismiss button.
+    await expect(page.getByRole('button', {name: 'Dismiss'})).toBeVisible();
+    const fallback = page.getByRole('link', {name: 'Contact us instead'});
     if ((await fallback.count()) > 0) {
       await expect(fallback.first()).toHaveAttribute('href', '/pages/contact');
     }
@@ -195,6 +202,7 @@ test.describe('NFR-013 chat provider failure never blocks the shop', () => {
     await expect(page.getByRole('status').filter({hasText: /./})).toHaveCount(
       0,
     );
+    await expect(page.getByRole('button', {name: 'Dismiss'})).toHaveCount(0);
   });
 });
 

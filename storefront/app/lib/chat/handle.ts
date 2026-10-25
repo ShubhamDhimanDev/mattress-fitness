@@ -7,10 +7,16 @@
 
 import type {ChatView} from '~/lib/chat/view';
 
-const HIDDEN: ChatView = {phase: 'hidden', busy: false, message: ''};
+const HIDDEN: ChatView = {
+  phase: 'hidden',
+  busy: false,
+  message: '',
+  alert: false,
+};
 
 let view: ChatView = HIDDEN;
 let opener: (() => void) | null = null;
+let started = false;
 const listeners = new Set<() => void>();
 
 export const chatHandle = {
@@ -26,6 +32,7 @@ export const chatHandle = {
   /** The chunk publishes its view and its open action; null takes the chat away (unmount, withdrawn consent). */
   publish(next: ChatView | null, open?: () => void): void {
     view = next ?? HIDDEN;
+    if (next !== null) started = true;
     opener = next === null ? null : (open ?? null);
     for (const listener of [...listeners]) {
       try {
@@ -34,6 +41,17 @@ export const chatHandle = {
         // A faulty subscriber must not stop the others or the page.
       }
     }
+  },
+  /**
+   * True once the runtime has published a view on this page. A shell that mounts again (the error-page swap) starts with
+   * the runtime already mounted, so the running controller is adopted at once instead of waiting for idle time.
+   */
+  hasStarted: (): boolean => started,
+  /** For tests that start the page over (the controller is released too). */
+  reset(): void {
+    started = false;
+    chatHandle.publish(null);
+    started = false;
   },
   /** What a call-out does. Nothing happens when there is no chat, which the call-out never offers anyway. */
   open(): void {

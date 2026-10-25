@@ -10,6 +10,7 @@ import type {ChatProvider} from '~/lib/chat/provider';
 type Script = {
   load?: () => Promise<void>;
   ready?: boolean;
+  readyThrows?: boolean;
   open?: () => void;
   unload?: (() => void) | null;
 };
@@ -22,7 +23,10 @@ function scripted(script: Script = {}) {
       calls.push('load');
       return script.load ? script.load() : Promise.resolve();
     },
-    isReady: () => script.ready ?? true,
+    isReady: () => {
+      if (script.readyThrows) throw new Error('isReady failed');
+      return script.ready ?? true;
+    },
     open: () => {
       calls.push('open');
       script.open?.();
@@ -331,5 +335,131 @@ describe('NFR-011 controller: consent withdrawn', () => {
     controller.stop();
     expect(calls).toEqual(['load', 'unload']);
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe('NFR-011 / NFR-013 controller: a script that arrives late (review M2)', () => {
+  it('after a timeout, a load that eventually resolves is unloaded; a later withdrawal unloads again', async () => {
+    let finish: () => void = () => {};
+    const {controller, calls, failures} = setup({
+      load: () => new Promise<void>((resolve) => (finish = resolve)),
+    });
+    controller.setAllowed(true);
+    await settle();
+    await vi.advanceTimersByTimeAsync(1001);
+    expect(failures).toEqual(['load_timeout']);
+    expect(controller.getState().phase).toBe('failed');
+    const unloadsAtTimeout = calls.filter((call) => call === 'unload').length;
+    finish();
+    await settle();
+    expect(calls.filter((call) => call === 'unload').length).toBe(
+      unloadsAtTimeout + 1,
+    );
+    expect(controller.getState().phase).toBe('failed');
+    controller.setAllowed(false);
+    expect(calls.filter((call) => call === 'unload').length).toBe(
+      unloadsAtTimeout + 2,
+    );
+  });
+
+  it('withdrawing after the timeout and before the script arrives still removes it when it does', async () => {
+    let finish: () => void = () => {};
+    const {controller, calls} = setup({
+      load: () => new Promise<void>((resolve) => (finish = resolve)),
+    });
+    controller.setAllowed(true);
+    await settle();
+    await vi.advanceTimersByTimeAsync(1001);
+    controller.setAllowed(false);
+    const before = calls.filter((call) => call === 'unload').length;
+    finish();
+    await settle();
+    expect(calls.filter((call) => call === 'unload').length).toBe(before + 1);
+    expect(controller.getState().phase).toBe('waiting');
+  });
+
+  it('a withdrawal always unloads once a provider exists, also from the failed state', async () => {
+    const {controller, calls} = setup({
+      load: () => Promise.reject(new Error('x')),
+    });
+    controller.setAllowed(true);
+    await settle();
+    const afterFailure = calls.filter((call) => call === 'unload').length;
+    controller.setAllowed(false);
+    expect(calls.filter((call) => call === 'unload').length).toBe(
+      afterFailure + 1,
+    );
+  });
+
+  it('a provider that cannot unload is reported once, not on every attempt', async () => {
+    const {controller, failures} = setup({
+      unload: null,
+      load: () => Promise.reject(new Error('x')),
+    });
+    controller.setAllowed(true);
+    await settle();
+    controller.setAllowed(false);
+    controller.setAllowed(true);
+    await settle();
+    controller.setAllowed(false);
+    expect(
+      failures.filter((reason) => reason === 'unload_unsupported'),
+    ).toHaveLength(1);
+  });
+});
+
+describe('REQ-ANL-004 controller: robustness (review m1, m2)', () => {
+  it('overlapping starts share one adapter creation', async () => {
+    let creations = 0;
+    let finishCreate: () => void = () => {};
+    const made = scripted();
+    const controller = createChatController({
+      create: () => {
+        creations += 1;
+        return new Promise<ChatProvider>((resolve) => {
+          finishCreate = () => resolve(made.provider);
+        });
+      },
+      onFailure: () => {},
+      loadTimeoutMs: 1000,
+    });
+    controller.setAllowed(true);
+    controller.setAllowed(false);
+    controller.setAllowed(true);
+    finishCreate();
+    await settle();
+    expect(creations).toBe(1);
+    expect(controller.getState().phase).toBe('ready');
+    expect(made.calls.filter((call) => call === 'load')).toHaveLength(1);
+  });
+
+  it('a creation that failed is forgotten, so a fresh grant tries again', async () => {
+    let creations = 0;
+    const made = scripted();
+    const controller = createChatController({
+      create: () => {
+        creations += 1;
+        return creations === 1
+          ? Promise.reject(new Error('chunk'))
+          : Promise.resolve(made.provider);
+      },
+      onFailure: () => {},
+    });
+    controller.setAllowed(true);
+    await settle();
+    expect(controller.getState().phase).toBe('failed');
+    controller.setAllowed(false);
+    controller.setAllowed(true);
+    await settle();
+    expect(creations).toBe(2);
+    expect(controller.getState().phase).toBe('ready');
+  });
+
+  it('an isReady that throws counts as not ready and does not throw', async () => {
+    const {controller, failures} = setup({readyThrows: true});
+    controller.setAllowed(true);
+    await settle();
+    expect(controller.getState().phase).toBe('failed');
+    expect(failures).toEqual(['not_ready']);
   });
 });

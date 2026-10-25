@@ -102,7 +102,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   releaseChat();
-  chatHandle.publish(null);
+  chatHandle.reset();
   consentHandle.publish(null);
   Reflect.deleteProperty(window, 'requestIdleCallback');
   Reflect.deleteProperty(window, 'cancelIdleCallback');
@@ -214,7 +214,7 @@ describe('REQ-ANL-004 call-out behaviour', () => {
 });
 
 describe('NFR-013 provider failure hides chat only', () => {
-  it('a passive failure leaves no call-out, no empty list item and no announcement', async () => {
+  it('a passive failure leaves no call-out, no empty list item, no notice and nothing to announce', async () => {
     Reflect.set(window, '__CHAT_FAKE__', {failLoad: true});
     render(<Page config={open} />);
     await flushIdle();
@@ -222,43 +222,70 @@ describe('NFR-013 provider failure hides chat only', () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
     expect(screen.queryByRole('button', {name: 'Chat with us'})).toBeNull();
-    expect(screen.queryByRole('link', {name: /chat/i})).toBeNull();
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(
+      screen.queryByRole('link', {name: /chat|contact us instead/i}),
+    ).toBeNull();
+    expect(screen.queryByRole('button', {name: 'Dismiss'})).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('');
     // Only the two ordinary links remain: no empty item where the call-out was.
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 
-  it('after the shopper pressed it, a failure swaps the button for the contact link, keeps focus and announces', async () => {
+  it('after the shopper pressed it, a failure removes the button, announces, shows a notice with the contact page, and focus is not lost', async () => {
     Reflect.set(window, '__CHAT_FAKE__', {failLoad: true, loadDelayMs: 100});
     render(<Page config={open} />);
     await flushIdle();
     const button = await chatButton();
     button.focus();
     fireEvent.click(button);
-    const link = await screen.findByRole('link', {
-      name: 'Chat unavailable: contact us',
-    });
+    const link = await screen.findByRole('link', {name: 'Contact us instead'});
     expect(link.getAttribute('href')).toBe('/pages/contact');
-    expect(document.activeElement).toBe(link);
+    expect(screen.queryByRole('button', {name: 'Chat with us'})).toBeNull();
     expect(screen.getByRole('status').textContent).toBe(
       'Chat is unavailable right now.',
     );
-    expect(screen.queryByRole('button', {name: 'Chat with us'})).toBeNull();
+    // The pressed button went away with focus on it; focus moves to the notice instead of falling to the page (n4).
+    const notice = link.closest<HTMLElement>('[tabindex="-1"]');
+    expect(notice).not.toBeNull();
+    expect(document.activeElement).toBe(notice);
   });
 
-  it('with no contact page the failed call-out simply goes away (never a dead link)', async () => {
+  it('a failure that arrives after the shopper moved on does not take focus', async () => {
+    Reflect.set(window, '__CHAT_FAKE__', {failLoad: true, loadDelayMs: 100});
+    render(<Page config={open} />);
+    await flushIdle();
+    fireEvent.click(await chatButton());
+    const elsewhere = screen.getByRole('button', {name: 'Elsewhere'});
+    elsewhere.focus();
+    await screen.findByRole('link', {name: 'Contact us instead'});
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
+  it('with no contact page the notice has no link (never a dead one) and can be dismissed', async () => {
     Reflect.set(window, '__CHAT_FAKE__', {failLoad: true, loadDelayMs: 100});
     render(<Page config={open} contact={false} />);
     await flushIdle();
     fireEvent.click(await chatButton());
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    });
-    expect(screen.queryByRole('link', {name: /chat/i})).toBeNull();
+    const dismiss = await screen.findByRole('button', {name: 'Dismiss'});
+    expect(
+      screen.queryByRole('link', {name: /contact us instead/i}),
+    ).toBeNull();
     expect(screen.queryByRole('button', {name: 'Chat with us'})).toBeNull();
     expect(screen.getByRole('status').textContent).toBe(
       'Chat is unavailable right now.',
     );
+    fireEvent.click(dismiss);
+    expect(screen.queryByRole('button', {name: 'Dismiss'})).toBeNull();
+  });
+
+  it('a widget that cannot be opened shows the notice too, and the button stays', async () => {
+    render(<Page config={open} />);
+    await flushIdle();
+    const button = await chatButton();
+    Reflect.set(window, '__CHAT_FAKE__', {openThrows: true});
+    fireEvent.click(button);
+    expect(await screen.findByRole('button', {name: 'Dismiss'})).toBeTruthy();
+    expect(screen.getByRole('button', {name: 'Chat with us'})).toBeTruthy();
   });
 });
 

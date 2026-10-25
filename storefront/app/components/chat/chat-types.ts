@@ -29,11 +29,6 @@ export type ChatCalloutProps = {
   readonly className: string;
   /** True in the header bar (a 16 px icon); false in the menu (20 px). */
   readonly dense?: boolean;
-  /**
-   * The header's utility links. The "contact" entry in them means the contact page exists (the root loader's existence
-   * rule), and is where a call-out that failed after the shopper pressed it sends them; without one it simply goes away.
-   */
-  readonly links: readonly UtilityLink[];
   /** Called before chat opens, for example to close the menu drawer. */
   readonly onActivate?: (() => void) | undefined;
 };
@@ -43,5 +38,10 @@ export type ChatCalloutProps = {
  * (consent, idle, the runtime) for the provider named in the chat link; the mobile menu's instance shows the call-out only.
  */
 export type ChatEntryProps = ChatCalloutProps & {
+  /**
+   * The header's utility links. The chat entry names the provider; the "contact" entry means the contact page exists (the
+   * root loader's existence rule) and is where the notice sends a shopper whose chat failed.
+   */
+  readonly links: readonly UtilityLink[];
   readonly consent?: ChatConsent | undefined;
 };

@@ -215,7 +215,7 @@ export function enforcedCspExtras(
     extras.imgSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...img];
   }
   if (script.length > 0 || connect.length > 0) extras.connectSrc = connect;
-  // Hydrogen sends no frame-src of its own (frames fall back to default-src); a chat window's origin is named alone.
+  // Hydrogen sends no frame-src of its own (frames fall back to default-src); naming it replaces that fallback, so the base sources are repeated with the chat window's origin.
   if (chat.frame.length > 0) {
     extras.frameSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...chat.frame];
   }
@@ -284,7 +284,13 @@ export function buildReportOnlyCsp(
         ...devSockets,
       ],
     ],
-    ['frame-src', chat.frame.length > 0 ? [...chat.frame] : ["'none'"]],
+    [
+      'frame-src',
+      // The same base sources as the enforced policy, so a chat window is not allowed in one and refused in the other.
+      chat.frame.length > 0
+        ? ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...chat.frame]
+        : ["'none'"],
+    ],
     ['worker-src', ["'self'"]],
     ['manifest-src', ["'self'"]],
     ['form-action', ["'self'", SHOPIFY_ACCOUNT, ...compact([checkout, store])]],
