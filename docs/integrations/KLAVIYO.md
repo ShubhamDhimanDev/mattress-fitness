@@ -1,0 +1,129 @@
+# Klaviyo email and text-message signup (P7-02)
+
+Requirement: REQ-ANL-003 (signup forms only; flows are excluded, EXC-03). Related: NFR-011 (consent), NFR-013 (a failing provider never breaks the page), threats T-05, T-10, T-13, T-16. Open questions: Q-015 (access, ids, SMS wording), CLR-004 (client access), V-22 (verify the API).
+
+Status 2026-10-25: **built and unit-tested against a typed fake; never run against Klaviyo.** No Klaviyo account, key or list exists (CLR-004). The e2e spec `storefront/tests/e2e/signup.spec.ts` is written and has **not been run**. Nothing has been seen in a browser.
+
+## 1. Verified API facts (read 2026-10-25, official Klaviyo developer documentation)
+
+| Fact                                                                                                                                                                                                                                                                                                                                                                                                  | Source                                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser endpoint "Create Client Subscription": `POST https://a.klaviyo.com/client/subscriptions`, query `company_id` = PUBLIC key, header `revision` (default `2026-10-15`), no authorization, scope `subscriptions:write`, rate limit burst 350/s and steady 750/m, response 202                                                                                                                     | https://developers.klaviyo.com/en/reference/create_client_subscription                                                                                                                                                             |
+| **That page says: "Do not use this endpoint from server-side applications"** and "Never use a private API key with our client-side endpoints"; server applications should use Subscribe Profiles                                                                                                                                                                                                      | same page; https://developers.klaviyo.com/en/docs/collect_email_and_sms_consent_via_api ("Use Create Client Subscription for publicly browsable, client-side environments. Use Subscribe Profiles for server-based applications.") |
+| Server endpoint "Subscribe Profiles": `POST https://a.klaviyo.com/api/profile-subscription-bulk-create-jobs`; `Authorization: Klaviyo-API-Key <private key>`; `revision: 2026-10-15`; body media type `application/vnd.api+json`; scopes `lists:write`, `profiles:write`, `subscriptions:write`; burst 75/s, steady 750/m; up to 1000 profiles per request; 202 on success, `errors` array on 4xx/5xx | https://developers.klaviyo.com/en/reference/bulk_subscribe_profiles                                                                                                                                                                |
+| Body: `data.type = "profile-subscription-bulk-create-job"`; `data.attributes.custom_source`, `.historical_import`, `.profiles.data[]` (`type: "profile"`, `attributes.email`, `.phone_number` in E.164, `.subscriptions.email.marketing.consent = "SUBSCRIBED"`, `.subscriptions.sms.marketing.consent`); `data.relationships.list.data = {type: "list", id}`                                         | same page                                                                                                                                                                                                                          |
+| `consented_at`: "if the historical_import flag is not included, providing any value for this field will raise an error"; with `historical_import: true` it is required, must be in the past, and bypasses double opt-in. So **live consent is stamped by Klaviyo; we send no `consented_at`**                                                                                                         | same page                                                                                                                                                                                                                          |
+| Double opt-in is a **list setting**, not a request field: on a double opt-in list the profile "will receive a message requiring their confirmation"; without a list the account default applies (double opt-in unless changed); until confirmed the consent status does not update                                                                                                                    | same page; the consent guide above                                                                                                                                                                                                 |
+| `custom_source` is "stored as `custom_method_detail`", the place to record where consent came from                                                                                                                                                                                                                                                                                                    | consent guide above                                                                                                                                                                                                                |
+| The call "will remove any UNSUBSCRIBE, SPAM_REPORT or USER_SUPPRESSED suppressions" from the submitted profiles                                                                                                                                                                                                                                                                                       | same page (see risk R1 below)                                                                                                                                                                                                      |
+| SMS: explicit consent only; SMS and a sending number must be set up in Klaviyo first ("SMS configuration is required to subscribe phone number only profiles"); a valid email with an invalid phone succeeds and the phone is ignored (response header `X-Klaviyo-Partial-Failure: phone_number`); with age-gating on, `age_gated_date_of_birth` is required (400 otherwise)                          | consent guide; Subscribe Profiles page                                                                                                                                                                                             |
+| Errors: `errors` array, each with `id`, `status`, `code`, `title`, `detail`, `source`, `meta`; 429 carries `Retry-After` (integer seconds), "immediate retries will always receive a 429"; 4xx is the request's fault, 5xx Klaviyo's                                                                                                                                                                  | https://developers.klaviyo.com/en/docs/rate_limits_and_error_handling                                                                                                                                                              |
+| Revisions: ISO dates in the `revision` header; stable one year, deprecated a second year, retired after two                                                                                                                                                                                                                                                                                           | https://developers.klaviyo.com/en/docs/api_versioning_and_deprecation_policy                                                                                                                                                       |
+
+## 2. Decision: server endpoint with a private key (deviation from the brief)
+
+The brief proposed calling the client endpoint (public company id) from our server. Klaviyo's reference forbids exactly that, so the code uses **Subscribe Profiles with a private key**, the endpoint Klaviyo documents for servers. Consequences:
+
+- `PUBLIC_KLAVIYO_COMPANY_ID` is **not read** (kept in `.env.example` as "reserved"). The form is shown only when `KLAVIYO_PRIVATE_API_KEY` and `KLAVIYO_LIST_ID` are both set and well-formed. A decision for the orchestrator if the company id should also gate the form.
+- A new private credential is needed: a Klaviyo private key limited to `lists:write`, `profiles:write`, `subscriptions:write` (the three scopes the endpoint names). `lists:write` can change lists; security review requested (section 8).
+- The browser never talks to Klaviyo, so **no CSP change** was made (`app/lib/security-headers.ts` untouched).
+
+## 3. What is built
+
+| Part                                                                                       | Where                                                                                                                                  |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Route (POST only, 405 on GET, noindex, no-store)                                           | `storefront/app/routes/signup.tsx`                                                                                                     |
+| Request flow (origin, gate, honeypot, validation, one Klaviyo call, generic answers, logs) | `app/lib/signup/handler.ts`                                                                                                            |
+| Klaviyo client (allow-listed host, timeout, one attempt, typed result)                     | `app/lib/signup/klaviyo-client.ts`                                                                                                     |
+| Email check, form parser, browser pre-check                                                | `email.ts`, `request.ts`, `precheck.ts`                                                                                                |
+| Rate limiting (per address, per mailbox, overall)                                          | `limiter.ts` (reuses the order-tracking store, hasher and address resolver)                                                            |
+| Consent sentences and versions                                                             | `consent.ts`                                                                                                                           |
+| Configuration                                                                              | `config.ts` (server only); the page gets only `{sms, privacyHref}` or `null`                                                           |
+| UI                                                                                         | `app/components/signup/SignupSlot.tsx` (in the entry JavaScript: a lazy import and Suspense only), `SignupForm.tsx` (lazy chunk)       |
+| Mounting                                                                                   | `SiteFooter` (prop `signup`, via `PageLayout`, from the root loader) and the admin `signup` home block (`HomeSections`, prop `signup`) |
+| Tests                                                                                      | `tests/unit/signup/**`, `tests/unit/routes/signup-route.test.ts`, `tests/e2e/signup.spec.ts` (written, not run)                        |
+
+Configuration (names only): `KLAVIYO_PRIVATE_API_KEY`, `KLAVIYO_LIST_ID` (server); `PUBLIC_KLAVIYO_SMS_ENABLED` (exact text `true`, default off).
+
+## 4. Behaviour
+
+- POST `/signup`; any other method is 405 with `Allow: POST`. Same-origin check (`isSameOriginRequest`). Body capped at 4 KB. Responses are `private, no-store`, `Vary: Cookie`, `X-Robots-Tag: noindex, nofollow`.
+- Not configured: no form rendered, no signup JavaScript requested, POST answers 503 "not available" and calls nothing.
+- Validation: address shape (ASCII, one `@`, dotted domain, length limits, no header breaks), consent must be exactly `yes`, surface (`footer` or `home`) and consent version must be known. A filled honeypot field (`company_website`) gets the same "thank you" as a real signup and nothing else happens.
+- **Generic answer:** every accepted request, and every honeypot hit, returns the same message ("We have received your request. If we need you to confirm your email address, we will send you a message."), true for a new, a known and a pending address. Klaviyo answers 202 for all of them.
+- Rate limits (ASSUMPTIONS, one constant `SIGNUP_GATE_LIMITS` in `limiter.ts`; security review SU-M2, SU-M3). All counters are checked and recorded in ONE atomic reserve, so a refused attempt burns none and parallel posts cannot overshoot (tested with 50 parallel posts per counter); a limiter fault is "unavailable", never "allowed":
+
+  | Counter                                                                   | Limit                                                      |
+  | ------------------------------------------------------------------------- | ---------------------------------------------------------- |
+  | overall (the whole form)                                                  | 60 per 15 minutes (at most 5,760 confirmation mails a day) |
+  | per client address (IPv6 as its /64)                                      | 6 per 15 minutes and 20 per 24 hours                       |
+  | shared bucket, when `TRUSTED_CLIENT_IP_HEADER` is unset                   | 60 per 15 minutes and 100 per 24 hours                     |
+  | per mailbox                                                               | 3 per hour and 5 per 24 hours                              |
+  | per phone number (E.164, only when a text enrolment would really be sent) | 2 per 24 hours                                             |
+
+  Mailbox key: `+tag` removed, Gmail dots removed (`googlemail.com` is `gmail.com`), Yahoo-style `-keyword` removed at `yahoo.com`, `ymail.com`, `rocketmail.com` (SU-L3; provider rules UNVERIFIED). **Limits:** catch-all domains (`a1@x.example`, `a2@x.example` into one inbox) cannot be detected from the address and are not collapsed; the per-address, daily and overall caps bound them. Per-instance memory: do not run signup on more than one process or on Oxygen before P6-14. Alert on `signup.rate_limited` with `limitedBy=overall`. To switch the form off fast: unset `KLAVIYO_PRIVATE_API_KEY` (the form disappears and POST answers 503).
+
+- **Lock-outs (SU-L2), accepted pending the owner's written acceptance:** anyone can burn a mailbox's allowance (3 posts in an hour) and so hold that person's signup shut; with `TRUSTED_CLIENT_IP_HEADER` unset one visitor can use the shared bucket's allowance and shut the form for everybody until the window passes. Setting the header on the host removes the second.
+- A signup post does not re-run any loader: `fetcher.Form` sets `defaultShouldRevalidate={false}` and the root `shouldRevalidate` returns false for `formAction` `/signup` (SU-L4; tested in `tests/unit/routes/root-revalidate.test.ts` and `SignupForm.test.tsx`).
+- Klaviyo down, slow (6 s timeout), 429, 401/403, 5xx or any non-202 success: "Signup is not available right now. Please try again in a little while." (503). One attempt, no retry. A 4xx other than 401/403/429 is shown as "check your email address and try again". The page never errors; a form chunk that fails to download hides the form only.
+- Logs: event names, reason codes, counts. Never an address, phone, key or Klaviyo message. Events: `signup.completed` (outcome, surface, withSms, consentVersion), `signup.rejected`, `signup.rate_limited`, `signup.limiter_failed`, `signup.unavailable`, `signup.upstream_failed` (reason).
+
+## 5. Consent recorded, and independent of the analytics banner
+
+- The email consent is an **unticked** checkbox with the sentence beside it; the form posts `consentEmail=yes` and the **version** of the sentence it showed (`consentEmailVersion`). The server refuses an unknown version rather than record consent for words the shopper did not see.
+- **What Klaviyo records:** its own consent timestamp (we send no `consented_at`) and `custom_source`, which we set to `Storefront <footer|home> signup form (<email version>[, <sms version>])`. **Klaviyo has no field for the consent sentence itself** in the documented request; the sentence is traced by version through the table below and git history. A test pins each sentence to a SHA-256 so changing words without a new version fails.
+- This marketing consent is its own explicit act. It does not read, set or depend on the analytics banner or its cookie (`mf_consent`), and a refusal of analytics does not block it. The privacy policy must say so.
+
+| Version              | Sentence                                                                                                                                                                                                                                | Status                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `email-v1`           | Yes, I would like to receive marketing emails from Mattress Fitness about offers, new products and sleep advice. I can unsubscribe at any time.                                                                                         | **Our draft; not client-approved** (Q-015, Q-012) |
+| `sms-placeholder-v0` | [PLACEHOLDER, wording not approved] I agree to receive recurring marketing text messages from Mattress Fitness at the number above. Consent is not a condition of any purchase. Message and data rates may apply. Reply STOP to cancel. | **PLACEHOLDER; legal review required**            |
+
+SMS: off unless `PUBLIC_KLAVIYO_SMS_ENABLED` is exactly `true`. Even then a **production build keeps it off** until `SMS_CONSENT.clientApproved` is set true in a reviewed change that also bumps the version (development shows the placeholder). A number needs its own ticked box; email consent never covers text messages. Email is always required; a phone-only signup is not offered.
+
+**SU-M3, number ownership:** nothing proves the person typing a number owns it. A per-number counter (2 per 24 hours) limits repeat enrolment, but it does not verify ownership. **SMS stays off in production** (`clientApproved: false`) until counsel decides how ownership is proven (for example double opt-in by text, or a code) and the placeholder wording is replaced. What Klaviyo sends when a phone is subscribed through this endpoint is unverified.
+
+**Thin consent evidence (SU-L5):** Klaviyo stores its own timestamp and our `custom_source` (surface and wording version); no IP address or user agent is recorded. That is a privacy plus, but counsel must confirm it is enough evidence for email and, above all, for SMS (Q-012, Q-015).
+
+## 6. Conditions before go-live
+
+1. **SU-M1, owner/go-live gate, no real key before it is met.** The target list must be **double opt-in** in Klaviyo. Reason: Subscribe Profiles "will remove any UNSUBSCRIBE, SPAM_REPORT or USER_SUPPRESSED suppressions" from the submitted profiles, and the page does not say whether an unsubscribed profile becomes marketable or whether the suppression is cleared before the confirmation. Confirmation is the only proof of ownership; the code cannot see the setting. Required evidence (add to V-22 and `progress/BLOCKERS.md`):
+   1. The list's `opt_in_process` observed as `double_opt_in` (`GET /api/lists/{id}`, scope `lists:read`) with a **short-lived read-only key** created for the check and deleted afterwards, or by hand in the Klaviyo interface. **Never add a read scope to the runtime key** (a leak would then expose customer data).
+   2. In a Klaviyo sandbox or test account: unsubscribe a test profile, run the signup for it, and record that the profile is **not marketable until it confirms** and that the unsubscribe state is not silently lost.
+   3. Record who may change the list setting, and a periodic re-check (detective control). The privacy policy must say the person receives a confirmation message.
+      Without 1 and 2 the item fails.
+2. Client-approved email wording (and, for SMS, counsel-approved wording, number-ownership decision, Klaviyo SMS setup and a sending number); privacy policy page naming Klaviyo, the signup, and what is recorded.
+3. `TRUSTED_CLIENT_IP_HEADER` set on the host (otherwise the shared bucket applies and one visitor can lock the form for everyone).
+4. A `mf_signup` rate-limit zone in nginx for `POST /signup` and `POST /signup.data` (devops, SU-M2; `deploy/nginx.conf.example`), and `nginx -t`.
+5. Verify in a Klaviyo sandbox: the request is accepted, the profile lands on the list, `custom_method_detail` shows the source text, double opt-in sends the email, `consented_at` absence is fine, the `Accept` header question below.
+
+### Key handling (SU-L1)
+
+- Create a **dedicated custom key** with exactly `lists:write`, `profiles:write`, `subscriptions:write` and no read scope. Klaviyo does not allow adding a scope to an existing key: delete and recreate it if one is missing. Never reuse the key for anything else.
+- Set it only in the server environment (systemd `EnvironmentFile`, mode `0600`, owned by the service user, outside the repository). Never `PUBLIC_`, never in `dist`, CI logs, the handover bundle or the repository history (REQ-HAND-001 scan).
+- Rotation: create the new key, set it in the env file, restart the service, send one test signup, then delete the old key in Klaviyo. Record the owner and the rotation date in the runbook. Rotate at once on any suspected exposure or when a person with access leaves.
+- Worst case on a leak: `subscriptions:write` with `historical_import: true` and a past `consented_at` bypasses double opt-in, so an attacker could subscribe arbitrary addresses without confirmation (spam, sender reputation, CAN-SPAM and TCPA exposure). Alert when Klaviyo shows subscribe jobs the storefront did not make.
+
+## 7. Unverified (nothing below has been observed)
+
+- Everything against a real Klaviyo account: acceptance of the body, the 202, list membership, the consent record, double opt-in mail.
+- Whether `Accept: application/vnd.api+json` is required. The reference names only the body media type, so none is sent.
+- The private key shape (only "printable ASCII, 8 to 200 characters" is checked) and the list id shape (3 to 32 letters, digits, `_`, `-`).
+- Maximum length of `custom_source` (ours is under 80 characters).
+- Whether the key needs all three scopes in practice, and whether a restricted key can be created with exactly those.
+- Behaviour for an already-subscribed address (the page is silent; the answer is generic either way).
+- Klaviyo-side failures after the 202 (the job is asynchronous; they are not visible to us).
+- The latency assumption (6 s) and the rate-limit numbers in section 4.
+- Hydration and layout of the lazy form in a browser, focus, axe, 44 px targets, bundle numbers on a real build (section 9).
+
+## 8. Questions for the security engineer
+
+1. Is a private key with `lists:write` acceptable on the storefront host, or should signup go through a narrower intermediary? (The browser endpoint would need a CSP `connect-src https://a.klaviyo.com`, a public company id, and gives up server-side rate limiting and the honeypot.)
+2. Is the per-mailbox counter (3 per hour, `+tag` and Gmail dots collapsed) enough against using the form to send confirmation mail to a victim? An attacker can also exhaust a victim's counter (their own signup is refused for an hour): accepted trade-off?
+3. R1 above: is double opt-in on the list a sufficient, and verifiable, control for the re-subscription behaviour?
+4. Is the 4 KB body cap, the lack of CAPTCHA or proof of work, and the per-instance in-memory counters acceptable until P6-14?
+5. T-05: confirm that `custom_source` (surface and version only) and the generic answer contain no personal data, and that a Klaviyo error body is never read or logged.
+
+## 9. Bundle (NFR-002, DEC-101)
+
+The entry JavaScript carries only `SignupSlot` (a `lazy` import, `Suspense`, a skeleton) and one prop through `PageLayout`/`SiteFooter`; the form, `Checkbox` and the pre-check are a lazy chunk requested only where a form renders, which is nowhere when the signup is off. Measured headroom per route is in the P7-02 task report (the orchestrator records it in `progress/TEST_RESULTS.md`). No budget was edited.

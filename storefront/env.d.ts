@@ -23,5 +23,11 @@ declare global {
     PUBLIC_GA4_MEASUREMENT_ID?: string;
     /** Meta pixel id (digits). Unset: nothing loads, no CSP host is added (REQ-ANL-002). */
     PUBLIC_META_PIXEL_ID?: string;
+    /** Klaviyo private key for the signup form (server only, P7-02). Unset: no signup form is rendered. */
+    KLAVIYO_PRIVATE_API_KEY?: string;
+    /** Klaviyo list id that signups join (server only, P7-02). Unset: no signup form is rendered. */
+    KLAVIYO_LIST_ID?: string;
+    /** The exact text `true` offers the optional text-message fields (P7-02); anything else is off. */
+    PUBLIC_KLAVIYO_SMS_ENABLED?: string;
   }
 }
