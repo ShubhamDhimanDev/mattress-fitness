@@ -28,6 +28,7 @@ describe('parseSignupForm: the email signup (REQ-ANL-003)', () => {
         email: 'shopper@example.com',
         surface: 'footer',
         emailConsentVersion: 'email-v1',
+        strayFill: false,
         sms: null,
       },
     });

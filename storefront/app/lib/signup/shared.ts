@@ -18,8 +18,12 @@ export const SIGNUP_FIELDS = {
   smsConsent: 'consentSms',
   smsConsentVersion: 'consentSmsVersion',
   surface: 'surface',
-  // A field no person sees. A bot that fills every input fills this one too (see request.ts).
-  honeypot: 'company_website',
+  // A field no person sees. A bot that fills every input fills this one too (see request.ts). The name is deliberately
+  // not an address-like word (website, url, company): browsers autofill those, and a stray autofill would silently lose
+  // a real signup.
+  honeypot: 'contact_me_by_fax_only',
+  // Milliseconds the form was on screen, written by the browser at submit. Absent without JavaScript.
+  formAge: 'formAge',
 } as const;
 
 /** The checkbox value that means "ticked". Anything else, including a missing field, means not consented. */

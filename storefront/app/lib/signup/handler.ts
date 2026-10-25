@@ -39,6 +39,7 @@ import {
   type SubscribeRequest,
   type SubscribeResult,
 } from '~/lib/signup/klaviyo-client';
+import {validateSignupEmail} from '~/lib/signup/email';
 import {createSignupGate, type SignupGate} from '~/lib/signup/limiter';
 import {parseSignupForm, type SignupInput} from '~/lib/signup/request';
 import {
@@ -116,9 +117,9 @@ export async function handleSignup(
 
   // The gate sees the address only when it is well-formed; a malformed one counts against the address alone.
   const parsed = parseSignupForm(form, {sms: deps.sms});
-  const rawEmail = form.get(SIGNUP_FIELDS.email);
-  const gateEmail =
-    parsed.status === 'ok' ? parsed.input.email : emailIfValid(rawEmail);
+  // One definition of a countable address: the same check the signup itself uses (review n5).
+  const checked = validateSignupEmail(form.get(SIGNUP_FIELDS.email));
+  const gateEmail = checked.status === 'ok' ? checked.email : null;
   const caller = resolveClientAddress(request.headers, deps.addressHeader);
   const gate = await deps.gate.check({
     address: caller.address,
@@ -156,7 +157,8 @@ export async function handleSignup(
     );
   }
   if (parsed.status === 'honeypot') {
-    logInfo('signup.completed', {outcome: 'honeypot'});
+    // Its own event, so ops can see the volume of bots (review m4).
+    logInfo('signup.honeypot', {outcome: 'dropped'});
     return thankYou();
   }
   if (parsed.status === 'invalid') {
@@ -180,11 +182,19 @@ export async function handleSignup(
     source: consentSource(parsed.input),
   });
   if (subscribed.status === 'failed') {
+    // `config` and `auth` are OURS to fix (list id, key, revision): alert on them. The HTTP status is a number only.
     logWarn('signup.upstream_failed', {
       reason: subscribed.reason,
       surface: parsed.input.surface,
+      ...(subscribed.httpStatus === undefined
+        ? {}
+        : {httpStatus: subscribed.httpStatus}),
     });
     return failureResponse(subscribed.reason);
+  }
+  if (parsed.input.strayFill) {
+    // A person's autofill put text in the hidden field after the form had been open a while: not a bot, so it went ahead.
+    logInfo('signup.honeypot', {outcome: 'ignored_autofill'});
   }
   logInfo('signup.completed', {
     outcome: 'submitted',
@@ -220,17 +230,6 @@ function failureResponse(reason: SubscribeFailure): SignupHttpResult {
     );
   }
   return unavailable(503);
-}
-
-function emailIfValid(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null;
-  // A lower-cased, trimmed copy; the real validation is in parseSignupForm. A malformed value is simply not counted.
-  const value = raw.trim().toLowerCase();
-  return value.length >= 6 &&
-    value.length <= 254 &&
-    /^[\x21-\x7e]+$/.test(value)
-    ? value
-    : null;
 }
 
 // --- Wiring from the request context ---

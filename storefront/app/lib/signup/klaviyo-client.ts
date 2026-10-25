@@ -44,15 +44,27 @@ export type SubscribeFailure =
   /** 401 or 403: the key is wrong or lacks a scope. A configuration fault, not the shopper's. */
   | 'auth'
   | 'rate_limited'
-  /** Another 4xx: Klaviyo refused this request (for example an address it will not accept). */
+  /**
+   * 400, 404, 405 or 415: the request itself is wrong, which is OUR configuration or code (a list id that does not exist,
+   * a retired revision, an unsupported media type), never the shopper's address. Ops alert on it (review m5).
+   */
+  | 'config'
+  /** Another 4xx (for example 409 or 422): Klaviyo refused this one request. */
   | 'rejected'
   | 'server'
-  /** A success status other than the documented 202, or a response that never came. */
+  /** A 2xx other than the documented 202: not claimed as a success, shown as "try again later". */
+  | 'unexpected_2xx'
+  /** Any other status (1xx, 3xx). */
   | 'unexpected';
 
 export type SubscribeResult =
   | {readonly status: 'accepted'}
-  | {readonly status: 'failed'; readonly reason: SubscribeFailure};
+  | {
+      readonly status: 'failed';
+      readonly reason: SubscribeFailure;
+      /** The HTTP status Klaviyo answered with, when it answered. A number: safe to log, no personal data. */
+      readonly httpStatus?: number;
+    };
 
 export type KlaviyoClient = {
   /** Never throws. */
@@ -111,12 +123,16 @@ export function buildSubscribeBody(
   };
 }
 
+const CONFIG_STATUSES: ReadonlySet<number> = new Set([400, 404, 405, 415]);
+
 function classify(status: number): SubscribeFailure | null {
   if (status === 202) return null;
   if (status === 401 || status === 403) return 'auth';
   if (status === 429) return 'rate_limited';
+  if (CONFIG_STATUSES.has(status)) return 'config';
   if (status >= 400 && status < 500) return 'rejected';
   if (status >= 500) return 'server';
+  if (status >= 200 && status < 300) return 'unexpected_2xx';
   return 'unexpected';
 }
 
@@ -154,7 +170,11 @@ export function createKlaviyoClient(deps: {
         const failure = classify(response.status);
         return failure === null
           ? {status: 'accepted'}
-          : {status: 'failed', reason: failure};
+          : {
+              status: 'failed',
+              reason: failure,
+              httpStatus: response.status,
+            };
       } catch {
         return {
           status: 'failed',

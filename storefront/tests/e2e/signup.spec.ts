@@ -1,4 +1,9 @@
-import {expect, test, type APIRequestContext} from '@playwright/test';
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+} from '@playwright/test';
 import {
   collectConsoleErrors,
   expectNoSeriousA11yViolations,
@@ -29,6 +34,23 @@ const apiOnly = (info: {project: {name: string}}) =>
   info.project.name.includes('mobile');
 const API_ONLY_REASON =
   'A protocol-level check, identical on both projects: the desktop project runs it.';
+
+/**
+ * Freezes Date.now() in the page so the form's own "seconds on screen" reading is exactly what the test says, however slow
+ * the machine is (review m4: a filled honeypot is a bot only when the form was submitted in under two seconds).
+ * `window.__advance(ms)` moves the clock forward.
+ */
+async function freezeClock(page: Page) {
+  await page.addInitScript(() => {
+    let now = Date.now();
+    Date.now = () => now;
+    Object.defineProperty(window, '__advance', {
+      value: (ms: number) => {
+        now += ms;
+      },
+    });
+  });
+}
 
 const octet = () => Math.floor(Math.random() * 250) + 1;
 const fakeAddress = () => `10.${octet()}.${octet()}.${octet()}`;
@@ -167,7 +189,7 @@ test.describe('signup configured, fake key (REQ-ANL-003, NFR-011, NFR-013)', () 
     await expect(form.getByRole('button', {name: 'Sign up'})).toBeVisible();
     // The honeypot is not offered to anyone: it is clipped off screen (so Playwright still counts its 1 px box as
     // "visible"), hidden from assistive technology, outside the tab order and not in the accessibility tree.
-    const trap = form.locator('input[name="company_website"]');
+    const trap = form.locator('input[name="contact_me_by_fax_only"]');
     await expect(trap).toHaveCount(1);
     await expect(trap).toHaveAttribute('tabindex', '-1');
     await expect(trap).toHaveAttribute('autocomplete', 'off');
@@ -249,6 +271,7 @@ test.describe('signup configured, fake key (REQ-ANL-003, NFR-011, NFR-013)', () 
       info.project.name.includes('mobile'),
       'The widths are set by the test, so the desktop project covers both.',
     );
+    await freezeClock(page);
     for (const width of [360, 1280]) {
       await page.setViewportSize({width, height: 800});
       await gotoReady(page, '/');
@@ -257,10 +280,12 @@ test.describe('signup configured, fake key (REQ-ANL-003, NFR-011, NFR-013)', () 
         .getByRole('form', {name: HEADING});
       await form.getByLabel(/Email address/).fill(fakeEmail());
       await form.getByRole('checkbox', {name: CONSENT}).check();
-      // What a bot does: fill the field no person sees. The server answers exactly as for a real signup.
-      await form.locator('input[name="company_website"]').evaluate((input) => {
-        (input as HTMLInputElement).value = 'http://spam.example';
-      });
+      // What a bot does (the clock is frozen, so the form was open for 0 ms): fill the field no person sees. The server answers exactly as for a real signup.
+      await form
+        .locator('input[name="contact_me_by_fax_only"]')
+        .evaluate((input) => {
+          (input as HTMLInputElement).value = 'http://spam.example';
+        });
       await form.getByRole('button', {name: 'Sign up'}).click();
       const status = page
         .getByRole('contentinfo')
@@ -275,6 +300,31 @@ test.describe('signup configured, fake key (REQ-ANL-003, NFR-011, NFR-013)', () 
       await expectNoHorizontalScroll(page);
       await expectNoSeriousA11yViolations(page);
     }
+  });
+
+  test('a stray autofill into the hidden field after the form has been open for a while is NOT treated as a bot: the signup goes ahead (review m4)', async ({
+    page,
+  }, info) => {
+    test.skip(apiOnly(info), API_ONLY_REASON);
+    await freezeClock(page);
+    await gotoReady(page, '/');
+    const form = page
+      .getByRole('contentinfo')
+      .getByRole('form', {name: HEADING});
+    await form.getByLabel(/Email address/).fill(fakeEmail());
+    await form.getByRole('checkbox', {name: CONSENT}).check();
+    await form
+      .locator('input[name="contact_me_by_fax_only"]')
+      .evaluate((input: HTMLInputElement) => {
+        input.value = 'autofilled';
+      });
+    await page.evaluate(() =>
+      (window as unknown as {__advance: (ms: number) => void}).__advance(5000),
+    );
+    await form.getByRole('button', {name: 'Sign up'}).click();
+    // The fake key makes the real attempt fail: the friendly retry message, not the thank-you a bot would get.
+    await expect(page.getByText(UNAVAILABLE).first()).toBeVisible();
+    await expect(page.getByText(THANKS)).toHaveCount(0);
   });
 
   test('a good post answers 503 (upstream failed) with no-store and noindex headers, and the body holds neither the address nor the key', async ({
@@ -390,7 +440,7 @@ test.describe('signup configured, fake key (REQ-ANL-003, NFR-011, NFR-013)', () 
     test.skip(apiOnly(info), API_ONLY_REASON);
     const answer = await post(request, {
       ...GOOD(fakeEmail()),
-      company_website: 'http://spam.example',
+      contact_me_by_fax_only: 'http://spam.example',
     });
     expect(answer.status).toBe(200);
     expect(answer.body).toMatch(THANKS);
@@ -407,7 +457,7 @@ test.describe('signup configured, fake key (REQ-ANL-003, NFR-011, NFR-013)', () 
       // Honeypot posts count against the address but call nobody.
       const answer = await post(
         request,
-        {...GOOD(fakeEmail()), company_website: 'x'},
+        {...GOOD(fakeEmail()), contact_me_by_fax_only: 'x'},
         {'x-real-ip': address},
       );
       statuses.push(answer.status);
@@ -430,7 +480,7 @@ test.describe('signup configured, fake key (REQ-ANL-003, NFR-011, NFR-013)', () 
         (
           await post(request, {
             ...GOOD(`${base}+${tag}@example.test`),
-            company_website: 'x',
+            contact_me_by_fax_only: 'x',
           })
         ).status,
       );

@@ -13,7 +13,6 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import {HomeSections} from '~/components/home/HomeSections';
 import {SiteFooter} from '~/components/layout/SiteFooter';
 import {SignupForm} from '~/components/signup/SignupForm';
-import {SignupSlot} from '~/components/signup/SignupSlot';
 import {EMAIL_CONSENT, SMS_CONSENT} from '~/lib/signup/consent';
 import {
   SIGNUP_FIELDS,
@@ -48,6 +47,8 @@ function renderForm(
     respond?: (posted: Posted) => SignupResponse;
     status?: number;
     surface?: 'footer' | 'home';
+    /** Holds the answer to the nth post (1-based) until the promise it returns settles. */
+    hold?: (post: number) => Promise<void> | undefined;
   } = {},
 ) {
   const posts: Posted[] = [];
@@ -76,6 +77,7 @@ function renderForm(
             if (typeof value === 'string') posted[name] = value;
           }
           posts.push(posted);
+          await options.hold?.(posts.length);
           return data(
             options.respond?.(posted) ?? {
               status: 'ok',
@@ -302,6 +304,8 @@ describe('submitting (REQ-ANL-003)', () => {
       [SIGNUP_FIELDS.honeypot]: '',
     });
     expect(posts[0]).not.toHaveProperty(SIGNUP_FIELDS.phone);
+    // The browser's own reading of how long the form was open, for the server's honeypot check (review m4).
+    expect(posts[0]?.[SIGNUP_FIELDS.formAge]).toMatch(/^\d{1,9}$/);
     expect(await screen.findByText(SIGNUP_MESSAGES.ok)).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(SIGNUP_MESSAGES.ok);
     await waitFor(() => expect(emailBox()).toHaveValue(''));
@@ -486,45 +490,64 @@ describe('mounting: nothing when off, a lazy form when on (NFR-002, NFR-013)', (
     vi.doMock('~/components/signup/SignupForm', () => {
       throw new Error('Failed to fetch dynamically imported module');
     });
-    const {SignupSlot: FreshSlot} =
-      await import('~/components/signup/SignupSlot');
-    inRouter(
-      <main>
-        <p>The rest of the page</p>
-        <FreshSlot config={EMAIL_ONLY} surface="footer" />
-      </main>,
-    );
-    await screen.findByText('The rest of the page');
+    const {SiteFooter: FreshFooter} =
+      await import('~/components/layout/SiteFooter');
+    inRouter(<FreshFooter signup={EMAIL_ONLY} />);
+    const footer = await screen.findByRole('contentinfo');
     // Suspense settles on the empty component (the placeholder is gone); there is no error screen and no form.
     await waitFor(() =>
-      expect(document.querySelector('.bg-ink-200')).toBeNull(),
+      expect(footer.querySelector('[aria-hidden="true"].h-72')).toBeNull(),
     );
     expect(screen.queryByRole('form')).toBeNull();
-    expect(screen.getByText('The rest of the page')).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', {name: 'Footer'}),
+    ).toBeInTheDocument();
     vi.doUnmock('~/components/signup/SignupForm');
   });
 
-  it('the page shell imports only SignupSlot statically: the form itself arrives through a dynamic import (bundle budget, scripts/perf)', () => {
+  it('the page shell names the form only through a dynamic import: no static import, no shared slot module (bundle budget, scripts/perf, review m7)', () => {
     const read = (path: string) =>
       readFileSync(resolve(process.cwd(), path), 'utf8');
-    const slot = read('app/components/signup/SignupSlot.tsx');
-    expect(slot).toMatch(/import\('~\/components\/signup\/SignupForm'\)/);
-    expect(slot).not.toMatch(
-      /^import \{[^}]*\} from '~\/components\/signup\/SignupForm'/m,
-    );
     for (const shell of [
       'app/components/layout/SiteFooter.tsx',
       'app/components/home/HomeSections.tsx',
-      'app/components/layout/PageLayout.tsx',
     ]) {
       const source = read(shell);
-      expect(source).not.toMatch(/components\/signup\/SignupForm/);
-      // Server-only signup code (the key, the handler) never reaches a component.
-      expect(source).not.toMatch(
-        /lib\/signup\/(config|handler|klaviyo-client|limiter|request)'/,
+      expect(source).toContain("import('~/components/signup/SignupForm')");
+      // Every static mention of the form module is a type-only import (erased at build).
+      const statics = source
+        .split('\n')
+        .filter(
+          (line) =>
+            line.startsWith('import ') && line.includes('components/signup/'),
+        );
+      expect(statics.every((line) => line.startsWith('import type'))).toBe(
+        true,
       );
+      expect(source).not.toContain('SignupSlot');
+      // Server-only signup code (the key, the handler) never reaches a component.
+      for (const serverOnly of [
+        'config',
+        'handler',
+        'klaviyo-client',
+        'limiter',
+        'request',
+      ]) {
+        expect(source).not.toContain(`lib/signup/${serverOnly}'`);
+      }
     }
-    expect(SignupSlot).toBeTypeOf('function');
+    // The root's layout wrapper passes a plain prop and imports nothing from the signup folders at run time.
+    const layout = read('app/components/layout/PageLayout.tsx');
+    expect(layout).not.toContain('components/signup');
+    const runtimeSignupImports = layout
+      .split('\n')
+      .filter(
+        (line) =>
+          line.startsWith('import ') &&
+          !line.startsWith('import type') &&
+          line.includes('lib/signup'),
+      );
+    expect(runtimeSignupImports).toEqual([]);
   });
 
   it('no component imports server-only signup code', () => {

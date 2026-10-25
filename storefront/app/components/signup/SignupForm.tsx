@@ -39,6 +39,9 @@ export function SignupForm({config, surface}: SignupFormProps) {
   const headingId = useId();
   const fetcher = useFetcher<SignupResponse>();
   const formRef = useRef<HTMLFormElement>(null);
+  const ageRef = useRef<HTMLInputElement>(null);
+  // When the form appeared, for the honeypot's time check. Read in the submit handler only, never during render.
+  const shownAt = useRef(Date.now());
   const [clientErrors, setClientErrors] = useState<SignupFieldErrors | null>(
     null,
   );
@@ -47,11 +50,14 @@ export function SignupForm({config, surface}: SignupFormProps) {
 
   const answer = fetcher.data;
   const busy = fetcher.state !== 'idle';
+  // While a resubmission is in flight the previous answer is stale: show neither its field errors nor its message (n2).
+  const settled = busy ? undefined : answer;
   const errors: SignupFieldErrors =
-    clientErrors ?? (answer?.status === 'invalid' ? answer.errors : NO_ERRORS);
+    clientErrors ??
+    (settled?.status === 'invalid' ? settled.errors : NO_ERRORS);
   const message = clientErrors
     ? SIGNUP_MESSAGES.invalid
-    : (answer?.message ?? '');
+    : (settled?.message ?? '');
 
   useEffect(() => {
     if (answer?.status === 'ok') formRef.current?.reset();
@@ -66,6 +72,10 @@ export function SignupForm({config, surface}: SignupFormProps) {
   }, [refusals, answer]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
+    // Written just before the browser builds the form data. A person needs more than two seconds; a script does not.
+    if (ageRef.current) {
+      ageRef.current.value = String(Math.max(0, Date.now() - shownAt.current));
+    }
     const found = precheckSignup(new FormData(event.currentTarget), {
       sms: config.sms,
     });
@@ -79,7 +89,7 @@ export function SignupForm({config, surface}: SignupFormProps) {
   }
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <h2 id={headingId} className="text-xl font-bold text-fg">
         Get sleep tips and offers
       </h2>
@@ -102,6 +112,12 @@ export function SignupForm({config, surface}: SignupFormProps) {
           type="hidden"
           name={SIGNUP_FIELDS.emailConsentVersion}
           value={EMAIL_CONSENT.version}
+        />
+        <input
+          ref={ageRef}
+          type="hidden"
+          name={SIGNUP_FIELDS.formAge}
+          defaultValue=""
         />
         {/* A field no person sees: a bot that fills every input fills this one, and the server drops the signup. */}
         <div aria-hidden="true" className="sr-only">
@@ -200,6 +216,6 @@ export function SignupForm({config, surface}: SignupFormProps) {
           </p>
         ) : null}
       </div>
-    </section>
+    </div>
   );
 }

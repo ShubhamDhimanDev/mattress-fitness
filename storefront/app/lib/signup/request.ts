@@ -2,7 +2,9 @@
 // Pure: it reads a FormData and answers with a discriminated result; it does no I/O and logs nothing.
 //
 // Rules, each one tested:
-//   - a non-empty honeypot field means a bot: the caller answers as if it worked and does nothing;
+//   - a filled honeypot field means a bot ONLY when the form was also submitted within two seconds of appearing, or never
+//     said how long it was open (no JavaScript, or a script that skips the page). One stray autofill by a person who took
+//     longer than that is ignored, not punished: the signup goes ahead and the caller logs it (review m4);
 //   - the email must pass `validateSignupEmail`; the marketing-email consent must be the exact value "yes" (an unticked
 //     box posts nothing) and must come with the version of the sentence the shopper saw;
 //   - the SMS fields are looked at only when SMS is on. A number needs its own ticked consent and the other way round;
@@ -24,6 +26,8 @@ export type SignupInput = {
   readonly email: string;
   readonly surface: SignupSurface;
   readonly emailConsentVersion: string;
+  /** The honeypot held text but the form had been open long enough to be a person (autofill): the signup went ahead. */
+  readonly strayFill: boolean;
   /** Present only when the shopper gave a valid number AND ticked the SMS consent. */
   readonly sms: {
     readonly phone: string;
@@ -36,6 +40,15 @@ export type ParsedSignup =
   | {readonly status: 'honeypot'}
   | {readonly status: 'invalid'; readonly errors: SignupFieldErrors};
 
+/** Under this many milliseconds on screen, a filled honeypot is a bot; a person cannot read and fill a form that fast. */
+export const HONEYPOT_MIN_AGE_MS = 2000;
+
+/** Whole milliseconds from the browser's own timer, or null when absent or not a plain number. */
+function formAge(form: FormData): number | null {
+  const raw = form.get(SIGNUP_FIELDS.formAge);
+  return typeof raw === 'string' && /^\d{1,9}$/.test(raw) ? Number(raw) : null;
+}
+
 /** A plain string field, or null for anything else (missing, a file upload). */
 function text(form: FormData, name: string): string | null {
   const value = form.get(name);
@@ -46,10 +59,15 @@ export function parseSignupForm(
   form: FormData,
   options: {readonly sms: boolean},
 ): ParsedSignup {
-  // Any content at all, or a file in that field, is a bot: a person cannot see it.
+  // A person cannot see the field, so content in it is a bot or an autofill. A file is never an autofill.
   const trap = form.get(SIGNUP_FIELDS.honeypot);
-  if (trap !== null && !(typeof trap === 'string' && trap.trim() === '')) {
-    return {status: 'honeypot'};
+  const strayFill =
+    trap !== null && !(typeof trap === 'string' && trap.trim() === '');
+  if (strayFill) {
+    const age = formAge(form);
+    if (typeof trap !== 'string' || age === null || age < HONEYPOT_MIN_AGE_MS) {
+      return {status: 'honeypot'};
+    }
   }
 
   const surface = text(form, SIGNUP_FIELDS.surface);
@@ -94,6 +112,7 @@ export function parseSignupForm(
       email: email.email,
       surface,
       emailConsentVersion: EMAIL_CONSENT.version,
+      strayFill,
       sms,
     },
   };

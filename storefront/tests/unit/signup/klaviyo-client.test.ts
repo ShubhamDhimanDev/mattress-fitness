@@ -132,29 +132,40 @@ describe('the call (host allow-list, headers, one attempt, typed failures)', () 
     [401, 'auth'],
     [403, 'auth'],
     [429, 'rate_limited'],
-    [400, 'rejected'],
-    [404, 'rejected'],
+    // Our own request is wrong (list id, revision, media type, method): a configuration fault, not the shopper's.
+    [400, 'config'],
+    [404, 'config'],
+    [405, 'config'],
+    [415, 'config'],
+    // Other 4xx: Klaviyo refused this one request.
     [409, 'rejected'],
     [422, 'rejected'],
+    [418, 'rejected'],
     [500, 'server'],
     [502, 'server'],
     [503, 'server'],
     // Klaviyo documents 202 as the only success. Anything else is not claimed as one.
-    [200, 'unexpected'],
-    [201, 'unexpected'],
+    [200, 'unexpected_2xx'],
+    [201, 'unexpected_2xx'],
+    [204, 'unexpected_2xx'],
+    [226, 'unexpected_2xx'],
   ])(
     'maps status %i to %s without reading the body',
     async (status, reason) => {
       const {fetchFn} = recorder(() =>
         Promise.resolve(
           new Response(
-            JSON.stringify({errors: [{detail: 'shopper@example.com is bad'}]}),
+            status === 204
+              ? null
+              : JSON.stringify({
+                  errors: [{detail: 'shopper@example.com is bad'}],
+                }),
             {status},
           ),
         ),
       );
       const result = await clientWith(fetchFn).subscribe(REQUEST);
-      expect(result).toEqual({status: 'failed', reason});
+      expect(result).toEqual({status: 'failed', reason, httpStatus: status});
       // The result is a code: nothing Klaviyo said, and so no address, can travel with it.
       expect(JSON.stringify(result)).not.toContain('shopper@');
     },

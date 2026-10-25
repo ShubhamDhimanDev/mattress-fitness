@@ -1,8 +1,8 @@
-import {useId, useState} from 'react';
+import {lazy, Suspense, useId, useState, type ComponentType} from 'react';
 import {Link} from 'react-router';
 import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
 import {FooterLogo} from '~/components/layout/BrandLogo';
-import {SignupSlot} from '~/components/signup/SignupSlot';
+import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {cn} from '~/components/ui/cn';
 import {BRAND_TAGLINE} from '~/lib/brand';
 import {displayHeadingClass} from '~/lib/display-type';
@@ -17,6 +17,18 @@ import {
   type FooterQuickLink,
   type SupportPhone,
 } from '~/lib/navigation';
+
+// The signup form is a lazy chunk requested only where a form renders, which is nowhere when the signup is off: this
+// file names a dynamic import and nothing else about it (bundle budget, scripts/perf; review m7). A chunk that cannot be
+// downloaded hides the form and nothing else (NFR-013).
+const NoSignup: ComponentType<SignupFormProps> = () => null;
+const SignupForm = lazy(
+  (): Promise<{default: ComponentType<SignupFormProps>}> =>
+    import('~/components/signup/SignupForm').then(
+      (module) => ({default: module.SignupForm}),
+      () => ({default: NoSignup}),
+    ),
+);
 
 const LINK_CLASSES =
   'inline-flex min-h-touch items-center text-sm text-ink-700 hover:text-primary-700 hover:underline';
@@ -136,7 +148,9 @@ export function SiteFooter({
       {signup ? (
         <div className="mx-auto max-w-page px-4 pt-6 md:px-6">
           <div className="max-w-xl">
-            <SignupSlot config={signup} surface="footer" />
+            <Suspense fallback={<div aria-hidden="true" className="h-72" />}>
+              <SignupForm config={signup} surface="footer" />
+            </Suspense>
           </div>
         </div>
       ) : null}

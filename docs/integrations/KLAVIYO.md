@@ -24,24 +24,24 @@ Status 2026-10-25: **built and unit-tested against a typed fake; never run again
 
 The brief proposed calling the client endpoint (public company id) from our server. Klaviyo's reference forbids exactly that, so the code uses **Subscribe Profiles with a private key**, the endpoint Klaviyo documents for servers. Consequences:
 
-- `PUBLIC_KLAVIYO_COMPANY_ID` is **not read** (kept in `.env.example` as "reserved"). The form is shown only when `KLAVIYO_PRIVATE_API_KEY` and `KLAVIYO_LIST_ID` are both set and well-formed. A decision for the orchestrator if the company id should also gate the form.
+- `PUBLIC_KLAVIYO_COMPANY_ID` is **not read** (kept in `.env.example` as "reserved"). The form is shown only when `KLAVIYO_PRIVATE_API_KEY` and `KLAVIYO_LIST_ID` are both set and well-formed. **Decided (owner/orchestrator, security review 2026-10-25): the company id does not gate the form.**
 - A new private credential is needed: a Klaviyo private key limited to `lists:write`, `profiles:write`, `subscriptions:write` (the three scopes the endpoint names). `lists:write` can change lists; security review requested (section 8).
-- The browser never talks to Klaviyo, so **no CSP change** was made (`app/lib/security-headers.ts` untouched).
+- The browser never talks to Klaviyo, so the signup needs **no CSP host**; this task added none to the security headers (the `form-action 'self'` directive already covers the post).
 
 ## 3. What is built
 
-| Part                                                                                       | Where                                                                                                                                  |
-| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Route (POST only, 405 on GET, noindex, no-store)                                           | `storefront/app/routes/signup.tsx`                                                                                                     |
-| Request flow (origin, gate, honeypot, validation, one Klaviyo call, generic answers, logs) | `app/lib/signup/handler.ts`                                                                                                            |
-| Klaviyo client (allow-listed host, timeout, one attempt, typed result)                     | `app/lib/signup/klaviyo-client.ts`                                                                                                     |
-| Email check, form parser, browser pre-check                                                | `email.ts`, `request.ts`, `precheck.ts`                                                                                                |
-| Rate limiting (per address, per mailbox, overall)                                          | `limiter.ts` (reuses the order-tracking store, hasher and address resolver)                                                            |
-| Consent sentences and versions                                                             | `consent.ts`                                                                                                                           |
-| Configuration                                                                              | `config.ts` (server only); the page gets only `{sms, privacyHref}` or `null`                                                           |
-| UI                                                                                         | `app/components/signup/SignupSlot.tsx` (in the entry JavaScript: a lazy import and Suspense only), `SignupForm.tsx` (lazy chunk)       |
-| Mounting                                                                                   | `SiteFooter` (prop `signup`, via `PageLayout`, from the root loader) and the admin `signup` home block (`HomeSections`, prop `signup`) |
-| Tests                                                                                      | `tests/unit/signup/**`, `tests/unit/routes/signup-route.test.ts`, `tests/e2e/signup.spec.ts` (run with a fake key, V-E227..)                        |
+| Part                                                                                       | Where                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route (POST only, 405 on GET, noindex, no-store)                                           | `storefront/app/routes/signup.tsx`                                                                                                                                                                                                                                              |
+| Request flow (origin, gate, honeypot, validation, one Klaviyo call, generic answers, logs) | `app/lib/signup/handler.ts`                                                                                                                                                                                                                                                     |
+| Klaviyo client (allow-listed host, timeout, one attempt, typed result)                     | `app/lib/signup/klaviyo-client.ts`                                                                                                                                                                                                                                              |
+| Email check, form parser, browser pre-check                                                | `email.ts`, `request.ts`, `precheck.ts`                                                                                                                                                                                                                                         |
+| Rate limiting (per address, per mailbox, overall)                                          | `limiter.ts` (reuses the order-tracking store, hasher and address resolver)                                                                                                                                                                                                     |
+| Consent sentences and versions                                                             | `consent.ts`                                                                                                                                                                                                                                                                    |
+| Configuration                                                                              | `config.ts` (server only); the page gets only `{sms, privacyHref}` or `null`                                                                                                                                                                                                    |
+| UI                                                                                         | `app/components/signup/SignupForm.tsx` is the only component and is a lazy chunk. `SiteFooter.tsx` and `HomeSections.tsx` each name it through their own `lazy(() => import(...))` plus `Suspense` (no shared slot module, so no shared chunk every route downloads; review m7) |
+| Mounting                                                                                   | `SiteFooter` (prop `signup`, via `PageLayout`, from the root loader) and the admin `signup` home block (`HomeSections`, prop `signup`)                                                                                                                                          |
+| Tests                                                                                      | `tests/unit/signup/**`, `tests/unit/routes/signup-route.test.ts`, `tests/e2e/signup.spec.ts` (run with a fake key, V-E227..)                                                                                                                                                    |
 
 Configuration (names only): `KLAVIYO_PRIVATE_API_KEY`, `KLAVIYO_LIST_ID` (server); `PUBLIC_KLAVIYO_SMS_ENABLED` (exact text `true`, default off).
 
@@ -49,7 +49,7 @@ Configuration (names only): `KLAVIYO_PRIVATE_API_KEY`, `KLAVIYO_LIST_ID` (server
 
 - POST `/signup`; any other method is 405 with `Allow: POST`. Same-origin check (`isSameOriginRequest`). Body capped at 4 KB. Responses are `private, no-store`, `Vary: Cookie`, `X-Robots-Tag: noindex, nofollow`.
 - Not configured: no form rendered, no signup JavaScript requested, POST answers 503 "not available" and calls nothing.
-- Validation: address shape (ASCII, one `@`, dotted domain, length limits, no header breaks), consent must be exactly `yes`, surface (`footer` or `home`) and consent version must be known. A filled honeypot field (`company_website`) gets the same "thank you" as a real signup and nothing else happens.
+- Validation: address shape (ASCII, one `@`, dotted domain, length limits, no header breaks), consent must be exactly `yes`, surface (`footer` or `home`) and consent version must be known. **Honeypot (review m4):** a field named `contact_me_by_fax_only` (a name no browser autofills; hidden from sight, keyboard and assistive technology). The browser also posts `formAge`, the milliseconds the form was on screen, written at submit. A filled honeypot is a bot, and gets the same "thank you" as a real signup with nothing sent, when `formAge` is under 2000 or missing (no JavaScript, or a script that skips the page) or when the field is a file. A filled honeypot on a form open for 2 seconds or more is treated as a stray autofill by a person: the signup goes ahead and `signup.honeypot` with `outcome=ignored_autofill` is logged. **Accepted trade-offs:** the age is client-reported, so a slow, scripted bot that fills the trap after 2 seconds gets a real attempt (the limiters and double opt-in bound it); and a bot's instant thank-you versus a real signup's wait for Klaviyo is a timing difference a bot can use to find the trap (it learns the trap, not an address; SU-I1).
 - **Generic answer:** every accepted request, and every honeypot hit, returns the same message ("We have received your request. If we need you to confirm your email address, we will send you a message."), true for a new, a known and a pending address. Klaviyo answers 202 for all of them.
 - Rate limits (ASSUMPTIONS, one constant `SIGNUP_GATE_LIMITS` in `limiter.ts`; security review SU-M2, SU-M3). All counters are checked and recorded in ONE atomic reserve, so a refused attempt burns none and parallel posts cannot overshoot (tested with 50 parallel posts per counter); a limiter fault is "unavailable", never "allowed":
 
@@ -66,7 +66,21 @@ Configuration (names only): `KLAVIYO_PRIVATE_API_KEY`, `KLAVIYO_LIST_ID` (server
 - **Lock-outs (SU-L2), accepted pending the owner's written acceptance:** anyone can burn a mailbox's allowance (3 posts in an hour) and so hold that person's signup shut; with `TRUSTED_CLIENT_IP_HEADER` unset one visitor can use the shared bucket's allowance and shut the form for everybody until the window passes. Setting the header on the host removes the second.
 - A signup post does not re-run any loader: `fetcher.Form` sets `defaultShouldRevalidate={false}` and the root `shouldRevalidate` returns false for `formAction` `/signup` (SU-L4; tested in `tests/unit/routes/root-revalidate.test.ts` and `SignupForm.test.tsx`).
 - Klaviyo down, slow (6 s timeout), 429, 401/403, 5xx or any non-202 success: "Signup is not available right now. Please try again in a little while." (503). One attempt, no retry. A 4xx other than 401/403/429 is shown as "check your email address and try again". The page never errors; a form chunk that fails to download hides the form only.
-- Logs: event names, reason codes, counts. Never an address, phone, key or Klaviyo message. Events: `signup.completed` (outcome, surface, withSms, consentVersion), `signup.rejected`, `signup.rate_limited`, `signup.limiter_failed`, `signup.unavailable`, `signup.upstream_failed` (reason).
+- Logs: event names, reason codes, counts. Never an address, phone, key or Klaviyo message. Events: `signup.completed` (outcome, surface, withSms, consentVersion), `signup.rejected`, `signup.rate_limited`, `signup.limiter_failed`, `signup.unavailable`, `signup.upstream_failed` (reason, and `httpStatus`, a number), `signup.honeypot` (`dropped` or `ignored_autofill`).
+
+  **Klaviyo failure reasons and what ops do** (`signup.upstream_failed`; the shopper always sees "Signup is not available right now" except for `rejected`):
+
+  | reason                         | Cause                                                                                                          | Alert                                                        |
+  | ------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+  | `config`                       | 400, 404, 405 or 415: our request is wrong (a list id that does not exist, a retired `revision`, a media type) | **Alert and fix**: configuration or code, not the shopper    |
+  | `auth`                         | 401 or 403: key wrong, deleted or missing a scope                                                              | **Alert and fix** (rotate or recreate the key)               |
+  | `rate_limited`                 | 429 from Klaviyo                                                                                               | Watch; one attempt is made, no retry                         |
+  | `server`, `timeout`, `network` | Klaviyo down or slow                                                                                           | Watch the rate; the page is unaffected                       |
+  | `unexpected_2xx`               | a 2xx other than the documented 202                                                                            | Alert: the contract may have changed; not counted as success |
+  | `rejected`                     | another 4xx (409, 422...): Klaviyo refused this one request; the shopper is asked to check the address         | Watch the rate                                               |
+  | `unexpected`                   | any other status                                                                                               | Alert                                                        |
+
+  Also alert on `signup.rate_limited` with `limitedBy=overall` and on a sudden volume of `signup.honeypot`.
 
 ## 5. Consent recorded, and independent of the analytics banner
 
@@ -94,7 +108,7 @@ SMS: off unless `PUBLIC_KLAVIYO_SMS_ENABLED` is exactly `true`. Even then a **pr
       Without 1 and 2 the item fails.
 2. Client-approved email wording (and, for SMS, counsel-approved wording, number-ownership decision, Klaviyo SMS setup and a sending number); privacy policy page naming Klaviyo, the signup, and what is recorded.
 3. `TRUSTED_CLIENT_IP_HEADER` set on the host (otherwise the shared bucket applies and one visitor can lock the form for everyone).
-4. A `mf_signup` rate-limit zone in nginx for `POST /signup` and `POST /signup.data` (devops, SU-M2; `deploy/nginx.conf.example`), and `nginx -t`.
+4. The `mf_signup` rate-limit zone exists in `deploy/nginx.conf.example` (6 r/m starting value, burst 5; SU-M2). **Verify only:** `nginx -t` has not been run, the zone's key must use the real client address (Q-003), and the rate is not measured.
 5. Verify in a Klaviyo sandbox: the request is accepted, the profile lands on the list, `custom_method_detail` shows the source text, double opt-in sends the email, `consented_at` absence is fine, the `Accept` header question below.
 
 ### Key handling (SU-L1)
@@ -114,7 +128,7 @@ SMS: off unless `PUBLIC_KLAVIYO_SMS_ENABLED` is exactly `true`. Even then a **pr
 - Behaviour for an already-subscribed address (the page is silent; the answer is generic either way).
 - Klaviyo-side failures after the 202 (the job is asynchronous; they are not visible to us).
 - The latency assumption (6 s) and the rate-limit numbers in section 4.
-- Hydration and layout of the lazy form in a browser, focus, axe, 44 px targets, bundle numbers on a real build (section 9).
+- Beyond the QA run with a placeholder key (V-E227 onward, which proved the failure path and the page in Chromium, not a real signup): hydration of the lazy form on a cold server, the exact layout and focus ring on real devices, and behaviour on WebKit and Firefox.
 
 ## 8. Questions for the security engineer
 
@@ -126,4 +140,4 @@ SMS: off unless `PUBLIC_KLAVIYO_SMS_ENABLED` is exactly `true`. Even then a **pr
 
 ## 9. Bundle (NFR-002, DEC-101)
 
-The entry JavaScript carries only `SignupSlot` (a `lazy` import, `Suspense`, a skeleton) and one prop through `PageLayout`/`SiteFooter`; the form, `Checkbox` and the pre-check are a lazy chunk requested only where a form renders, which is nowhere when the signup is off. Measured headroom per route is in the P7-02 task report (the orchestrator records it in `progress/TEST_RESULTS.md`). No budget was edited.
+Each of `SiteFooter` and `HomeSections` carries a `lazy` import, a `Suspense` and a fixed-height placeholder, plus one prop through `PageLayout`; the form, `Checkbox` and the pre-check are a lazy chunk requested only where a form renders, which is nowhere when the signup is off. There is no shared slot module: two call sites importing one slot module made a small chunk every route downloaded (about 0.8 kB gzip, review m7). Measured headroom per route is in `progress/TEST_RESULTS.md`. P7-02 did not edit any budget; the content and blog budgets were raised by the content-pages work (DEC-112), which cites the earlier shared signup code as the cause.

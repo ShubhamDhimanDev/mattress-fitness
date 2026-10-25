@@ -169,6 +169,7 @@ describe('a good signup (REQ-ANL-003, NFR-011)', () => {
         email: 'a@example.com',
         surface: 'footer',
         emailConsentVersion: 'email-v1',
+        strayFill: false,
         sms: null,
       }),
     ).toBe('Storefront footer signup form (email-v1)');
@@ -461,6 +462,8 @@ describe('Klaviyo failures never break the page (NFR-013)', () => {
     'server',
     'auth',
     'rate_limited',
+    'config',
+    'unexpected_2xx',
     'unexpected',
   ] as const)(
     'a %s failure is a friendly retry message, status 503, one attempt',

@@ -1,3 +1,4 @@
+import {lazy, Suspense, type ComponentType} from 'react';
 import {Link} from 'react-router';
 import {BannerSection} from '~/components/home/BannerSection';
 import {
@@ -6,7 +7,7 @@ import {
   FeaturedProducts,
   SizeTiles,
 } from '~/components/home/CatalogSections';
-import {SignupSlot} from '~/components/signup/SignupSlot';
+import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {Button} from '~/components/ui/Button';
 import {
   HOME_ASSURANCE_ITEMS,
@@ -17,6 +18,18 @@ import {
 import type {SignupPublicConfig} from '~/lib/signup/shared';
 import type {HomeData} from '~/lib/shopify/home-data';
 import type {HomeSection} from '~/lib/shopify/home-sections';
+
+// The signup form is a lazy chunk requested only where a form renders, which is nowhere when the signup is off: this
+// file names a dynamic import and nothing else about it (bundle budget, scripts/perf; review m7). A chunk that cannot be
+// downloaded hides the form and nothing else (NFR-013).
+const NoSignup: ComponentType<SignupFormProps> = () => null;
+const SignupForm = lazy(
+  (): Promise<{default: ComponentType<SignupFormProps>}> =>
+    import('~/components/signup/SignupForm').then(
+      (module) => ({default: module.SignupForm}),
+      () => ({default: NoSignup}),
+    ),
+);
 
 type HomeSectionsProps = {
   home: HomeData;
@@ -116,7 +129,9 @@ function SectionView({
       return signup ? (
         <section className="my-8 rounded-panel bg-surface-muted px-6 py-8">
           <div className="max-w-xl">
-            <SignupSlot config={signup} surface="home" />
+            <Suspense fallback={<div aria-hidden="true" className="h-72" />}>
+              <SignupForm config={signup} surface="home" />
+            </Suspense>
           </div>
         </section>
       ) : null;
