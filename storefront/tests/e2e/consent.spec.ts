@@ -434,10 +434,14 @@ test.describe('providers configured, opt-in mode (REQ-ANL-001, REQ-ANL-002, NFR-
     await expect(
       page.getByRole('link', {name: 'Skip to main content'}),
     ).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(
-      inBanner.getByRole('link', {name: 'Privacy policy'}),
-    ).toBeFocused();
+    // The policy link follows the content pages (0a18274): it is present when the store has a privacy policy (or a
+    // page with that handle) and left out when it has neither, as on the bedding mock store. The tab order is
+    // checked for what the store really renders; the presence rule itself is a unit test (root loader, content pages).
+    const policy = inBanner.getByRole('link', {name: 'Privacy policy'});
+    if ((await policy.count()) > 0) {
+      await page.keyboard.press('Tab');
+      await expect(policy).toBeFocused();
+    }
     await page.keyboard.press('Tab');
     await expect(
       inBanner.getByRole('button', {name: 'Accept all'}),
@@ -1194,6 +1198,15 @@ test.describe('banner layout at 320, 360 and 1280 px (NFR-001, NFR-003)', () => 
       await gotoReady(page, '/');
       await showBanner(page);
       await settled(page);
+      // The banner shows the policy link only when the store has a privacy policy or a page with that handle
+      // (0a18274). The mock stores have neither, so there is no ring to measure there: run these on a store that
+      // has one (the owner's development store with analytics ids), never weaken the measurement.
+      test.skip(
+        (await banner(page)
+          .getByRole('link', {name: 'Privacy policy'})
+          .count()) === 0,
+        'The connected store has no privacy policy, so the banner has no policy link and there is no focus ring to measure.',
+      );
       let onLink = false;
       for (let presses = 0; presses < 4 && !onLink; presses += 1) {
         await page.keyboard.press('Tab');

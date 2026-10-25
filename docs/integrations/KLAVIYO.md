@@ -2,7 +2,7 @@
 
 Requirement: REQ-ANL-003 (signup forms only; flows are excluded, EXC-03). Related: NFR-011 (consent), NFR-013 (a failing provider never breaks the page), threats T-05, T-10, T-13, T-16. Open questions: Q-015 (access, ids, SMS wording), CLR-004 (client access), V-22 (verify the API).
 
-Status 2026-10-25: **built and unit-tested against a typed fake; never run against Klaviyo.** No Klaviyo account, key or list exists (CLR-004). The e2e spec `storefront/tests/e2e/signup.spec.ts` is written and has **not been run**. Nothing has been seen in a browser.
+Status 2026-10-25: **built and unit-tested against a typed fake; never run against Klaviyo.** No Klaviyo account, key or list exists (CLR-004). The e2e spec `storefront/tests/e2e/signup.spec.ts` has run against a placeholder-key server (QA V-E227 to V-E241, 2026-10-25, Chromium, desktop 17 passed and phone 6 passed with the Klaviyo call failing as intended: friendly retry message, 503, no PII, no browser request to Klaviyo); the success path and every real Klaviyo answer are still unverified.
 
 ## 1. Verified API facts (read 2026-10-25, official Klaviyo developer documentation)
 
@@ -41,7 +41,7 @@ The brief proposed calling the client endpoint (public company id) from our serv
 | Configuration                                                                              | `config.ts` (server only); the page gets only `{sms, privacyHref}` or `null`                                                           |
 | UI                                                                                         | `app/components/signup/SignupSlot.tsx` (in the entry JavaScript: a lazy import and Suspense only), `SignupForm.tsx` (lazy chunk)       |
 | Mounting                                                                                   | `SiteFooter` (prop `signup`, via `PageLayout`, from the root loader) and the admin `signup` home block (`HomeSections`, prop `signup`) |
-| Tests                                                                                      | `tests/unit/signup/**`, `tests/unit/routes/signup-route.test.ts`, `tests/e2e/signup.spec.ts` (written, not run)                        |
+| Tests                                                                                      | `tests/unit/signup/**`, `tests/unit/routes/signup-route.test.ts`, `tests/e2e/signup.spec.ts` (run with a fake key, V-E227..)                        |
 
 Configuration (names only): `KLAVIYO_PRIVATE_API_KEY`, `KLAVIYO_LIST_ID` (server); `PUBLIC_KLAVIYO_SMS_ENABLED` (exact text `true`, default off).
 

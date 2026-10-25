@@ -10,7 +10,7 @@ import {
 } from './helpers/catalog';
 
 // REQ-CNT-001 (content pages and their footer links), REQ-CNT-002 (blog listing and article). P6-09.
-// WRITTEN, NOT RUN: this spec has not been executed against a server (no browser was available when it was written).
+// Run history: progress/TEST_RESULTS.md (V-E219 onwards).
 //
 // Specs run against whatever store is connected (mock.shop, bedding.mock.shop or the development store). The 15 pages
 // are written by the client, so these tests assert structure every store has and use whatever pages and blogs the
@@ -44,31 +44,77 @@ test.describe('REQ-CNT-001 footer links to content pages', () => {
     }
   });
 
-  test('no footer link points at the two legal page URLs that only redirect to the policy', async ({
+  // The legal links follow one rule (content-pages.ts, owner decision 2026-10-25): the Shopify policy when the store
+  // returns it, else a Page with the fallback handle when that page has text, else no link. A page URL in the footer
+  // is therefore correct only when the policy is absent AND the page answers 200 itself (never a redirecting link).
+  // These two tests were written as if a policy always existed (latent fault found in V-E225, fixed in V-E227).
+  const LEGAL = [
+    {
+      label: 'Privacy policy',
+      policy: '/policies/privacy-policy',
+      fallbackPage: '/pages/privacy-policy',
+    },
+    {
+      label: 'Terms',
+      policy: '/policies/terms-of-service',
+      fallbackPage: '/pages/terms',
+    },
+  ] as const;
+
+  test('a footer link to a legal page URL appears only as the fallback: no policy and the page answers 200 itself', async ({
     page,
+    request,
   }) => {
     const paths = await footerContentPaths(page);
-    expect(paths).not.toContain('/pages/privacy-policy');
-    expect(paths).not.toContain('/pages/terms');
-  });
-
-  test('the legal links, when shown, use the Shopify policy URLs', async ({
-    page,
-  }) => {
-    await gotoReady(page, '/');
-    const footer = page.getByRole('contentinfo');
-    const privacy = footer.getByRole('link', {name: 'Privacy policy'});
-    test.skip(
-      (await privacy.count()) === 0,
-      'The connected store has no privacy policy in Settings > Policies, so the footer shows no link (by design).',
-    );
-    await expect(privacy).toHaveAttribute('href', '/policies/privacy-policy');
-    const terms = footer.getByRole('link', {name: 'Terms'});
-    if ((await terms.count()) > 0) {
-      await expect(terms).toHaveAttribute('href', '/policies/terms-of-service');
+    for (const legal of LEGAL) {
+      if (!paths.includes(legal.fallbackPage)) continue;
+      const policy = await request.get(legal.policy, {maxRedirects: 0});
+      expect(
+        policy.status(),
+        `${legal.label}: the footer must link the policy when the store has one`,
+      ).not.toBe(200);
+      const fallback = await request.get(legal.fallbackPage, {
+        maxRedirects: 0,
+      });
+      expect(
+        fallback.status(),
+        `${legal.label}: the fallback page link must not redirect or 404`,
+      ).toBe(200);
     }
   });
+
+  for (const legal of LEGAL) {
+    test(`the "${legal.label}" footer link goes to the Shopify policy, else to the fallback page, else it is absent`, async ({
+      page,
+      request,
+    }) => {
+      await gotoReady(page, '/');
+      const links = (await footerLinksByText(page, legal.label)).filter(
+        (link) => link.text === legal.label,
+      );
+      test.skip(
+        links.length === 0,
+        `The connected store has neither a ${legal.label.toLowerCase()} in Settings > Policies nor a ${legal.fallbackPage} page with text, so the footer shows no link (by design).`,
+      );
+      const policy = await request.get(legal.policy, {maxRedirects: 0});
+      // Every link with this text (the legal row, and the signup form's privacy link when one is shown) agrees.
+      const expected =
+        policy.status() === 200 ? legal.policy : legal.fallbackPage;
+      for (const link of links) expect(link.href).toBe(expected);
+    });
+  }
 });
+
+/** Footer anchors whose text contains `text`, with their href and normalised text. */
+async function footerLinksByText(page: Page, text: string) {
+  const all = await page.locator('footer a[href]').evaluateAll((anchors) =>
+    anchors.map((anchor) => ({
+      href: anchor.getAttribute('href') ?? '',
+      text: (anchor.textContent ?? '').replace(/\s+/g, ' ').trim(),
+    })),
+  );
+  return all.filter((link) => link.text.includes(text));
+}
 
 const CONTENT_HREF = /^\/(pages|policies|blogs)\//;
 
