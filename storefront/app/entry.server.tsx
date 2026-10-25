@@ -9,6 +9,8 @@ import type {EntryContext} from 'react-router';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {logRequestError} from '~/lib/logging/request-error';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
+import {parseChatConfig} from '~/lib/chat/config';
+import {chatCspHosts} from '~/lib/chat/hosts';
 import {
   applySecurityHeaders,
   buildReportOnlyCsp,
@@ -40,12 +42,21 @@ export default async function handleRequest(
     ga4: analyticsConfig.ga4MeasurementId !== null,
     meta: analyticsConfig.metaPixelId !== null,
   };
+  // The same for the chat provider (P7-03): its documented hosts, only when one is configured and runnable here. The table
+  // is empty today (no approved provider), so this changes nothing until a real adapter adds its hosts.
+  const chatConfig = parseChatConfig(context.env, {
+    development: import.meta.env.DEV,
+    analyticsCategoryConfigured: analyticsConfig.ga4MeasurementId !== null,
+  });
+  const chatCsp = chatCspHosts(
+    chatConfig.status === 'on' ? chatConfig.config.providerId : null,
+  );
   const {nonce, header, NonceProvider} = createContentSecurityPolicy({
     shop: {
       checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
       storeDomain: context.env.PUBLIC_STORE_DOMAIN,
     },
-    ...enforcedCspExtras(analyticsCsp),
+    ...enforcedCspExtras(analyticsCsp, chatCsp),
   });
 
   const body = await renderToReadableStream(
@@ -81,6 +92,7 @@ export default async function handleRequest(
     checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
     development: import.meta.env.DEV,
     analytics: analyticsCsp,
+    chat: chatCsp,
   });
   if (reportOnly) {
     responseHeaders.set('Content-Security-Policy-Report-Only', reportOnly);

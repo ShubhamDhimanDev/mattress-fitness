@@ -5,6 +5,7 @@
 // these fixed items remain the fallback when it is absent, empty or its read fails.
 
 import {BRAND_NAME} from '~/lib/brand';
+import type {PublicChatConfig} from '~/lib/chat/config';
 import {normalizeUsPhone} from '~/lib/stores/directions';
 
 /** The store name in titles, the copyright line and the logo's accessible name: one constant (brand.ts). */
@@ -289,7 +290,13 @@ const GUIDES_WITH_CONTENT: NavMenuItem = {
   ],
 };
 
-export type UtilityLink = {id: string; label: string; to: string};
+export type UtilityLink = {
+  id: string;
+  label: string;
+  to: string;
+  /** On the `chat` entry only: the configured provider (P7-03). The entry renders nothing without it. */
+  chat?: PublicChatConfig;
+};
 
 /**
  * The utility links that need no Shopify content, and so the default of the bar and the mobile menu. The phone
@@ -316,20 +323,29 @@ function linkExists(to: string | undefined, existing: ReadonlySet<string>) {
 
 /**
  * The header utility links for the pages that exist. "Contact us" needs the contact page. "Chat with us" is a chat
- * provider link, and no provider is configured (Q-011, P7-03), so it stays hidden: the old stand-in, a link
- * to the contact page under a chat label, promised a chat that does not exist. Pass `chat: true` when P7-03 lands.
+ * provider call-out (a button, rendered by `ChatCallout`, P7-03): pass `chat: true` only when a provider is configured
+ * (`PUBLIC_CHAT_PROVIDER`, Q-011); it then shows only while the widget is loading or ready. The old stand-in, a link to
+ * the contact page under a chat label, promised a chat that does not exist and is gone. The entry's `to` is only
+ * the fallback the call-out never uses on its own.
  */
 export function buildUtilityLinks(
   existing: ReadonlySet<string>,
-  options: {readonly chat?: boolean} = {},
+  options: {readonly chat?: boolean | PublicChatConfig} = {},
 ): UtilityLink[] {
   return [
     ...UTILITY_LINKS,
     ...(existing.has('/pages/contact')
       ? [{id: 'contact', label: 'Contact us', to: '/pages/contact'}]
       : []),
-    ...(options.chat === true
-      ? [{id: 'chat', label: 'Chat with us', to: '/pages/contact'}]
+    ...(options.chat === true || typeof options.chat === 'object'
+      ? [
+          {
+            id: 'chat',
+            label: 'Chat with us',
+            to: '/pages/contact',
+            ...(options.chat === true ? {} : {chat: options.chat}),
+          },
+        ]
       : []),
   ];
 }

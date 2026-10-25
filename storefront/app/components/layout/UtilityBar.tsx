@@ -1,6 +1,9 @@
 import type {ReactNode} from 'react';
 import {Link} from 'react-router';
-import {ChatIcon, PhoneIcon} from '~/components/ui/Icons';
+import {LazyBoundary} from '~/components/layout/LazyPanel';
+import {chatPanel} from '~/components/layout/lazyPanels';
+import {PhoneIcon} from '~/components/ui/Icons';
+import {consentHandle} from '~/lib/analytics/gate';
 import {
   UTILITY_LINKS,
   type SupportPhone,
@@ -15,6 +18,8 @@ type UtilityBarProps = {
   /** The links to show; the root loader leaves out those whose page does not exist (P6-09). */
   links?: readonly UtilityLink[];
 };
+
+const ChatPanel = chatPanel.Panel;
 
 const LINK_CLASSES =
   'inline-flex min-h-touch items-center gap-1 hover:underline';
@@ -37,14 +42,27 @@ export function UtilityBar({
           {children}
         </div>
         <ul className="hidden shrink-0 items-center gap-x-4 lg:flex">
-          {links.map((link) => (
-            <li key={link.id}>
-              <Link to={link.to} className={LINK_CLASSES}>
-                {link.id === 'chat' ? <ChatIcon className="size-4" /> : null}
-                {link.label}
-              </Link>
-            </li>
-          ))}
+          {links.map((link) =>
+            link.id === 'chat' ? (
+              link.chat && (
+                // A button for the provider's widget, not a link (P7-03); this instance also runs the chat's gate.
+                <LazyBoundary key={link.id}>
+                  <ChatPanel
+                    className={LINK_CLASSES}
+                    dense
+                    links={links}
+                    consent={consentHandle}
+                  />
+                </LazyBoundary>
+              )
+            ) : (
+              <li key={link.id}>
+                <Link to={link.to} className={LINK_CLASSES}>
+                  {link.label}
+                </Link>
+              </li>
+            ),
+          )}
           {supportPhone ? (
             <li>
               <a href={supportPhone.href} className={LINK_CLASSES}>

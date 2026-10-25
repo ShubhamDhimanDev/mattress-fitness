@@ -14,6 +14,7 @@ import type {Route} from './+types/root';
 import {BRAND_HEAD_LINKS, BRAND_THEME_COLOR} from '~/lib/brand';
 import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
+import {resolvePublicChatConfig} from '~/lib/chat/config';
 import {FOOTER_QUERY} from '~/lib/fragments';
 import tailwindCss from './styles/tailwind.css?url';
 import {formatPageTitle} from '~/components/layout/documentTitle';
@@ -21,7 +22,7 @@ import {PageLayout} from '~/components/layout/PageLayout';
 import {MAIN_CONTENT_ID, SkipLink} from '~/components/layout/SkipLink';
 import {Button} from '~/components/ui/Button';
 import {loadDeliverySummary} from '~/lib/delivery-runtime/summary';
-import {errorFields, logError} from '~/lib/logging/logger';
+import {errorFields, logError, logWarn} from '~/lib/logging/logger';
 import {PRIVATE_REVALIDATE_HEADERS} from '~/lib/pages/private-response';
 import {
   buildFooterLinks,
@@ -147,6 +148,18 @@ export async function loader(args: Route.LoaderArgs) {
     ]);
 
   const footerLinks = buildFooterLinks(footerPages);
+  const analytics = parseAnalyticsConfig(env);
+  // The chat provider (P7-03, REQ-ANL-004): null unless PUBLIC_CHAT_PROVIDER names a runnable provider, and then no chat
+  // code, script or "Chat with us" exists. With consent required the chat reads the analytics category, which needs a
+  // GA4 id so the banner offers it (docs/integrations/CHAT.md).
+  const chat = resolvePublicChatConfig(
+    env,
+    {
+      development: import.meta.env.DEV,
+      analyticsCategoryConfigured: analytics.ga4MeasurementId !== null,
+    },
+    logWarn,
+  );
 
   return {
     ...deferredData,
@@ -174,7 +187,9 @@ export async function loader(args: Route.LoaderArgs) {
     fallbackNav: mainNav
       ? null
       : buildFallbackNav(existingContentPaths(footerPages)),
-    utilityLinks: buildUtilityLinks(existingContentPaths(footerPages)),
+    utilityLinks: buildUtilityLinks(existingContentPaths(footerPages), {
+      chat: chat ?? false,
+    }),
     ...delivery,
     // The promotion bar and the phone come from the `site_settings` entry (P3B-13). The phone is shown only when
     // valid: PUBLIC_SUPPORT_PHONE overrides the admin value; development shows a labelled placeholder when
@@ -187,7 +202,7 @@ export async function loader(args: Route.LoaderArgs) {
     ),
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     // Public identifiers and the consent mode (P7-01). Unset ids mean no provider: nothing loads (REQ-ANL-001/002).
-    analytics: parseAnalyticsConfig(env),
+    analytics,
     shop: getShopAnalytics({
       storefront,
       publicStorefrontId: env.PUBLIC_STOREFRONT_ID,

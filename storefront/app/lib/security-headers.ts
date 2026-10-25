@@ -8,6 +8,7 @@
 
 import {GA4_CSP, META_CSP, type ProviderCsp} from '~/lib/analytics/hosts';
 import {privatePathSection} from '~/lib/analytics/privacy';
+import {NO_CHAT_CSP, type ChatCsp} from '~/lib/chat/hosts';
 
 const LOOPBACK_NAMES: ReadonlySet<string> = new Set(['localhost']);
 const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
@@ -145,6 +146,8 @@ export type ReportOnlyCspOptions = {
   readonly development: boolean;
   /** Providers that are configured (an id is set). Omitted or false adds no host at all (P7-01, T-10). */
   readonly analytics?: AnalyticsCspInput | undefined;
+  /** The configured chat provider's hosts (`chatCspHosts(id)`, P7-03); omitted adds nothing. */
+  readonly chat?: ChatCsp | undefined;
 };
 
 export type AnalyticsCspInput = {
@@ -185,18 +188,38 @@ const SHOPIFY_ACCOUNT = 'https://shopify.com';
  * them wildcards (`*.google-analytics.com`, `*.analytics.google.com`): an exception to SECURITY_HEADERS.md that needs the
  * owner's written approval BEFORE any environment sets the GA4 id (see `~/lib/analytics/hosts`).
  */
-export function enforcedCspExtras(input: AnalyticsCspInput | undefined): {
+export function enforcedCspExtras(
+  input: AnalyticsCspInput | undefined,
+  chat: ChatCsp = NO_CHAT_CSP,
+): {
   scriptSrc?: string[];
   imgSrc?: string[];
   connectSrc?: string[];
+  frameSrc?: string[];
 } {
   const hosts = analyticsCspHosts(input);
-  if (hosts.script.length === 0) return {};
-  return {
-    scriptSrc: ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...hosts.script],
-    imgSrc: ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...hosts.img],
-    connectSrc: [...hosts.connect],
-  };
+  const script = [...hosts.script, ...chat.script];
+  const img = [...hosts.img, ...chat.img];
+  const connect = [...hosts.connect, ...chat.connect];
+  const extras: {
+    scriptSrc?: string[];
+    imgSrc?: string[];
+    connectSrc?: string[];
+    frameSrc?: string[];
+  } = {};
+  if (script.length > 0) {
+    extras.scriptSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...script];
+  }
+  // Naming img-src replaces the fallback to default-src, so the Shopify sources are repeated (as for scripts above).
+  if (script.length > 0 || img.length > 0) {
+    extras.imgSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...img];
+  }
+  if (script.length > 0 || connect.length > 0) extras.connectSrc = connect;
+  // Hydrogen sends no frame-src of its own (frames fall back to default-src); a chat window's origin is named alone.
+  if (chat.frame.length > 0) {
+    extras.frameSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...chat.frame];
+  }
+  return extras;
 }
 
 /**
@@ -222,7 +245,13 @@ export function buildReportOnlyCsp(
   const devSockets = options.development
     ? ['ws://localhost:*', 'ws://127.0.0.1:*']
     : [];
-  const provider = analyticsCspHosts(options.analytics);
+  const analyticsHosts = analyticsCspHosts(options.analytics);
+  const chat = options.chat ?? NO_CHAT_CSP;
+  const provider: ProviderCsp = {
+    script: [...analyticsHosts.script, ...chat.script],
+    img: [...analyticsHosts.img, ...chat.img],
+    connect: [...analyticsHosts.connect, ...chat.connect],
+  };
 
   const directives: ReadonlyArray<readonly [string, readonly string[]]> = [
     ['default-src', ["'self'"]],
@@ -255,7 +284,7 @@ export function buildReportOnlyCsp(
         ...devSockets,
       ],
     ],
-    ['frame-src', ["'none'"]],
+    ['frame-src', chat.frame.length > 0 ? [...chat.frame] : ["'none'"]],
     ['worker-src', ["'self'"]],
     ['manifest-src', ["'self'"]],
     ['form-action', ["'self'", SHOPIFY_ACCOUNT, ...compact([checkout, store])]],

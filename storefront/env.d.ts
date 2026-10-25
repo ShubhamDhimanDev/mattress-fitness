@@ -23,6 +23,13 @@ declare global {
     PUBLIC_GA4_MEASUREMENT_ID?: string;
     /** Meta pixel id (digits). Unset: nothing loads, no CSP host is added (REQ-ANL-002). */
     PUBLIC_META_PIXEL_ID?: string;
+    /**
+     * Live-chat provider id (P7-03, REQ-ANL-004). Unset (the default): no chat, no code, no request, no "Chat with us".
+     * Only `fake` is runnable, and only in development; Shopify Inbox is blocked (docs/integrations/CHAT.md).
+     */
+    PUBLIC_CHAT_PROVIDER?: string;
+    /** The exact text `false` lets chat load without the shopper's analytics consent; anything else keeps consent required. */
+    PUBLIC_CHAT_REQUIRES_CONSENT?: string;
     /** Klaviyo private key for the signup form (server only, P7-02). Unset: no signup form is rendered. */
     KLAVIYO_PRIVATE_API_KEY?: string;
     /** Klaviyo list id that signups join (server only, P7-02). Unset: no signup form is rendered. */
