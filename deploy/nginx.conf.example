@@ -60,6 +60,10 @@ map "$request_method$uri" $mf_key_cartpost { default ""; "~*^POST/cart(\.data)?/
 # client submissions. Method plus path, so viewing the page (GET) stays on the general zone. This is the only per-address
 # limit a client cannot spoof (the application's own counters read a header; security review 2026-10-24, M-1, L-3).
 map "$request_method$uri" $mf_key_lookup { default ""; "~*^POST/track-order(\.data)?/?$" $mf_client_key; }
+# The email signup (P7-02): POST /signup, or POST /signup.data from the router's client submissions. Each accepted request can
+# make Klaviyo send a confirmation mail from the client's brand to an address a stranger typed, so this is a host-level
+# ceiling per client address that does not depend on the application's own counters (security review 2026-10-25, SU-M2).
+map "$request_method$uri" $mf_key_signup { default ""; "~*^POST/signup(\.data)?/?$" $mf_client_key; }
 map $uri $mf_key_webhook  { default ""; "~*^/webhooks/"                      $binary_remote_addr; }
 
 limit_req_zone $binary_remote_addr zone=mf_general:10m  rate=20r/s;  # starting value, all paths
@@ -69,6 +73,7 @@ limit_req_zone $mf_key_delivery    zone=mf_delivery:5m  rate=2r/s;   # starting 
 limit_req_zone $mf_key_cartget     zone=mf_cartget:5m   rate=1r/s;   # starting value
 limit_req_zone $mf_key_cartpost    zone=mf_cartpost:5m  rate=3r/s;   # starting guess (A-L1); not measured against real cart use
 limit_req_zone $mf_key_lookup      zone=mf_lookup:5m    rate=6r/m;   # starting value (review answer 6); not measured, nginx -t not run
+limit_req_zone $mf_key_signup      zone=mf_signup:5m    rate=6r/m;   # starting value (SU-M2), like mf_lookup; not measured, nginx -t not run
 limit_req_zone $mf_key_webhook     zone=mf_webhook:5m   rate=10r/s;  # starting value; Shopify's sender addresses are not a fixed list
 limit_conn_zone $binary_remote_addr zone=mf_conn:10m;
 
@@ -249,6 +254,7 @@ server {
         limit_req zone=mf_cartget  burst=5  nodelay;
         limit_req zone=mf_cartpost burst=10 nodelay;
         limit_req zone=mf_lookup   burst=5  nodelay;
+        limit_req zone=mf_signup   burst=5  nodelay;
         limit_req zone=mf_webhook  burst=30 nodelay;
 
         proxy_pass http://mattressfitness_app;
