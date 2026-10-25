@@ -11,6 +11,13 @@ import {logRequestError} from '~/lib/logging/request-error';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
 import {parseChatConfig} from '~/lib/chat/config';
 import {chatCspHosts} from '~/lib/chat/hosts';
+import {extendLogoOrigin, parseExtendBranding} from '~/lib/extend-branding';
+import {parseFinancingConfig} from '~/lib/financing/config';
+import {
+  extendLogoCspHosts,
+  financingCspHosts,
+  mergeCspHosts,
+} from '~/lib/financing/hosts';
 import {
   applySecurityHeaders,
   buildReportOnlyCsp,
@@ -51,12 +58,24 @@ export default async function handleRequest(
   const chatCsp = chatCspHosts(
     chatConfig.status === 'on' ? chatConfig.config.providerId : null,
   );
+  // The financing provider's script host (Affirm only, P4-08) and the Extend logo's one image origin (REQ-EXT-004) ride
+  // the same extra-sources object as the chat, so the enforced and the report-only policy cannot disagree.
+  const financingConfig = parseFinancingConfig(context.env, {
+    analyticsCategoryConfigured: analyticsConfig.ga4MeasurementId !== null,
+  });
+  const extraCsp = mergeCspHosts(
+    chatCsp,
+    financingCspHosts(
+      financingConfig.status === 'on' ? financingConfig.config : null,
+    ),
+    extendLogoCspHosts(extendLogoOrigin(parseExtendBranding(context.env))),
+  );
   const {nonce, header, NonceProvider} = createContentSecurityPolicy({
     shop: {
       checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
       storeDomain: context.env.PUBLIC_STORE_DOMAIN,
     },
-    ...enforcedCspExtras(analyticsCsp, chatCsp),
+    ...enforcedCspExtras(analyticsCsp, extraCsp),
   });
 
   const body = await renderToReadableStream(
@@ -92,7 +111,7 @@ export default async function handleRequest(
     checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
     development: import.meta.env.DEV,
     analytics: analyticsCsp,
-    chat: chatCsp,
+    chat: extraCsp,
   });
   if (reportOnly) {
     responseHeaders.set('Content-Security-Policy-Report-Only', reportOnly);

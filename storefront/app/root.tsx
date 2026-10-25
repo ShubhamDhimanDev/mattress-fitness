@@ -15,6 +15,8 @@ import {BRAND_HEAD_LINKS, BRAND_THEME_COLOR} from '~/lib/brand';
 import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
 import {resolvePublicChatConfig} from '~/lib/chat/config';
+import {parseExtendBranding} from '~/lib/extend-branding';
+import {resolvePublicFinancingConfig} from '~/lib/financing/config';
 import {FOOTER_QUERY} from '~/lib/fragments';
 import tailwindCss from './styles/tailwind.css?url';
 import {formatPageTitle} from '~/components/layout/documentTitle';
@@ -164,8 +166,19 @@ export async function loader(args: Route.LoaderArgs) {
     logWarn,
   );
 
+  // The financing message slot (P4-08, REQ-CART-005): null unless PUBLIC_FINANCING_PROVIDER names one of the three
+  // providers with what it needs, and then every slot renders nothing. Affirm follows the chat's consent rule.
+  const financing = resolvePublicFinancingConfig(
+    env,
+    {analyticsCategoryConfigured: analytics.ga4MeasurementId !== null},
+    logWarn,
+  );
+
   return {
     ...deferredData,
+    financing,
+    // Extend's logo and terms-link slots (REQ-EXT-004); both null until the client or Extend supplies the https URLs.
+    extendBranding: parseExtendBranding(env),
     myStore,
     // The Shopify admin menu (REQ-NAV-002), or null: the layout then shows the fixed navigation. No price, no
     // shopper data: safe for the long catalog cache.

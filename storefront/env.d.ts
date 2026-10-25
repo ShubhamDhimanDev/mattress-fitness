@@ -30,6 +30,23 @@ declare global {
     PUBLIC_CHAT_PROVIDER?: string;
     /** The exact text `false` lets chat load without the shopper's analytics consent; anything else keeps consent required. */
     PUBLIC_CHAT_REQUIRES_CONSENT?: string;
+    /**
+     * Financing message provider (P4-08, REQ-CART-005): exactly `shop-pay-installments`, `affirm` or `store-card`. Unset or
+     * anything else: every financing slot renders nothing, no script, no CSP host.
+     */
+    PUBLIC_FINANCING_PROVIDER?: string;
+    /** Affirm public key (docs.affirm.com). Needed for `affirm`; without it the Affirm slot stays hidden. */
+    PUBLIC_AFFIRM_PUBLIC_KEY?: string;
+    /** The exact text `false` lets Affirm.js load without the shopper's analytics consent; anything else keeps consent required. */
+    PUBLIC_AFFIRM_REQUIRES_CONSENT?: string;
+    /** The exact text `production` uses Affirm's production script; anything else (including unset) uses the sandbox. */
+    PUBLIC_AFFIRM_ENVIRONMENT?: string;
+    /** Store credit card message for `store-card` (server only; plain text, at most 200 characters). Wording is the client's. */
+    STORE_CARD_MESSAGE?: string;
+    /** Link to Extend's coverage terms (https only; REQ-EXT-004). Unset: no link. */
+    PUBLIC_EXTEND_TERMS_URL?: string;
+    /** Extend's logo image, hosted by the client or Extend (https only; REQ-EXT-004). Unset: text only. Its origin is added to img-src. */
+    PUBLIC_EXTEND_LOGO_URL?: string;
     /** Klaviyo private key for the signup form (server only, P7-02). Unset: no signup form is rendered. */
     KLAVIYO_PRIVATE_API_KEY?: string;
     /** Klaviyo list id that signups join (server only, P7-02). Unset: no signup form is rendered. */

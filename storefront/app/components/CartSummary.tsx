@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import type {OptimisticCart} from '@shopify/hydrogen';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {CartDiscount} from '~/components/cart/CartDiscount';
+import {FinancingMessage} from '~/components/cart/FinancingMessage';
 import type {CartLayout} from '~/components/CartMain';
 import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
@@ -84,6 +85,11 @@ export function CartSummary({
       <p className="text-sm text-fg-muted">
         Taxes, delivery and any discounts are calculated at checkout.
       </p>
+      {/* Hidden unless a financing provider is switched on (REQ-CART-005); never a computed figure. */}
+      <FinancingMessage
+        placement="cart"
+        amount={subtotal.status === 'ready' ? subtotal.amount : null}
+      />
 
       {blocked.length > 0 ? (
         <div

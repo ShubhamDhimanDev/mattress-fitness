@@ -3,6 +3,7 @@ import {useNavigate} from 'react-router';
 import {AddToCartButton} from '~/components/AddToCartButton';
 import {useAside} from '~/components/Aside';
 import {CartMessages} from '~/components/cart/CartMessages';
+import {FinancingMessage} from '~/components/cart/FinancingMessage';
 import {CompareToggle} from '~/components/compare/CompareToggle';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {AddWithProtectionButton} from '~/components/extend/AddWithProtectionButton';
@@ -152,6 +153,8 @@ export function ProductBuyBox({
           {variant.sku ? ` · SKU ${variant.sku}` : ''}
         </p>
       </div>
+      {/* Hidden unless a financing provider is switched on (REQ-CART-005). The amount is the selected variant's Shopify price. */}
+      <FinancingMessage placement="product" amount={variant.price} />
 
       {product.options
         .filter((option) => option.values.length > 1)

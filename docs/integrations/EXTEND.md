@@ -20,6 +20,8 @@ Offer coverage on the product page, in the cart and in the pre-checkout step; co
 
 **Branding.** Custom UIs must show Extend's logo or "Powered by Extend", accurate pricing and a link to plan details and terms; Extend reviews custom implementations before launch.
 
+**Branding slots in the storefront (REQ-EXT-004, added 2026-10-26; REQ-EXT-004 stays Blocked until Extend's written approval is on file).** Every offer surface (product page panel, cart offer, pre-checkout step) shows `PoweredByExtend` (`app/components/extend/PlanParts.tsx`): the words "Powered by Extend" always, plus two slots filled from the environment. `PUBLIC_EXTEND_TERMS_URL` renders a link "Extend protection plan terms" (opens in a new tab, said in text) next to the per-plan "Plan details and terms" link that already comes from Extend's quote. `PUBLIC_EXTEND_LOGO_URL` renders Extend's logo image, hosted by the client or Extend (nothing is bundled or invented), with empty alt text because the words beside it name Extend. Both must be `https` with a public DNS host, no credentials and no port (`app/lib/extend-branding.ts`); an invalid value is treated as unset. With neither set, the surface shows the text alone and no link. Only when the logo URL is valid is its origin added to `img-src`, in the enforced and the report-only policy together. What is NOT known: whether Extend requires its logo, a specific logo variant, or specific terms wording; ask in Q-005.
+
 **Extend's Shopify app.** Needs a signed agreement; once installed "Extend will have access to your Orders, Products, and Customer information". The guides cover theme app blocks (Online Store 2.0). **No headless or Hydrogen guide exists in the pages read.**
 
 ## 3. Unknown (ask Extend; Q-005, V-11)
