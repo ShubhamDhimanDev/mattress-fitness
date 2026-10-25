@@ -13,6 +13,7 @@ import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {buildBreadcrumbJsonLd, buildProductJsonLd} from '~/lib/shopify/jsonld';
 import {loadBrandsIndex} from '~/lib/shopify/brand-data';
 import {resolveBrandLink} from '~/lib/shopify/brand-link';
+import {loadReviewsPageState} from '~/lib/reviews/page';
 import {loadProductPage} from '~/lib/shopify/product-data';
 import {loadExtendEligibilityByHandle} from '~/lib/shopify/protection-load';
 import {
@@ -111,6 +112,13 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     throw new Response('Product not found', {status: 404});
   }
   const {product} = result;
+  // Reviews (REQ-PDP-005): free when no provider is configured; otherwise a short-deadline read of the aggregate, after the
+  // product is known so an unknown handle never reaches the provider.
+  const reviews = await loadReviewsPageState(
+    context.env,
+    product.handle,
+    import.meta.env.DEV,
+  );
   // Never the request's Host (P-L2); null outside development without PUBLIC_SITE_URL: no absolute URL is then emitted.
   const siteOrigin = resolveSiteOrigin({
     env: context.env,
@@ -137,7 +145,10 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
         hasDevAddOnsCookie(request.headers.get('Cookie') ?? '')) ||
       productHasAddOns(context.env, product.id),
     canonical: siteOrigin ? `${siteOrigin}/products/${product.handle}` : null,
-    productJsonLd: buildProductJsonLd(product, siteOrigin),
+    // Reviews: the section exists only with a provider; the aggregate (stars, rating markup) only when it has real reviews.
+    reviewsEnabled: reviews.enabled,
+    rating: reviews.aggregate,
+    productJsonLd: buildProductJsonLd(product, siteOrigin, reviews.aggregate),
     breadcrumbJsonLd: buildBreadcrumbJsonLd(
       [
         {name: 'Home', path: '/'},
@@ -150,8 +161,14 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
 }
 
 export default function Product() {
-  const {product, protection, brandLink, addOnsExpected} =
-    useLoaderData<typeof loader>();
+  const {
+    product,
+    protection,
+    brandLink,
+    addOnsExpected,
+    reviewsEnabled,
+    rating,
+  } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
 
   // The same pure functions the server used, so the first render and later switches always agree.
@@ -187,9 +204,14 @@ export default function Product() {
           protection={protection}
           brandLink={brandLink}
           addOns={addOnsExpected}
+          rating={rating}
         />
       </div>
-      <ProductSections product={product} brandLink={brandLink} />
+      <ProductSections
+        product={product}
+        brandLink={brandLink}
+        reviews={reviewsEnabled}
+      />
       <Analytics.ProductView
         data={{
           products: [

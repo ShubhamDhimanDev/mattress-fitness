@@ -5,6 +5,7 @@
 // these fixed items remain the fallback when it is absent, empty or its read fails.
 
 import {BRAND_NAME} from '~/lib/brand';
+import type {PublicChatConfig} from '~/lib/chat/config';
 import {normalizeUsPhone} from '~/lib/stores/directions';
 
 /** The store name in titles, the copyright line and the logo's accessible name: one constant (brand.ts). */
@@ -56,6 +57,8 @@ export type NavGroupLink = {
    * link is never rendered (REQ-CNT-001, B-15); see `publishedLinks`.
    */
   awaitingContent?: boolean;
+  /** Position among the footer links of one group, so static links and Shopify page links interleave (P6-09). */
+  order?: number;
 };
 
 /** Entries the shopper may see: everything except those still waiting for client content. */
@@ -239,40 +242,149 @@ export const MAIN_NAV: readonly MainNavItem[] = [
     kind: 'menu',
     id: 'guides',
     label: 'Guides',
-    to: '/pages/guides',
+    // No `to`: "guides" is not one of the 15 content pages (REQ-CNT-001), so a heading link could 404. The
+    // groups below are the way in; a Shopify admin menu can give the heading a page of its own (REQ-NAV-002).
+    // Only links that need no Shopify content. The guide pages and the journal are added by `buildFallbackNav`
+    // (server side) when they exist, so this constant, which is also the shell's default, can never link a 404.
     groups: [
-      {
-        id: 'guides-buying',
-        heading: 'Buying guides',
-        links: [
-          {label: 'Size guide', to: '/pages/size-guide'},
-          {label: 'Comfort guide', to: '/pages/comfort-guide'},
-          {label: 'Mattress types guide', to: '/pages/mattress-types-guide'},
-          {label: 'Adjustable base guide', to: '/pages/adjustable-base-guide'},
-        ],
-      },
       {
         id: 'guides-help',
         heading: 'Help choosing',
         links: [
           {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to},
           {label: 'Compare mattresses', to: COMPARE_PATH},
-          {label: 'Sleep journal', to: '/blogs/journal'},
         ],
       },
     ],
   },
 ];
 
-export type UtilityLink = {id: string; label: string; to: string};
+/**
+ * The Guides menu with its Shopify-written links (the four buying guides, the journal). Used only by
+ * `buildFallbackNav` on the server, so it does not reach the browser bundle.
+ */
+const GUIDES_WITH_CONTENT: NavMenuItem = {
+  kind: 'menu',
+  id: 'guides',
+  label: 'Guides',
+  groups: [
+    {
+      id: 'guides-buying',
+      heading: 'Buying guides',
+      links: [
+        {label: 'Size guide', to: '/pages/size-guide'},
+        {label: 'Comfort guide', to: '/pages/comfort-guide'},
+        {label: 'Mattress types guide', to: '/pages/mattress-types-guide'},
+        {label: 'Adjustable base guide', to: '/pages/adjustable-base-guide'},
+      ],
+    },
+    {
+      id: 'guides-help',
+      heading: 'Help choosing',
+      links: [
+        {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to},
+        {label: 'Compare mattresses', to: COMPARE_PATH},
+        {label: 'Sleep journal', to: '/blogs/journal'},
+      ],
+    },
+  ],
+};
 
-/** Right side of the utility bar. The phone number is rendered separately from SUPPORT_PHONE. */
+export type UtilityLink = {
+  id: string;
+  label: string;
+  to: string;
+  /** On the `chat` entry only: the configured provider (P7-03). The entry renders nothing without it. */
+  chat?: PublicChatConfig;
+};
+
+/**
+ * The utility links that need no Shopify content, and so the default of the bar and the mobile menu. The phone
+ * number is rendered separately from SUPPORT_PHONE. The links to the contact page and the chat are added by
+ * `buildUtilityLinks` only when they can work (P6-09).
+ */
 export const UTILITY_LINKS: readonly UtilityLink[] = [
   {id: 'track', label: 'Track order', to: '/track-order'},
-  {id: 'contact', label: 'Contact us', to: '/pages/contact'},
-  // Falls back to the contact page until a chat provider is chosen (Q-011, REQ-ANL-004).
-  {id: 'chat', label: 'Chat with us', to: '/pages/contact'},
 ];
+
+/** Paths that belong to Shopify-written pages and blogs: a fixed link to one shows only when it exists. */
+const SHOPIFY_CONTENT_PATH = /^\/(pages|blogs)\//;
+
+/** The paths of the Shopify pages and blogs that exist with content, from the footer's existence read. */
+export function existingContentPaths(
+  pages: readonly FooterPageLink[],
+): ReadonlySet<string> {
+  return new Set(pages.map((page) => page.to));
+}
+
+function linkExists(to: string | undefined, existing: ReadonlySet<string>) {
+  return to === undefined || !SHOPIFY_CONTENT_PATH.test(to) || existing.has(to);
+}
+
+/**
+ * The header utility links for the pages that exist. "Contact us" needs the contact page. "Chat with us" is a chat
+ * provider call-out (a button, rendered by `ChatCallout`, P7-03): pass `chat: true` only when a provider is configured
+ * (`PUBLIC_CHAT_PROVIDER`, Q-011); it then shows only while the widget is loading or ready. The old stand-in, a link to
+ * the contact page under a chat label, promised a chat that does not exist and is gone. The entry's `to` is only
+ * the fallback the call-out never uses on its own.
+ */
+export function buildUtilityLinks(
+  existing: ReadonlySet<string>,
+  options: {readonly chat?: boolean | PublicChatConfig} = {},
+): UtilityLink[] {
+  return [
+    ...UTILITY_LINKS,
+    ...(existing.has('/pages/contact')
+      ? [{id: 'contact', label: 'Contact us', to: '/pages/contact'}]
+      : []),
+    ...(options.chat === true || typeof options.chat === 'object'
+      ? [
+          {
+            id: 'chat',
+            label: 'Chat with us',
+            to: '/pages/contact',
+            ...(options.chat === true ? {} : {chat: options.chat}),
+          },
+        ]
+      : []),
+  ];
+}
+
+/**
+ * The fixed navigation without its links to Shopify pages and blogs that do not exist (guides, journal). Groups
+ * left empty and menus left with nothing to open are dropped. It applies to the fixed fallback only; a menu
+ * edited in Shopify admin is the client's own choice of links.
+ */
+export function pruneMainNav(
+  items: readonly MainNavItem[],
+  existing: ReadonlySet<string>,
+): MainNavItem[] {
+  return items.flatMap((item): MainNavItem[] => {
+    if (item.kind === 'link')
+      return linkExists(item.to, existing) ? [item] : [];
+    const groups = item.groups
+      .map((group) => ({
+        ...group,
+        links: group.links.filter((link) => linkExists(link.to, existing)),
+      }))
+      .filter((group) => group.links.length > 0);
+    const next: NavMenuItem = {...item, groups};
+    if (!linkExists(item.to, existing)) delete next.to;
+    return groups.length === 0 && next.to === undefined ? [] : [next];
+  });
+}
+
+/**
+ * The fixed navigation for the pages that exist: `MAIN_NAV` with the Guides menu swapped for the full one, then
+ * pruned. `MAIN_NAV` itself holds no Shopify-written link, so a shell given no availability data (its default)
+ * links nothing that could 404.
+ */
+export function buildFallbackNav(existing: ReadonlySet<string>): MainNavItem[] {
+  return pruneMainNav(
+    MAIN_NAV.map((item) => (item.id === 'guides' ? GUIDES_WITH_CONTENT : item)),
+    existing,
+  );
+}
 
 export const STORE_LOCATOR_PATH = '/stores';
 
@@ -339,68 +451,82 @@ export type PromoMessage = {
   external?: boolean;
 };
 
+export type FooterGroupId = 'support' | 'sleep-guide' | 'about' | 'legal';
+
 export type FooterGroup = {id: string; heading: string; links: NavGroupLink[]};
 
-/** Footer groups before unpublished links are removed; exported so tests can prove what is held back. */
-export const FOOTER_SUPPORT_GROUPS_DRAFT: readonly FooterGroup[] = [
+/** A footer group that Shopify page links can join (the shop-by groups below cannot). */
+export type PageFooterGroup = FooterGroup & {id: FooterGroupId};
+
+/**
+ * A footer link to a Shopify page, policy or blog that exists and has content (P6-09, REQ-CNT-001). The server
+ * builds these from the registry in `lib/pages/content-pages.ts` and a cached existence read; the client only
+ * merges them into the groups below, so the registry itself never reaches the browser bundle.
+ */
+export type FooterPageLink = {
+  /** Registry id, for example `page:faq`; quick links name the page they need by it. */
+  id: string;
+  label: string;
+  to: string;
+  group: FooterGroupId;
+  order: number;
+};
+
+/** The links that are not Shopify content: the quiz, the comparison, the store locator and order tracking. */
+export const FOOTER_SUPPORT_GROUPS_DRAFT: readonly PageFooterGroup[] = [
   {
     id: 'support',
     heading: 'Customer support',
     links: [
-      {label: 'Contact us', to: '/pages/contact'},
-      // No route until guest and account order tracking (P6-08): no link until then.
-      {label: 'Track your order', to: '/track-order', awaitingContent: true},
-      {label: 'Delivery and shipping', to: '/pages/delivery-and-shipping'},
-      // Financing and warranty terms are the client's to supply (REQ-CNT-001, B-15, Q-016): no link until then.
-      {label: 'Financing', to: '/pages/financing', awaitingContent: true},
+      // The /track-order route exists (P6-08), and the header's "Track order" always links it. The footer links to it
+      // (here and in the quick links) stay held back by `awaitingContent` until the lookup has matched a real order
+      // (V-09, V-20, B-15): the footer is the page of promises, the header link is the plain entry point. This
+      // difference is a held decision, not a rule; remove the flag when the owner confirms the lookup.
       {
-        label: 'Warranty and returns',
-        to: '/pages/warranty-and-returns',
+        label: 'Track your order',
+        to: '/track-order',
         awaitingContent: true,
+        order: 20,
       },
-      {label: 'FAQ', to: '/pages/faq'},
     ],
   },
   {
     id: 'sleep-guide',
     heading: 'Sleep guide',
     links: [
-      {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to},
-      {label: 'Compare mattresses', to: COMPARE_PATH},
-      {label: 'Size guide', to: '/pages/size-guide'},
-      {label: 'Comfort guide', to: '/pages/comfort-guide'},
-      {label: 'Mattress types guide', to: '/pages/mattress-types-guide'},
-      {label: 'Adjustable base guide', to: '/pages/adjustable-base-guide'},
-      {label: 'Sleep journal', to: '/blogs/journal'},
+      {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to, order: 10},
+      {label: 'Compare mattresses', to: COMPARE_PATH, order: 20},
     ],
   },
   {
     id: 'about',
     heading: 'About',
-    links: [
-      {label: 'About us', to: '/pages/about'},
-      {label: 'Find a store', to: STORE_LOCATOR_PATH},
-      // Invented claims until the client supplies the pages and terms (REQ-CNT-001, B-15).
-      {
-        label: 'Comfort guarantee',
-        to: '/pages/comfort-guarantee',
-        awaitingContent: true,
-      },
-      {
-        label: 'Price guarantee',
-        to: '/pages/price-guarantee',
-        awaitingContent: true,
-      },
-      {label: 'Accessibility', to: '/pages/accessibility'},
-    ],
+    links: [{label: 'Find a store', to: STORE_LOCATOR_PATH, order: 20}],
   },
 ];
 
-export const FOOTER_SUPPORT_GROUPS: readonly FooterGroup[] =
-  FOOTER_SUPPORT_GROUPS_DRAFT.map((group) => ({
+export const FOOTER_SUPPORT_GROUPS: readonly PageFooterGroup[] =
+  /* @__PURE__ */ FOOTER_SUPPORT_GROUPS_DRAFT.map((group) => ({
     ...group,
     links: publishedLinks(group.links),
   }));
+
+/**
+ * One footer group's links: the fixed ones plus every Shopify page link for that group, in `order`. A page that
+ * does not exist (or has no text) is simply not in `pages`, so a shopper never meets a link that 404s and nothing
+ * stands in for text the client has not written (B-15). The sort is stable, so equal orders keep the fixed
+ * links first.
+ */
+export function footerGroupLinks(
+  group: FooterGroupId,
+  fixed: readonly NavGroupLink[],
+  pages: readonly FooterPageLink[],
+): NavGroupLink[] {
+  const fromPages = pages.filter((page) => page.group === group);
+  return [...fixed, ...fromPages].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0),
+  );
+}
 
 function shopGroupFromMenu(
   groupId: string,
@@ -433,15 +559,30 @@ export type FooterQuickLink = {
   to: string;
   /** True while the page behind the link does not exist yet; such a link is never rendered (see `publishedLinks`). */
   awaitingContent?: boolean;
+  /** Registry id of the Shopify page behind the link: shown only when that page exists, at the page's own path. */
+  pageId?: string;
 };
 
 /**
- * The footer's quick-links row (BA-05) before unpublished links are removed: the pages shoppers come back for,
- * first the order and delivery side, then the stores and help side. Only links to pages that exist are shown:
- * `/track-order` has no route until P6-08, and `/pages/delivery-and-shipping` and `/pages/contact` are Shopify
- * admin pages the client has not written yet (REQ-CNT-001, B-15), so those three wait behind `awaitingContent` (no
- * page-existence data reaches the footer). Remove the flag when the page is live. The labels differ from the group
- * links below on purpose, so a screen-reader link list does not read two identical names for the same page.
+ * Quick links that lead to a Shopify page: kept when the page exists, pointed at its real path.
+ * `awaitingContent` links are dropped first, as before.
+ */
+export function visibleQuickLinks(
+  links: readonly FooterQuickLink[],
+  pages: readonly FooterPageLink[],
+): FooterQuickLink[] {
+  return publishedLinks(links).flatMap((link) => {
+    if (link.pageId === undefined) return [link];
+    const page = pages.find((candidate) => candidate.id === link.pageId);
+    return page ? [{...link, to: page.to}] : [];
+  });
+}
+
+/**
+ * The footer's quick-links row (BA-05): the pages shoppers come back for, first the order and delivery side,
+ * then the stores and help side. The Shopify pages (delivery, contact) appear only when the page exists with
+ * content (`pageId`, P6-09); `/track-order` waits behind `awaitingContent` (see the support group above; the header links it already). The labels differ from the
+ * group links on purpose, so a screen-reader link list does not read two identical names for the same page.
  */
 export const FOOTER_QUICK_LINKS_START_DRAFT: readonly FooterQuickLink[] = [
   {
@@ -454,7 +595,7 @@ export const FOOTER_QUICK_LINKS_START_DRAFT: readonly FooterQuickLink[] = [
     id: 'delivery',
     label: 'Delivery information',
     to: '/pages/delivery-and-shipping',
-    awaitingContent: true,
+    pageId: 'page:delivery-and-shipping',
   },
   {id: 'account', label: 'Your account', to: '/account'},
 ];
@@ -465,21 +606,44 @@ export const FOOTER_QUICK_LINKS_END_DRAFT: readonly FooterQuickLink[] = [
     id: 'contact',
     label: 'Get in touch',
     to: '/pages/contact',
-    awaitingContent: true,
+    pageId: 'page:contact',
   },
 ];
 
-export const FOOTER_QUICK_LINKS_START: readonly FooterQuickLink[] =
-  publishedLinks(FOOTER_QUICK_LINKS_START_DRAFT);
+/** Every footer link that depends on Shopify content, merged and ready to render. */
+export type FooterLinks = {
+  supportGroups: readonly FooterGroup[];
+  quickStart: readonly FooterQuickLink[];
+  quickEnd: readonly FooterQuickLink[];
+  legal: readonly NavGroupLink[];
+};
 
-export const FOOTER_QUICK_LINKS_END: readonly FooterQuickLink[] =
-  publishedLinks(FOOTER_QUICK_LINKS_END_DRAFT);
+/**
+ * The whole footer link model for the pages that exist (P6-09). It is built in the root loader, on the server,
+ * so the fixed link lists and the merge code stay out of the browser bundle (every route's budget includes the
+ * footer); the footer component only renders what it is given. Groups left with no link are dropped.
+ */
+export function buildFooterLinks(
+  pages: readonly FooterPageLink[],
+): FooterLinks {
+  return {
+    supportGroups: FOOTER_SUPPORT_GROUPS.map((group) => ({
+      ...group,
+      links: footerGroupLinks(group.id, group.links, pages),
+    })).filter((group) => group.links.length > 0),
+    quickStart: visibleQuickLinks(FOOTER_QUICK_LINKS_START_DRAFT, pages),
+    quickEnd: visibleQuickLinks(FOOTER_QUICK_LINKS_END_DRAFT, pages),
+    legal: footerGroupLinks('legal', [], pages),
+  };
+}
 
-export const FOOTER_LEGAL_LINKS: readonly NavGroupLink[] = [
-  {label: 'Privacy policy', to: '/pages/privacy-policy'},
-  {label: 'Terms', to: '/pages/terms'},
-  {label: 'Accessibility', to: '/pages/accessibility'},
-];
+/** No Shopify-dependent footer link at all: the footer without link data shows none (never a link that could 404). */
+export const NO_FOOTER_LINKS: FooterLinks = {
+  supportGroups: [],
+  quickStart: [],
+  quickEnd: [],
+  legal: [],
+};
 
 /** Sizes for the temporary home tiles and the size selector samples. */
 export const SHOP_BY_SIZE_LINKS: readonly NavGroupLink[] = MATTRESS_SIZES.map(

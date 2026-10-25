@@ -746,7 +746,12 @@ test.describe('BA-10 keyboard-only journey on the restyled site (NFR-003, WCAG 2
     await page.keyboard.press('End');
     const footer = page.getByRole('contentinfo');
     if (isMobile) {
-      const group = footer.getByRole('button', {name: 'Customer support'});
+      // "Sleep guide" holds fixed links, so it exists on every store; "Customer support" holds only Shopify page links
+      // and is dropped when the store has none of those pages (REQ-CNT-001, P6-09).
+      const group = footer.getByRole('button', {
+        name: 'Sleep guide',
+        exact: true,
+      });
       await group.focus();
       expect(
         (await describeRing(page))?.indicator,
@@ -1104,10 +1109,19 @@ test.describe('BA-10 layout fixes: utility bar breakpoint, cart page spacing, na
       await openUntilVisible(menuButton, menu);
       const help = menu.getByRole('navigation', {name: 'Help and contact'});
       await expect(help.getByRole('link', {name: 'Track order'})).toBeVisible();
-      await expect(help.getByRole('link', {name: 'Contact us'})).toBeVisible();
-      await expect(
-        help.getByRole('link', {name: 'Chat with us'}),
-      ).toBeVisible();
+      // "Contact us" shows only when the Shopify contact page exists, and "Chat with us" only when a chat provider is
+      // set (none yet, Q-011, P7-03) (REQ-CNT-001, P6-09).
+      const contactStatus = (
+        await page.request.get('/pages/contact', {maxRedirects: 0})
+      ).status();
+      if (contactStatus === 404) {
+        await expect(help.getByRole('link', {name: 'Contact us'})).toHaveCount(
+          0,
+        );
+      }
+      await expect(help.getByRole('link', {name: 'Chat with us'})).toHaveCount(
+        0,
+      );
       // The dev server shows a labelled placeholder; a store with PUBLIC_SUPPORT_PHONE shows its number (REQ-CNT-001).
       await expect(help.locator('a[href^="tel:"]')).toHaveCount(1);
     });

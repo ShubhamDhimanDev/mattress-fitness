@@ -29,6 +29,8 @@ type AnalyticsGateProps = {
   readonly shop: HydrogenProviderProps['shop'];
   readonly consent: HydrogenProviderProps['consent'];
   readonly config: PublicAnalyticsConfig;
+  /** Target of the consent banner's privacy link: the page that exists, or null for none (P6-09). */
+  readonly privacyPath?: string | null;
   readonly children: ReactNode;
 };
 
@@ -99,6 +101,7 @@ export function AnalyticsGate({
   shop,
   consent,
   config,
+  privacyPath,
   children,
 }: AnalyticsGateProps) {
   const providers =
@@ -127,6 +130,7 @@ export function AnalyticsGate({
         <Suspense fallback={null}>
           <ConsentRuntime
             config={config}
+            privacyPath={privacyPath}
             nonce={nonce}
             publishStore={consentHandle.publish}
             notify={consentHandle.notify}

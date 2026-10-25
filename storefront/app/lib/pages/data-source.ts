@@ -8,7 +8,10 @@
 // Loaders call these functions on the server; components never import this file.
 // Replacing the bodies with Storefront API queries must not change the signatures.
 
+import type {Storefront} from '@shopify/hydrogen';
 import type {CatalogProduct} from '~/lib/catalog/types';
+import {loadQuizConfigRaw} from '~/lib/shopify/quiz-data';
+import {loadShopifyStores} from '~/lib/shopify/store-data';
 import {FIXTURE_PRODUCTS} from '~/lib/catalog/fixtures';
 import {FIXTURE_STORES, FIXTURE_STORE_WARNINGS} from '~/lib/stores/fixtures';
 import type {Store} from '~/lib/stores/types';
@@ -42,11 +45,13 @@ export function getQuizProducts(): Promise<QuizProductsResult> {
 /**
  * The admin-managed quiz configuration exactly as stored (a loose JSON value),
  * or undefined when the client has not created one, in which case the default
- * quiz is used (REQ-QZ-004).
- * TODO(P6-01): read the quiz question metaobjects through the Storefront API.
+ * quiz is used (REQ-QZ-004). With a Storefront client the `quiz_question`, `quiz_option` and `quiz_scoring_rule`
+ * metaobjects are read (P6-13); without one, or when none exist or the read fails, the answer is undefined.
  */
-export function getQuizConfigRaw(): Promise<unknown> {
-  return Promise.resolve(undefined);
+export function getQuizConfigRaw(storefront?: Storefront): Promise<unknown> {
+  return storefront
+    ? loadQuizConfigRaw(storefront)
+    : Promise.resolve(undefined);
 }
 
 export type CompareCandidatesResult = {
@@ -80,14 +85,22 @@ export type StoresResult = {
 };
 
 /**
- * Every published store for the locator (REQ-LOC-001, REQ-LOC-002).
- * TODO(P3A-07): replace with the Storefront API `store` metaobject query,
- * parsed with parseStoreRecords, cached long.
+ * Every published store for the locator (REQ-LOC-001, REQ-LOC-002). With a Storefront client the `store`
+ * metaobjects are read and parsed (long cache); a store with none, a failed read or no client keeps the labelled
+ * fixtures, which is the behaviour before the dev store exists. A real store list is never mixed with fixtures.
  */
-export function getStores(): Promise<StoresResult> {
-  return Promise.resolve({
+export async function getStores(
+  storefront?: Storefront,
+): Promise<StoresResult> {
+  if (storefront) {
+    const live = await loadShopifyStores(storefront);
+    if (live) {
+      return {source: 'shopify', stores: live.stores, warnings: live.warnings};
+    }
+  }
+  return {
     source: 'fixtures',
     stores: FIXTURE_STORES,
     warnings: FIXTURE_STORE_WARNINGS,
-  });
+  };
 }

@@ -34,7 +34,7 @@ export async function loader({
   const [brands, storeIndex, policyPaths] = await Promise.all([
     // No `allowFixtures`: an empty or failed read lists no brands.
     loadBrandsIndex(storefront),
-    loadStoreIndex(),
+    loadStoreIndex(storefront),
     // Only policies the shop has written: Shopify's sitemap omits them and an unwritten one is a 404.
     loadPolicyPaths(storefront),
   ]);

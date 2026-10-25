@@ -105,5 +105,22 @@ We will send step-by-step instructions with screenshots. We list them now so nob
 
 **5.8 Look and design.** We are completing all the **functionality** first. The visual redesign (colours, typography, layout details) is deferred, so there is nothing yet for you to approve on look and feel and we are not asking you to sign off any design. When the redesign starts we will send the design questions and the list of design decisions for your approval. [Owner: do not describe the restyle as agreed; the earlier acknowledgements and design questions are on hold, B-28 and B-29.]
 
+**5.9 Text for the 15 content pages (CLR-016).** We build the pages and load your text; we do not write policy, legal, warranty, financing, delivery-fee, guarantee or return wording, and we never invent it. Please supply the facts below, in writing, approved by whoever is responsible (and your legal adviser for legal topics). The full list with suggested headings is in `docs/handover/CONTENT_PAGES.md`. Until a page's text arrives, its footer link and header message stay hidden (for the guarantee, financing and warranty pages) or the page is not ready to launch. [Owner: questions only; nothing here has been checked on the client's store.]
+- **Delivery and shipping:** Which ZIP codes or areas do you deliver to? Which delivery services and setup options, who does each, what does each cost and when is it free? What are the lead times and windows? What must the shopper prepare? What if an item arrives damaged and in what period must they tell you?
+- **Financing:** Do you offer it? Which lender, how does a shopper apply, what are the lender's terms and required disclosures, and who answers questions?
+- **Comfort guarantee:** Do you offer one? Which products, how long, what must the shopper do, what are the choices and charges, what is excluded?
+- **Price guarantee:** Do you offer one? What is matched, against whom, in what period, with what proof, what is excluded?
+- **Warranty and returns:** What is your return policy by category (period, who pays, refund method, exclusions)? How does each brand's warranty work and how is a claim started? Where are the protection plan's terms?
+- **FAQ:** What are the 10 to 20 questions customers ask most, and the correct answer to each?
+- **About:** Your story, brands you may name, store count, certifications you can document, and photos you may use.
+- **Contact:** Phone number and hours, email and response time, departments, whether chat is offered and with which provider.
+- **Size guide:** Which sizes do you sell and what dimensions do the manufacturers state? What room guidance do you give?
+- **Comfort guide:** How do your staff describe each comfort level and what advice do they give by sleeping position (non-medical)?
+- **Mattress types guide:** Which mattress types do you sell and what may be said about each from manufacturer information?
+- **Adjustable base guide:** Which bases and features do you sell, which mattresses work with them, what space and power needs do manufacturers state, is setup included?
+- **Privacy policy and terms:** Who writes them (your legal adviser)? Business name and address, governing law, data tools and retention, how people ask for access or deletion. (Overlaps 5.3 and 5.4.)
+- **Accessibility:** Who approves the commitment wording, which standard may be named, who receives reports and how fast do you reply?
+- **Approvals:** For each page, who approves the final text and by when? Do you want the guarantee, financing and warranty links shown at launch or kept hidden until ready?
+
 Thank you,
 [Project owner]

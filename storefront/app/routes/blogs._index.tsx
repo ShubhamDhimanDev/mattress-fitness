@@ -1,75 +1,83 @@
 import {Link, useLoaderData} from 'react-router';
 import type {Route} from './+types/blogs._index';
-import {getPaginationVariables} from '@shopify/hydrogen';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
-import type {BlogsQuery} from 'storefrontapi.generated';
+import {PaginatedList} from '~/components/pages/ArticleList';
+import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {SITE_NAME} from '~/lib/navigation';
+import {blogPath} from '~/lib/pages/content-pages-blog';
+import {cursorPaginationVariables} from '~/lib/pages/cursor-pagination';
+import {buildSeo} from '~/lib/pages/content-pages-seo';
+import {canonicalUrl} from '~/lib/seo/canonical';
+import {resolveSiteOrigin} from '~/lib/site-origin';
 
-type BlogNode = BlogsQuery['blogs']['nodes'][0];
+export const meta: Route.MetaFunction = ({data}) => [
+  {title: formatPageTitle('Blogs')},
+  ...(data?.metaTags ?? []),
+];
 
-export const meta: Route.MetaFunction = () => {
-  return [{title: formatPageTitle('Blogs')}];
-};
+export async function loader({context, request}: Route.LoaderArgs) {
+  const {storefront} = context;
+  // The cursor and direction are checked before they reach the query; a bad one serves the first page.
+  const paginationVariables = cursorPaginationVariables(
+    new URL(request.url).searchParams,
+    12,
+  );
 
-export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
-
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
-  return {...deferredData, ...criticalData};
-}
-
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({context, request}: Route.LoaderArgs) {
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 10,
+  // The first page is cached long; a page reached by a cursor is one more entry per cursor, so it is short (C-M2).
+  const paged = new URL(request.url).searchParams.has('cursor');
+  const {blogs} = await storefront.query(BLOGS_QUERY, {
+    cache: paged ? storefront.CacheShort() : storefront.CacheLong(),
+    variables: paginationVariables,
   });
 
-  const [{blogs}] = await Promise.all([
-    context.storefront.query(BLOGS_QUERY, {
-      variables: {
-        ...paginationVariables,
-      },
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
+  const origin = resolveSiteOrigin({
+    env: context.env,
+    requestUrl: request.url,
+    isDev: import.meta.env.DEV,
+  });
+  const {tags: metaTags} = buildSeo({
+    title: 'Blogs',
+    canonical: canonicalUrl(origin, '/blogs'),
+    indexable: true,
+    type: 'website',
+    siteName: SITE_NAME,
+  });
 
-  return {blogs};
-}
-
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({context}: Route.LoaderArgs) {
-  return {};
+  return {blogs, metaTags};
 }
 
 export default function Blogs() {
   const {blogs} = useLoaderData<typeof loader>();
 
   return (
-    <div className="blogs">
-      <h1>Blogs</h1>
-      <div className="blogs-grid">
-        <PaginatedResourceSection<BlogNode> connection={blogs}>
-          {({node: blog}) => (
-            <Link
-              className="blog"
-              key={blog.handle}
-              prefetch="intent"
-              to={`/blogs/${blog.handle}`}
-            >
-              <h2>{blog.title}</h2>
-            </Link>
-          )}
-        </PaginatedResourceSection>
+    <div className="py-4">
+      <Breadcrumb
+        items={[{label: 'Home', to: '/'}, {label: 'Blogs'}]}
+        className="print:hidden"
+      />
+      <h1 className="mt-2 border-b border-line pb-4 text-3xl font-bold">
+        Blogs
+      </h1>
+      <div className="mt-6">
+        {blogs.nodes.length === 0 ? (
+          <p className="text-base text-fg-muted">No blogs yet.</p>
+        ) : (
+          <PaginatedList connection={blogs} label="Blogs">
+            {(blog) => (
+              <li key={blog.handle}>
+                <h2 className="text-xl font-bold">
+                  <Link
+                    prefetch="intent"
+                    to={blogPath(blog.handle)}
+                    className="inline-flex min-h-touch items-center text-fg hover:text-primary-700 hover:underline"
+                  >
+                    {blog.title}
+                  </Link>
+                </h2>
+              </li>
+            )}
+          </PaginatedList>
+        )}
       </div>
     </div>
   );
@@ -100,10 +108,6 @@ const BLOGS_QUERY = `#graphql
       nodes {
         title
         handle
-        seo {
-          title
-          description
-        }
       }
     }
   }

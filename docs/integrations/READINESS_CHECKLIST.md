@@ -20,7 +20,7 @@ Update at every phase gate and before any dependent work starts. States: `READY`
 | IR-14 | Post-purchase option decided: client-chosen App Store app evaluated on the dev store (V-19) or dropped by change request | Phase 5B | Q-007, SD-02 | client decision, test result | BLOCKED |
 | IR-15 | Single delivery zone: ZIP list, fee and free-over received; Local delivery configured; parity check passes | Phase 3A and 5B | Q-008, CLR-009, ADR-0007 | ADR, list, parity output | BLOCKED |
 | IR-16 | Shopify Payments, PayPal and Affirm activated (test mode at least) | Phase 5B | CLR-007 | admin confirmation | BLOCKED |
-| IR-17 | Reviews (default Judge.me) and chat (default Shopify Inbox) accounts accessible | Phase 3B and 7 | Q-011 | test accounts | BLOCKED |
+| IR-17 | Reviews (default Judge.me) and chat (default Shopify Inbox) accounts accessible | Phase 3B and 7 | Q-011 | test accounts | BLOCKED (chat: the adapter, development fake and call-outs are built; Shopify Inbox cannot run on this storefront as verified 2026-10-25, so a different provider or the Hydrogen preview line needs a client decision; docs/integrations/CHAT.md) |
 | IR-18 | Maps provider decided | Phase 6 | Q-010 | decision: OpenStreetMap with Leaflet by default | READY |
 | IR-19 | Klaviyo, GA4, Meta access and IDs; SMS consent wording approved | Phase 7 | CLR-004, Q-015 | access, IDs, approval | NOT_STARTED |
 | IR-20 | Client GitHub organisation and repository | Phase 1 (CI), 9 | Q-014 | repo URL, our access | BLOCKED |

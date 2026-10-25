@@ -12,6 +12,7 @@ import {
   formatWeeklyHours,
   isValidTimeZone,
   openStatus,
+  summarizeWeeklyHours,
   todaysHours,
   type WeekRow,
 } from '~/lib/stores/hours';
@@ -79,10 +80,16 @@ export function storeCardView(store: Store, nowMs: number): StoreCardView {
     directionsUrl: googleMapsDirectionsUrl(store),
     status: zone
       ? statusText(store, nowMs, zone)
-      : {kind: 'unknown', text: 'Hours not available'},
+      : {
+          kind: 'unknown',
+          // Hours without a time zone are listed, never judged: "open now" needs the store's own clock (P3B-16).
+          text: store.hours ? 'Opening hours' : 'Hours not available',
+        },
     todayText:
       today === null || today.status === 'unknown'
-        ? 'Hours not available'
+        ? store.hours
+          ? summarizeWeeklyHours(store.hours)
+          : 'Hours not available'
         : today.status === 'closed_today'
           ? `${today.day}: Closed`
           : `${today.day}: ${today.text}`,

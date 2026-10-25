@@ -1,8 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {
-  FOOTER_QUICK_LINKS_END,
   FOOTER_QUICK_LINKS_END_DRAFT,
-  FOOTER_QUICK_LINKS_START,
   FOOTER_QUICK_LINKS_START_DRAFT,
   FOOTER_SUPPORT_GROUPS,
   FOOTER_SUPPORT_GROUPS_DRAFT,
@@ -11,6 +9,7 @@ import {
   REASSURANCE_ITEMS,
   publishedLinks,
   resolveSupportPhone,
+  visibleQuickLinks,
 } from '~/lib/navigation';
 import {hasMyStoreCookie, summarizeMyStore} from '~/lib/pages/my-store-summary';
 import {FIXTURE_STORES} from '~/lib/stores/fixtures';
@@ -36,39 +35,48 @@ describe('unsupplied claims (B-15)', () => {
     expect(HOME_ASSURANCE_ITEMS).toEqual(REASSURANCE_ITEMS);
   });
 
-  it('removes the footer claims (guarantees, financing, warranty) and keeps the others', () => {
+  it('holds back every Shopify-written footer link until the page exists (no page data, no link)', () => {
     const labels = (groups: typeof FOOTER_SUPPORT_GROUPS) =>
       groups.flatMap((g) => g.links.map((l) => l.label));
-    const held = [
-      'Comfort guarantee',
-      'Price guarantee',
+    // The links to client-written pages are no longer fixed footer data: the registry adds them when the page
+    // exists with content (tests/unit/pages/content-pages.test.ts), so none is listed here, claims included.
+    const pageLabels = [
+      'Contact us',
+      'Delivery and shipping',
       'Financing',
       'Warranty and returns',
+      'FAQ',
+      'Size guide',
+      'Comfort guide',
+      'Mattress types guide',
+      'Adjustable base guide',
+      'About us',
+      'Comfort guarantee',
+      'Price guarantee',
+      'Accessibility',
+      'Sleep journal',
     ];
-    expect(labels(FOOTER_SUPPORT_GROUPS_DRAFT)).toEqual(
-      expect.arrayContaining(held),
-    );
-    const shown = labels(FOOTER_SUPPORT_GROUPS);
-    for (const label of held) expect(shown).not.toContain(label);
-    expect(shown).toEqual(
+    for (const label of pageLabels) {
+      expect(labels(FOOTER_SUPPORT_GROUPS_DRAFT), label).not.toContain(label);
+      expect(labels(FOOTER_SUPPORT_GROUPS), label).not.toContain(label);
+    }
+    expect(labels(FOOTER_SUPPORT_GROUPS)).toEqual(
       expect.arrayContaining([
-        'Contact us',
-        'Delivery and shipping',
-        'FAQ',
-        'About us',
+        'Sleep quiz',
+        'Compare mattresses',
         'Find a store',
-        'Accessibility',
       ]),
     );
   });
 
-  it('shows no footer link to a page that does not exist yet (quick links and support group)', () => {
+  it('shows no quick link to a page that does not exist (awaitingContent and page links)', () => {
     const draft = [
       ...FOOTER_QUICK_LINKS_START_DRAFT,
       ...FOOTER_QUICK_LINKS_END_DRAFT,
     ];
-    const shown = [...FOOTER_QUICK_LINKS_START, ...FOOTER_QUICK_LINKS_END];
-    // The held links stay in the draft so they come back by deleting one flag.
+    // Without page data only the links that need no Shopify page remain; /track-order still waits (P6-08 flag).
+    const shown = visibleQuickLinks(draft, []);
+    expect(shown.map((l) => l.id)).toEqual(['account', 'stores']);
     for (const to of [
       '/track-order',
       '/pages/delivery-and-shipping',
@@ -83,8 +91,6 @@ describe('unsupplied claims (B-15)', () => {
         to,
       ).not.toContain(to);
     }
-    expect(shown.map((l) => l.id)).toEqual(['account', 'stores']);
-    // /track-order has no route (P6-08), so the support group holds it back as well.
     const support = FOOTER_SUPPORT_GROUPS.flatMap((g) =>
       g.links.map((l) => l.to),
     );
@@ -143,10 +149,12 @@ describe('my store in the header', () => {
     expect(hasMyStoreCookie(`a=1; my_store=${buffalo}`)).toBe(true);
   });
 
-  it('returns only the name and slug for a valid cookie', () => {
+  it('returns only the name, slug, public key and page path for a valid cookie', () => {
     expect(summarizeMyStore(index, `my_store=${buffalo}`)).toEqual({
       name: 'Wrenfield Sleep Gallery Buffalo',
       slug: 'buffalo-gallery',
+      key: buffalo,
+      path: '/stores/new-york/buffalo/buffalo-gallery',
     });
   });
 

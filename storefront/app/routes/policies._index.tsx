@@ -1,7 +1,13 @@
 import {useLoaderData, Link} from 'react-router';
 import type {Route} from './+types/policies._index';
 import type {PoliciesQuery, PolicyItemFragment} from 'storefrontapi.generated';
+import {formatPageTitle} from '~/components/layout/documentTitle';
+import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {catalogCache} from '~/lib/shopify/cache';
+
+export const meta: Route.MetaFunction = () => [
+  {title: formatPageTitle('Policies')},
+];
 
 export async function loader({context}: Route.LoaderArgs) {
   // Policy titles hold no price or availability, so the read is cached long (DEC-024).
@@ -28,15 +34,26 @@ export default function Policies() {
   const {policies} = useLoaderData<typeof loader>();
 
   return (
-    <div className="policies">
-      <h1>Policies</h1>
-      <div>
+    <div className="py-4">
+      <Breadcrumb
+        items={[{label: 'Home', to: '/'}, {label: 'Policies'}]}
+        className="print:hidden"
+      />
+      <h1 className="mt-2 border-b border-line pb-4 text-3xl font-bold">
+        Policies
+      </h1>
+      <ul className="mt-4">
         {policies.map((policy) => (
-          <fieldset key={policy.id}>
-            <Link to={`/policies/${policy.handle}`}>{policy.title}</Link>
-          </fieldset>
+          <li key={policy.id}>
+            <Link
+              to={`/policies/${policy.handle}`}
+              className="inline-flex min-h-touch items-center text-base text-primary-700 underline underline-offset-2 hover:text-primary-800"
+            >
+              {policy.title}
+            </Link>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

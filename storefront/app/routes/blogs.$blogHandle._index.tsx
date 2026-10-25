@@ -1,123 +1,132 @@
-import {Link, useLoaderData} from 'react-router';
+import {useLoaderData} from 'react-router';
 import type {Route} from './+types/blogs.$blogHandle._index';
-import {Image, getPaginationVariables} from '@shopify/hydrogen';
-import type {ArticleItemFragment} from 'storefrontapi.generated';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
+import {
+  ArticleCard,
+  PaginatedList,
+  type ArticleCardData,
+} from '~/components/pages/ArticleList';
+import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {cn} from '~/components/ui/cn';
+import {displayHeadingClass} from '~/lib/display-type';
+import {SITE_NAME} from '~/lib/navigation';
+import {buildBlogDocument} from '~/lib/pages/content-pages-article';
+import {blogPath} from '~/lib/pages/content-pages-blog';
+import {cursorPaginationVariables} from '~/lib/pages/cursor-pagination';
+import {seoText} from '~/lib/pages/content-pages-seo';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+import {canonicalUrl} from '~/lib/seo/canonical';
+import {resolveSiteOrigin} from '~/lib/site-origin';
+import {contentCache, rememberFound} from '~/lib/shopify/content-pages-cache';
+import {isValidHandle} from '~/lib/shopify/collection-data';
 
+// The loader prepares the head tags and structured data (`buildBlogDocument`); this only reads them.
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: formatPageTitle(data ? `${data.blog.title} blog` : 'Blog')}];
+  if (!data) return [{title: formatPageTitle('Blog not found')}];
+  return [
+    {title: formatPageTitle(data.view.seoTitle)},
+    ...data.view.metaTags,
+    ...data.view.jsonLd.map((jsonLd) => ({'script:ld+json': jsonLd})),
+  ];
 };
 
-export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
+const ARTICLES_PER_PAGE = 12;
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
-  return {...deferredData, ...criticalData};
-}
-
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({context, request, params}: Route.LoaderArgs) {
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 4,
-  });
-
-  if (!params.blogHandle) {
-    throw new Response(`blog not found`, {status: 404});
+export async function loader({context, request, params}: Route.LoaderArgs) {
+  const {blogHandle} = params;
+  if (!isValidHandle(blogHandle)) {
+    throw new Response('Blog not found', {status: 404});
   }
+  const {storefront} = context;
+  // The cursor and direction are checked before they reach the query; a bad one serves the first page.
+  const paginationVariables = cursorPaginationVariables(
+    new URL(request.url).searchParams,
+    ARTICLES_PER_PAGE,
+  );
 
-  const [{blog}] = await Promise.all([
-    context.storefront.query(BLOGS_QUERY, {
-      variables: {
-        blogHandle: params.blogHandle,
-        ...paginationVariables,
-      },
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
+  // Articles hold no price or availability, so a blog that exists is cached long. An unknown handle, and any page
+  // reached by a cursor (each is a cache entry of its own), get the short window (security C-M2).
+  const cacheKey = `blog:${blogHandle}`;
+  const paged = new URL(request.url).searchParams.has('cursor');
+  const {blog} = await storefront.query(BLOG_QUERY, {
+    cache: paged ? storefront.CacheShort() : contentCache(storefront, cacheKey),
+    variables: {blogHandle, ...paginationVariables},
+  });
+  if (blog && !paged) rememberFound(cacheKey);
 
   if (!blog?.articles) {
-    throw new Response('Not found', {status: 404});
+    throw new Response('Blog not found', {status: 404});
   }
 
-  redirectIfHandleIsLocalized(request, {handle: params.blogHandle, data: blog});
+  redirectIfHandleIsLocalized(request, {handle: blogHandle, data: blog});
 
-  return {blog};
-}
+  const origin = resolveSiteOrigin({
+    env: context.env,
+    requestUrl: request.url,
+    isDev: import.meta.env.DEV,
+  });
+  const view = buildBlogDocument({
+    blogHandle: blog.handle,
+    blogTitle: blog.title,
+    seoTitle: blog.seo?.title,
+    seoDescription: blog.seo?.description,
+    origin,
+    // Every page of the listing points at the plain blog URL (DEC-044).
+    canonical: canonicalUrl(origin, blogPath(blog.handle)),
+    siteName: SITE_NAME,
+  });
 
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({context}: Route.LoaderArgs) {
-  return {};
+  // The cards read plain, short text: the excerpt is cleaned and capped here, not in the browser.
+  const articles = {
+    pageInfo: blog.articles.pageInfo,
+    nodes: blog.articles.nodes.map((article): ArticleCardData => ({
+      id: article.id,
+      handle: article.handle,
+      title: article.title,
+      publishedAt: article.publishedAt,
+      excerpt: seoText(article.excerpt, 200),
+      authorName: article.author?.name ?? null,
+      blogHandle: article.blog.handle,
+      image: article.image,
+    })),
+  };
+
+  return {blog: {title: blog.title, handle: blog.handle, articles}, view};
 }
 
 export default function Blog() {
-  const {blog} = useLoaderData<typeof loader>();
-  const {articles} = blog;
+  const {blog, view} = useLoaderData<typeof loader>();
 
   return (
-    <div className="blog">
-      <h1>{blog.title}</h1>
-      <div className="blog-grid">
-        <PaginatedResourceSection<ArticleItemFragment> connection={articles}>
-          {({node: article, index}) => (
-            <ArticleItem
-              article={article}
-              key={article.id}
-              loading={index < 2 ? 'eager' : 'lazy'}
-            />
-          )}
-        </PaginatedResourceSection>
+    <div className="py-4">
+      <Breadcrumb items={view.breadcrumb} className="print:hidden" />
+      <header className="mt-2 border-b border-line pb-4">
+        <h1 className={cn(displayHeadingClass(blog.title), 'text-3xl')}>
+          {blog.title}
+        </h1>
+      </header>
+      <div className="mt-6">
+        {blog.articles.nodes.length === 0 ? (
+          <p className="text-base text-fg-muted">No articles yet.</p>
+        ) : (
+          <PaginatedList connection={blog.articles} label={blog.title}>
+            {(article, index) => (
+              <ArticleCard
+                key={article.id}
+                article={article}
+                loading={index < 3 ? 'eager' : 'lazy'}
+              />
+            )}
+          </PaginatedList>
+        )}
       </div>
     </div>
   );
 }
 
-function ArticleItem({
-  article,
-  loading,
-}: {
-  article: ArticleItemFragment;
-  loading?: HTMLImageElement['loading'];
-}) {
-  const publishedAt = new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(article.publishedAt!));
-  return (
-    <div className="blog-article" key={article.id}>
-      <Link to={`/blogs/${article.blog.handle}/${article.handle}`}>
-        {article.image && (
-          <div className="blog-article-image">
-            <Image
-              alt={article.image.altText || article.title}
-              aspectRatio="3/2"
-              data={article.image}
-              loading={loading}
-              sizes="(min-width: 768px) 50vw, 100vw"
-            />
-          </div>
-        )}
-        <h3>{article.title}</h3>
-        <small>{publishedAt}</small>
-      </Link>
-    </div>
-  );
-}
-
 // NOTE: https://shopify.dev/docs/api/storefront/latest/objects/blog
-const BLOGS_QUERY = `#graphql
+// `excerpt` and `author` instead of the whole `contentHtml`: a listing page does not need the article text.
+const BLOG_QUERY = `#graphql
   query Blog(
     $language: LanguageCode
     $blogHandle: String!
@@ -137,7 +146,9 @@ const BLOGS_QUERY = `#graphql
         first: $first,
         last: $last,
         before: $startCursor,
-        after: $endCursor
+        after: $endCursor,
+        sortKey: PUBLISHED_AT,
+        reverse: true
       ) {
         nodes {
           ...ArticleItem
@@ -145,11 +156,9 @@ const BLOGS_QUERY = `#graphql
         pageInfo {
           hasPreviousPage
           hasNextPage
-          hasNextPage
           endCursor
           startCursor
         }
-
       }
     }
   }
@@ -157,7 +166,7 @@ const BLOGS_QUERY = `#graphql
     author: authorV2 {
       name
     }
-    contentHtml
+    excerpt
     handle
     id
     image {

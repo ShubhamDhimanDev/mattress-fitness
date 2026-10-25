@@ -6,6 +6,17 @@ import {SiteFooter} from '~/components/layout/SiteFooter';
 import {hasProviders, parseAnalyticsConfig} from '~/lib/analytics/config';
 import {createConsentStore} from '~/lib/analytics/consent-store';
 import {consentHandle} from '~/lib/analytics/gate';
+import {buildFooterLinks} from '~/lib/navigation';
+import {footerPageLinks, NO_CONTENT} from '~/lib/pages/content-pages';
+
+// The legal links are Shopify policies the footer shows only when they exist (P6-09); the shop here has both.
+const LEGAL_LINKS = footerPageLinks({
+  ...NO_CONTENT,
+  policies: new Set<'privacyPolicy' | 'termsOfService'>([
+    'privacyPolicy',
+    'termsOfService',
+  ]),
+});
 
 afterEach(() => {
   cleanup();
@@ -26,7 +37,7 @@ function renderFooter(env: Record<string, string>) {
   const Stub = createRoutesStub([
     {
       path: '/',
-      Component: () => <SiteFooter />,
+      Component: () => <SiteFooter links={buildFooterLinks(LEGAL_LINKS)} />,
     },
   ]);
   render(<Stub initialEntries={['/']} />);

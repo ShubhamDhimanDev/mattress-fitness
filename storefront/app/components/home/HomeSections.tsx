@@ -1,3 +1,4 @@
+import {lazy, Suspense, type ComponentType} from 'react';
 import {Link} from 'react-router';
 import {BannerSection} from '~/components/home/BannerSection';
 import {
@@ -6,6 +7,7 @@ import {
   FeaturedProducts,
   SizeTiles,
 } from '~/components/home/CatalogSections';
+import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {Button} from '~/components/ui/Button';
 import {
   HOME_ASSURANCE_ITEMS,
@@ -13,10 +15,27 @@ import {
   SLEEP_QUIZ_LINK,
   STORE_LOCATOR_PATH,
 } from '~/lib/navigation';
+import type {SignupPublicConfig} from '~/lib/signup/shared';
 import type {HomeData} from '~/lib/shopify/home-data';
 import type {HomeSection} from '~/lib/shopify/home-sections';
 
-type HomeSectionsProps = {home: HomeData};
+// The signup form is a lazy chunk requested only where a form renders, which is nowhere when the signup is off: this
+// file names a dynamic import and nothing else about it (bundle budget, scripts/perf; review m7). A chunk that cannot be
+// downloaded hides the form and nothing else (NFR-013).
+const NoSignup: ComponentType<SignupFormProps> = () => null;
+const SignupForm = lazy(
+  (): Promise<{default: ComponentType<SignupFormProps>}> =>
+    import('~/components/signup/SignupForm').then(
+      (module) => ({default: module.SignupForm}),
+      () => ({default: NoSignup}),
+    ),
+);
+
+type HomeSectionsProps = {
+  home: HomeData;
+  /** The email signup (P7-02); null when it is not configured, which leaves the admin `signup` block empty. */
+  signup?: SignupPublicConfig | null;
+};
 
 function isTitleSection(section: HomeSection): boolean {
   return (
@@ -32,7 +51,7 @@ function isTitleSection(section: HomeSection): boolean {
  * first hero with a heading is the page's only h1; if admin has none, a visually hidden h1 keeps the page
  * titled. Catalog blocks hide themselves when the catalog has nothing for them.
  */
-export function HomeSections({home}: HomeSectionsProps) {
+export function HomeSections({home, signup = null}: HomeSectionsProps) {
   const titleId = home.sections.find(isTitleSection)?.id ?? null;
 
   return (
@@ -43,6 +62,7 @@ export function HomeSections({home}: HomeSectionsProps) {
           key={section.id}
           section={section}
           home={home}
+          signup={signup}
           asPageTitle={section.id === titleId}
         />
       ))}
@@ -53,10 +73,12 @@ export function HomeSections({home}: HomeSectionsProps) {
 function SectionView({
   section,
   home,
+  signup,
   asPageTitle,
 }: {
   section: HomeSection;
   home: HomeData;
+  signup: SignupPublicConfig | null;
   asPageTitle: boolean;
 }) {
   switch (section.kind) {
@@ -102,9 +124,17 @@ function SectionView({
         }
       }
     case 'signup':
-      // TODO(P7-02): email and text-message signup with recorded consent (Klaviyo) renders here. Until the
-      // submission exists nothing is shown: a form that discards what the shopper typed would be worse.
-      return null;
+      // The `signup` block placed in admin (P7-02). Nothing renders unless Klaviyo is configured (`signup` is null):
+      // a form that discards what the shopper typed would be worse than no form.
+      return signup ? (
+        <section className="my-8 rounded-panel bg-surface-muted px-6 py-8">
+          <div className="max-w-xl">
+            <Suspense fallback={<div aria-hidden="true" className="h-72" />}>
+              <SignupForm config={signup} surface="home" />
+            </Suspense>
+          </div>
+        </section>
+      ) : null;
     case 'placeholder-hero':
       return <PlaceholderHero />;
     case 'placeholder-assurance':

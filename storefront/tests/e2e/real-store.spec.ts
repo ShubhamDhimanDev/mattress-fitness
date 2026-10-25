@@ -6,6 +6,7 @@ import {
   summariseAudit,
 } from './helpers/a11y';
 import {gotoReady} from './helpers/catalog';
+import {expectFooterContract} from './helpers/footer';
 
 // Real Shopify DEVELOPMENT store smoke: READ and CART paths only (REQ-CART-001, REQ-CHK-001, REQ-COL-001, REQ-PDP-001,
 // REQ-SRCH-001, REQ-SEO-001, NFR-003, NFR-008, NFR-010). This is the first spec that runs against a real store; every
@@ -307,6 +308,18 @@ test.describe('real development store: pages render from real data (READ paths)'
           page.getByRole('heading', {level: 1}).first(),
         ).toBeVisible();
       }
+      // REQ-CNT-001 (P6-09): a content page that answers 404 must have no footer link (a 404 link is the defect),
+      // and the footer must be there to say so. The page may be 404 today and 200 once the owner writes it.
+      if (status === 404 && path.startsWith('/pages/')) {
+        await expect(
+          page.getByRole('contentinfo'),
+          `${path} shell`,
+        ).toBeVisible();
+        await expect(
+          page.locator(`footer a[href="${path}"]`),
+          `${path} answers 404: the footer must not link to it`,
+        ).toHaveCount(0);
+      }
       // A 404 document makes the browser log one "Failed to load resource" line for that very URL: expected, matched by
       // status and URL, and still reported. Any other console error fails.
       expect(
@@ -326,6 +339,17 @@ test.describe('real development store: pages render from real data (READ paths)'
       page.removeAllListeners('pageerror');
     }
     observe(info, 'degrading page statuses', statuses);
+  });
+
+  test('the footer links only content that resolves on this store: pages, policies and the journal blog (REQ-CNT-001, P6-09)', async ({
+    page,
+    request,
+  }, info) => {
+    await gotoReady(page, '/');
+    const report = await expectFooterContract(page, request);
+    observe(info, 'footer content links shown', report.linked);
+    observe(info, 'registry pages with no footer link', report.notLinked);
+    observe(info, 'content path statuses', report.statuses);
   });
 
   test('a missing collection (`mattresses` is not on the store yet) is a clean 404', async ({

@@ -268,6 +268,8 @@ const ROUTES: RouteCase[] = [
   {name: 'blogs-index', open: (page) => go(page, '/blogs')},
   {name: 'blog', open: (page) => go(page, '/blogs/journal')},
   {name: 'account-signed-out', open: (page) => go(page, '/account')},
+  // REQ-ACC-003: the guest order lookup page (the form, or the notice when the server has no Admin settings).
+  {name: 'track-order', open: (page) => go(page, '/track-order')},
   {name: 'not-found', open: (page) => go(page, '/no-such-route-a11y')},
   {name: 'delivery', open: (page) => go(page, '/delivery')},
   // Development-only component gallery (404 in a production build); covers every ui primitive in one place.

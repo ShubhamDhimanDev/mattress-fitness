@@ -175,9 +175,9 @@ export function createLazyPanel<P extends object>(
 
 type BoundaryProps = {
   /** Shown while the chunk downloads. Give it the panel's size so nothing shifts. */
-  loading: ReactNode;
+  loading?: ReactNode;
   /** Shown when the chunk cannot be loaded or the panel throws; it should offer a way forward. */
-  failed: ReactNode;
+  failed?: ReactNode;
   children: ReactNode;
 };
 

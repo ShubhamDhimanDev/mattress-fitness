@@ -7,14 +7,17 @@ import {CompareToggle} from '~/components/compare/CompareToggle';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {AddWithProtectionButton} from '~/components/extend/AddWithProtectionButton';
 import {ProtectionPanel} from '~/components/extend/ProtectionPanel';
+import {PickupSlot} from '~/components/product/PickupSlot';
 import {ProductAddOns} from '~/components/product/ProductAddOns';
 import {VendorName} from '~/components/product/VendorName';
 import {useProtectionOffers} from '~/components/extend/useProtectionOffers';
 import {Badge} from '~/components/ui/Badge';
 import {Price} from '~/components/ui/Price';
+import {Rating} from '~/components/ui/Rating';
 import {SizeSelector} from '~/components/ui/SizeSelector';
 import {SIZE_OPTION_NAME, toSlug} from '~/lib/catalog/attributes';
 import {sizeOf} from '~/lib/offers-runtime/sizes';
+import type {ReviewsAggregate} from '~/lib/reviews/provider';
 import type {BrandLink} from '~/lib/shopify/brand-link';
 import type {ProtectionMode} from '~/lib/shopify/protection-mode';
 import {savingsLabel} from '~/lib/shopify/pricing';
@@ -44,6 +47,7 @@ export function ProductBuyBox({
   protection = 'off',
   brandLink = null,
   addOns = false,
+  rating = null,
 }: {
   product: ProductPageView;
   variant: VariantView;
@@ -55,6 +59,8 @@ export function ProductBuyBox({
    * nothing and asks nothing, which is the case for every product that is not a mattress with add-ons.
    */
   addOns?: boolean;
+  /** The product's aggregate rating from the reviews provider, read by the loader; null when reviews are off or empty. */
+  rating?: ReviewsAggregate | null;
 }) {
   const navigate = useNavigate();
   const {open, type: asideType} = useAside();
@@ -111,7 +117,15 @@ export function ProductBuyBox({
           <VendorName vendor={product.vendor} brandLink={brandLink} />
         ) : null}
         <h1 className="text-3xl font-bold">{product.title}</h1>
-        {/* TODO(P3B-12): star rating and review count render here once a reviews provider is chosen (Q-011). */}
+        {/* Only with real reviews from the provider (REQ-PDP-005): nothing renders, and nothing is reserved, otherwise. */}
+        {rating ? (
+          <Rating
+            value={rating.average}
+            count={rating.exact ? rating.count : undefined}
+            href="#reviews"
+            className="mt-1"
+          />
+        ) : null}
       </div>
 
       {attributeBadges.length > 0 ? (
@@ -234,7 +248,8 @@ export function ProductBuyBox({
       <DeliveryCheck />
 
       {/* Extension slots, each filled by its own task; they render nothing today. */}
-      {/* TODO(P3B-10): store pickup availability and "try in store" (REQ-PDP-003, REQ-PDP-004). */}
+      {/* Store pickup for this size and "my store", and "Try in store" (P3B-10, REQ-PDP-003, REQ-PDP-004). */}
+      <PickupSlot variantId={variant.id} productHandle={product.handle} />
     </div>
   );
 }

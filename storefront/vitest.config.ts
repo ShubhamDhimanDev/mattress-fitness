@@ -1,3 +1,4 @@
+import {availableParallelism} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {defineConfig} from 'vitest/config';
 
@@ -14,6 +15,17 @@ export default defineConfig({
       'tests/integration/**/*.test.{ts,tsx}',
     ],
     environment: 'node',
+    // The suite is large and runs its files in parallel: a test that is quick alone can pass 5 s under full load, which
+    // made two unrelated tests flake (limiter flood, LazyPanel focus). A generous ceiling is not a retry: a hang still fails.
+    testTimeout: 20000,
+    // Eight workers on an eight-core machine starve timing-sensitive jsdom tests (a different one failed on each full run);
+    // four workers pass every run at the cost of about a minute (measured: 174 s for 5829 tests).
+    // Never more than Node reports as usable (availableParallelism). Whether that honours a container CPU quota depends
+    // on the Node and libuv versions, so a CI job with a quota should still pass --maxWorkers.
+    maxWorkers: Math.min(4, availableParallelism()),
+    // A test slower than this is reported as slow, so a creeping one is seen before it needs a longer ceiling.
+    slowTestThreshold: 5000,
+    hookTimeout: 20000,
     // Hydrogen's CartForm calls react-router's hooks; left external it loads a second copy of react-router and
     // cannot see the test's data router (B-20 tests). Processing it here makes both share one copy.
     server: {deps: {inline: ['@shopify/hydrogen']}},

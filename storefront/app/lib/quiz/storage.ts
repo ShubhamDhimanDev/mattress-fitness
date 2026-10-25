@@ -24,13 +24,13 @@ export const QUIZ_STORAGE_MAX_BYTES = 8192;
 export const QUIZ_STORAGE_MAX_AGE_DAYS = 180;
 
 /**
- * Where the account copy lives.
- * ASSUMPTION(V-08): a customer metafield of type json that the Customer Account
- * API lets the signed-in customer write; if not, results stay device-only.
+ * Where the account copy lives: one customer metafield of type json, written through the Customer Account
+ * API `metafieldsSet` mutation (documented since 2024-07). It needs a definition with customer-account
+ * access READ_WRITE; see docs/integrations/QUIZ_ACCOUNT_SYNC.md. Unverified on the client's store (V-08).
  */
 export const QUIZ_ACCOUNT_METAFIELD = {
   namespace: 'custom',
-  key: 'quiz_results',
+  key: 'quiz_result',
   type: 'json',
 } as const;
 
@@ -44,6 +44,10 @@ const ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const HANDLE_PATTERN = /^[a-z0-9][a-z0-9-]{0,254}$/;
 const FINGERPRINT_PATTERN = /^[0-9a-f]{1,16}$/;
 const DAY_MS = 86_400_000;
+
+export function isSafeHandle(value: unknown): value is string {
+  return typeof value === 'string' && HANDLE_PATTERN.test(value);
+}
 
 export type SavedQuizResult = {
   readonly handle: string;
@@ -69,7 +73,7 @@ function byteLength(text: string): number {
   return new TextEncoder().encode(text).length;
 }
 
-function sanitizeAnswers(raw: unknown): QuizAnswers | null {
+export function sanitizeAnswers(raw: unknown): QuizAnswers | null {
   if (!isRecord(raw)) return null;
   const entries: [string, readonly string[]][] = [];
   for (const [questionId, optionIds] of Object.entries(raw)) {

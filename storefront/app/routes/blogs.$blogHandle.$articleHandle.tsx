@@ -1,113 +1,204 @@
-import {useLoaderData} from 'react-router';
-import type {Route} from './+types/blogs.$blogHandle.$articleHandle';
+import {Link, useLoaderData} from 'react-router';
 import {Image} from '@shopify/hydrogen';
+import type {Route} from './+types/blogs.$blogHandle.$articleHandle';
 import {SafeHtml} from '~/components/SafeHtml';
 import {formatPageTitle} from '~/components/layout/documentTitle';
+import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {cn} from '~/components/ui/cn';
+import {displayHeadingClass} from '~/lib/display-type';
+import {SITE_NAME} from '~/lib/navigation';
+import {buildArticleDocument} from '~/lib/pages/content-pages-article';
+import {
+  articleNeighbours,
+  articlePath,
+  formatLongDate,
+} from '~/lib/pages/content-pages-blog';
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+import {canonicalUrl} from '~/lib/seo/canonical';
+import {resolveSiteOrigin} from '~/lib/site-origin';
+import {contentCache, rememberFound} from '~/lib/shopify/content-pages-cache';
+import {isValidHandle} from '~/lib/shopify/collection-data';
 
+// The loader prepares the head tags and structured data (`buildArticleDocument`); this only reads them.
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: formatPageTitle(data?.article.title)}];
+  if (!data) return [{title: formatPageTitle('Article not found')}];
+  return [
+    {title: formatPageTitle(data.view.seoTitle)},
+    ...data.view.metaTags,
+    ...data.view.jsonLd.map((jsonLd) => ({'script:ld+json': jsonLd})),
+  ];
 };
 
-export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
+// How many handles to read to find the neighbours of an article. Neighbours of an article beyond this window
+// are not shown (no guess is made); a blog this size is far beyond what the client's team publishes.
+const NEIGHBOUR_WINDOW = 100;
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
-  return {...deferredData, ...criticalData};
-}
-
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- */
-async function loadCriticalData({context, request, params}: Route.LoaderArgs) {
+export async function loader({context, request, params}: Route.LoaderArgs) {
   const {blogHandle, articleHandle} = params;
-
-  if (!articleHandle || !blogHandle) {
+  if (!isValidHandle(blogHandle) || !isValidHandle(articleHandle)) {
     throw new Response('Not found', {status: 404});
   }
+  const {storefront} = context;
 
-  const [{blog}] = await Promise.all([
-    context.storefront.query(ARTICLE_QUERY, {
-      variables: {blogHandle, articleHandle},
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
+  // Long once Shopify has answered with the article, short before that and for unknown handles (security C-M2).
+  const cacheKey = `article:${blogHandle}/${articleHandle}`;
+  const {blog} = await storefront.query(ARTICLE_QUERY, {
+    cache: contentCache(storefront, cacheKey),
+    variables: {blogHandle, articleHandle, neighbours: NEIGHBOUR_WINDOW},
+  });
 
-  if (!blog?.articleByHandle) {
-    throw new Response(null, {status: 404});
+  const article = blog?.articleByHandle;
+  if (!blog || !article) {
+    throw new Response('Not found', {status: 404});
   }
+  rememberFound(cacheKey);
 
   redirectIfHandleIsLocalized(
     request,
-    {
-      handle: articleHandle,
-      data: blog.articleByHandle,
-    },
-    {
-      handle: blogHandle,
-      data: blog,
-    },
+    {handle: articleHandle, data: article},
+    {handle: blogHandle, data: blog},
   );
 
-  const article = blog.articleByHandle;
+  const origin = resolveSiteOrigin({
+    env: context.env,
+    requestUrl: request.url,
+    isDev: import.meta.env.DEV,
+  });
+  const view = buildArticleDocument({
+    blogHandle: blog.handle,
+    blogTitle: blog.title,
+    articleHandle: article.handle,
+    title: article.title,
+    contentHtml: article.contentHtml,
+    excerpt: article.excerpt,
+    publishedAt: article.publishedAt,
+    authorName: article.author?.name,
+    topics: article.tags,
+    image: article.image,
+    seoTitle: article.seo?.title,
+    seoDescription: article.seo?.description,
+    origin,
+    canonical: canonicalUrl(origin, articlePath(blog.handle, article.handle)),
+    siteName: SITE_NAME,
+  });
+  const {newer, older} = articleNeighbours(blog.articles.nodes, article.handle);
 
-  return {article};
-}
-
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- */
-function loadDeferredData({context}: Route.LoaderArgs) {
-  return {};
+  return {
+    blogHandle: blog.handle,
+    article: {
+      title: article.title,
+      contentHtml: article.contentHtml,
+      publishedAt: article.publishedAt,
+      authorName: article.author?.name ?? null,
+      image: article.image,
+    },
+    view,
+    newer,
+    older,
+  };
 }
 
 export default function Article() {
-  const {article} = useLoaderData<typeof loader>();
-  const {title, image, contentHtml, author} = article;
-
-  const publishedDate = new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(article.publishedAt));
+  const {article, blogHandle, view, newer, older} =
+    useLoaderData<typeof loader>();
+  const published = formatLongDate(article.publishedAt);
 
   return (
-    <div className="article">
-      <h1>
-        {title}
-        <div>
-          <time dateTime={article.publishedAt}>{publishedDate}</time> &middot;{' '}
-          <address>{author?.name}</address>
-        </div>
-      </h1>
+    <article className="py-4">
+      <Breadcrumb items={view.breadcrumb} className="print:hidden" />
+      <header className="mt-2 border-b border-line pb-4">
+        <h1 className={cn(displayHeadingClass(article.title), 'text-3xl')}>
+          {article.title}
+        </h1>
+        <p className="mt-2 text-sm text-fg-muted">
+          {published ? (
+            <time dateTime={article.publishedAt}>{published}</time>
+          ) : null}
+          {published && article.authorName ? ' · ' : null}
+          {article.authorName ? <span>By {article.authorName}</span> : null}
+        </p>
+      </header>
 
-      {image && <Image data={image} sizes="90vw" loading="eager" />}
-      <SafeHtml html={contentHtml} />
-    </div>
+      {article.image ? (
+        <div className="mt-4 max-w-prose overflow-hidden rounded-card">
+          <Image
+            alt={article.image.altText || ''}
+            aspectRatio="3/2"
+            data={article.image}
+            loading="eager"
+            sizes="(min-width: 768px) 40rem, 100vw"
+          />
+        </div>
+      ) : null}
+      <SafeHtml html={article.contentHtml} className="mt-4" />
+
+      {view.topics.length > 0 ? (
+        <ul aria-label="Tags" className="mt-4 flex flex-wrap gap-2">
+          {view.topics.map((topic) => (
+            <li
+              key={topic}
+              className="rounded-pill border border-line px-3 py-1 text-sm text-fg-muted"
+            >
+              {topic}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {newer || older ? (
+        <nav
+          aria-label="More articles"
+          className="mt-8 flex flex-col gap-2 border-t border-line pt-4 print:hidden sm:flex-row sm:justify-between"
+        >
+          {older ? (
+            <Link
+              rel="prev"
+              to={articlePath(blogHandle, older.handle)}
+              className="inline-flex min-h-touch items-center text-primary-700 underline underline-offset-2 hover:text-primary-800"
+            >
+              <span aria-hidden="true">&larr;&nbsp;</span>
+              {older.title}
+            </Link>
+          ) : (
+            <span />
+          )}
+          {newer ? (
+            <Link
+              rel="next"
+              to={articlePath(blogHandle, newer.handle)}
+              className="inline-flex min-h-touch items-center text-primary-700 underline underline-offset-2 hover:text-primary-800 sm:text-right"
+            >
+              {newer.title}
+              <span aria-hidden="true">&nbsp;&rarr;</span>
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
+    </article>
   );
 }
 
 // NOTE: https://shopify.dev/docs/api/storefront/latest/objects/blog#field-blog-articlebyhandle
+// The Storefront API has no next or previous article field, so a bounded list of handles and titles (newest
+// first) is read alongside the article and the neighbours are found in it (`articleNeighbours`).
 const ARTICLE_QUERY = `#graphql
   query Article(
     $articleHandle: String!
     $blogHandle: String!
+    $neighbours: Int!
     $country: CountryCode
     $language: LanguageCode
   ) @inContext(language: $language, country: $country) {
     blog(handle: $blogHandle) {
       handle
+      title
       articleByHandle(handle: $articleHandle) {
         handle
         title
         contentHtml
+        excerpt
         publishedAt
+        tags
         author: authorV2 {
           name
         }
@@ -120,6 +211,12 @@ const ARTICLE_QUERY = `#graphql
         }
         seo {
           description
+          title
+        }
+      }
+      articles(first: $neighbours, sortKey: PUBLISHED_AT, reverse: true) {
+        nodes {
+          handle
           title
         }
       }

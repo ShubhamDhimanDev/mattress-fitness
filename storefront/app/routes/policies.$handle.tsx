@@ -1,7 +1,15 @@
-import {Link, useLoaderData} from 'react-router';
+import {useLoaderData} from 'react-router';
 import type {Route} from './+types/policies.$handle';
-import {SafeHtml} from '~/components/SafeHtml';
+import {ContentArticle} from '~/components/pages/ContentArticle';
 import {formatPageTitle} from '~/components/layout/documentTitle';
+import {SITE_NAME} from '~/lib/navigation';
+import {
+  buildContentDocument,
+  displayView,
+  headTags,
+} from '~/lib/pages/content-pages-view';
+import {canonicalUrl} from '~/lib/seo/canonical';
+import {resolveSiteOrigin} from '~/lib/site-origin';
 import {catalogCache} from '~/lib/shopify/cache';
 
 // URL handle to the Shop field it reads. A closed list: the handle never becomes a variable name unchecked.
@@ -12,11 +20,12 @@ const POLICY_FIELDS = {
   'refund-policy': 'refundPolicy',
 } as const;
 
+// The loader prepares the head tags and structured data (`buildContentDocument`); this only reads them.
 export const meta: Route.MetaFunction = ({data}) => {
-  return [{title: formatPageTitle(data?.policy.title)}];
+  return data?.head ?? [{title: formatPageTitle('Not found')}];
 };
 
-export async function loader({params, context}: Route.LoaderArgs) {
+export async function loader({params, context, request}: Route.LoaderArgs) {
   const policyName =
     Object.entries(POLICY_FIELDS).find(
       ([handle]) => handle === params.handle,
@@ -44,24 +53,34 @@ export async function loader({params, context}: Route.LoaderArgs) {
     throw new Response('Could not find the policy', {status: 404});
   }
 
-  return {policy};
+  // The path comes from the closed list above, never from what the caller typed.
+  const path = `/policies/${params.handle}`;
+  const origin = resolveSiteOrigin({
+    env: context.env,
+    requestUrl: request.url,
+    isDev: import.meta.env.DEV,
+  });
+  const view = buildContentDocument({
+    title: policy.title,
+    body: policy.body,
+    parents: [{name: 'Policies', path: '/policies'}],
+    path,
+    origin,
+    canonical: canonicalUrl(origin, path),
+    siteName: SITE_NAME,
+  });
+
+  return {
+    policy: {body: policy.body},
+    view: displayView(view),
+    head: headTags(formatPageTitle(view.seoTitle), view),
+  };
 }
 
 export default function Policy() {
-  const {policy} = useLoaderData<typeof loader>();
+  const {policy, view} = useLoaderData<typeof loader>();
 
-  return (
-    <div className="py-6">
-      <Link
-        to="/policies"
-        className="inline-flex min-h-touch items-center text-primary-700 underline underline-offset-2"
-      >
-        Back to policies
-      </Link>
-      <h1 className="mt-2 text-3xl font-bold">{policy.title}</h1>
-      <SafeHtml html={policy.body} />
-    </div>
-  );
+  return <ContentArticle {...view} body={policy.body} />;
 }
 
 // NOTE: https://shopify.dev/docs/api/storefront/latest/objects/Shop

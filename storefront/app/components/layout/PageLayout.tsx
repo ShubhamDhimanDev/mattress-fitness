@@ -7,8 +7,15 @@ import {MAIN_CONTENT_ID} from '~/components/layout/SkipLink';
 import {MobileMenuContent, SiteHeader} from '~/components/layout/SiteHeader';
 import {SiteFooter} from '~/components/layout/SiteFooter';
 import {Skeleton} from '~/components/ui/Skeleton';
-import type {MainNavItem, PromoMessage, SupportPhone} from '~/lib/navigation';
+import type {
+  FooterLinks,
+  MainNavItem,
+  UtilityLink,
+  PromoMessage,
+  SupportPhone,
+} from '~/lib/navigation';
 import type {MyStoreSummary} from '~/lib/pages/my-store-summary';
+import type {SignupPublicConfig} from '~/lib/signup/shared';
 
 type PageLayoutProps = {
   cart: Promise<CartApiQueryFragment | null>;
@@ -19,10 +26,18 @@ type PageLayoutProps = {
   promo?: PromoMessage | null;
   /** The main navigation from the Shopify admin menu (REQ-NAV-002); null shows the fixed navigation. */
   mainNav?: readonly MainNavItem[] | null;
+  /** Footer links that depend on Shopify content, built by the root loader (REQ-CNT-001); none shows none of them. */
+  footerLinks?: FooterLinks;
+  /** The fixed navigation minus links to Shopify pages that do not exist, used when no admin menu is set (REQ-CNT-001). */
+  fallbackNav?: readonly MainNavItem[] | null;
+  /** The header and drawer utility links whose page exists (REQ-CNT-001). */
+  utilityLinks?: readonly UtilityLink[];
   /** The client's number (PUBLIC_SUPPORT_PHONE or site_settings), or null: no phone link is rendered without one (REQ-CNT-001). */
   supportPhone?: SupportPhone | null;
   /** False when the deployment cannot save a ZIP; the header then offers no ZIP entry. */
   deliveryZipAvailable?: boolean;
+  /** The footer's email signup (P7-02); null or absent renders nothing and requests no code. */
+  signup?: SignupPublicConfig | null;
   children?: React.ReactNode;
 };
 
@@ -36,8 +51,12 @@ export function PageLayout({
   myStore = null,
   promo = null,
   mainNav = null,
+  footerLinks,
+  fallbackNav = null,
+  utilityLinks,
   supportPhone = null,
   deliveryZipAvailable = true,
+  signup = null,
   children = null,
 }: PageLayoutProps) {
   return (
@@ -47,6 +66,8 @@ export function PageLayout({
         isLoggedIn={isLoggedIn}
         promo={promo}
         mainNav={mainNav}
+        fallbackNav={fallbackNav ?? undefined}
+        utilityLinks={utilityLinks}
         storeName={myStore?.name ?? null}
         supportPhone={supportPhone}
         deliveryZipAvailable={deliveryZipAvailable}
@@ -58,10 +79,19 @@ export function PageLayout({
       >
         {children}
       </main>
-      <SiteFooter supportPhone={supportPhone} />
+      <SiteFooter
+        supportPhone={supportPhone}
+        links={footerLinks}
+        signup={signup}
+      />
       <CartAside cart={cart} />
       <Aside type="mobile" heading="Menu" side="left">
-        <MobileMenuContent mainNav={mainNav} supportPhone={supportPhone} />
+        <MobileMenuContent
+          mainNav={mainNav}
+          supportPhone={supportPhone}
+          fallbackNav={fallbackNav ?? undefined}
+          utilityLinks={utilityLinks}
+        />
       </Aside>
     </Aside.Provider>
   );

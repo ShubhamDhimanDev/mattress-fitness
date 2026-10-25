@@ -7,11 +7,7 @@ import {
 } from 'react-router';
 import type {Route} from './+types/account.orders._index';
 import {useRef} from 'react';
-import {
-  Money,
-  getPaginationVariables,
-  flattenConnection,
-} from '@shopify/hydrogen';
+import {Money, flattenConnection} from '@shopify/hydrogen';
 import {
   buildOrderSearchQuery,
   parseOrderFilters,
@@ -31,6 +27,7 @@ import {
   withAccountNoStoreIfResponse,
 } from '~/lib/account/results';
 import {errorFields, logError} from '~/lib/logging/logger';
+import {cursorPaginationVariables} from '~/lib/pages/cursor-pagination';
 
 type OrdersLoaderData = {
   customer: CustomerOrdersFragment;
@@ -47,9 +44,11 @@ export async function loader({request, context}: Route.LoaderArgs) {
   // decided by Shopify from the signed-in customer's token; nothing in the URL names a customer.
   await requireAccountSession(customerAccount);
 
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 20,
-  });
+  // The cursor and direction are checked before they reach the query (security M3).
+  const paginationVariables = cursorPaginationVariables(
+    new URL(request.url).searchParams,
+    20,
+  );
 
   const url = new URL(request.url);
   const filters = parseOrderFilters(url.searchParams);

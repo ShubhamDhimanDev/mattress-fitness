@@ -1,6 +1,7 @@
 import {Image} from '@shopify/hydrogen';
 import {Link} from 'react-router';
 import {keyedText} from '~/lib/shopify/keys';
+import {ReviewsSlot} from '~/components/reviews/ReviewsSlot';
 import {Accordion, type AccordionPanelItem} from '~/components/ui/Accordion';
 import type {BrandLink} from '~/lib/shopify/brand-link';
 import {splitSpecifications} from '~/lib/shopify/spec-tiles';
@@ -19,10 +20,13 @@ import type {ProductPageView} from '~/lib/shopify/types';
 export function ProductSections({
   product,
   brandLink = null,
+  reviews = false,
 }: {
   product: ProductPageView;
   /** The brand's page, when one exists; adds a link in the brand section. */
   brandLink?: BrandLink | null;
+  /** The loader says a reviews provider is configured (REQ-PDP-005). False renders nothing and requests nothing. */
+  reviews?: boolean;
 }) {
   const {tiles, rows} = splitSpecifications(product);
   const hasOverview = product.description.length > 0;
@@ -210,6 +214,8 @@ export function ProductSections({
           />
         </section>
       ) : null}
+
+      {reviews ? <ReviewsSlot handle={product.handle} /> : null}
     </div>
   );
 }

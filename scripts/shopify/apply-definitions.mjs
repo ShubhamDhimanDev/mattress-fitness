@@ -45,14 +45,15 @@ export const DEFAULT_SPEC_PATH = fileURLToPath(new URL('./definitions.json', imp
 const KEY_PATTERN = /^[A-Za-z0-9_-]{2,64}$/;
 const NAMESPACE_PATTERN = /^[A-Za-z0-9_-]{3,255}$/;
 const TYPE_NAME_PATTERN = /^[a-z0-9_]{3,255}$/;
-const OWNER_TYPES = Object.freeze(['PRODUCT', 'PRODUCTVARIANT', 'COLLECTION']);
+const OWNER_TYPES = Object.freeze(['PRODUCT', 'PRODUCTVARIANT', 'COLLECTION', 'CUSTOMER']);
 const STOREFRONT_ACCESS = Object.freeze(['NONE', 'PUBLIC_READ']);
+const CUSTOMER_ACCOUNT_ACCESS = Object.freeze(['NONE', 'READ', 'READ_WRITE']);
 
 /**
  * @typedef {{ name: string, value: string | number | boolean | string[] }} SpecValidation
  * @typedef {{ key: string, name: string, type: string, required?: boolean, description?: string, validations?: SpecValidation[] }} SpecField
  * @typedef {{ type: string, name: string, description?: string, displayNameKey: string, storefrontAccess: string, fieldDefinitions: SpecField[] }} SpecMetaobject
- * @typedef {{ ownerType: string, namespace: string, key: string, name: string, type: string, description?: string, validations?: SpecValidation[], storefrontAccess: string, smartCollectionCondition?: boolean }} SpecMetafield
+ * @typedef {{ ownerType: string, namespace: string, key: string, name: string, type: string, description?: string, validations?: SpecValidation[], storefrontAccess: string, customerAccountAccess?: string, smartCollectionCondition?: boolean }} SpecMetafield
  * @typedef {{ specVersion: number, metaobjectDefinitions: SpecMetaobject[], metafieldDefinitions: SpecMetafield[] }} Spec
  */
 
@@ -78,7 +79,8 @@ export function toMetafieldDefinitionInput(definition) {
     ownerType: definition.ownerType,
     ...(definition.description ? { description: definition.description } : {}),
     ...(definition.validations?.length ? { validations: encodeValidations(definition.validations) } : {}),
-    access: { storefront: definition.storefrontAccess },
+    // customerAccount (MetafieldAccessInput) is what lets a signed-in customer's own session write the field (P6-04).
+    access: { storefront: definition.storefrontAccess, ...(definition.customerAccountAccess ? { customerAccount: definition.customerAccountAccess } : {}) },
     ...(definition.smartCollectionCondition ? { capabilities: { smartCollectionCondition: { enabled: true } } } : {}),
   };
 }
@@ -178,6 +180,7 @@ export function validateSpec(spec) {
     if (typeof raw.type !== 'string' || raw.type === '') errors.push(`${label}: type is required.`);
     if (typeof raw.name !== 'string' || raw.name === '') errors.push(`${label}: name is required.`);
     if (!STOREFRONT_ACCESS.includes(String(raw.storefrontAccess))) errors.push(`${label}: storefrontAccess must be NONE or PUBLIC_READ.`);
+    if (raw.customerAccountAccess !== undefined && !CUSTOMER_ACCOUNT_ACCESS.includes(String(raw.customerAccountAccess))) errors.push(`${label}: customerAccountAccess must be NONE, READ or READ_WRITE.`);
     if (seen.has(label)) errors.push(`${label}: declared twice.`);
     seen.add(label);
     for (const validation of Array.isArray(raw.validations) ? raw.validations : []) {
@@ -200,7 +203,7 @@ const EXISTING_METAFIELDS = `query ExistingMetafieldDefinitions($ownerType: Meta
       id name namespace key description
       type { name }
       validations { name value }
-      access { storefront }
+      access { storefront customerAccount }
       capabilities { smartCollectionCondition { enabled } }
     }
   }
@@ -289,6 +292,8 @@ export function diffMetafieldDefinition(definition, actual) {
   if (actual.name !== definition.name) out.push(`name is "${String(actual.name)}" in Shopify, "${definition.name}" in the spec`);
   const storefront = isRecord(actual.access) ? actual.access.storefront : null;
   if (storefront !== definition.storefrontAccess) out.push(`Storefront API access is ${String(storefront)} in Shopify, ${definition.storefrontAccess} in the spec`);
+  const customerAccount = isRecord(actual.access) ? actual.access.customerAccount : null;
+  if (definition.customerAccountAccess && customerAccount !== definition.customerAccountAccess) out.push(`Customer Account API access is ${String(customerAccount)} in Shopify, ${definition.customerAccountAccess} in the spec`);
   const capabilities = isRecord(actual.capabilities) ? actual.capabilities : {};
   const smart = isRecord(capabilities.smartCollectionCondition) ? capabilities.smartCollectionCondition.enabled === true : false;
   if (smart !== (definition.smartCollectionCondition === true)) out.push(`smart collection condition is ${smart ? 'on' : 'off'} in Shopify, ${definition.smartCollectionCondition ? 'on' : 'off'} in the spec`);

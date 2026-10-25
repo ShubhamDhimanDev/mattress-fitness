@@ -1,4 +1,4 @@
-import {getShopAnalytics, useNonce} from '@shopify/hydrogen';
+import {getShopAnalytics, useNonce, type Storefront} from '@shopify/hydrogen';
 import {
   Outlet,
   useRouteError,
@@ -14,6 +14,7 @@ import type {Route} from './+types/root';
 import {BRAND_HEAD_LINKS, BRAND_THEME_COLOR} from '~/lib/brand';
 import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
+import {resolvePublicChatConfig} from '~/lib/chat/config';
 import {FOOTER_QUERY} from '~/lib/fragments';
 import tailwindCss from './styles/tailwind.css?url';
 import {formatPageTitle} from '~/components/layout/documentTitle';
@@ -21,8 +22,16 @@ import {PageLayout} from '~/components/layout/PageLayout';
 import {MAIN_CONTENT_ID, SkipLink} from '~/components/layout/SkipLink';
 import {Button} from '~/components/ui/Button';
 import {loadDeliverySummary} from '~/lib/delivery-runtime/summary';
-import {errorFields, logError} from '~/lib/logging/logger';
+import {errorFields, logError, logWarn} from '~/lib/logging/logger';
 import {PRIVATE_REVALIDATE_HEADERS} from '~/lib/pages/private-response';
+import {
+  buildFooterLinks,
+  buildUtilityLinks,
+  existingContentPaths,
+  buildFallbackNav,
+} from '~/lib/navigation';
+import {loadFooterPageLinks} from '~/lib/shopify/content-pages-data';
+import {publicSignupConfig} from '~/lib/signup/config';
 import {loadMainNav} from '~/lib/shopify/menu-data';
 import {
   chooseSupportPhone,
@@ -45,9 +54,13 @@ export const meta: Route.MetaFunction = () => [{title: formatPageTitle()}];
  */
 export const shouldRevalidate: ShouldRevalidateFunction = ({
   formMethod,
+  formAction,
   currentUrl,
   nextUrl,
 }) => {
+  // The signup post (P7-02, SU-L4) changes nothing the loaders read: its action answer is enough.
+  if (formAction?.split('?')[0] === '/signup') return false;
+
   // revalidate when a mutation is performed e.g add to cart, login...
   if (formMethod && formMethod !== 'GET') return true;
 
@@ -103,12 +116,15 @@ export function headers() {
  * The shopper's chosen store, for the header (REQ-LOC-003). Only the name and slug of a store found in our
  * own list leave the server; an invalid or tampered cookie, a missing list or a failure all mean no store.
  */
-async function loadMyStore(request: Request): Promise<MyStoreSummary | null> {
+async function loadMyStore(
+  request: Request,
+  storefront: Storefront,
+): Promise<MyStoreSummary | null> {
   const cookieHeader = request.headers.get('Cookie');
   // Most visitors have no cookie: skip the store list entirely.
   if (!hasMyStoreCookie(cookieHeader)) return null;
   try {
-    const {index} = await loadStoreIndex();
+    const {index} = await loadStoreIndex(storefront);
     return summarizeMyStore(index, cookieHeader);
   } catch {
     // The header falls back to "Select your store"; nothing from the request is logged (T-05).
@@ -122,14 +138,31 @@ export async function loader(args: Route.LoaderArgs) {
   const deferredData = loadDeferredData(args);
   const {storefront, env} = args.context;
 
-  // The store lookup, the ZIP cookie read, the site settings and the menu are independent of each other, so
-  // they run together. None of them fails the page: each degrades to "nothing" or to the fixed navigation.
-  const [myStore, delivery, siteSettings, mainNav] = await Promise.all([
-    loadMyStore(args.request),
-    loadDeliverySummary(args.request, env),
-    loadSiteSettings(storefront),
-    loadMainNav(storefront, env),
-  ]);
+  // The store lookup, the ZIP cookie read, the site settings, the menu and the footer's page links are independent
+  // of each other, so they run together. None of them fails the page: each degrades to "nothing" or to the fixed
+  // navigation.
+  const [myStore, delivery, siteSettings, mainNav, footerPages] =
+    await Promise.all([
+      loadMyStore(args.request, storefront),
+      loadDeliverySummary(args.request, env),
+      loadSiteSettings(storefront),
+      loadMainNav(storefront, env),
+      loadFooterPageLinks(storefront),
+    ]);
+
+  const footerLinks = buildFooterLinks(footerPages);
+  const analytics = parseAnalyticsConfig(env);
+  // The chat provider (P7-03, REQ-ANL-004): null unless PUBLIC_CHAT_PROVIDER names a runnable provider, and then no chat
+  // code, script or "Chat with us" exists. With consent required the chat reads the analytics category, which needs a
+  // GA4 id so the banner offers it (docs/integrations/CHAT.md).
+  const chat = resolvePublicChatConfig(
+    env,
+    {
+      development: import.meta.env.DEV,
+      analyticsCategoryConfigured: analytics.ga4MeasurementId !== null,
+    },
+    logWarn,
+  );
 
   return {
     ...deferredData,
@@ -137,6 +170,29 @@ export async function loader(args: Route.LoaderArgs) {
     // The Shopify admin menu (REQ-NAV-002), or null: the layout then shows the fixed navigation. No price, no
     // shopper data: safe for the long catalog cache.
     mainNav,
+    // Footer links to the Shopify pages, policies and blog that exist with content (REQ-CNT-001, P6-09): one
+    // cached batched read, empty on failure. No price, no shopper data.
+    footerLinks,
+    // Where the consent banner's privacy link goes: the policy, or a page with that handle, whichever exists (the
+    // same rule as the footer); null hides the link instead of linking a 404 (REQ-CNT-001, NFR-011).
+    privacyPath:
+      footerPages.find((page) => page.id === 'page:privacy-policy')?.to ?? null,
+    // The email signup (REQ-ANL-003, P7-02): null unless Klaviyo is configured, and then the page renders no form and
+    // requests no signup code. Carries no key and no list id; the privacy link only when that page exists.
+    signup: publicSignupConfig(
+      env,
+      footerLinks.legal.find((link) => link.to.endsWith('/privacy-policy'))
+        ?.to ?? null,
+      {allowUnapprovedSms: import.meta.env.DEV},
+    ),
+    // The fixed navigation and the utility links without links to Shopify pages that do not exist (REQ-CNT-001);
+    // the fixed navigation is only sent when no admin menu is in use.
+    fallbackNav: mainNav
+      ? null
+      : buildFallbackNav(existingContentPaths(footerPages)),
+    utilityLinks: buildUtilityLinks(existingContentPaths(footerPages), {
+      chat: chat ?? false,
+    }),
     ...delivery,
     // The promotion bar and the phone come from the `site_settings` entry (P3B-13). The phone is shown only when
     // valid: PUBLIC_SUPPORT_PHONE overrides the admin value; development shows a labelled placeholder when
@@ -149,7 +205,7 @@ export async function loader(args: Route.LoaderArgs) {
     ),
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     // Public identifiers and the consent mode (P7-01). Unset ids mean no provider: nothing loads (REQ-ANL-001/002).
-    analytics: parseAnalyticsConfig(env),
+    analytics,
     shop: getShopAnalytics({
       storefront,
       publicStorefrontId: env.PUBLIC_STOREFRONT_ID,
@@ -230,6 +286,7 @@ export default function App() {
       shop={data.shop}
       consent={data.consent}
       config={data.analytics}
+      privacyPath={data.privacyPath}
     >
       <PageLayout
         cart={data.cart}
@@ -237,8 +294,12 @@ export default function App() {
         myStore={data.myStore}
         promo={data.promo}
         mainNav={data.mainNav}
+        footerLinks={data.footerLinks}
+        fallbackNav={data.fallbackNav}
+        utilityLinks={data.utilityLinks}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
+        signup={data.signup}
       >
         <Outlet />
       </PageLayout>
@@ -328,6 +389,7 @@ export function ErrorBoundary() {
       shop={data.shop}
       consent={data.consent}
       config={data.analytics}
+      privacyPath={data.privacyPath}
     >
       <PageLayout
         cart={data.cart}
@@ -335,8 +397,12 @@ export function ErrorBoundary() {
         myStore={data.myStore}
         promo={data.promo}
         mainNav={data.mainNav}
+        footerLinks={data.footerLinks}
+        fallbackNav={data.fallbackNav}
+        utilityLinks={data.utilityLinks}
         supportPhone={data.supportPhone}
         deliveryZipAvailable={data.deliveryZipAvailable}
+        signup={data.signup}
       >
         {content}
       </PageLayout>

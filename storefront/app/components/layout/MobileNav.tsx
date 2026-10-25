@@ -1,7 +1,9 @@
+import {Suspense, lazy, type ComponentType} from 'react';
 import {Link} from 'react-router';
 import {NavAnchor} from '~/components/layout/NavAnchor';
 import {Accordion, type AccordionItem} from '~/components/ui/Accordion';
-import {ChatIcon, PhoneIcon} from '~/components/ui/Icons';
+import type {ChatEntryProps} from '~/components/chat/chat-types';
+import {PhoneIcon} from '~/components/ui/Icons';
 import {cn} from '~/components/ui/cn';
 import {fitsDisplayType} from '~/lib/display-type';
 import {
@@ -9,6 +11,7 @@ import {
   type MainNavItem,
   type NavMenuItem,
   type SupportPhone,
+  type UtilityLink,
 } from '~/lib/navigation';
 
 export type MobileNavProps = {
@@ -17,7 +20,18 @@ export type MobileNavProps = {
   onNavigate: () => void;
   /** The client's number; without one no phone link is rendered. */
   supportPhone?: SupportPhone | null;
+  /** The help links to show; the root loader leaves out those whose page does not exist (P6-09). */
+  utilityLinks?: readonly UtilityLink[];
 };
+
+// The chat entry's lazy chunk, requested only when the links hold a chat entry (a provider is configured, P7-03); a failed
+// download hides the call-out only. Declared here, not taken from lazyPanels (which imports this panel), so this panel adds no shared chunk.
+const ChatEntry = lazy((): Promise<{default: ComponentType<ChatEntryProps>}> =>
+  import('~/components/chat/ChatEntry').then(
+    (module) => ({default: module.ChatEntry}),
+    () => ({default: () => null}),
+  ),
+);
 
 const LINK_CLASSES =
   'inline-flex min-h-touch items-center gap-2 text-base text-fg hover:text-primary-700 hover:underline';
@@ -96,6 +110,7 @@ export function MobileNav({
   items,
   onNavigate,
   supportPhone = null,
+  utilityLinks = UTILITY_LINKS,
 }: MobileNavProps) {
   const accordionItems: AccordionItem[] = items.map((item) =>
     item.kind === 'link'
@@ -125,14 +140,28 @@ export function MobileNav({
       </nav>
       <nav aria-label="Help and contact">
         <ul>
-          {UTILITY_LINKS.map((link) => (
-            <li key={link.id}>
-              <Link to={link.to} onClick={onNavigate} className={LINK_CLASSES}>
-                {link.id === 'chat' ? <ChatIcon className="size-5" /> : null}
-                {link.label}
-              </Link>
-            </li>
-          ))}
+          {utilityLinks.map((link) =>
+            link.id === 'chat' ? (
+              // The drawer closes, then the widget opens (P7-03).
+              <Suspense key={link.id} fallback={null}>
+                <ChatEntry
+                  className={LINK_CLASSES}
+                  links={utilityLinks}
+                  onActivate={onNavigate}
+                />
+              </Suspense>
+            ) : (
+              <li key={link.id}>
+                <Link
+                  to={link.to}
+                  onClick={onNavigate}
+                  className={LINK_CLASSES}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ),
+          )}
           {supportPhone ? (
             <li>
               <a href={supportPhone.href} className={LINK_CLASSES}>

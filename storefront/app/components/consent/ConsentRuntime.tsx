@@ -20,6 +20,7 @@ import {acquireAnalytics} from '~/lib/analytics/live';
  */
 export function ConsentRuntime({
   config,
+  privacyPath,
   nonce,
   publishStore,
   notify,
@@ -57,7 +58,7 @@ export function ConsentRuntime({
         resetEarlyViews={resetEarlyViews}
         setNavigationTarget={runtime.setNavigationTarget}
       />
-      <ConsentBanner config={config} store={store} />
+      <ConsentBanner config={config} store={store} privacyPath={privacyPath} />
       <ConsentPreferences config={config} store={store} />
     </>
   );

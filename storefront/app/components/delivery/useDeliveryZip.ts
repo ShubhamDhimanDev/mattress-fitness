@@ -28,7 +28,7 @@ export const DELIVERY_FETCHER_KEY = 'delivery-zip';
  */
 export function useDeliveryZip(initial?: DeliveryResponse) {
   const fetcher = useFetcher<DeliveryResponse>({key: DELIVERY_FETCHER_KEY});
-  const {load, submit, state, data} = fetcher;
+  const {load, submit, state, data, formMethod} = fetcher;
   // Untyped on purpose: importing the root's loader type here would make a cycle (root -> layout -> this).
   const rootData = useRouteLoaderData('root');
   const seed = initial ?? readDeliverySeed(rootData) ?? undefined;
@@ -43,6 +43,17 @@ export function useDeliveryZip(initial?: DeliveryResponse) {
   const answeredBefore = useRef('none');
   const current = data ?? seed ?? null;
   const currentSignature = deliverySignature(current?.delivery ?? null);
+  // "Pending" means the shopper's own save or clear is on its way, not that the fetcher is busy. The first answer is a
+  // GET load on the same fetcher, and React Router hands the fetcher's data to components through a mutable map that
+  // is updated before the router state that says "idle" is rendered. A render in that gap shows the answer and the
+  // form together with the fetcher still "loading": if that counted as pending, the buttons would be inert (loading
+  // buttons ignore clicks) for a moment and a click on a form that is already on screen would be swallowed (the
+  // flaky DeliveryCheck tests, found under full-suite load). A POST is what a change is; its loading state after the
+  // action keeps the POST method, so it still counts.
+  const changing =
+    state !== 'idle' &&
+    formMethod !== undefined &&
+    formMethod.toUpperCase() !== 'GET';
 
   useEffect(() => {
     if (hasSeed || data !== undefined || requested.current) return;
@@ -92,7 +103,7 @@ export function useDeliveryZip(initial?: DeliveryResponse) {
   return {
     /** null until the first answer arrives. */
     response: current,
-    pending: state !== 'idle',
+    pending: changing,
     save,
     clear,
   };

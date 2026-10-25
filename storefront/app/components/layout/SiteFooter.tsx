@@ -1,22 +1,34 @@
-import {useId, useState} from 'react';
+import {lazy, Suspense, useId, useState, type ComponentType} from 'react';
 import {Link} from 'react-router';
 import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
 import {FooterLogo} from '~/components/layout/BrandLogo';
+import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {cn} from '~/components/ui/cn';
 import {BRAND_TAGLINE} from '~/lib/brand';
 import {displayHeadingClass} from '~/lib/display-type';
+import type {SignupPublicConfig} from '~/lib/signup/shared';
 import {ChevronDownIcon, PhoneIcon} from '~/components/ui/Icons';
 import {
-  FOOTER_LEGAL_LINKS,
-  FOOTER_QUICK_LINKS_END,
-  FOOTER_QUICK_LINKS_START,
   FOOTER_SHOP_GROUPS,
-  FOOTER_SUPPORT_GROUPS,
+  NO_FOOTER_LINKS,
   SITE_NAME,
   type FooterGroup,
+  type FooterLinks,
   type FooterQuickLink,
   type SupportPhone,
 } from '~/lib/navigation';
+
+// The signup form is a lazy chunk requested only where a form renders, which is nowhere when the signup is off: this
+// file names a dynamic import and nothing else about it (bundle budget, scripts/perf; review m7). A chunk that cannot be
+// downloaded hides the form and nothing else (NFR-013).
+const NoSignup: ComponentType<SignupFormProps> = () => null;
+const SignupForm = lazy(
+  (): Promise<{default: ComponentType<SignupFormProps>}> =>
+    import('~/components/signup/SignupForm').then(
+      (module) => ({default: module.SignupForm}),
+      () => ({default: NoSignup}),
+    ),
+);
 
 const LINK_CLASSES =
   'inline-flex min-h-touch items-center text-sm text-ink-700 hover:text-primary-700 hover:underline';
@@ -114,29 +126,44 @@ function QuickLinks({links}: {links: readonly FooterQuickLink[]}) {
 
 export function SiteFooter({
   supportPhone = null,
+  links = NO_FOOTER_LINKS,
+  signup = null,
 }: {
   /** The client's number; without one no phone link is rendered. */
   supportPhone?: SupportPhone | null;
+  /** The links that depend on Shopify content, built by the root loader (P6-09); none shows none of them. */
+  links?: FooterLinks;
+  /** The email signup (P7-02), or null when it is not configured: then nothing is rendered and no code is requested. */
+  signup?: SignupPublicConfig | null;
 }) {
   return (
-    // Light grey with one red rule on top, the only brand accent in the footer (BA-05). No signup band and no
-    // social icons: the providers, wording and URLs do not exist yet (REQ-CNT-001, B-15, P7-02).
+    // Light grey with one red rule on top, the only brand accent in the footer (BA-05). No social icons: the
+    // providers, wording and URLs do not exist yet (REQ-CNT-001, B-15). The signup block exists only when configured.
     <footer className="mt-auto border-t-4 border-primary-500 bg-surface-muted text-fg">
       <div className="mx-auto flex max-w-page items-center gap-4 px-4 pt-8 md:px-6 md:pt-12">
         <FooterLogo />
         {/* The client's own tagline, plain text; the logo's alt is the name only, so nothing is read twice. */}
         <p className="text-base font-bold text-fg">{BRAND_TAGLINE}</p>
       </div>
+      {signup ? (
+        <div className="mx-auto max-w-page px-4 pt-6 md:px-6">
+          <div className="max-w-xl">
+            <Suspense fallback={<div aria-hidden="true" className="h-72" />}>
+              <SignupForm config={signup} surface="footer" />
+            </Suspense>
+          </div>
+        </div>
+      ) : null}
       <nav
         aria-label="Footer"
         className="mx-auto flex max-w-page flex-col gap-8 px-4 pt-2 pb-8 md:px-6 md:pt-4 md:pb-12"
       >
         <div className="flex flex-col gap-x-8 border-b border-ink-300 pb-6 md:flex-row md:items-center md:justify-between">
-          <QuickLinks links={FOOTER_QUICK_LINKS_START} />
-          <QuickLinks links={FOOTER_QUICK_LINKS_END} />
+          <QuickLinks links={links.quickStart} />
+          <QuickLinks links={links.quickEnd} />
         </div>
         <FooterGroups
-          groups={FOOTER_SUPPORT_GROUPS}
+          groups={links.supportGroups}
           className="grid gap-0 md:grid-cols-3 md:gap-8"
         />
         <FooterGroups
@@ -150,7 +177,7 @@ export function SiteFooter({
             &copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
           </p>
           <ul className="flex flex-wrap items-center gap-x-4">
-            {FOOTER_LEGAL_LINKS.map((link) => (
+            {links.legal.map((link) => (
               <li key={link.to}>
                 <Link to={link.to} className={LINK_CLASSES}>
                   {link.label}

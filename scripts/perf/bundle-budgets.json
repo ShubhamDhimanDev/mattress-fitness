@@ -5,11 +5,11 @@
     "routes/_index": 130.5,
     "routes/collections.$handle": 139.5,
     "routes/collections.all": 137.5,
-    "routes/products.$handle": 141.5,
+    "routes/products.$handle": 143,
     "routes/cart": 137,
     "routes/checkout-steps": 126.5,
     "routes/search": 137.5,
-    "routes/quiz._index": 132,
+    "routes/quiz._index": 133.5,
     "routes/compare": 130,
     "routes/brands.$handle": 138.5,
     "routes/brands._index": 124.5,
@@ -17,20 +17,26 @@
     "routes/stores.$state.$city.$slug": 125.5,
     "routes/account": 122.5,
     "routes/account.orders._index": 125.5,
-    "routes/pages.$handle": 123.5,
-    "routes/policies.$handle": 123.5
+    "routes/account.quiz": 123,
+    "routes/account_.quiz-sync": 121,
+    "routes/pages.$handle": 125,
+    "routes/policies.$handle": 125,
+    "routes/blogs._index": 125.5,
+    "routes/blogs.$blogHandle._index": 125.5,
+    "routes/blogs.$blogHandle.$articleHandle": 127
   },
   "groups": [
     { "name": "home", "routes": ["routes/_index"], "maxGzipKb": 130.5 },
     { "name": "collection", "routes": ["routes/collections.$handle", "routes/collections.all"], "maxGzipKb": 139.5 },
-    { "name": "product", "routes": ["routes/products.$handle"], "maxGzipKb": 141.5 },
+    { "name": "product", "routes": ["routes/products.$handle"], "maxGzipKb": 143 },
     { "name": "cart", "routes": ["routes/cart", "routes/checkout-steps"], "maxGzipKb": 137 },
     { "name": "search", "routes": ["routes/search"], "maxGzipKb": 137.5 },
-    { "name": "quiz", "routes": ["routes/quiz._index"], "maxGzipKb": 133 },
+    { "name": "quiz", "routes": ["routes/quiz._index"], "maxGzipKb": 133.5 },
     { "name": "compare", "routes": ["routes/compare"], "maxGzipKb": 130 },
     { "name": "brand", "routes": ["routes/brands.$handle", "routes/brands._index"], "maxGzipKb": 138.5 },
     { "name": "stores", "routes": ["routes/stores._index", "routes/stores.$state.$city.$slug"], "maxGzipKb": 125.5 },
-    { "name": "account", "routes": ["routes/account", "routes/account.orders._index"], "maxGzipKb": 125.5 },
-    { "name": "content", "routes": ["routes/pages.$handle", "routes/policies.$handle"], "maxGzipKb": 123.5 }
+    { "name": "account", "routes": ["routes/account", "routes/account.orders._index", "routes/account.quiz", "routes/account_.quiz-sync"], "maxGzipKb": 125.5 },
+    { "name": "content", "routes": ["routes/pages.$handle", "routes/policies.$handle"], "maxGzipKb": 125 },
+    { "name": "blog", "routes": ["routes/blogs._index", "routes/blogs.$blogHandle._index", "routes/blogs.$blogHandle.$articleHandle"], "maxGzipKb": 127 }
   ]
 }

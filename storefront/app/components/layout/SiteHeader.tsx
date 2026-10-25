@@ -35,12 +35,13 @@ import {
   type MainNavItem,
   type PromoMessage,
   type SupportPhone,
+  type UtilityLink,
 } from '~/lib/navigation';
 
 type SiteHeaderProps = {
   /**
    * The navigation built from the Shopify admin menu (root loader, REQ-NAV-002). Null or empty means the fixed
-   * `MAIN_NAV` is shown instead.
+   * the fixed navigation (without links to pages that may not exist) is shown instead.
    */
   mainNav?: readonly MainNavItem[] | null;
   cart: Promise<CartApiQueryFragment | null>;
@@ -52,6 +53,10 @@ type SiteHeaderProps = {
   supportPhone?: SupportPhone | null;
   /** False in production when the ZIP cookie cannot be signed: a plain unavailable note replaces the control. */
   deliveryZipAvailable?: boolean;
+  /** The fixed navigation without links to Shopify pages that do not exist (P6-09); used when no admin menu is set. */
+  fallbackNav?: readonly MainNavItem[];
+  /** Utility links whose page exists (P6-09); the default is the links that need no Shopify content. */
+  utilityLinks?: readonly UtilityLink[];
 };
 
 /**
@@ -68,8 +73,10 @@ export function SiteHeader({
   storeName = null,
   supportPhone = null,
   deliveryZipAvailable = true,
+  fallbackNav = MAIN_NAV,
+  utilityLinks,
 }: SiteHeaderProps) {
-  const navItems = mainNavWithQuizCta(mainNav, MAIN_NAV);
+  const navItems = mainNavWithQuizCta(mainNav, fallbackNav);
   // The saved ZIP lives in a signed cookie that only the server reads (P3B-11). The root loader hands the
   // answer down with the page, so the first paint is right; the hook shares it with the product-page and cart
   // delivery check, so the header and those agree.
@@ -85,7 +92,7 @@ export function SiteHeader({
     <header className="relative z-30 bg-surface">
       <PromoBar message={promo} />
       <TopStrip visible={Boolean(topStrip)}>{topStrip}</TopStrip>
-      <UtilityBar supportPhone={supportPhone}>
+      <UtilityBar supportPhone={supportPhone} links={utilityLinks}>
         {deliveryZipAvailable && delivery?.status !== 'service-unavailable' ? (
           <DeliveryZipControl
             zip={zip}
@@ -254,12 +261,16 @@ const MobileNavPanel = mobileMenuPanel.Panel;
 export function MobileMenuContent({
   mainNav = null,
   supportPhone = null,
+  fallbackNav = MAIN_NAV,
+  utilityLinks,
 }: {
   mainNav?: readonly MainNavItem[] | null;
   supportPhone?: SupportPhone | null;
+  fallbackNav?: readonly MainNavItem[];
+  utilityLinks?: readonly UtilityLink[];
 }) {
   const {close} = useAside();
-  const navItems = mainNavWithQuizCta(mainNav, MAIN_NAV);
+  const navItems = mainNavWithQuizCta(mainNav, fallbackNav);
   return (
     <LazyBoundary
       loading={<MobileNavSkeleton items={navItems} />}
@@ -271,6 +282,7 @@ export function MobileMenuContent({
         items={navItems}
         onNavigate={close}
         supportPhone={supportPhone}
+        utilityLinks={utilityLinks}
       />
     </LazyBoundary>
   );

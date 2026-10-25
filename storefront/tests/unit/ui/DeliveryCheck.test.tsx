@@ -7,13 +7,25 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import {createMemoryRouter, data, RouterProvider} from 'react-router';
+import {
+  createMemoryRouter,
+  data,
+  RouterProvider,
+  useFetcher,
+} from 'react-router';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
+import {DELIVERY_FETCHER_KEY} from '~/components/delivery/useDeliveryZip';
+import type {DeliveryResponse} from '~/lib/delivery-runtime/response';
+import {resetZipChangeForTests} from '~/lib/delivery-runtime/zip-change';
 import {deliveryViewFor, type DeliveryView} from '~/lib/delivery/status';
 import type {DeliveryZone} from '~/lib/delivery/zone';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  // Saving a ZIP records a change in a module-level store; nothing here reads it, but a test must not leave it behind.
+  resetZipChangeForTests();
+});
 
 // The router's first loads run on a jsdom main thread that is shared with the other test files in a full run; the
 // default 1 s for findBy and waitFor is too tight there (this file was flaky only under full-suite load).
@@ -40,6 +52,8 @@ function renderCheck(options: {
   saved?: string | null;
   /** Replaces the computed answer, for states the zone cannot produce (the deployment cannot keep a ZIP). */
   view?: DeliveryView;
+  /** Holds the save's answer back until released, to look at the busy state. */
+  actionGate?: Promise<void>;
 }) {
   let saved = options.saved ?? null;
   const zone = options.zone === undefined ? ZONE : options.zone;
@@ -62,6 +76,7 @@ function renderCheck(options: {
           });
         },
         action: async ({request}) => {
+          await options.actionGate;
           const form = await request.formData();
           submissions.push(String(form.get('zip') ?? form.get('intent')));
           saved =
@@ -216,5 +231,92 @@ describe('DeliveryCheck', () => {
     renderCheck({saved: '60645'});
     await screen.findByText('In-home delivery is available to 60645.');
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('shows a busy button while its own save is on its way, and answers when it arrives', async () => {
+    let release: () => void = () => {};
+    const actionGate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    renderCheck({actionGate});
+    fireEvent.change(await screen.findByLabelText('ZIP code'), {
+      target: {value: '60645'},
+    });
+    fireEvent.click(screen.getByRole('button', {name: /check delivery/i}));
+    expect(
+      await screen.findByRole('button', {name: /checking/i}),
+    ).toHaveAttribute('aria-busy', 'true');
+    release();
+    expect(
+      await screen.findByText('In-home delivery is available to 60645.'),
+    ).toBeVisible();
+  });
+});
+
+// Regression for the flaky tests of this file (invalid ZIP, clears the saved ZIP, says yes): the first answer is a
+// GET load on the shared fetcher, and the answer can be on screen while the fetcher still reads "loading" (React
+// Router's data map is ahead of the router state it renders). The old hook counted that as pending, the buttons were
+// inert, and a click right after the form appeared was swallowed. This test holds the fetcher in "loading" on purpose
+// and clicks: it fails deterministically against the old behaviour and does not depend on timing.
+describe('DeliveryCheck while the shared fetcher is loading (P3B-11)', () => {
+  const SEED: DeliveryResponse = {delivery: {status: 'no-zip'}, error: null};
+
+  function LoadButton() {
+    const fetcher = useFetcher({key: DELIVERY_FETCHER_KEY});
+    return (
+      <button type="button" onClick={() => void fetcher.load('/delivery')}>
+        Start load
+      </button>
+    );
+  }
+
+  function mountLoading() {
+    const loads: string[] = [];
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/products/x',
+          element: (
+            <>
+              <LoadButton />
+              <DeliveryCheck initial={SEED} />
+            </>
+          ),
+        },
+        {
+          path: '/delivery',
+          // Never answers: the fetcher stays in "loading" for the whole test.
+          loader: () => {
+            loads.push('load');
+            return new Promise(() => {});
+          },
+          action: () => data({delivery: SEED.delivery, error: null}),
+        },
+      ],
+      {initialEntries: ['/products/x']},
+    );
+    render(<RouterProvider router={router} />);
+    return {loads, router};
+  }
+
+  it('does not mark the buttons busy, so a click on the visible form is not swallowed', async () => {
+    const {loads, router} = mountLoading();
+    fireEvent.click(await screen.findByRole('button', {name: 'Start load'}));
+    await waitFor(() => {
+      expect(loads).toHaveLength(1);
+      expect(router.state.fetchers.get(DELIVERY_FETCHER_KEY)?.state).toBe(
+        'loading',
+      );
+    });
+
+    const submit = await screen.findByRole('button', {name: /check delivery/i});
+    expect(submit).not.toHaveAttribute('aria-busy');
+    fireEvent.change(screen.getByLabelText('ZIP code'), {
+      target: {value: '12'},
+    });
+    fireEvent.click(submit);
+    expect(
+      await screen.findByText('Enter a 5-digit US ZIP code.'),
+    ).toBeVisible();
   });
 });
