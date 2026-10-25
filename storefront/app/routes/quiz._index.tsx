@@ -11,6 +11,7 @@ import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {QuizIntro} from '~/components/quiz/QuizIntro';
 import {QuizQuestion} from '~/components/quiz/QuizQuestion';
 import {QuizResults, type ResultClick} from '~/components/quiz/QuizResults';
+import {useAccountQuizSync} from '~/components/quiz/useAccountQuizSync';
 import {track} from '~/lib/analytics';
 import {getLocalStorage} from '~/lib/pages/browser-storage';
 import {previewRobotsMeta} from '~/lib/pages/head';
@@ -45,6 +46,7 @@ import type {QuizConfig} from '~/lib/quiz/types';
 import {
   clearQuizFromDevice,
   loadQuizFromDevice,
+  mergeOnSignIn,
   saveQuizToDevice,
   type SavedQuiz,
 } from '~/lib/quiz/storage';
@@ -64,10 +66,10 @@ export const meta: Route.MetaFunction = ({data}) => [
   },
 ];
 
-export async function loader({request}: Route.LoaderArgs) {
+export async function loader({request, context}: Route.LoaderArgs) {
   const url = new URL(request.url);
   const [rawConfig, catalog] = await Promise.all([
-    getQuizConfigRaw(),
+    getQuizConfigRaw(context.storefront),
     getQuizProducts(),
   ]);
   const {config, warnings} = resolveQuizConfig(rawConfig);
@@ -122,6 +124,14 @@ export default function QuizPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const startedAt = useRef<number | null>(null);
   const [saved, setSaved] = useState<SavedQuiz | null>(null);
+  const [accountOffer, setAccountOffer] = useState<SavedQuiz | null>(null);
+  const {
+    signedIn,
+    known: signInKnown,
+    load: loadAccount,
+    save: saveAccount,
+    clear: clearAccount,
+  } = useAccountQuizSync();
 
   const hrefFor = (action: QuizFlowAction): string => {
     const query = encodeFlow(
@@ -145,6 +155,37 @@ export default function QuizPage() {
       setSaved(loaded.saved);
     }
   }, [state.phase, config]);
+
+  // Signed in: the newer of the device and account copies wins (REQ-QZ-005). A newer device copy is saved to
+  // the account quietly; an account copy is only offered when this device has none. Any failure leaves the
+  // device copy alone.
+  useEffect(() => {
+    if (state.phase !== 'intro' || !signedIn) return;
+    let cancelled = false;
+    void (async () => {
+      const result = await loadAccount();
+      if (cancelled || result.status !== 'ok') return;
+      const storage = getLocalStorage();
+      const loaded = storage ? loadQuizFromDevice(storage) : null;
+      const device =
+        loaded?.status === 'ok' && isResumable(loaded.saved, config, Date.now())
+          ? loaded.saved
+          : null;
+      const merge = mergeOnSignIn(device, result.saved);
+      if (merge.action === 'upload_device') {
+        void saveAccount(merge.saved);
+      } else if (
+        merge.action === 'use_account' &&
+        device === null &&
+        isResumable(merge.saved, config, Date.now())
+      ) {
+        setAccountOffer(merge.saved);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.phase, signedIn, loadAccount, saveAccount, config]);
 
   // On a step change: move focus to the new heading, and if the shopper just answered the last question,
   // record the completion once and remember the results on this device.
@@ -180,8 +221,9 @@ export default function QuizPage() {
         nowMs: Date.now(),
       });
       if (storage && toSave) saveQuizToDevice(storage, toSave);
+      if (toSave) void saveAccount(toSave);
     }
-  }, [stepKey, state, data.outcome, config]);
+  }, [stepKey, state, data.outcome, config, saveAccount]);
 
   const goingToResults =
     navigation.state === 'loading' &&
@@ -197,6 +239,16 @@ export default function QuizPage() {
     const storage = getLocalStorage();
     if (storage) clearQuizFromDevice(storage);
     setSaved(null);
+    setAccountOffer(null);
+    void clearAccount();
+  };
+
+  const restoreFromAccount = () => {
+    if (!accountOffer) return;
+    const storage = getLocalStorage();
+    if (storage) saveQuizToDevice(storage, accountOffer);
+    setSaved(accountOffer);
+    setAccountOffer(null);
   };
 
   const resume = saved
@@ -234,6 +286,17 @@ export default function QuizPage() {
                     onClear: retake,
                   }
                 : null
+            }
+            accountOffer={
+              accountOffer
+                ? {
+                    onRestore: restoreFromAccount,
+                    onDismiss: () => setAccountOffer(null),
+                  }
+                : null
+            }
+            signInHref={
+              signInKnown && !signedIn ? '/account/login?return_to=/quiz' : null
             }
           />
         ) : null}

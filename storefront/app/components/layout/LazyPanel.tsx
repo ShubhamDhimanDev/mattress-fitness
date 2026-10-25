@@ -271,11 +271,7 @@ function RetryFocus() {
  * Suspense with a stable fallback, inside a boundary that keeps a failed download from taking the whole page
  * to the root error screen (NFR-013: the rest of the shell keeps working).
  */
-export function LazyBoundary({
-  loading = null,
-  failed = null,
-  children,
-}: BoundaryProps) {
+export function LazyBoundary({loading, failed, children}: BoundaryProps) {
   return (
     <FailureBoundary failed={failed}>
       <Suspense fallback={loading}>

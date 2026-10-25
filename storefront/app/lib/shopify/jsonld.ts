@@ -2,12 +2,14 @@
 // markup cannot drift from the visible content. The objects go to React Router's `meta` as
 // `script:ld+json`, which serialises them safely; no HTML string is ever assembled here.
 //
-// No aggregateRating is emitted: there is no reviews source yet (Q-011), and rating markup without real
-// reviews is a policy violation.
+// aggregateRating is emitted only from a reviews provider's own exact numbers (REQ-PDP-005): with reviews off, no reviews,
+// an unreachable provider or an inexact count there is none, because rating markup without real reviews is a policy
+// violation. Individual `review` objects are not emitted.
 
 import {centsOf} from '~/lib/shopify/common';
 import {selectionToSearch} from '~/lib/shopify/variant-selection';
 import {fromCents} from '~/lib/money';
+import type {ReviewsAggregate} from '~/lib/reviews/provider';
 import type {FaqView, ProductPageView, VariantView} from '~/lib/shopify/types';
 
 type JsonLd = Record<string, unknown>;
@@ -38,13 +40,28 @@ function offerFor(
   };
 }
 
+function hasRealRating(
+  rating: ReviewsAggregate | null,
+): rating is ReviewsAggregate {
+  return (
+    rating !== null &&
+    rating.exact &&
+    Number.isInteger(rating.count) &&
+    rating.count > 0 &&
+    rating.average >= 1 &&
+    rating.average <= 5
+  );
+}
+
 /**
  * `origin` is the configured site origin; null (or empty) when none is configured, in which case the absolute
- * `url` fields are left out rather than emitted as relative paths (P-L2).
+ * `url` fields are left out rather than emitted as relative paths (P-L2). `rating` is the reviews provider's aggregate,
+ * or null when there is none.
  */
 export function buildProductJsonLd(
   product: ProductPageView,
   origin: string | null,
+  rating: ReviewsAggregate | null = null,
 ): JsonLd {
   const offers = product.variants.flatMap((variant) => {
     const offer = offerFor(product, variant, origin);
@@ -69,6 +86,17 @@ export function buildProductJsonLd(
       ? {image: product.images.map((image) => image.url)}
       : {}),
     ...(brandName ? {brand: {'@type': 'Brand', name: brandName}} : {}),
+    ...(hasRealRating(rating)
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: rating.average,
+            reviewCount: rating.count,
+            bestRating: 5,
+            worstRating: 1,
+          },
+        }
+      : {}),
     ...(offers.length === 1
       ? {offers: offers[0]}
       : offers.length > 1

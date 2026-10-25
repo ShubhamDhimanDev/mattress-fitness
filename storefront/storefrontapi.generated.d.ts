@@ -753,6 +753,26 @@ export type OfferOnlyProductHandlesQuery = {
   products: {nodes: Array<Pick<StorefrontAPI.Product, 'handle'>>};
 };
 
+export type PickupAvailabilityQueryVariables = StorefrontAPI.Exact<{
+  variantId: StorefrontAPI.Scalars['ID']['input'];
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type PickupAvailabilityQuery = {
+  node?: StorefrontAPI.Maybe<
+    Pick<StorefrontAPI.ProductVariant, 'id'> & {
+      storeAvailability: {
+        nodes: Array<
+          Pick<StorefrontAPI.StoreAvailability, 'available' | 'pickUpTime'> & {
+            location: Pick<StorefrontAPI.Location, 'id' | 'name'>;
+          }
+        >;
+      };
+    }
+  >;
+};
+
 export type CatalogPromoTilesQueryVariables = StorefrontAPI.Exact<{
   country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
   language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
@@ -1293,6 +1313,46 @@ export type CatalogSearchContentQuery = {
   };
 };
 
+export type QuizQuestionsQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type QuizQuestionsQuery = {
+  questions: {
+    nodes: Array<
+      Pick<StorefrontAPI.Metaobject, 'id' | 'handle'> & {
+        fields: Array<
+          Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'> & {
+            references?: StorefrontAPI.Maybe<{
+              nodes: Array<
+                Pick<StorefrontAPI.Metaobject, 'id' | 'handle'> & {
+                  fields: Array<
+                    Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'> & {
+                      references?: StorefrontAPI.Maybe<{
+                        nodes: Array<
+                          Pick<StorefrontAPI.Metaobject, 'id' | 'handle'> & {
+                            fields: Array<
+                              Pick<
+                                StorefrontAPI.MetaobjectField,
+                                'key' | 'value'
+                              >
+                            >;
+                          }
+                        >;
+                      }>;
+                    }
+                  >;
+                }
+              >;
+            }>;
+          }
+        >;
+      }
+    >;
+  };
+};
+
 export type ShopPolicyHandlesQueryVariables = StorefrontAPI.Exact<{
   [key: string]: never;
 }>;
@@ -1324,6 +1384,27 @@ export type SiteSettingsQuery = {
     nodes: Array<
       Pick<StorefrontAPI.Metaobject, 'id'> & {
         fields: Array<Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'>>;
+      }
+    >;
+  };
+};
+
+export type StoreMetaobjectsQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type StoreMetaobjectsQuery = {
+  stores: {
+    nodes: Array<
+      Pick<StorefrontAPI.Metaobject, 'id' | 'handle'> & {
+        fields: Array<
+          Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'> & {
+            reference?: StorefrontAPI.Maybe<{
+              image?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Image, 'url'>>;
+            }>;
+          }
+        >;
       }
     >;
   };
@@ -1729,6 +1810,10 @@ interface GeneratedQueryTypes {
     return: OfferOnlyProductHandlesQuery;
     variables: OfferOnlyProductHandlesQueryVariables;
   };
+  '#graphql\n  query PickupAvailability(\n    $variantId: ID!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    node(id: $variantId) {\n      ... on ProductVariant {\n        id\n        storeAvailability(first: 250) {\n          nodes {\n            available\n            pickUpTime\n            location {\n              id\n              name\n            }\n          }\n        }\n      }\n    }\n  }\n': {
+    return: PickupAvailabilityQuery;
+    variables: PickupAvailabilityQueryVariables;
+  };
   '#graphql\n  query CatalogPromoTiles($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    tiles: metaobjects(type: "promo_tile", first: 100) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n            ... on Collection {\n              handle\n            }\n          }\n        }\n      }\n    }\n  }\n': {
     return: CatalogPromoTilesQuery;
     variables: CatalogPromoTilesQueryVariables;
@@ -1769,6 +1854,10 @@ interface GeneratedQueryTypes {
     return: CatalogSearchContentQuery;
     variables: CatalogSearchContentQueryVariables;
   };
+  '#graphql\n  query QuizQuestions($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    questions: metaobjects(type: "quiz_question", first: 12) {\n      nodes {\n        id\n        handle\n        fields {\n          key\n          value\n          references(first: 8) {\n            nodes {\n              ... on Metaobject {\n                id\n                handle\n                fields {\n                  key\n                  value\n                  references(first: 12) {\n                    nodes {\n                      ... on Metaobject {\n                        id\n                        handle\n                        fields {\n                          key\n                          value\n                        }\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
+    return: QuizQuestionsQuery;
+    variables: QuizQuestionsQueryVariables;
+  };
   '#graphql\n  query ShopPolicyHandles {\n    shop {\n      privacyPolicy {\n        handle\n      }\n      shippingPolicy {\n        handle\n      }\n      termsOfService {\n        handle\n      }\n      refundPolicy {\n        handle\n      }\n    }\n  }\n': {
     return: ShopPolicyHandlesQuery;
     variables: ShopPolicyHandlesQueryVariables;
@@ -1776,6 +1865,10 @@ interface GeneratedQueryTypes {
   '#graphql\n  query SiteSettings($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    settings: metaobjects(type: "site_settings", first: 1) {\n      nodes {\n        id\n        fields {\n          key\n          value\n        }\n      }\n    }\n  }\n': {
     return: SiteSettingsQuery;
     variables: SiteSettingsQueryVariables;
+  };
+  '#graphql\n  query StoreMetaobjects($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    stores: metaobjects(type: "store", first: 250) {\n      nodes {\n        id\n        handle\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
+    return: StoreMetaobjectsQuery;
+    variables: StoreMetaobjectsQueryVariables;
   };
   '#graphql\n  query Article(\n    $articleHandle: String!\n    $blogHandle: String!\n    $neighbours: Int!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(language: $language, country: $country) {\n    blog(handle: $blogHandle) {\n      handle\n      title\n      articleByHandle(handle: $articleHandle) {\n        handle\n        title\n        contentHtml\n        excerpt\n        publishedAt\n        tags\n        author: authorV2 {\n          name\n        }\n        image {\n          id\n          altText\n          url\n          width\n          height\n        }\n        seo {\n          description\n          title\n        }\n      }\n      articles(first: $neighbours, sortKey: PUBLISHED_AT, reverse: true) {\n        nodes {\n          handle\n          title\n        }\n      }\n    }\n  }\n': {
     return: ArticleQuery;

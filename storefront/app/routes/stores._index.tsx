@@ -33,8 +33,8 @@ export const meta: Route.MetaFunction = ({data: loaderData}) => [
   },
 ];
 
-export async function loader({request}: Route.LoaderArgs) {
-  const {source, index} = await loadStoreIndex();
+export async function loader({request, context}: Route.LoaderArgs) {
+  const {source, index} = await loadStoreIndex(context.storefront);
   const mine = readMyStore(index, request.headers.get('Cookie'));
   // Loader data carries the time so the server and the browser render the same open/closed text.
   const nowMs = Date.now();
@@ -56,8 +56,8 @@ export async function loader({request}: Route.LoaderArgs) {
   );
 }
 
-export async function action({request}: Route.ActionArgs) {
-  const {index} = await loadStoreIndex();
+export async function action({request, context}: Route.ActionArgs) {
+  const {index} = await loadStoreIndex(context.storefront);
   const intent = parseMyStoreForm(index, await request.formData());
   const secure = shouldSecureCookie(request.url);
 

@@ -1,4 +1,4 @@
-import {getShopAnalytics, useNonce} from '@shopify/hydrogen';
+import {getShopAnalytics, useNonce, type Storefront} from '@shopify/hydrogen';
 import {
   Outlet,
   useRouteError,
@@ -116,12 +116,15 @@ export function headers() {
  * The shopper's chosen store, for the header (REQ-LOC-003). Only the name and slug of a store found in our
  * own list leave the server; an invalid or tampered cookie, a missing list or a failure all mean no store.
  */
-async function loadMyStore(request: Request): Promise<MyStoreSummary | null> {
+async function loadMyStore(
+  request: Request,
+  storefront: Storefront,
+): Promise<MyStoreSummary | null> {
   const cookieHeader = request.headers.get('Cookie');
   // Most visitors have no cookie: skip the store list entirely.
   if (!hasMyStoreCookie(cookieHeader)) return null;
   try {
-    const {index} = await loadStoreIndex();
+    const {index} = await loadStoreIndex(storefront);
     return summarizeMyStore(index, cookieHeader);
   } catch {
     // The header falls back to "Select your store"; nothing from the request is logged (T-05).
@@ -140,7 +143,7 @@ export async function loader(args: Route.LoaderArgs) {
   // navigation.
   const [myStore, delivery, siteSettings, mainNav, footerPages] =
     await Promise.all([
-      loadMyStore(args.request),
+      loadMyStore(args.request, storefront),
       loadDeliverySummary(args.request, env),
       loadSiteSettings(storefront),
       loadMainNav(storefront, env),

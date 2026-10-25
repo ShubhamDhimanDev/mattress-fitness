@@ -149,10 +149,12 @@ describe('my store in the header', () => {
     expect(hasMyStoreCookie(`a=1; my_store=${buffalo}`)).toBe(true);
   });
 
-  it('returns only the name and slug for a valid cookie', () => {
+  it('returns only the name, slug, public key and page path for a valid cookie', () => {
     expect(summarizeMyStore(index, `my_store=${buffalo}`)).toEqual({
       name: 'Wrenfield Sleep Gallery Buffalo',
       slug: 'buffalo-gallery',
+      key: buffalo,
+      path: '/stores/new-york/buffalo/buffalo-gallery',
     });
   });
 

@@ -46,9 +46,25 @@
         { "key": "longitude", "name": "Longitude", "type": "number_decimal" },
         { "key": "phone", "name": "Phone", "type": "single_line_text_field" },
         { "key": "hours", "name": "Opening hours", "type": "json", "description": "Opening hours per weekday; the JSON shape is fixed in P3B with the locator." },
+        { "key": "time_zone", "name": "Time zone", "type": "single_line_text_field", "description": "Optional. IANA name of the store's own time zone, for example America/New_York or America/Chicago (not EST or Central). With it the site can say 'Open now' and show today's hours in the store's own time; without it the hours are listed but 'open now' is not shown (P3B-16)." },
         { "key": "photo", "name": "Photo", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "pickup_enabled", "name": "Pickup enabled", "type": "boolean" },
-        { "key": "location_handle", "name": "Shopify location", "type": "single_line_text_field", "description": "Name or handle of the matching Shopify location, used for pickup availability." }
+        { "key": "location_handle", "name": "Shopify location", "type": "single_line_text_field", "description": "The matching Shopify location, used for pickup availability. Enter the location's name exactly as it appears in Settings > Locations (capitalisation and spaces versus hyphens do not matter), or its numeric location id. The Storefront API exposes only a location's id and name, so there is no other handle to match." }
+      ]
+    },
+    {
+      "type": "quiz_scoring_rule",
+      "name": "Quiz scoring rule",
+      "description": "One plain-language scoring rule for a quiz answer: when the shopper picks the answer, products with this attribute value score higher, lower, or are left out (REQ-QZ-003, REQ-QZ-004, NFR-005, P6-13).",
+      "displayNameKey": "name",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "name", "name": "Name", "type": "single_line_text_field", "required": true, "description": "Staff-facing label, for example 'Side sleeper: boost Plush'. Not shown to shoppers." },
+        { "key": "attribute", "name": "Attribute", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["comfort_level", "mattress_type", "sleep_positions", "benefits", "size", "budget"] }], "description": "What the rule looks at. 'size' picks the size whose price and stock are used; 'budget' sets a price limit in whole dollars." },
+        { "key": "value", "name": "Value", "type": "single_line_text_field", "required": true, "description": "The attribute value, spelled as in the product attributes, for example Plush, Hybrid, Side, Cooling, Queen. For 'budget' this is the maximum price in whole dollars, for example 1500." },
+        { "key": "effect", "name": "Effect", "type": "single_line_text_field", "validations": [{ "name": "choices", "value": ["boost", "exclude"] }], "description": "'boost' adds the weight to matching products (a negative weight lowers them); 'exclude' removes matching products from the results. Empty means boost. Ignored for 'size' and 'budget'." },
+        { "key": "weight", "name": "Weight", "type": "number_integer", "validations": [{ "name": "min", "value": -10 }, { "name": "max", "value": 10 }], "description": "Whole number from -10 to 10, not 0. Larger counts for more. Needed for 'boost'; ignored for 'exclude', 'size' and 'budget'." },
+        { "key": "min_dollars", "name": "Budget minimum (dollars)", "type": "number_integer", "validations": [{ "name": "min", "value": 0 }], "description": "Only for 'budget': an optional lower price limit in whole dollars." }
       ]
     },
     {
@@ -59,7 +75,8 @@
       "storefrontAccess": "PUBLIC_READ",
       "fieldDefinitions": [
         { "key": "label", "name": "Label", "type": "single_line_text_field", "required": true },
-        { "key": "scoring_rules", "name": "Scoring rules", "type": "json", "description": "List of rules: attribute, value and weight, or a filter with an exclude flag. Exact shape finalised in P3A-02 after V-05." }
+        { "key": "scoring_rules", "name": "Scoring rules (advanced JSON)", "type": "json", "description": "Fallback for developers: a JSON list of rules (attribute, value, weight, exclude). Used only when the 'Rules' field below is empty. Prefer 'Rules'." },
+        { "key": "rules", "name": "Rules", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "quiz_scoring_rule" }], "description": "Scoring rules for this answer (up to 12). When any are set they replace the JSON field above (P6-13)." }
       ]
     },
     {
@@ -174,6 +191,7 @@
     { "ownerType": "PRODUCT", "namespace": "custom", "key": "extend_category", "name": "Extend category", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Extend protection category (REQ-EXT-005). Shape confirmed by Q-005." },
     { "ownerType": "PRODUCT", "namespace": "custom", "key": "faqs", "name": "FAQs", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "faq" }], "storefrontAccess": "PUBLIC_READ", "description": "Product page FAQs." },
     { "ownerType": "COLLECTION", "namespace": "custom", "key": "faqs", "name": "FAQs", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "faq" }], "storefrontAccess": "PUBLIC_READ", "description": "Collection page FAQs (REQ-COL-004). Same shape as the product metafield; the collection page shows them and emits FAQ structured data from the same entries." },
+    { "ownerType": "CUSTOMER", "namespace": "custom", "key": "quiz_result", "name": "Sleep quiz result", "type": "json", "storefrontAccess": "NONE", "customerAccountAccess": "READ_WRITE", "description": "The signed-in customer's saved sleep quiz result: { v, savedAt, configFingerprint, answers, handles }, answers as option ids and at most 3 product handles, under 4 KB. Written and read through the Customer Account API (P6-04, REQ-QZ-005); not readable from the Storefront API. UNVERIFIED(V-08): whether a definition in namespace custom accepts customer-account READ_WRITE; if not, the namespace constant in app/lib/quiz/storage.ts changes to an app-reserved one." },
     { "ownerType": "PRODUCTVARIANT", "namespace": "custom", "key": "dimensions", "name": "Dimensions", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Size selector and comparison." }
   ]
 }

@@ -8,6 +8,10 @@ type QuizIntroProps = {
   headingRef: RefObject<HTMLHeadingElement>;
   /** Present when results from an earlier visit were found on this device. */
   saved: {resumeHref: string; onClear: () => void} | null;
+  /** Present when a signed-in shopper has a result in their account and none on this device (REQ-QZ-005). */
+  accountOffer?: {onRestore: () => void; onDismiss: () => void} | null;
+  /** Sign-in link shown with a device result so it can follow the shopper across devices; null when signed in. */
+  signInHref?: string | null;
 };
 
 /** What the quiz is, how long it takes, and the guidance-only note (REQ-QZ-007). */
@@ -17,6 +21,8 @@ export function QuizIntro({
   onStart,
   headingRef,
   saved,
+  accountOffer = null,
+  signInHref = null,
 }: QuizIntroProps) {
   return (
     <section
@@ -67,6 +73,40 @@ export function QuizIntro({
             </Button>
             <Button variant="secondary" size="sm" onClick={saved.onClear}>
               Clear saved results
+            </Button>
+          </div>
+          {signInHref ? (
+            <p className="text-sm text-fg">
+              <a href={signInHref} className="font-semibold underline">
+                Sign in
+              </a>{' '}
+              to keep your results across devices.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      {accountOffer ? (
+        <div
+          role="region"
+          aria-labelledby="quiz-account-heading"
+          className="flex flex-col gap-3 rounded-card border-2 border-ink-900 bg-ink-50 p-4"
+        >
+          <h3 id="quiz-account-heading" className="text-lg font-bold">
+            Restore your saved results
+          </h3>
+          <p className="text-base text-fg">
+            Your account has quiz results from an earlier visit.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button size="sm" onClick={accountOffer.onRestore}>
+              Restore my results
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={accountOffer.onDismiss}
+            >
+              Not now
             </Button>
           </div>
         </div>

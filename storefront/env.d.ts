@@ -36,5 +36,11 @@ declare global {
     KLAVIYO_LIST_ID?: string;
     /** The exact text `true` offers the optional text-message fields (P7-02); anything else is off. */
     PUBLIC_KLAVIYO_SMS_ENABLED?: string;
+    /** Reviews provider id (server only, P3B-12): `judgeme`. Unset (the default): no reviews section, no request, no structured data. */
+    REVIEWS_PROVIDER?: string;
+    /** Judge.me PRIVATE API token (server only, P3B-12); never PUBLIC_. */
+    JUDGEME_PRIVATE_API_TOKEN?: string;
+    /** The store's `example.myshopify.com` domain as Judge.me knows it (server only, P3B-12). */
+    JUDGEME_SHOP_DOMAIN?: string;
   }
 }

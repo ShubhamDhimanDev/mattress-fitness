@@ -33,8 +33,8 @@ export const meta: Route.MetaFunction = ({data: loaderData}) => [
     : []),
 ];
 
-export async function loader({params, request}: Route.LoaderArgs) {
-  const {source, index} = await loadStoreIndex();
+export async function loader({params, request, context}: Route.LoaderArgs) {
+  const {source, index} = await loadStoreIndex(context.storefront);
   const state = findState(index, params.state);
   if (!state) throw notFound();
 

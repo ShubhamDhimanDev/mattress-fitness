@@ -26,7 +26,20 @@ const CHAT_CONSENT = process.env.E2E_CHAT === 'consent';
 // The entry chunk (ChatEntry, which holds the shell and the call-out) and the runtime chunk. In the dev server each module
 // has its own name, so the shell and the callout are matched by name too.
 const CHAT_CHUNK = /Chat(Entry|Shell|Callout|Notice|Runtime)/;
+// What must NOT be requested before the shopper agrees: the runtime chunk (controller, registry, adapter, view) and the
+// provider. The ENTRY chunk (ChatEntry, which holds the shell, the call-out and the notice) IS requested at render on a
+// store with a provider and consent required: CHAT.md "Loading and failure rules" 2 names it as the only chat file
+// fetched before consent (no vendor code, no vendor request, no widget). V-E242: the first version of these two
+// tests asserted that no chat file at all was requested, which contradicts that documented contract.
+const CHAT_RUNTIME =
+  /ChatRuntime|app[/]lib[/]chat[/](controller|registry|live|view|providers)/;
 const FAKE_PANEL = '#fake-chat-panel';
+// How long the fake takes to "load" in the tests that must catch the loading window. The call-out appears about 1.7 s
+// after navigation (idle, then the runtime chunk) and gotoReady (networkidle) returns after about 3.4 s on the dev server,
+// so a 1.2 to 1.5 s load is already over when the test looks (observed 2026-10-26, V-E242: the first version failed on
+// that, not on the product). 8 s keeps the window open with room to spare and stays under the 10 s load timeout.
+const SLOW_LOAD_MS = 8000;
+const WINDOW_TIMEOUT = 15_000;
 
 function watchRequests(page: Page, pattern: RegExp) {
   const seen: string[] = [];
@@ -116,7 +129,7 @@ test.describe('REQ-ANL-004 call-out (fake provider, consent not required)', () =
     page,
     isMobile,
   }) => {
-    await controlFake(page, {loadDelayMs: 1500});
+    await controlFake(page, {loadDelayMs: SLOW_LOAD_MS});
     await gotoReady(page, '/');
     const callout = await chatCallout(page, isMobile);
     await expect(callout).toBeVisible();
@@ -126,7 +139,9 @@ test.describe('REQ-ANL-004 call-out (fake provider, consent not required)', () =
     await expect(
       page.getByRole('status').filter({hasText: 'Starting chat.'}),
     ).toHaveCount(1);
-    await expect(page.getByRole('dialog', {name: 'Test chat'})).toBeVisible();
+    await expect(page.getByRole('dialog', {name: 'Test chat'})).toBeVisible({
+      timeout: WINDOW_TIMEOUT,
+    });
   });
 
   test('has no serious or critical accessibility violations with the widget open', async ({
@@ -160,7 +175,7 @@ test.describe('NFR-013 chat provider failure never blocks the shop', () => {
     page.on('console', (message) => {
       if (message.type() === 'error') errors.push(message.text());
     });
-    await controlFake(page, {failLoad: true, loadDelayMs: 1200});
+    await controlFake(page, {failLoad: true, loadDelayMs: SLOW_LOAD_MS});
     await gotoReady(page, '/');
     const callout = await chatCallout(page, isMobile);
     await expect(callout).toBeVisible();
@@ -169,7 +184,7 @@ test.describe('NFR-013 chat provider failure never blocks the shop', () => {
       page
         .getByRole('status')
         .filter({hasText: 'Chat is unavailable right now.'}),
-    ).toBeVisible();
+    ).toBeVisible({timeout: WINDOW_TIMEOUT});
     await expect(page.getByRole('button', {name: 'Chat with us'})).toHaveCount(
       0,
     );
@@ -223,13 +238,13 @@ test.describe('NFR-011 chat waits for the shopper (consent required)', () => {
     );
   });
 
-  test('no chat code, no widget and no call-out before the shopper agrees', async ({
+  test('no chat runtime, no provider, no widget and no call-out before the shopper agrees', async ({
     page,
   }) => {
-    const chunk = watchRequests(page, CHAT_CHUNK);
+    const runtime = watchRequests(page, CHAT_RUNTIME);
     await gotoReady(page, '/');
     await page.waitForTimeout(3500);
-    expect(chunk).toEqual([]);
+    expect(runtime, 'no runtime, controller or provider module').toEqual([]);
     await expect(page.locator(FAKE_PANEL)).toHaveCount(0);
     await expect(page.getByRole('button', {name: 'Chat with us'})).toHaveCount(
       0,
@@ -237,14 +252,15 @@ test.describe('NFR-011 chat waits for the shopper (consent required)', () => {
   });
 
   test('"Reject all" keeps chat away', async ({page}) => {
-    const chunk = watchRequests(page, CHAT_CHUNK);
+    const runtime = watchRequests(page, CHAT_RUNTIME);
     await gotoReady(page, '/');
     await page
       .getByRole('region', {name: 'Privacy choices'})
       .getByRole('button', {name: 'Reject all'})
       .click();
     await page.waitForTimeout(3500);
-    expect(chunk).toEqual([]);
+    expect(runtime, 'no runtime, controller or provider module').toEqual([]);
+    await expect(page.locator(FAKE_PANEL)).toHaveCount(0);
     await expect(page.getByRole('button', {name: 'Chat with us'})).toHaveCount(
       0,
     );
@@ -258,7 +274,9 @@ test.describe('NFR-011 chat waits for the shopper (consent required)', () => {
       isMobile,
       'the withdrawal path is the same on a phone; one project is enough',
     );
+    const runtime = watchRequests(page, CHAT_RUNTIME);
     await gotoReady(page, '/');
+    expect(runtime, 'positive control: nothing yet').toEqual([]);
     await page
       .getByRole('region', {name: 'Privacy choices'})
       .getByRole('button', {name: 'Accept all'})
@@ -268,6 +286,10 @@ test.describe('NFR-011 chat waits for the shopper (consent required)', () => {
       .getByRole('button', {name: 'Chat with us'});
     await expect(callout).toBeVisible();
     await expect(page.locator(FAKE_PANEL)).toHaveCount(1);
+    expect(
+      runtime.length,
+      'the runtime is requested after Accept all (the negative tests above can fail)',
+    ).toBeGreaterThan(0);
     await page.getByRole('button', {name: 'Privacy choices'}).click();
     const preferences = page.getByRole('dialog', {name: 'Privacy choices'});
     await preferences.getByRole('checkbox').first().uncheck();

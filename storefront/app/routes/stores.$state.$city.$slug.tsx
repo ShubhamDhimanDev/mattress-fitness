@@ -1,4 +1,4 @@
-import {data as withHeaders, useLoaderData} from 'react-router';
+import {Link, data as withHeaders, useLoaderData} from 'react-router';
 import type {Route} from './+types/stores.$state.$city.$slug';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PreviewNotice} from '~/components/pages/PreviewNotice';
@@ -25,6 +25,7 @@ import {
   statePath,
 } from '~/lib/stores/grouping';
 import {buildStoreJsonLd, serializeJsonLd} from '~/lib/stores/jsonld';
+import {productPathFromParam} from '~/lib/stores/pickup';
 
 // P6-06: one store (REQ-LOC-001): address, tap-to-call, today's hours and open status, the full week,
 // directions, LocalBusiness JSON-LD, and "Set as my store" (REQ-LOC-003).
@@ -43,7 +44,7 @@ export const meta: Route.MetaFunction = ({data: loaderData}) => [
 ];
 
 export async function loader({params, request, context}: Route.LoaderArgs) {
-  const {source, index} = await loadStoreIndex();
+  const {source, index} = await loadStoreIndex(context.storefront);
   const found = findStore(index, params.state, params.city, params.slug);
   if (!found) throw notFound();
   const {store, state, city} = found;
@@ -61,6 +62,10 @@ export async function loader({params, request, context}: Route.LoaderArgs) {
       cityPath: cityPath(state.code, city.name),
       view: storeCardView(store, nowMs),
       week: weeklyHoursView(store, nowMs),
+      // "Try in store" from a product page carries the product (REQ-PDP-004); only a plausible handle becomes a link.
+      backToProduct: productPathFromParam(
+        new URL(request.url).searchParams.get('product'),
+      ),
       photoUrl: store.photoUrl,
       storeKey: myStoreKey(store),
       isMine: mine?.id === store.id,
@@ -107,6 +112,14 @@ export default function StorePage() {
         </p>
       </header>
       {data.source === 'fixtures' ? <PreviewNotice subject="stores" /> : null}
+      {data.backToProduct ? (
+        <Link
+          to={data.backToProduct}
+          className="inline-flex min-h-touch w-fit items-center font-bold text-primary-700 underline underline-offset-2"
+        >
+          Back to the product you were viewing
+        </Link>
+      ) : null}
 
       <div className="grid gap-8 lg:grid-cols-2">
         <div className="flex flex-col gap-8">

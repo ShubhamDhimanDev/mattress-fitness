@@ -111,6 +111,10 @@ function AccountMenu() {
         &nbsp; Addresses &nbsp;
       </NavLink>
       &nbsp;|&nbsp;
+      <NavLink to="/account/quiz" style={isActiveStyle}>
+        &nbsp; Sleep quiz &nbsp;
+      </NavLink>
+      &nbsp;|&nbsp;
       <Logout />
     </nav>
   );

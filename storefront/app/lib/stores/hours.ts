@@ -100,6 +100,29 @@ export function formatWeeklyHours(hours: WeeklyHours): readonly WeekRow[] {
   });
 }
 
+/**
+ * One line listing the whole week, consecutive days with the same hours joined:
+ * "Mon–Fri: 10:00 AM – 9:00 PM; Sat: 10:00 AM – 6:00 PM; Sun: Closed". Used when a
+ * store has hours but no time zone, where "today" and "open now" cannot be known
+ * (P3B-16): the shopper still sees the hours, and nothing is guessed.
+ */
+export function summarizeWeeklyHours(hours: WeeklyHours): string {
+  const groups: {first: WeekRow; last: WeekRow}[] = [];
+  for (const row of formatWeeklyHours(hours)) {
+    const current = groups[groups.length - 1];
+    if (current && current.last.text === row.text) current.last = row;
+    else groups.push({first: row, last: row});
+  }
+  return groups
+    .map(({first, last}) => {
+      const from = first.day.slice(0, 3);
+      const label =
+        first === last ? from : `${from}${EN_DASH}${last.day.slice(0, 3)}`;
+      return `${label}: ${last.text}`;
+    })
+    .join('; ');
+}
+
 // --- Parsing ---
 
 const DAY_ALIASES = new Map<string, DayIndex>([

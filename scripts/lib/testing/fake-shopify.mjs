@@ -202,7 +202,7 @@ export function createFakeShopify({ store = FAKE_STORE, token = FAKE_TOKEN, bran
         const id = nextId('MetafieldDefinition');
         metafieldDefinitions.set(`${input.ownerType}:${input.namespace}.${input.key}`, {
           id, ownerType: input.ownerType, name: input.name, namespace: input.namespace, key: input.key, description: input.description ?? null, type: { name: input.type },
-          validations: input.validations ?? [], access: { storefront: input.access?.storefront ?? 'NONE' },
+          validations: input.validations ?? [], access: { storefront: input.access?.storefront ?? 'NONE', customerAccount: input.access?.customerAccount ?? 'NONE' },
           capabilities: { smartCollectionCondition: { enabled: input.capabilities?.smartCollectionCondition?.enabled === true } },
         });
         return { metafieldDefinitionCreate: { createdDefinition: { id, namespace: input.namespace, key: input.key }, userErrors: [] } };

@@ -29,12 +29,12 @@ const TOTAL = spec.metaobjectDefinitions.length + spec.metafieldDefinitions.leng
 
 // ---- the shipped spec ------------------------------------------------------------------------------------
 
-test('definitions.json is valid and declares the ten metaobject types of the data model', () => {
+test('definitions.json is valid and declares the eleven metaobject types of the data model', () => {
   const checked = validateSpec(spec);
   assert.deepEqual(checked.ok ? [] : checked.errors, []);
-  assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'site_settings', 'store']);
-  assert.equal(spec.metafieldDefinitions.length, 18, '16 product metafields, the variant dimensions field and the collection FAQs');
-  assert.equal(TOTAL, 28);
+  assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'quiz_scoring_rule', 'site_settings', 'store']);
+  assert.equal(spec.metafieldDefinitions.length, 19, '16 product metafields, the variant dimensions field, the collection FAQs and the customer quiz result');
+  assert.equal(TOTAL, 30);
 });
 
 test('custom.faqs is defined for products and for collections with the same shape (REQ-COL-004)', () => {
@@ -52,7 +52,9 @@ test('custom.faqs is defined for products and for collections with the same shap
 
 test('every definition the storefront reads has Storefront API access enabled (PUBLIC_READ)', () => {
   for (const definition of [...spec.metaobjectDefinitions, ...spec.metafieldDefinitions]) {
-    assert.equal(definition.storefrontAccess, 'PUBLIC_READ', definition.type ?? `${definition.namespace}.${definition.key}`);
+    // The customer's quiz result is private: Customer Account API only, never the Storefront API.
+    const expected = definition.ownerType === 'CUSTOMER' ? 'NONE' : 'PUBLIC_READ';
+    assert.equal(definition.storefrontAccess, expected, definition.type ?? `${definition.namespace}.${definition.key}`);
   }
 });
 
