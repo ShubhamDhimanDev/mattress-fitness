@@ -46,10 +46,10 @@
         { "key": "longitude", "name": "Longitude", "type": "number_decimal" },
         { "key": "phone", "name": "Phone", "type": "single_line_text_field" },
         { "key": "hours", "name": "Opening hours", "type": "json", "description": "Opening hours per weekday; the JSON shape is fixed in P3B with the locator." },
-        { "key": "time_zone", "name": "Time zone", "type": "single_line_text_field", "description": "Optional. IANA name of the store's own time zone, for example America/New_York or America/Chicago (not EST or Central). With it the site can say 'Open now' and show today's hours in the store's own time; without it the hours are listed but 'open now' is not shown (P3B-16)." },
+        { "key": "time_zone", "name": "Time zone", "type": "single_line_text_field", "description": "Optional. IANA time zone name, for example America/New_York (not EST or Central). With it the site shows 'Open now' in the store's own time; without it the hours are listed but 'open now' is not shown (P3B-16)." },
         { "key": "photo", "name": "Photo", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "pickup_enabled", "name": "Pickup enabled", "type": "boolean" },
-        { "key": "location_handle", "name": "Shopify location", "type": "single_line_text_field", "description": "The matching Shopify location, used for pickup availability. Enter the location's name exactly as it appears in Settings > Locations (capitalisation and spaces versus hyphens do not matter), or its numeric location id. The Storefront API exposes only a location's id and name, so there is no other handle to match." }
+        { "key": "location_handle", "name": "Shopify location", "type": "single_line_text_field", "description": "The matching Shopify location, for pickup availability. Enter its name as in Settings > Locations (capitalisation and spaces versus hyphens do not matter) or its numeric id. The Storefront API exposes only id and name." }
       ]
     },
     {
@@ -100,7 +100,7 @@
       "displayNameKey": "heading",
       "storefrontAccess": "PUBLIC_READ",
       "fieldDefinitions": [
-        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup"] }], "description": "Section kind. hero, promo-banner and financing show the heading, body, image and link below; shop-by-size, featured, brands and categories fill themselves from the catalog and only take the heading, order and enabled switch; signup is reserved for the email and text-message signup (P7-02) and shows nothing until it exists. The storefront code lists the same values (HOMEPAGE_SECTION_TYPES); a test keeps the two in step." },
+        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup"] }], "description": "Section kind. hero, promo-banner and financing show heading, body, image and link; shop-by-size, featured, brands and categories fill from the catalog (heading, order, enabled only); signup is the email signup (P7-02)." },
         { "key": "heading", "name": "Heading", "type": "single_line_text_field" },
         { "key": "body", "name": "Body", "type": "multi_line_text_field" },
         { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
@@ -191,7 +191,7 @@
     { "ownerType": "PRODUCT", "namespace": "custom", "key": "extend_category", "name": "Extend category", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Extend protection category (REQ-EXT-005). Shape confirmed by Q-005." },
     { "ownerType": "PRODUCT", "namespace": "custom", "key": "faqs", "name": "FAQs", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "faq" }], "storefrontAccess": "PUBLIC_READ", "description": "Product page FAQs." },
     { "ownerType": "COLLECTION", "namespace": "custom", "key": "faqs", "name": "FAQs", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "faq" }], "storefrontAccess": "PUBLIC_READ", "description": "Collection page FAQs (REQ-COL-004). Same shape as the product metafield; the collection page shows them and emits FAQ structured data from the same entries." },
-    { "ownerType": "CUSTOMER", "namespace": "custom", "key": "quiz_result", "name": "Sleep quiz result", "type": "json", "storefrontAccess": "NONE", "customerAccountAccess": "READ_WRITE", "description": "The signed-in customer's saved sleep quiz result: { v, savedAt, configFingerprint, answers, handles }, answers as option ids and at most 3 product handles, under 4 KB. Written and read through the Customer Account API (P6-04, REQ-QZ-005); not readable from the Storefront API. UNVERIFIED(V-08): whether a definition in namespace custom accepts customer-account READ_WRITE; if not, the namespace constant in app/lib/quiz/storage.ts changes to an app-reserved one." },
+    { "ownerType": "CUSTOMER", "namespace": "custom", "key": "quiz_result", "name": "Sleep quiz result", "type": "json", "storefrontAccess": "NONE", "customerAccountAccess": "READ_WRITE", "description": "Saved sleep quiz result: { v, savedAt, configFingerprint, answers, handles }, under 4 KB. Read and written through the Customer Account API (P6-04, REQ-QZ-005), not the Storefront API. UNVERIFIED(V-08): customer-account READ_WRITE in namespace custom." },
     { "ownerType": "PRODUCTVARIANT", "namespace": "custom", "key": "dimensions", "name": "Dimensions", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Size selector and comparison." }
   ]
 }

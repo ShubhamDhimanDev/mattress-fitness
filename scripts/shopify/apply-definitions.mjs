@@ -45,6 +45,8 @@ export const DEFAULT_SPEC_PATH = fileURLToPath(new URL('./definitions.json', imp
 const KEY_PATTERN = /^[A-Za-z0-9_-]{2,64}$/;
 const NAMESPACE_PATTERN = /^[A-Za-z0-9_-]{3,255}$/;
 const TYPE_NAME_PATTERN = /^[a-z0-9_]{3,255}$/;
+// Shopify rejects a longer description with TOO_LONG on the first live run (V-05); catching it in the spec check keeps dry runs honest.
+const MAX_DESCRIPTION = 255;
 const OWNER_TYPES = Object.freeze(['PRODUCT', 'PRODUCTVARIANT', 'COLLECTION', 'CUSTOMER']);
 const STOREFRONT_ACCESS = Object.freeze(['NONE', 'PUBLIC_READ']);
 const CUSTOMER_ACCOUNT_ACCESS = Object.freeze(['NONE', 'READ', 'READ_WRITE']);
@@ -158,6 +160,7 @@ export function validateSpec(spec) {
       if (keys.has(field.key)) errors.push(`${label}: field ${field.key} is declared twice.`);
       keys.add(field.key);
       if (typeof field.type !== 'string' || field.type === '') errors.push(`${label}.${field.key}: type is required.`);
+      if (typeof field.description === 'string' && field.description.length > MAX_DESCRIPTION) errors.push(`${label}.${field.key}: description is ${field.description.length} characters, Shopify allows ${MAX_DESCRIPTION}.`);
       for (const validation of Array.isArray(field.validations) ? field.validations : []) {
         if (isRecord(validation) && validation.name === 'metaobject_definition_type' && !declaredTypes.has(validation.value)) {
           errors.push(`${label}.${field.key}: references metaobject type "${String(validation.value)}" that is not declared before it.`);
@@ -182,6 +185,7 @@ export function validateSpec(spec) {
     if (!STOREFRONT_ACCESS.includes(String(raw.storefrontAccess))) errors.push(`${label}: storefrontAccess must be NONE or PUBLIC_READ.`);
     if (raw.customerAccountAccess !== undefined && !CUSTOMER_ACCOUNT_ACCESS.includes(String(raw.customerAccountAccess))) errors.push(`${label}: customerAccountAccess must be NONE, READ or READ_WRITE.`);
     if (seen.has(label)) errors.push(`${label}: declared twice.`);
+    if (typeof raw.description === 'string' && raw.description.length > MAX_DESCRIPTION) errors.push(`${label}: description is ${raw.description.length} characters, Shopify allows ${MAX_DESCRIPTION}.`);
     seen.add(label);
     for (const validation of Array.isArray(raw.validations) ? raw.validations : []) {
       if (isRecord(validation) && validation.name === 'metaobject_definition_type' && !declaredTypes.has(validation.value)) {
@@ -222,6 +226,34 @@ const UPDATE_METAOBJECT = `mutation AddMetaobjectDefinitionFields($id: ID!, $def
 }`;
 
 const METAOBJECT_DEFINITION_ID = /^gid:\/\/shopify\/MetaobjectDefinition\/[0-9]+$/;
+
+/**
+ * The spec names a reference target by type, but the API only accepts `metaobject_definition_id` (a gid) in the validation
+ * ("Validations require that you select a metaobject", V-05). Rewrites every type reference in a create input to the id.
+ * @param {Record<string, unknown>} input a metaobject or metafield definition create input
+ * @param {ReadonlyMap<string, string>} idByType
+ * @returns {{ ok: true, input: Record<string, unknown> } | { ok: false, message: string }}
+ */
+export function resolveReferences(input, idByType) {
+  /** @type {string | null} */
+  let missing = null;
+  /** @param {unknown} validations */
+  const rewrite = (validations) =>
+    Array.isArray(validations)
+      ? validations.map((validation) => {
+          if (!isRecord(validation) || validation.name !== 'metaobject_definition_type') return validation;
+          const id = idByType.get(String(validation.value));
+          if (!id) missing = String(validation.value);
+          return { name: 'metaobject_definition_id', value: id ?? '' };
+        })
+      : validations;
+  const resolved = {
+    ...input,
+    ...(input.validations ? { validations: rewrite(input.validations) } : {}),
+    ...(Array.isArray(input.fieldDefinitions) ? { fieldDefinitions: input.fieldDefinitions.map((field) => (isRecord(field) && field.validations ? { ...field, validations: rewrite(field.validations) } : field)) } : {}),
+  };
+  return missing === null ? { ok: true, input: resolved } : { ok: false, message: `references metaobject type "${missing}", which does not exist in the store and was not created before it` };
+}
 
 const CREATE_METAFIELD = `mutation CreateMetafieldDefinition($definition: MetafieldDefinitionInput!) {
   metafieldDefinitionCreate(definition: $definition) { createdDefinition { id namespace key } userErrors { field message code } }
@@ -345,7 +377,7 @@ export function splitMissingFields(definition, actual) {
 
 /**
  * `add-fields`: the definition exists and only lacks fields the spec has; live, they are added.
- * @typedef {{ kind: 'metaobject' | 'metafield', label: string, action: 'create' | 'exists' | 'differs' | 'add-fields', diffs: string[], input: Record<string, unknown>, existingId?: string, addFields?: SpecField[] }} DefinitionPlanItem
+ * @typedef {{ kind: 'metaobject' | 'metafield', label: string, action: 'create' | 'exists' | 'differs' | 'add-fields', diffs: string[], input: Record<string, unknown>, existingId?: string, definitionId?: string, addFields?: SpecField[] }} DefinitionPlanItem
  */
 
 /**
@@ -378,7 +410,7 @@ export async function planDefinitions({ spec, client }) {
     const unaddable = !addable ? missing.map((field) => `field ${field.key} is missing in Shopify`) : [];
     const allDiffs = [...typeMismatch, ...unaddable, ...diffs];
     const action = allDiffs.length > 0 ? 'differs' : addable ? 'add-fields' : 'exists';
-    items.push({ kind: 'metaobject', label: definition.type, action, diffs: allDiffs, input, ...(addable ? { existingId, addFields: missing } : {}) });
+    items.push({ kind: 'metaobject', label: definition.type, action, diffs: allDiffs, input, ...(existingId !== null && typeMismatch.length === 0 ? { definitionId: existingId } : {}), ...(addable ? { existingId, addFields: missing } : {}) });
   }
   /** @type {Map<string, Record<string, unknown>[]>} */
   const existingByScope = new Map();
@@ -409,9 +441,19 @@ export async function applyDefinitions({ items, client }) {
   const extended = [];
   /** @type {{ label: string, message: string }[]} */
   const failed = [];
+  // type -> id of every metaobject definition that exists, filled from the plan and then from each create, in spec order.
+  /** @type {Map<string, string>} */
+  const idByType = new Map(items.flatMap((item) => (item.kind === 'metaobject' && item.definitionId ? [[item.label, item.definitionId]] : [])));
   for (const item of items) {
     if (item.existingId && item.addFields && item.addFields.length > 0) {
-      const result = await client.request(UPDATE_METAOBJECT, { id: item.existingId, definition: toAddFieldsInput(item.addFields) }, { operationName: 'AddMetaobjectDefinitionFields', estimatedCost: 20 });
+      const resolvedFields = item.addFields.map((field) => resolveReferences(toFieldInput(field), idByType));
+      const unresolved = resolvedFields.find((field) => !field.ok);
+      if (unresolved && !unresolved.ok) {
+        failed.push({ label: item.label, message: unresolved.message });
+        continue;
+      }
+      const addInput = { fieldDefinitions: resolvedFields.map((field) => ({ create: field.ok ? field.input : {} })) };
+      const result = await client.request(UPDATE_METAOBJECT, { id: item.existingId, definition: addInput }, { operationName: 'AddMetaobjectDefinitionFields', estimatedCost: 20 });
       if (!result.ok) {
         failed.push({ label: item.label, message: result.error.message });
         if (result.error.kind === 'auth' || result.error.kind === 'not_found') break;
@@ -424,15 +466,23 @@ export async function applyDefinitions({ items, client }) {
     }
     if (item.action !== 'create') continue;
     const isMetaobject = item.kind === 'metaobject';
-    const result = await client.request(isMetaobject ? CREATE_METAOBJECT : CREATE_METAFIELD, { definition: item.input }, { operationName: isMetaobject ? 'CreateMetaobjectDefinition' : 'CreateMetafieldDefinition', estimatedCost: 20 });
+    const resolved = resolveReferences(item.input, idByType);
+    if (!resolved.ok) {
+      failed.push({ label: item.label, message: resolved.message });
+      continue;
+    }
+    const result = await client.request(isMetaobject ? CREATE_METAOBJECT : CREATE_METAFIELD, { definition: resolved.input }, { operationName: isMetaobject ? 'CreateMetaobjectDefinition' : 'CreateMetafieldDefinition', estimatedCost: 20 });
     if (!result.ok) {
       failed.push({ label: item.label, message: result.error.message });
       if (result.error.kind === 'auth' || result.error.kind === 'not_found') break;
       continue;
     }
     const payload = readPayload(result.data, isMetaobject ? 'metaobjectDefinitionCreate' : 'metafieldDefinitionCreate');
-    if (payload.ok) created.push(item.label);
-    else failed.push({ label: item.label, message: payload.error.message });
+    if (payload.ok) {
+      created.push(item.label);
+      const made = isRecord(payload.payload.metaobjectDefinition) ? payload.payload.metaobjectDefinition : null;
+      if (isMetaobject && made && typeof made.id === 'string' && METAOBJECT_DEFINITION_ID.test(made.id)) idByType.set(item.label, made.id);
+    } else failed.push({ label: item.label, message: payload.error.message });
   }
   return { created, extended, failed };
 }

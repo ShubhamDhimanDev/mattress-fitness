@@ -7,7 +7,7 @@ import path from 'node:path';
 import { FAKE_STORE, FAKE_TOKEN, createFakeShopify } from '../lib/testing/fake-shopify.mjs';
 import { toDesiredProduct } from '../catalog/map.mjs';
 import { BENEFITS, COMFORT_LEVELS, DELIVERY_TYPES, MATTRESS_TYPES, SLEEP_POSITIONS } from '../catalog/schema.mjs';
-import { DEFAULT_SPEC_PATH, diffMetafieldDefinition, diffMetaobjectDefinition, encodeValidations, main, planDefinitions, toMetafieldDefinitionInput, toMetaobjectDefinitionInput, validateSpec } from './apply-definitions.mjs';
+import { DEFAULT_SPEC_PATH, diffMetafieldDefinition, diffMetaobjectDefinition, encodeValidations, main, planDefinitions, resolveReferences, toMetafieldDefinitionInput, toMetaobjectDefinitionInput, validateSpec } from './apply-definitions.mjs';
 import { createAdminClient } from '../lib/shopify-admin.mjs';
 
 const spec = JSON.parse(readFileSync(DEFAULT_SPEC_PATH, 'utf8'));
@@ -437,13 +437,15 @@ test('one definition failing does not stop the rest, and the failure is listed; 
   });
   const first = await run(['--live'], { fake });
   assert.equal(first.code, 1);
-  assert.match(first.out, new RegExp(`Created ${TOTAL - 1} definition`));
+  assert.match(first.out, new RegExp(`Created ${TOTAL - 3} definition`));
   assert.match(first.err, /FAILED faq: metaobjectDefinitionCreate rejected: definition\.type: Type has already been taken \[TAKEN\]/);
+  // The two FAQ metafields point at faq, so they are held back (not sent with a broken reference) until it exists.
+  assert.match(first.err, /FAILED product custom.faqs: references metaobject type "faq"/);
   broken = false;
   fake.reset();
   const second = await run(['--live'], { fake });
   assert.equal(second.code, 0, second.err);
-  assert.equal(fake.mutations().length, 1);
+  assert.equal(fake.mutations().length, 3);
 });
 
 test('an authentication failure stops the run at the first write', async () => {
@@ -490,4 +492,28 @@ test('planDefinitions with a read-only client cannot write even if asked to', as
   const refused = await client.request('mutation M { x }', {}, { operationName: 'M' });
   assert.equal(refused.ok === false && refused.error.kind, 'read_only');
   assert.equal(fake.mutations().length, 0);
+});
+
+// ---- references and description length (found by the first live run, V-05) --------------------------------
+
+test('a type reference becomes the definition id Shopify requires, in a metafield and in a metaobject field', () => {
+  const ids = new Map([['faq', 'gid://shopify/MetaobjectDefinition/5']]);
+  const metafield = resolveReferences({ name: 'FAQs', validations: [{ name: 'metaobject_definition_type', value: 'faq' }] }, ids);
+  assert.deepEqual(metafield.ok && metafield.input.validations, [{ name: 'metaobject_definition_id', value: 'gid://shopify/MetaobjectDefinition/5' }]);
+  const metaobject = resolveReferences({ type: 'x', fieldDefinitions: [{ key: 'a', validations: [{ name: 'metaobject_definition_type', value: 'faq' }] }, { key: 'b' }] }, ids);
+  assert.deepEqual(metaobject.ok && metaobject.input.fieldDefinitions, [{ key: 'a', validations: [{ name: 'metaobject_definition_id', value: 'gid://shopify/MetaobjectDefinition/5' }] }, { key: 'b' }]);
+});
+
+test('a reference to a type that does not exist yet is reported, not sent', () => {
+  const result = resolveReferences({ validations: [{ name: 'metaobject_definition_type', value: 'brand' }] }, new Map());
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? '' : result.message, /brand/);
+});
+
+test('validateSpec rejects a description longer than Shopify allows', () => {
+  const bad = clone();
+  bad.metaobjectDefinitions[0].fieldDefinitions[0].description = 'x'.repeat(256);
+  const checked = validateSpec(bad);
+  assert.equal(checked.ok, false);
+  assert.match(checked.ok ? '' : checked.errors.join(' '), /255/);
 });
