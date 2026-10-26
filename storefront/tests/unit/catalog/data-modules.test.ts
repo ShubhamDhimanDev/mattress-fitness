@@ -331,6 +331,21 @@ describe('home (REQ-HOME-001)', () => {
     expect(data.sizeTiles[0].to).toBe('/collections?size=twin');
   });
 
+  it("REQ-HOME-001: leaves Shopify's built-in frontpage collection out of the category tiles", () => {
+    const data = buildHomeData({
+      collections: {
+        nodes: [
+          {id: 'gid://shopify/Collection/1', handle: 'frontpage', title: 'Home page', image: null},
+          {id: 'gid://shopify/Collection/2', handle: 'mattresses', title: 'Mattresses', image: null},
+        ],
+      },
+      primary: null,
+      fallbackProducts: {nodes: []},
+      brands: {nodes: []},
+    });
+    expect(data.collectionTiles.map((tile) => tile.to)).toEqual(['/collections/mattresses']);
+  });
+
   it('prefers brand entries from Shopify and the primary collection', () => {
     const typedHome = recorded<CatalogHomeQuery>(home);
     const data = buildHomeData({

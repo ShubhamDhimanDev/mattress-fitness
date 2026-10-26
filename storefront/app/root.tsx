@@ -266,7 +266,11 @@ export function Layout({children}: {children?: React.ReactNode}) {
         <meta name="theme-color" content={BRAND_THEME_COLOR} />
         <link rel="stylesheet" href={tailwindCss}></link>
         <Meta />
-        <Links />
+        {/* React Router 7.18 puts the server's nonce on the stylesheet links. Browsers blank a nonce attribute once parsed, so the
+            client must render an empty one to match what hydration reads back; a missing prop or the real value both make React
+            warn about the nonce on every page (seen on the real store, 2026-10-26). The stylesheets are same-origin, so the
+            enforced policy allows them through 'self' and not through the nonce. */}
+        <Links nonce={typeof document === 'undefined' ? nonce : ''} />
       </head>
       <body>
         <SkipLink />

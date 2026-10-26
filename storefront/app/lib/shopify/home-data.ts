@@ -30,6 +30,8 @@ import {logError} from '~/lib/logging/logger';
 
 const MAX_BRAND_TILES = 8;
 const MAX_COLLECTION_TILES = 6;
+/** Shopify's built-in "Home page" list (`frontpage`) is an internal collection, not a category a shopper would browse (seen on the real store). */
+const INTERNAL_COLLECTION_HANDLES: ReadonlySet<string> = new Set(['frontpage']);
 /** Sizes offered as tiles when the catalog has no size data yet: the six regular sizes. */
 const DEFAULT_SIZE_TILES: readonly Size[] = SIZES.slice(0, 6);
 
@@ -198,6 +200,7 @@ export function buildHomeData(
     })),
     brandTiles: brandTilesFrom(home, products, collectionHandle),
     collectionTiles: home.collections.nodes
+      .filter((collection) => !INTERNAL_COLLECTION_HANDLES.has(collection.handle))
       .slice(0, MAX_COLLECTION_TILES)
       .map((collection) => ({
         title: collection.title,
