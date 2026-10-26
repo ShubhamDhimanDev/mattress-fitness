@@ -155,7 +155,7 @@ export function run(argv, {storefrontDir, out = console.log, bytes} = {}) {
       '',
       'Next, from storefront/:',
       `  npm install`,
-      `  npm run dev -- --port 3400 --env-file ${options.out}`,
+      `  npm run dev -- --port 3400 --mode ${options.out.replace(/^\.env\./, '')}`,
       'Then open http://localhost:3400',
     ].join('\n'),
   );

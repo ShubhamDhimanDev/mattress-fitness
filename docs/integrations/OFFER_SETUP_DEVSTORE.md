@@ -69,7 +69,7 @@ The variable holds one line of JSON, at most 100,000 characters (the example is 
 
 - **Local dev server** (DEV_DATA.md): write a git-ignored env file next to the others, from the file you made in 3, without printing it:
   `node -e "const fs=require('node:fs');const j=JSON.stringify(JSON.parse(fs.readFileSync('.offer-config.local.json','utf8')));fs.appendFileSync('.env.offers','OFFER_CONFIG_JSON='+j+'\n')"`
-  then start with `npm run dev -- --port 3800 --env-file .env.offers`. `.env.offers` must also carry the four base variables and `DELIVERY_COOKIE_SECRET` (32 or more characters) as in `.env.demo`, plus `PUBLIC_GIFT_PICKER_ENABLED=true` **only for the V-03 test**.
+  then start with `npm run dev -- --port 3800 --mode offers`. `.env.offers` must also carry the four base variables and `DELIVERY_COOKIE_SECRET` (32 or more characters) as in `.env.demo`, plus `PUBLIC_GIFT_PICKER_ENABLED=true` **only for the V-03 test**.
   The env-file loader's treatment of quotes and of a very long line is UNVERIFIED: if the value does not arrive, the server logs `offers.config_absent`.
 - **Production or the VPS**: the single line goes in the host's env file (`deploy/mattressfitness.env.example` shows `OFFER_CONFIG_JSON='<ONE_LINE_JSON>'`). Never commit the filled file. A missing or invalid value pauses checkout in production (DEC-030); `OFFERS_ENABLED=false` is the only "offers off" switch.
 - Replace the fake `zone` with the real ZIP list, fee, free-over amount and approved wording when the client supplies them (Q-008, CLR-009). Until then it stays marked placeholder and the promise texts say so.

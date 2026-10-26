@@ -3,7 +3,7 @@
 // Shopify admin. Entries are untrusted text (T-07, T-08, T-15): bad ones are skipped, never rendered.
 // ASSUMPTION(V-05): the `promo_tile` definition from scripts/shopify/definitions.json exists on the store.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {CatalogPromoTilesQuery} from 'storefrontapi.generated';
 import {cleanText} from '~/lib/catalog/text';
 import {parseAdminLink} from '~/lib/shopify/admin-link';

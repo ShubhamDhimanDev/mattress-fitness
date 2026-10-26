@@ -4,7 +4,10 @@
 // `secure` follows the host, not the request protocol: behind a TLS-terminating proxy the protocol the app
 // sees can be http while the browser used https, and a missing Secure flag there would be silent.
 
-import {cartSetIdDefault, type CookieOptions} from '@shopify/hydrogen';
+import {
+  cartSetIdDefault,
+  type CookieOptions,
+} from '~/lib/hydrogen/cart-handler';
 
 /** Shopify keeps a cart for ten days after its last update; the cookie matches that. */
 export const CART_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 10;

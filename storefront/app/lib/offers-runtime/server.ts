@@ -8,7 +8,7 @@
 // (absent = haul-away fails closed, zip-missing), and the cart's own attributes are read only through the
 // strict parser.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {
   deliveryChoiceState,

@@ -137,7 +137,7 @@ mkdir -p "$W" && git archive --format=tar "$TAG" | tar -x -C "$W"
 
 cd "$W/storefront"
 npm ci                      # installs exactly from package-lock.json
-npm run build               # shopify hydrogen build --codegen; writes dist/server and dist/client
+npm run build               # node codegen.mjs && react-router build; writes dist/server and dist/client
 
 # Assemble the release: the runtime needs Node, the build output and the adapter. No node_modules.
 mkdir -p "$R/storefront" "$R/scripts"

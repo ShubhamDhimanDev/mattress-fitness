@@ -1,5 +1,5 @@
 import type {Route} from './+types/sitemap.$type.$page[.xml]';
-import {getSitemap} from '@shopify/hydrogen';
+import {getSitemap} from '~/lib/hydrogen/sitemap';
 import {loadOfferOnlyHandles} from '~/lib/shopify/offer-only';
 import {
   EMPTY_SITEMAP_MARKER,

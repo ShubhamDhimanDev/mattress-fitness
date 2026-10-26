@@ -69,12 +69,12 @@
 | `npm run test`                                | Vitest (unit and integration)                                                                                                                             |
 | `npm run test:watch`, `npm run test:coverage` | Watch mode, coverage                                                                                                                                      |
 | `npm run format:check`, `npm run format`      | Prettier check or write                                                                                                                                   |
-| `npm run build`                               | `shopify hydrogen build --codegen`                                                                                                                        |
+| `npm run build`                               | `node codegen.mjs && react-router build`                                                                                                                      |
 | `npm run codegen`                             | Regenerate Storefront and Customer Account API types                                                                                                      |
 | `npm run check`                               | Format check, lint, types, unit tests and build in one go                                                                                                 |
 | `npm run e2e`                                 | Playwright Test: desktop and mobile Chromium; starts or reuses a dev server on port 3100 (`E2E_PORT` changes it)                                          |
 | `npm run e2e:ui`                              | Playwright UI mode                                                                                                                                        |
-| `npm run preview`                             | `shopify hydrogen preview --build`: a production-mode server (see [PLAYWRIGHT_WORKFLOW](../testing/PLAYWRIGHT_WORKFLOW.md) for the B-20 production check) |
+| `npm run preview`                             | `react-router build && vite preview`: a production-mode server (see [PLAYWRIGHT_WORKFLOW](../testing/PLAYWRIGHT_WORKFLOW.md) for the B-20 production check) |
 
 - `E2E_ALL_BROWSERS=1 npm run e2e` adds WebKit and Firefox. In Git Bash that is a valid one-line form. Other e2e switches (`E2E_PORT`, `E2E_PROTECTION_FLAG`, `E2E_PROD_PREVIEW`) and the env files are in [PLAYWRIGHT_WORKFLOW](../testing/PLAYWRIGHT_WORKFLOW.md) and DEV_DATA.
 - **Scripts tests** (repository root): `node --test "scripts/**/*.test.mjs"` (the quoted glob is required on Node 22). They are not part of `npm run test`.

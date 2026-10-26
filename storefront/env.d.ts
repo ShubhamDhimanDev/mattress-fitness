@@ -1,13 +1,21 @@
 /// <reference types="vite/client" />
 /// <reference types="react-router" />
 /// <reference types="@shopify/oxygen-workers-types" />
-/// <reference types="@shopify/hydrogen/react-router-types" />
 
 // Enhance TypeScript's built-in typings.
 import '@total-typescript/ts-reset';
 
 declare global {
   interface Env {
+    /** Signs the session cookie (server only); production refuses to serve without a strong value (E-L1). */
+    SESSION_SECRET: string;
+    PUBLIC_STORE_DOMAIN: string;
+    PUBLIC_STOREFRONT_ID?: string;
+    PUBLIC_STOREFRONT_API_TOKEN?: string;
+    PRIVATE_STOREFRONT_API_TOKEN?: string;
+    PUBLIC_CHECKOUT_DOMAIN?: string;
+    PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID?: string;
+    SHOP_ID?: string;
     /** Public origin of the storefront for canonical links and structured data (P-L2); see lib/site-origin.ts. */
     PUBLIC_SITE_URL?: string;
     /** The client's support phone (a US number, any common format); no phone link shows until it is set (REQ-CNT-001). */

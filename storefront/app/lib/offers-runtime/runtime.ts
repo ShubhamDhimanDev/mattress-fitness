@@ -3,7 +3,7 @@
 // (server.ts loadConfig), the dev server and mock stores run with offers off. It also reads the shopper's
 // saved delivery ZIP (signed cookie) so every route judges haul-away against the same ZIP (P3B-11).
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {readDeliveryZip} from '~/lib/delivery-runtime/zip-cookie';
 import type {CartHandlerLike, OfferRuntime} from './server';
 

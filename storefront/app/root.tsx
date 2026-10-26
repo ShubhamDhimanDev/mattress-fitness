@@ -1,4 +1,6 @@
-import {getShopAnalytics, useNonce, type Storefront} from '@shopify/hydrogen';
+import {useNonce} from '~/lib/hydrogen/nonce';
+import {loadShopIdentity} from '~/lib/hydrogen/shop';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {
   Outlet,
   useRouteError,
@@ -143,13 +145,14 @@ export async function loader(args: Route.LoaderArgs) {
   // The store lookup, the ZIP cookie read, the site settings, the menu and the footer's page links are independent
   // of each other, so they run together. None of them fails the page: each degrades to "nothing" or to the fixed
   // navigation.
-  const [myStore, delivery, siteSettings, mainNav, footerPages] =
+  const [myStore, delivery, siteSettings, mainNav, footerPages, shop] =
     await Promise.all([
       loadMyStore(args.request, storefront),
       loadDeliverySummary(args.request, env),
       loadSiteSettings(storefront),
       loadMainNav(storefront, env),
       loadFooterPageLinks(storefront),
+      loadShopIdentity(storefront, env),
     ]);
 
   const footerLinks = buildFooterLinks(footerPages);
@@ -219,18 +222,7 @@ export async function loader(args: Route.LoaderArgs) {
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     // Public identifiers and the consent mode (P7-01). Unset ids mean no provider: nothing loads (REQ-ANL-001/002).
     analytics,
-    shop: getShopAnalytics({
-      storefront,
-      publicStorefrontId: env.PUBLIC_STOREFRONT_ID,
-    }),
-    consent: {
-      checkoutDomain: env.PUBLIC_CHECKOUT_DOMAIN,
-      storefrontAccessToken: env.PUBLIC_STOREFRONT_API_TOKEN,
-      withPrivacyBanner: false,
-      // localize the privacy banner
-      country: args.context.storefront.i18n.country,
-      language: args.context.storefront.i18n.language,
-    },
+    shop,
   };
 }
 
@@ -297,7 +289,6 @@ export default function App() {
     <AnalyticsGate
       cart={data.cart}
       shop={data.shop}
-      consent={data.consent}
       config={data.analytics}
       privacyPath={data.privacyPath}
     >
@@ -400,7 +391,6 @@ export function ErrorBoundary() {
     <AnalyticsGate
       cart={data.cart}
       shop={data.shop}
-      consent={data.consent}
       config={data.analytics}
       privacyPath={data.privacyPath}
     >

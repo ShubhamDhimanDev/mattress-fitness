@@ -2,7 +2,7 @@
 // featured collection, no brands and no size data each simply remove their section. The mapping is pure
 // (`buildHomeData`) so it is tested against recorded responses; `loadHome` only runs the query.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {
   CatalogHomeQuery,
   CatalogHomeSectionsQuery,

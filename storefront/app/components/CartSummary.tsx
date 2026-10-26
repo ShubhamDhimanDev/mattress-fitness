@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import type {OptimisticCart} from '@shopify/hydrogen';
+import type {OptimisticCart} from '~/lib/hydrogen/cart-form';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {CartDiscount} from '~/components/cart/CartDiscount';
 import {FinancingMessage} from '~/components/cart/FinancingMessage';

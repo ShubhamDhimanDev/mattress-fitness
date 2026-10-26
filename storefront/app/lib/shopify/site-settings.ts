@@ -9,7 +9,7 @@
 // offer must not outlive its end date by hours. An edit in admin shows within that window. An absent entry, an
 // empty field or a failed read all mean "show nothing", never an invented message or number (B-15).
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {SiteSettingsQuery} from 'storefrontapi.generated';
 import {cleanText} from '~/lib/catalog/text';
 import {errorFields, logError} from '~/lib/logging/logger';

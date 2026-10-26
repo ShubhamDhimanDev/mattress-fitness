@@ -8,7 +8,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import {CartForm} from '@shopify/hydrogen';
+import {CartForm} from '~/lib/hydrogen/cart-form';
 import {useState} from 'react';
 import {createMemoryRouter, data, RouterProvider} from 'react-router';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';

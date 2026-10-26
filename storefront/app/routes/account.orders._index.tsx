@@ -7,7 +7,8 @@ import {
 } from 'react-router';
 import type {Route} from './+types/account.orders._index';
 import {useRef} from 'react';
-import {Money, flattenConnection} from '@shopify/hydrogen';
+import {Money} from '~/components/Money';
+import {flattenConnection} from '@shopify/hydrogen';
 import {
   buildOrderSearchQuery,
   parseOrderFilters,

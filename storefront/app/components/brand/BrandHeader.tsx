@@ -1,4 +1,4 @@
-import {Image} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
 import {cn} from '~/components/ui/cn';
 import {displayHeadingClass} from '~/lib/display-type';
 import {keyedText} from '~/lib/shopify/keys';

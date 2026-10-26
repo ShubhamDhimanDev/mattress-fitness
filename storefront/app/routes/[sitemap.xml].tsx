@@ -1,5 +1,5 @@
 import type {Route} from './+types/[sitemap.xml]';
-import {getSitemapIndex} from '@shopify/hydrogen';
+import {getSitemapIndex} from '~/lib/hydrogen/sitemap';
 import {SITEMAP_TYPES, bareUrlRedirect} from '~/lib/seo/sitemap';
 import {
   sitemapOriginFor,

@@ -1,4 +1,4 @@
-import {Image} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
 import {Link} from 'react-router';
 import {keyedText} from '~/lib/shopify/keys';
 import {ReviewsSlot} from '~/components/reviews/ReviewsSlot';

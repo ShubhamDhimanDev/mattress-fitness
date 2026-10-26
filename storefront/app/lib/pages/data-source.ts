@@ -8,7 +8,7 @@
 // Loaders call these functions on the server; components never import this file.
 // Replacing the bodies with Storefront API queries must not change the signatures.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {CatalogProduct} from '~/lib/catalog/types';
 import {loadQuizConfigRaw} from '~/lib/shopify/quiz-data';
 import {loadShopifyStores} from '~/lib/shopify/store-data';

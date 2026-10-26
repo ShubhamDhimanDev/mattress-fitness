@@ -1,4 +1,5 @@
-import {CartForm, Image, type OptimisticCartLine} from '@shopify/hydrogen';
+import {CartForm, type OptimisticCartLine} from '~/lib/hydrogen/cart-form';
+import {Image} from '~/lib/hydrogen/image';
 import {CartActionForm} from '~/components/cart/CartActionForm';
 import {Link} from 'react-router';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';

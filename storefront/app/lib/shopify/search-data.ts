@@ -1,7 +1,7 @@
 // Search results read (REQ-SRCH-002): products with the same filter set and URL state as collections,
 // plus a few matching pages and articles, and collections to suggest when nothing matches.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {
   SEARCH_SORT_KEYS,
   buildProductFilters,

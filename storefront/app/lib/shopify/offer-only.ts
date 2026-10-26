@@ -8,7 +8,7 @@
 // Shopify's own `seo.hidden` metafield is the preferred second control for the sitemap; whether the Storefront
 // sitemap honours it must be verified on the development store (V-05), which is why the tags are read as well.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {OfferOnlyProductHandlesQuery} from 'storefrontapi.generated';
 import {COVERAGE_PRODUCT_TAG} from '~/lib/extend/coverage-catalog';
 import {errorFields, logError} from '~/lib/logging/logger';

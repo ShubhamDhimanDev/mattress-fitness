@@ -10,7 +10,8 @@
 //     (V-08), so every failure here resolves to `unavailable` and the quiz carries on with the device copy.
 // Nothing here logs answers, handles, ids or Shopify's message text: only a short reason code (T-05).
 
-import type {CustomerAccount, Storefront} from '@shopify/hydrogen';
+import type {CustomerAccount} from '~/lib/hydrogen/customer-account';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {logError, logWarn} from '~/lib/logging/logger';
 import {getQuizConfigRaw, getQuizProducts} from '~/lib/pages/data-source';
 import {

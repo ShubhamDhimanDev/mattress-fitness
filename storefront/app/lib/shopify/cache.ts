@@ -7,7 +7,7 @@
 // because a card showing a stale price or a sold-out size misleads the shopper before the live checkout
 // corrects it. Only content with no price or availability (pages, menus, shop settings) is cached long.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 
 type CacheSource = Pick<
   Storefront,

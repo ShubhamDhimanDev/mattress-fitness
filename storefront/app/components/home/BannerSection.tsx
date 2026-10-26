@@ -1,4 +1,4 @@
-import {Image} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
 import {AdminLinkAction} from '~/components/home/AdminLinkAction';
 import {buttonStyles, type ButtonVariant} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';

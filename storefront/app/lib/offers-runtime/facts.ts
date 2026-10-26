@@ -2,7 +2,7 @@
 // ids come from a cart, ARCHITECTURE section 7). A failed read hides the offers and never blocks the cart
 // (NFR-013): every loader here resolves to "nothing known" instead of throwing.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {noCache, pricedCache} from '~/lib/shopify/cache';
 import {
   OFFER_PRODUCTS_QUERY,

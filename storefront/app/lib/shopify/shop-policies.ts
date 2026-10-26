@@ -6,7 +6,7 @@
 // route `policies.$handle.tsx` matches the same four handles, so a listed URL always resolves. The subscription
 // policy is not routed (the route answers 404 for it), so it is neither queried nor listed.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {ShopPolicyHandlesQuery} from 'storefrontapi.generated';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {catalogCache} from '~/lib/shopify/cache';

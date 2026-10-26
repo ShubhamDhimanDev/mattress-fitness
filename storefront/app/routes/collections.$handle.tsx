@@ -1,4 +1,4 @@
-import {Analytics} from '@shopify/hydrogen';
+import {Analytics} from '~/lib/hydrogen/analytics';
 import {keyedText} from '~/lib/shopify/keys';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/collections.$handle';

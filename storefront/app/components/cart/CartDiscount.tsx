@@ -1,4 +1,4 @@
-import {CartForm} from '@shopify/hydrogen';
+import {CartForm} from '~/lib/hydrogen/cart-form';
 import {CartActionForm} from '~/components/cart/CartActionForm';
 import {useId} from 'react';
 import {Button} from '~/components/ui/Button';

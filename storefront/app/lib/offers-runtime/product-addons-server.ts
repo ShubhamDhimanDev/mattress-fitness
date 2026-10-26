@@ -6,7 +6,7 @@
 // holds every size, so the page swaps the offered variants when the size changes. Nothing here depends on a shopper or a
 // cart, so it is safe to cache for the short priced window (DEC-024).
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {addOnRelationsFor} from '~/lib/offers/addons';
 import {offerRulesOf} from './config';
 import {readOfferedVariants} from './facts';

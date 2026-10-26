@@ -209,7 +209,7 @@ jobs:
           E2E_PROTECTION_FLAG: "on"
           E2E_RUN_NAME: run3-protection
 
-      # Run 4: the production bundle built above, served by `shopify hydrogen preview` (b20-production.spec;
+      # Run 4: the production bundle built above, served by `vite preview` (b20-production.spec;
       # Chromium only because it asserts Chromium's own console wording). Reuses the `.env.ci` values, which already
       # satisfy the production 32-character secret rule.
       - name: End-to-end tests (production preview)

@@ -1,42 +1,54 @@
-import {createHydrogenContext} from '@shopify/hydrogen';
+import {RouterContextProvider} from 'react-router';
+import type {StorefrontClient, ShopifyRequestContext} from '@shopify/hydrogen';
 import {cartSetId} from '~/lib/cart/cookie';
 import {reportUnusableSecret, sessionSecretProblem} from '~/lib/cookie-secret';
 import {AppSession} from '~/lib/session';
 import {CART_QUERY_FRAGMENT} from '~/lib/fragments';
-import type {CartApiQueryFragment} from 'storefrontapi.generated';
+import {createCartHandler, type CartHandler} from '~/lib/hydrogen/cart-handler';
+import {
+  createCustomerAccount,
+  type CustomerAccount,
+} from '~/lib/hydrogen/customer-account';
+import {
+  APP_I18N,
+  createStorefrontServices,
+  type Storefront,
+} from '~/lib/hydrogen/storefront';
 
-// Define the additional context object
-const additionalContext = {
-  // Additional context for custom properties, CMS clients, 3P SDKs, etc.
-  // These will be available as both context.propertyName and context.get(propertyContext)
-  // Example of complex objects that could be added:
-  // cms: await createCMSClient(env),
-  // reviews: await createReviewsClient(env),
-} as const;
+/** The request services every loader and action reads from `context` (ADR-0012). */
+export type AppContext = {
+  env: Env;
+  waitUntil: ExecutionContext['waitUntil'];
+  storefront: Storefront;
+  cart: CartHandler;
+  customerAccount: CustomerAccount;
+  session: AppSession;
+};
 
-// Automatically augment HydrogenAdditionalContext with the additional context type
-type AdditionalContextType = typeof additionalContext;
-
-declare global {
-  interface HydrogenAdditionalContext extends AdditionalContextType {}
-
-  // Augment HydrogenCustomCartFragment with the codegen'd cart fragment type so
-  // that context.cart.get() and all cart mutations return the extended cart type.
-  interface HydrogenCustomCartFragment extends CartApiQueryFragment {}
+declare module 'react-router' {
+  interface AppLoadContext extends AppContext {}
+  interface RouterContextProvider extends AppContext {}
 }
 
+export type RequestServices = {
+  /** The object the router hands to loaders and actions. */
+  routerContext: RouterContextProvider;
+  /** For the Shopify route handlers and the response headers in server.ts. */
+  client: StorefrontClient;
+  requestContext: ShopifyRequestContext;
+  session: AppSession;
+};
+
 /**
- * Creates Hydrogen context for React Router 7.9.x
- * Returns HydrogenRouterContextProvider with hybrid access patterns
- * */
+ * Builds the per-request services. The names `storefront`, `cart`, `customerAccount`, `session`, `env` and `waitUntil`
+ * on the context are the ones the routes were written against with Hydrogen 2026.4's `createHydrogenContext`; the
+ * implementations are ours (app/lib/hydrogen) on top of the 2026.10 library.
+ */
 export async function createHydrogenRouterContext(
   request: Request,
   env: Env,
   executionContext: ExecutionContext,
-) {
-  /**
-   * Open a cache instance in the worker and a custom session instance.
-   */
+): Promise<RequestServices> {
   // A missing or short signing key is a deployment mistake (E-L1): production refuses every request until it
   // is fixed. The name is logged once per isolate so the cause is visible without a line per request.
   const secretProblem = sessionSecretProblem(
@@ -54,23 +66,39 @@ export async function createHydrogenRouterContext(
     AppSession.init(request, [env.SESSION_SECRET]),
   ]);
 
-  const hydrogenContext = createHydrogenContext(
-    {
-      env,
-      request,
-      cache,
-      waitUntil,
-      session,
-      // Or detect from URL path based on locale subpath, cookies, or any other strategy
-      i18n: {language: 'EN', country: 'US'},
-      cart: {
-        queryFragment: CART_QUERY_FRAGMENT,
-        // HttpOnly, SameSite, Secure and an expiry on the cart cookie (security review P-M1).
-        setId: cartSetId(request.url),
-      },
-    },
-    additionalContext,
-  );
+  const {client, requestContext, storefront} = createStorefrontServices({
+    request,
+    env,
+    cache,
+    waitUntil,
+  });
 
-  return hydrogenContext;
+  const customerAccount = createCustomerAccount({
+    env,
+    request,
+    session,
+    requestContext,
+    language: APP_I18N.language,
+  });
+
+  const cart = createCartHandler({
+    storefront,
+    cookieHeader: request.headers.get('Cookie'),
+    // HttpOnly, SameSite, Secure and an expiry on the cart cookie (security review P-M1).
+    setCartId: cartSetId(request.url),
+    cartQueryFragment: CART_QUERY_FRAGMENT,
+    isLoggedIn: () => customerAccount.isLoggedIn(),
+  });
+
+  const routerContext = new RouterContextProvider();
+  Object.assign(routerContext, {
+    env,
+    waitUntil,
+    storefront,
+    cart,
+    customerAccount,
+    session,
+  } satisfies AppContext);
+
+  return {routerContext, client, requestContext, session};
 }

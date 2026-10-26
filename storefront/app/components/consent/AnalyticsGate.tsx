@@ -1,16 +1,17 @@
+import {useNonce} from '~/lib/hydrogen/nonce';
 import {
   Analytics,
   AnalyticsEvent as HydrogenEvent,
   useAnalytics,
-  useNonce,
-} from '@shopify/hydrogen';
+} from '~/lib/hydrogen/analytics';
+import {ShopifyScripts} from '@shopify/hydrogen/react';
 import {
   Suspense,
   lazy,
+  type ComponentProps,
   useEffect,
   useState,
   useSyncExternalStore,
-  type ComponentProps,
   type ComponentType,
   type ReactNode,
 } from 'react';
@@ -24,10 +25,16 @@ import {consentHandle, earlyViews, scheduleIdle} from '~/lib/analytics/gate';
 
 type HydrogenProviderProps = ComponentProps<typeof Analytics.Provider>;
 
+export type ShopifyShop = {
+  shopId: string;
+  storefrontId: string;
+  myshopifyDomain: string;
+};
+
 type AnalyticsGateProps = {
   readonly cart: HydrogenProviderProps['cart'];
-  readonly shop: HydrogenProviderProps['shop'];
-  readonly consent: HydrogenProviderProps['consent'];
+  /** Shopify's shop identity for its scripts and analytics, or null (no shop id): then nothing is published or loaded. */
+  readonly shop: ShopifyShop | null;
   readonly config: PublicAnalyticsConfig;
   /** Target of the consent banner's privacy link: the page that exists, or null for none (P6-09). */
   readonly privacyPath?: string | null;
@@ -99,7 +106,6 @@ function EarlyViews() {
 export function AnalyticsGate({
   cart,
   shop,
-  consent,
   config,
   privacyPath,
   children,
@@ -118,13 +124,27 @@ export function AnalyticsGate({
     <Analytics.Provider
       cart={cart}
       shop={shop}
-      consent={consent}
       // Present only while the shopper has allowed a provider, and then a new function each render (so Hydrogen, which
       // memoises on this reference, asks again whenever the choice changes); absent, Hydrogen uses Shopify's own answer.
       {...(providers && consentHandle.consented()
         ? {canTrack: () => true}
         : {})}
     >
+      {/* Shopify's consent and analytics scripts (ADR-0012). No Shopify banner: the regional defaults of Customer Privacy
+          apply, as with the 2026.4 provider (`withPrivacyBanner: false`); the project's own banner covers GA4 and Meta. WebMCP
+          is off: it is not part of the scope. Without a storefront id the "headless" channel is used and Shopify's analytics
+          script stays off, because it would have nothing to attribute to. */}
+      {shop ? (
+        <ShopifyScripts
+          shop={shop}
+          i18n={{country: 'US', language: 'EN', currency: 'USD'}}
+          consent={{mode: 'no-banner'}}
+          analytics={{channel: shop.storefrontId ? 'hydrogen' : 'headless'}}
+          shopifyAnalytics={shop.storefrontId !== ''}
+          webMcp={false}
+          nonce={nonce}
+        />
+      ) : null}
       {providers ? <EarlyViews /> : null}
       {providers && mountRuntime ? (
         <Suspense fallback={null}>

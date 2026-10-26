@@ -1,6 +1,6 @@
 import {useLoaderData, data, type HeadersFunction} from 'react-router';
 import type {Route} from './+types/cart';
-import {CartForm} from '@shopify/hydrogen';
+import {CartForm} from '~/lib/hydrogen/cart-form';
 import {CartMain} from '~/components/CartMain';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {

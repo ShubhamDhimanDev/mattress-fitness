@@ -1,6 +1,6 @@
 import {useLoaderData, Link} from 'react-router';
 import type {Route} from './+types/collections._index';
-import {Image} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
 import type {CollectionFragment} from 'storefrontapi.generated';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
 import {cursorPaginationVariables} from '~/lib/pages/cursor-pagination';

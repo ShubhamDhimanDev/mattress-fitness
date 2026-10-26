@@ -21,7 +21,7 @@ export const CUSTOMER_FRAGMENT = `#graphql
     company
     address1
     address2
-    territoryCode
+    countryCode
     zoneCode
     city
     zip

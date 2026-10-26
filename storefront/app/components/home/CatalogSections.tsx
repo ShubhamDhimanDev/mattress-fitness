@@ -1,4 +1,4 @@
-import {Image} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
 import {Link} from 'react-router';
 import {ProductItem} from '~/components/ProductItem';
 import {Button} from '~/components/ui/Button';

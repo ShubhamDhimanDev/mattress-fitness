@@ -1,4 +1,4 @@
-import {CartForm} from '@shopify/hydrogen';
+import {CartForm} from '~/lib/hydrogen/cart-form';
 import {CartActionForm} from '~/components/cart/CartActionForm';
 import {Button} from '~/components/ui/Button';
 import {ADD_WITH_PROTECTION_ACTION} from '~/lib/cart/custom-actions';

@@ -14,7 +14,7 @@
 // `.reference` and `.references(first)` (a `MetafieldReferenceConnection`, whose nodes include `Metaobject`).
 // ASSUMPTION(V-05): the nested read stays within the Storefront API's query cost; the counts below are kept small for it.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {catalogCache} from '~/lib/shopify/cache';
 

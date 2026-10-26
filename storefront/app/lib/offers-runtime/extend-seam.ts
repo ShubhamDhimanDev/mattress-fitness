@@ -16,7 +16,7 @@
 // so server.ts treats it (and an empty price-point list while the cart holds coverage) as unverified and pauses checkout
 // (security review O-M2, fail closed).
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {
   loadCoverageCatalog,
   type CoverageCatalogResult,

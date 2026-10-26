@@ -6,7 +6,7 @@
 // the caller keeps the labelled fixtures (data-source.ts). Store text carries no price or availability, so the long
 // cache applies (an edit shows after about an hour, ADMIN_GUIDE 6.6).
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {StoreMetaobjectsQuery} from 'storefrontapi.generated';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {catalogCache} from '~/lib/shopify/cache';

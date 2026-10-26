@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import {useState} from 'react';
 import {cleanup, fireEvent, render, screen} from '@testing-library/react';
-import {CartForm} from '@shopify/hydrogen';
+import {CartForm} from '~/lib/hydrogen/cart-form';
 import {createMemoryRouter, data, RouterProvider} from 'react-router';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import {CartActionForm} from '~/components/cart/CartActionForm';

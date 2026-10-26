@@ -1,4 +1,4 @@
-import {Image} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
 import {Link, useLoaderData} from 'react-router';
 import type {Route} from './+types/brands._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';

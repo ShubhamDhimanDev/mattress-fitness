@@ -1,4 +1,4 @@
-import {Image} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
 import {useRef, useState, type KeyboardEvent, type PointerEvent} from 'react';
 import {ChevronRightIcon} from '~/components/ui/Icons';
 import {cn} from '~/components/ui/cn';

@@ -1,4 +1,4 @@
-import {useOptimisticCart} from '@shopify/hydrogen';
+import {useOptimisticCart} from '~/lib/hydrogen/cart-form';
 import {useEffect, useId, useRef, type ReactNode, type RefObject} from 'react';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';

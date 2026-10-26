@@ -1,7 +1,7 @@
 // Loads the store list once per request and builds the state > city > store
 // index the route loaders look pages up in (REQ-LOC-001). Server side only.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {getStores, type DataSource} from '~/lib/pages/data-source';
 import {buildStoreIndex, type StoreIndex} from '~/lib/stores/grouping';
 import {logWarn} from '~/lib/logging/logger';

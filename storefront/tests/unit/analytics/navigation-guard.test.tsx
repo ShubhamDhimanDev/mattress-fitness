@@ -35,7 +35,7 @@ function setup(loader?: LoaderFunction) {
         // The root layout: the gate and the bridge stay mounted while the page inside changes.
         path: '/',
         element: (
-          <AnalyticsGate cart={null} shop={null} consent={{}} config={GA}>
+          <AnalyticsGate cart={null} shop={null} config={GA}>
             <AnalyticsBridge {...props} />
             <Link to="/account/orders/123">Your order</Link>
             <Link to="/products/cloud">A product</Link>

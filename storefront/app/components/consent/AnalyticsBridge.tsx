@@ -1,4 +1,7 @@
-import {AnalyticsEvent as HydrogenEvent, useAnalytics} from '@shopify/hydrogen';
+import {
+  AnalyticsEvent as HydrogenEvent,
+  useAnalytics,
+} from '~/lib/hydrogen/analytics';
 import {useEffect, useRef} from 'react';
 import {useLocation, useNavigation} from 'react-router';
 import {track} from '~/lib/analytics';

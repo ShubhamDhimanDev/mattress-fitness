@@ -7,7 +7,7 @@
 // A layout of one product with up to 250 variants, or a few products with fewer in total, fits one read.
 // The variant names themselves follow the documented `Extend-Protection-Plan-<price>` pattern (F-27).
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {
   buildPricePointIndex,
   MAX_PRICE_POINTS,

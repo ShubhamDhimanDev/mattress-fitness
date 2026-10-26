@@ -7,7 +7,7 @@
 // store's own location is picked out in `pickupAnswerFor`. `quantityAvailable` is not requested: the page says
 // "ready for pickup", never a count. ASSUMPTION(V-05): the scope is granted on the storefront token of the store.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {PickupAvailabilityQuery} from 'storefrontapi.generated';
 import {availabilityCache} from '~/lib/shopify/cache';
 import type {PickupLocation} from '~/lib/stores/pickup';

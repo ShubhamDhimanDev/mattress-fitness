@@ -9,7 +9,7 @@
 // shows no registry link (a missing link is harmless, a link that 404s is not), and the failure is logged once
 // per run of failures, by class name only (T-05).
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {ContentPagesQuery} from 'storefrontapi.generated';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {pageHasContent} from '~/lib/pages/content-pages-html';

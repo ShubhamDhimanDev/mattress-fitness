@@ -30,7 +30,6 @@ describe('a consent chunk that fails to load', () => {
       <AnalyticsGate
         cart={null}
         shop={null}
-        consent={{}}
         config={parseAnalyticsConfig({PUBLIC_GA4_MEASUREMENT_ID: 'G-ABCD1234'})}
       >
         <p>the page</p>

@@ -1,5 +1,5 @@
 import type {CustomerAddressInput} from '@shopify/hydrogen/customer-account-api-types';
-import type {CustomerAccount} from '@shopify/hydrogen';
+import type {CustomerAccount} from '~/lib/hydrogen/customer-account';
 import type {
   AddressFragment,
   CustomerFragment,
@@ -62,7 +62,9 @@ export async function loader({context}: Route.LoaderArgs) {
 // A form is a few short text fields; 8 KB is generous for ten of them and refuses anything abusive early.
 const ADDRESS_FORM_MAX_BYTES = 8192;
 
-const ADDRESS_KEYS: readonly (keyof CustomerAddressInput)[] = [
+// Form field names. `territoryCode` is the name of the country field in the form; the Customer Account API 2026-10 calls it
+// `countryCode` (ADR-0012), see `readAddress`.
+const ADDRESS_KEYS: readonly string[] = [
   'address1',
   'address2',
   'city',
@@ -201,13 +203,26 @@ async function deleteAddress(
   }
 }
 
+type TextAddressKey = Exclude<
+  keyof CustomerAddressInput,
+  'countryCode' | 'defaultAddress' | 'territoryCode'
+>;
+
 function readAddress(form: FormData): CustomerAddressInput {
   const address: CustomerAddressInput = {};
   for (const key of ADDRESS_KEYS) {
     const value = form.get(key);
-    if (typeof value === 'string') {
-      address[key] = value;
+    if (typeof value !== 'string') continue;
+    if (key === 'territoryCode') {
+      // The API's CountryCode enum takes an upper-case two-letter code; anything else would fail the whole request with a
+      // validation error, so it is left out and Shopify answers with its own field error.
+      const code = value.trim().toUpperCase();
+      if (/^[A-Z]{2}$/.test(code)) {
+        address.countryCode = code as CustomerAddressInput['countryCode'];
+      }
+      continue;
     }
+    address[key as TextAddressKey] = value;
   }
   return address;
 }
@@ -509,7 +524,7 @@ export function AddressForm({
         <label htmlFor={idOf('territoryCode')}>Country Code*</label>
         <input
           autoComplete="country"
-          defaultValue={address?.territoryCode ?? ''}
+          defaultValue={address?.countryCode ?? ''}
           id={idOf('territoryCode')}
           name="territoryCode"
           placeholder="Country"

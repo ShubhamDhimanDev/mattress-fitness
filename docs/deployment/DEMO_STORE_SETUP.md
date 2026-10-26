@@ -45,7 +45,7 @@ Checkout, payments and customer accounts are Shopify's own and are not third-par
 ```
 node scripts/setup/demo-env.mjs --mock
 cd storefront
-npm run dev -- --port 3400 --env-file .env.demo
+npm run dev -- --port 3400 --mode demo
 ```
 
 Open http://localhost:3400. The script wrote `storefront/.env.demo`: store domain, checkout domain, a placeholder token, and two freshly generated cookie secrets. Git ignores it; do not commit or share it. Add `--no-offers` to the script if you want the cart to skip offers entirely.
@@ -96,7 +96,7 @@ Start with one product, look at it in admin, then run the rest. The sample brand
 
 ```
 cd storefront
-npm run dev -- --port 3400 --env-file .env.demo
+npm run dev -- --port 3400 --mode demo
 ```
 
 ## Check that it works

@@ -83,7 +83,7 @@ export type CustomerFragment = Pick<
       | 'company'
       | 'address1'
       | 'address2'
-      | 'territoryCode'
+      | 'countryCode'
       | 'zoneCode'
       | 'city'
       | 'zip'
@@ -101,7 +101,7 @@ export type CustomerFragment = Pick<
         | 'company'
         | 'address1'
         | 'address2'
-        | 'territoryCode'
+        | 'countryCode'
         | 'zoneCode'
         | 'city'
         | 'zip'
@@ -120,7 +120,7 @@ export type AddressFragment = Pick<
   | 'company'
   | 'address1'
   | 'address2'
-  | 'territoryCode'
+  | 'countryCode'
   | 'zoneCode'
   | 'city'
   | 'zip'
@@ -146,7 +146,7 @@ export type CustomerDetailsQuery = {
         | 'company'
         | 'address1'
         | 'address2'
-        | 'territoryCode'
+        | 'countryCode'
         | 'zoneCode'
         | 'city'
         | 'zip'
@@ -164,7 +164,7 @@ export type CustomerDetailsQuery = {
           | 'company'
           | 'address1'
           | 'address2'
-          | 'territoryCode'
+          | 'countryCode'
           | 'zoneCode'
           | 'city'
           | 'zip'
@@ -504,7 +504,7 @@ export type CustomerUpdateMutation = {
 };
 
 interface GeneratedQueryTypes {
-  '#graphql\n  query CustomerDetails($language: LanguageCode) @inContext(language: $language) {\n    customer {\n      ...Customer\n    }\n  }\n  #graphql\n  fragment Customer on Customer {\n    id\n    firstName\n    lastName\n    defaultAddress {\n      ...Address\n    }\n    addresses(first: 6) {\n      nodes {\n        ...Address\n      }\n    }\n  }\n  fragment Address on CustomerAddress {\n    id\n    formatted\n    firstName\n    lastName\n    company\n    address1\n    address2\n    territoryCode\n    zoneCode\n    city\n    zip\n    phoneNumber\n  }\n\n': {
+  '#graphql\n  query CustomerDetails($language: LanguageCode) @inContext(language: $language) {\n    customer {\n      ...Customer\n    }\n  }\n  #graphql\n  fragment Customer on Customer {\n    id\n    firstName\n    lastName\n    defaultAddress {\n      ...Address\n    }\n    addresses(first: 6) {\n      nodes {\n        ...Address\n      }\n    }\n  }\n  fragment Address on CustomerAddress {\n    id\n    formatted\n    firstName\n    lastName\n    company\n    address1\n    address2\n    countryCode\n    zoneCode\n    city\n    zip\n    phoneNumber\n  }\n\n': {
     return: CustomerDetailsQuery;
     variables: CustomerDetailsQueryVariables;
   };
@@ -537,7 +537,5 @@ interface GeneratedMutationTypes {
   };
 }
 
-declare module '@shopify/hydrogen' {
-  interface CustomerAccountQueries extends GeneratedQueryTypes {}
-  interface CustomerAccountMutations extends GeneratedMutationTypes {}
-}
+export type CustomerAccountQueries = GeneratedQueryTypes;
+export type CustomerAccountMutations = GeneratedMutationTypes;

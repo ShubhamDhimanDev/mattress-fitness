@@ -47,7 +47,7 @@ It reads React Router's build manifest (`dist/client/assets/manifest-*.js`), add
 
 ```
 npm run build
-npx shopify hydrogen preview --port 4900 --env-file .env.prodpreview      # separate terminal; see PLAYWRIGHT_WORKFLOW.md, "Production preview"
+npx vite preview --port 4900 --mode prodpreview      # separate terminal; see PLAYWRIGHT_WORKFLOW.md, "Production preview"
 export CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe"   # if Chrome is not found
 npx @lhci/cli@0.15.1 autorun --config=lighthouserc.json \
   --collect.url=http://localhost:4900/ \

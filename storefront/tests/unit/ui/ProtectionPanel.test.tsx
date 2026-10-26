@@ -22,6 +22,13 @@ import {
 
 afterEach(cleanup);
 
+// react-router 7.17+ throws when `useRouteLoaderData` runs outside a data router; the panel only reads the root's Extend
+// branding, which these tests do not need (ADR-0012).
+vi.mock('react-router', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-router')>()),
+  useRouteLoaderData: () => undefined,
+}));
+
 const VARIANT_A = 'gid://shopify/ProductVariant/11';
 const VARIANT_B = 'gid://shopify/ProductVariant/12';
 

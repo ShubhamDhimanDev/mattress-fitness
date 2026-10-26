@@ -24,7 +24,15 @@ if (
     'E2E_ENV_FILE may only contain letters, digits, _ . / -, must not start with "-" and must not contain a ".." segment',
   );
 }
-const envFileArg = envFile === '' ? '' : ` --env-file ${envFile}`;
+// Vite (Hydrogen 2026.10, ADR-0012) has no `--env-file`; it loads `.env.<mode>`, so `.env.bedding` is started as
+// `--mode bedding`. Only files named `.env.<mode>` can be selected this way.
+const envMode = envFile.replace(/^\.env\./, '');
+if (envFile !== '' && (envMode === envFile || envMode.includes('/'))) {
+  throw new Error(
+    'E2E_ENV_FILE must be a file named .env.<mode> in storefront/',
+  );
+}
+const envFileArg = envFile === '' ? '' : ` --mode ${envMode}`;
 
 // `E2E_RUN_NAME` (letters, digits, _ -) gives one Playwright invocation its own report and result folders.
 // Playwright empties its output folders at the start of every run, so without a name a later run in the same CI
@@ -41,8 +49,8 @@ const resultsFolder =
 // server, for tests/e2e/b20-production.spec.ts.
 const serverCommand =
   process.env.E2E_PROD_PREVIEW === '1'
-    ? `npx shopify hydrogen preview --port ${PORT}${envFileArg}`
-    : `npm run dev -- --port ${PORT} --disable-version-check${envFileArg}`;
+    ? `npx vite preview --port ${PORT}${envFileArg}`
+    : `npm run dev -- --port ${PORT}${envFileArg}`;
 
 export default defineConfig({
   testDir: './tests/e2e',

@@ -1,6 +1,6 @@
 import type {RefObject} from 'react';
 import {Link} from 'react-router';
-import {CartForm, type OptimisticCartLineInput} from '@shopify/hydrogen';
+import {CartForm, type OptimisticCartLineInput} from '~/lib/hydrogen/cart-form';
 import {CartActionForm} from '~/components/cart/CartActionForm';
 import {useAside} from '~/components/Aside';
 import {ProductTile} from '~/components/pages/ProductTile';

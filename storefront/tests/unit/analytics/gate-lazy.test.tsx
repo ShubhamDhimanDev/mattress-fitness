@@ -69,12 +69,7 @@ afterEach(() => {
 
 function renderGate(env: Record<string, string>) {
   return render(
-    <AnalyticsGate
-      cart={null}
-      shop={null}
-      consent={{}}
-      config={parseAnalyticsConfig(env)}
-    >
+    <AnalyticsGate cart={null} shop={null} config={parseAnalyticsConfig(env)}>
       <p>the page</p>
       <PrivacyChoicesButton />
     </AnalyticsGate>,

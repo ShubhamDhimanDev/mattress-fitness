@@ -2,7 +2,7 @@
 // long, price and availability short. A missing availability read does not fail the page; the content
 // query's own values are used instead.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {availabilityCache, catalogCache} from '~/lib/shopify/cache';
 import {isValidHandle} from '~/lib/shopify/collection-data';
 import {mapProductPage} from '~/lib/shopify/product';

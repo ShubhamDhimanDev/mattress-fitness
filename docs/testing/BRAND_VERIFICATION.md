@@ -93,7 +93,7 @@ Hover states, pressed states, the Filters drawer's keyboard flow beyond axe, the
 
 ```
 cd storefront
-# own server first: npm run dev -- --port 6710 --env-file .env.bedding   (client store: .env.demo)
+# own server first: npm run dev -- --port 6710 --mode bedding   (client store: .env.demo)
 E2E_PORT=6710 E2E_ENV_FILE=.env.bedding npx playwright test tests/e2e/brand-verification.spec.ts
 E2E_REAL_STORE=1 E2E_PORT=6700 E2E_ENV_FILE=.env.demo npx playwright test tests/e2e/real-store.spec.ts tests/e2e/brand-verification.spec.ts
 ```

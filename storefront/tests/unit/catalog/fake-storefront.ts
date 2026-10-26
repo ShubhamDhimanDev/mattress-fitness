@@ -2,7 +2,7 @@
 // call, so the query modules can be tested without a network. The single cast below is the narrowing
 // helper for this: the modules only use `query`, `CacheLong`, `CacheShort`, `CacheCustom` and `CacheNone`.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 
 export type RecordedCall = {
   readonly query: string;

@@ -1,6 +1,6 @@
 # ADR-0008: Hold the scaffold's Hydrogen 2026.4.7 and react-router 7.16.0 pins for now; track the advisories
 
-- **Status:** Proposed (owner to confirm; revisit when Shopify's template supports Hydrogen 2026.10 or at P1-12)
+- **Status:** Superseded by [ADR-0012](ADR-0012-hydrogen-2026-10-migration.md) (2026-10-26: the owner chose the Hydrogen 2026.10 migration; the pins described below are no longer held). Original status: Proposed (owner to confirm; revisit when Shopify's template supports Hydrogen 2026.10 or at P1-12)
 - **Date:** 2026-10-12
 - **Deciders:** project owner; solution-architect; security-engineer
 - **Requirements:** NFR-004, NFR-012

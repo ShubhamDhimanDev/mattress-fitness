@@ -1,4 +1,4 @@
-import {CartForm} from '@shopify/hydrogen';
+import {CartForm} from '~/lib/hydrogen/cart-form';
 import type {ComponentProps, ReactNode} from 'react';
 import type {FetcherWithComponents} from 'react-router';
 import {useReportCartResult} from '~/components/cart/cart-results';

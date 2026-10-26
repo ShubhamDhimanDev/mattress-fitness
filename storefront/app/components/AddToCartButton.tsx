@@ -1,4 +1,4 @@
-import {type OptimisticCartLineInput, CartForm} from '@shopify/hydrogen';
+import {type OptimisticCartLineInput, CartForm} from '~/lib/hydrogen/cart-form';
 import {CartActionForm} from '~/components/cart/CartActionForm';
 import type {ReactNode} from 'react';
 import {Button} from '~/components/ui/Button';

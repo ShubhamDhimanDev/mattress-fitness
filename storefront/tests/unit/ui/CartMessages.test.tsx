@@ -13,7 +13,7 @@ import {
   RouterProvider,
   type ActionFunctionArgs,
 } from 'react-router';
-import {CartForm} from '@shopify/hydrogen';
+import {CartForm} from '~/lib/hydrogen/cart-form';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import {AddToCartButton} from '~/components/AddToCartButton';
 import {CartDiscount} from '~/components/cart/CartDiscount';

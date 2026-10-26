@@ -1,4 +1,4 @@
-import {Analytics} from '@shopify/hydrogen';
+import {Analytics} from '~/lib/hydrogen/analytics';
 import {
   useLoaderData,
   useSearchParams,

@@ -2,7 +2,7 @@
 //
 //   cd storefront && npm run build && npm run start:node
 //
-// It loads the bundle that `shopify hydrogen build` writes (storefront/dist/server/index.js, whose default export is the
+// It loads the bundle that `react-router build` writes (storefront/dist/server/index.js, whose default export is the
 // same `{fetch}` handler as storefront/server.ts, security headers included), serves storefront/dist/client, and reads the
 // storefront's configuration from this process's environment. Nothing in the application changes for this host.
 // Host settings (PORT, BIND_HOST, TRUST_PROXY, MAX_BODY_BYTES, SHUTDOWN_TIMEOUT_MS, CACHE_MAX_ENTRIES, CACHE_MAX_BYTES) are in config.mjs.

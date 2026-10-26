@@ -10,7 +10,7 @@
 // fixtures, and neither does production: callers pass `allowFixtures` from the build mode, so a live store
 // with no brands yet answers 404 / "not available" instead of publishing fictional brands.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {
   CatalogBrandPageQuery,
   CatalogBrandsIndexQuery,

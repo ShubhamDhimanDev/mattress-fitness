@@ -1,11 +1,8 @@
 import {ServerRouter} from 'react-router';
 import {isbot} from 'isbot';
 import {renderToReadableStream} from 'react-dom/server';
-import {
-  createContentSecurityPolicy,
-  type HydrogenRouterContextProvider,
-} from '@shopify/hydrogen';
-import type {EntryContext} from 'react-router';
+import type {EntryContext, RouterContextProvider} from 'react-router';
+import {createContentSecurityPolicy} from '~/lib/hydrogen/csp';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {logRequestError} from '~/lib/logging/request-error';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
@@ -40,7 +37,7 @@ export default async function handleRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   reactRouterContext: EntryContext,
-  context: HydrogenRouterContextProvider,
+  context: RouterContextProvider,
 ) {
   // A provider host is added only for a provider whose id is set (P7-01, T-10); with none set both are empty and
   // the policies are exactly what they were.

@@ -1,4 +1,5 @@
-import {Image, Pagination} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
+import {Pagination} from '~/lib/hydrogen/pagination';
 import type {ComponentProps, ReactNode} from 'react';
 import {Link} from 'react-router';
 import {buttonStyles} from '~/components/ui/Button';

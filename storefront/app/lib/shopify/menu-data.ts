@@ -6,7 +6,7 @@
 // A menu carries no price, availability or shopper data, so it uses the long catalog cache (cache.ts). An edit in
 // admin shows after the cache window (up to an hour fresh, then one stale answer while it refreshes).
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {errorFields, logError, logInfo} from '~/lib/logging/logger';
 import {buildMainNav, ownHostsFrom, resolveMenuHandle} from '~/lib/nav-menu';
 import type {MainNavItem} from '~/lib/navigation';

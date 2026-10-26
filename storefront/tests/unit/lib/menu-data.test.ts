@@ -1,4 +1,4 @@
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {
   loadMainNav,

@@ -546,6 +546,10 @@ export type FooterQuery = {
   >;
 };
 
+export type ShopIdQueryVariables = StorefrontAPI.Exact<{[key: string]: never}>;
+
+export type ShopIdQuery = {shop: Pick<StorefrontAPI.Shop, 'id'>};
+
 export type CartOfferVariantsQueryVariables = StorefrontAPI.Exact<{
   ids:
     | Array<StorefrontAPI.Scalars['ID']['input']>
@@ -1774,6 +1778,10 @@ interface GeneratedQueryTypes {
     return: FooterQuery;
     variables: FooterQueryVariables;
   };
+  '#graphql\n  query ShopId @inContext(country: US, language: EN) {\n    shop {\n      id\n    }\n  }\n': {
+    return: ShopIdQuery;
+    variables: ShopIdQueryVariables;
+  };
   '#graphql\n  query CartOfferVariants($ids: [ID!]!, $country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    nodes(ids: $ids) {\n      ... on ProductVariant {\n        id\n        title\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        product {\n          id\n          title\n          handle\n        }\n      }\n    }\n  }\n': {
     return: CartOfferVariantsQuery;
     variables: CartOfferVariantsQueryVariables;
@@ -1906,7 +1914,5 @@ interface GeneratedQueryTypes {
 
 interface GeneratedMutationTypes {}
 
-declare module '@shopify/hydrogen' {
-  interface StorefrontQueries extends GeneratedQueryTypes {}
-  interface StorefrontMutations extends GeneratedMutationTypes {}
-}
+export type StorefrontQueries = GeneratedQueryTypes;
+export type StorefrontMutations = GeneratedMutationTypes;

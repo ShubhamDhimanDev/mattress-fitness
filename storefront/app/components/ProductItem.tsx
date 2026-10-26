@@ -1,4 +1,4 @@
-import {Image} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
 import {Link} from 'react-router';
 import {CompareToggle} from '~/components/compare/CompareToggle';
 import {Badge} from '~/components/ui/Badge';

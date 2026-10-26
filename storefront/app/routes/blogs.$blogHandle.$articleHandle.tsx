@@ -1,5 +1,5 @@
 import {Link, useLoaderData} from 'react-router';
-import {Image} from '@shopify/hydrogen';
+import {Image} from '~/lib/hydrogen/image';
 import type {Route} from './+types/blogs.$blogHandle.$articleHandle';
 import {SafeHtml} from '~/components/SafeHtml';
 import {formatPageTitle} from '~/components/layout/documentTitle';

@@ -1,10 +1,7 @@
 import {Suspense, useEffect, type ReactNode} from 'react';
 import {Await, Link} from 'react-router';
-import {
-  type CartViewPayload,
-  useAnalytics,
-  useOptimisticCart,
-} from '@shopify/hydrogen';
+import {useOptimisticCart} from '~/lib/hydrogen/cart-form';
+import {type CartViewPayload, useAnalytics} from '~/lib/hydrogen/analytics';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
 import {useDeliveryZip} from '~/components/delivery/useDeliveryZip';

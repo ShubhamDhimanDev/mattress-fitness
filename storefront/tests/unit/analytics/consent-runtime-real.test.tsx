@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
-import {AnalyticsEvent as HydrogenEvent, useAnalytics} from '@shopify/hydrogen';
+import {
+  AnalyticsEvent as HydrogenEvent,
+  useAnalytics,
+} from '~/lib/hydrogen/analytics';
 import {act, cleanup, render, screen, waitFor} from '@testing-library/react';
 import {StrictMode, useEffect} from 'react';
 import {createMemoryRouter, RouterProvider} from 'react-router';
@@ -83,7 +86,7 @@ function renderPage(children: React.ReactNode, strict = false) {
     {
       path: '*',
       element: (
-        <AnalyticsGate cart={null} shop={null} consent={{}} config={GA}>
+        <AnalyticsGate cart={null} shop={null} config={GA}>
           {children}
         </AnalyticsGate>
       ),

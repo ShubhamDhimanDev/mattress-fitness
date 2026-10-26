@@ -2,7 +2,7 @@
 // parsed filter state from the URL codec; filters and sort go to Shopify as variables, never as text in
 // the query. Shopify's own filter counts come back and are mapped for the panel; we never compute counts.
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {
   buildProductFilters,
   toCollectionSort,

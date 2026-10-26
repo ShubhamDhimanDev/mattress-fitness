@@ -2,7 +2,7 @@
 // browser: a variant's product, list price and availability, and the Extend category of a product (the
 // `custom.extend_category` metafield; REQ-EXT-005: a product without one is not eligible and is never sent to Extend).
 
-import type {Storefront} from '@shopify/hydrogen';
+import type {Storefront} from '~/lib/hydrogen/storefront';
 import {normalizeShopifyId} from '~/lib/extend/ids';
 import {toCents} from '~/lib/money';
 import {pricedCache} from '~/lib/shopify/cache';
