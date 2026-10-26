@@ -28,6 +28,11 @@ const ENTRIES = [
     ['brindlewood-bedding', 'Brindlewood Bedding'],
     ['quillmoor-sleep', 'Quillmoor Sleep'],
     ['oakhollow-mattress-co', 'Oakhollow Mattress Co.'],
+    // The real brands of scripts/catalog/brand-catalog (the sheet's brand column slugged); the text below is still sample text.
+    ['puffy', 'Puffy'],
+    ['molecule', 'Molecule'],
+    ['beautyrest', 'Beautyrest'],
+    ['serta', 'Serta'],
   ].map(([slug, name]) => ({
     type: 'brand',
     handle: slug,

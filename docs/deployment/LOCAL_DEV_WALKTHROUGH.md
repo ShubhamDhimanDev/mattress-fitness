@@ -189,6 +189,37 @@ Seen on http://localhost:3800 after the restart: the red promo bar shows the sit
 
 `E2E_REAL_STORE=1 E2E_PORT=3400 E2E_ENV_FILE=.env.demo npx playwright test tests/e2e/real-store.spec.ts --project=desktop-chromium --workers=1` (against the running demo server; the spec is Chromium desktop here) first ran with **11 failed, 32 passed, 1 skipped**. Every failure was the same console error on every page: `Warning: Extra attributes from the server: nonce` on the stylesheet `<link>` elements. It is a hydration warning from the P1-12 migration (React Router 7.18 puts the server nonce on `<Links>`; the migration had never been run in a browser, see P1-12 in the backlog). It exists only in development builds, but the spec rightly counts console errors. Passing the real nonce on the client changed it to `Prop nonce did not match. Server: "" Client: ...` because browsers blank the attribute once parsed. Fix in `app/root.tsx`: `<Links nonce={typeof document === "undefined" ? nonce : ""} />` (server keeps the nonce, the client renders the empty value hydration reads back; the stylesheets are same-origin and the enforced policy allows them through 'self'). After it: console clean in dev (checked in a browser) and in a production build served with `vite preview --mode demo` under the enforced policy (no console entries on a product page), and the spec: **43 passed, 1 skipped, 0 failed** (the skip is the checkout-amount-equals-subtotal test, skipped because of the store password). The same run includes axe at 360 and 1280 px on `/`, `/collections/all`, `/collections/frontpage`, `/products/testing` and `/cart`: no serious or critical violation with real data. typecheck and lint clean; unit tests under `tests/unit/lib` and the catalog home tests pass. The long production-preview spec (`lazy-panels-production.spec.ts`) was started and timed out at 280 seconds; not re-run.
 
+## 7h. The older mock-store specs after the migration (2026-10-26, Chromium desktop, bedding.mock.shop, one worker)
+
+The first browser run of these specs since P1-12 (`E2E_ENV_FILE=.env.bedding npx playwright test <specs> --project=desktop-chromium --workers=1`; `.env.bedding` is the test file for the public bedding mock store):
+
+| Specs | Result |
+|---|---|
+| smoke, shell, home | 57 passed, 8 skipped, **1 failed** |
+| catalog, cart, search | 47 passed, 1 skipped, 0 failed |
+| compare, quiz, stores, brands | 48 passed, **1 failed** (passed when re-run alone), 0 other |
+
+- **shell.spec, "shows My store: <name> for a valid cookie and never prints the cookie value"** fails: the page HTML now contains the cookie text `new-york.buffalo.buffalo-gallery` once, as the store's `key` in the serialized loader data (`"key":"new-york.buffalo.buffalo-gallery"`, next to the store name and path). The text is the key of a known store, not the arbitrary cookie text (the tampered-cookie test, which checks that an unknown value is not echoed, passes). Most likely the test predates the `key` field that "set as my store" added. **Not changed**: the test guards a security property, so weakening it is the owner's or the security engineer's decision (either stop serializing `key` in the header store or narrow the test to unknown values).
+- **compare.spec, "a bare /compare restores the last selection from this device"** failed once in a group run and passed alone: a race between writing the device copy after the click and the next navigation. Flaky; needs an owner and a date under the testing rules.
+- **The default `storefront/.env` (mock.shop) answers 500 on `/`** (an unhandled error with no message in the log, which is redacted by design), so `npm run dev` without a mode and a Playwright run without `E2E_ENV_FILE` never start (Playwright waited 240 s and gave up). That file is off limits for me; not investigated. Use `--mode demo` or `E2E_ENV_FILE=.env.bedding` until it is looked at.
+- A background run (`nohup ... &` in this Git Bash) died with no output; foreground runs of about 4 minutes each worked.
+
+## 7i. The brand catalog (Puffy, Molecule, Beautyrest, Serta), 2026-10-26
+
+Source facts, method and the open points are in [scripts/catalog/brand-catalog/README.md](../../scripts/catalog/brand-catalog/README.md). In short: public product data only (the Puffy and Molecule `products.json` feeds; the schema.org product data of the Beautyrest and Serta pages), one request every 10 seconds, no descriptions or images copied, **3Z Brands has no product list or prices on its site and is not included**. The result is 58 mattress models and 310 size rows.
+
+```bash
+node scripts/catalog/validate.mjs scripts/catalog/brand-catalog/brand-mattresses.csv --images <placeholder folder>     # PASSED: 310 rows, 58 models, 0 errors, 38 warnings
+node scripts/catalog/to-shopify-csv.mjs scripts/catalog/brand-catalog/brand-mattresses.csv out.csv                   # the Shopify export layout of the owner's attached file
+bash scripts/setup/with-admin-token.sh node scripts/setup/seed-entries.mjs --live                                     # adds the four brand entries (19 entries in all)
+bash scripts/setup/with-admin-token.sh bash -c 'node scripts/catalog/import.mjs <dev-store copy of the sheet> --store "$STORE" --images <folder> --publication "$PUB" --live'
+bash scripts/setup/with-admin-token.sh node scripts/setup/demo-collection.mjs                                         # the mattresses collection: 74 mattresses
+```
+
+Run on the dev store: **58 created, 0 updated, 0 failed**; the `mattresses` collection now holds 74 mattresses (these 58, the 14 sample ones and 2 offer mattresses; the collection script now takes only products of type Mattress, pages through the store and removes strays). Two choices for the dev store only: the 116 images are labelled placeholder pictures made by `make-demo-images.py`, and the import used a copy of the sheet with `copy_approved` set to `yes` so the products are published and visible (the committed sheet keeps `no`, so on the client's store they would be created as drafts until the client approves the text). On http://localhost:3400: `/collections/mattresses`, `/brands/serta`, `/brands/puffy`, two product pages and search all answer 200; the collection shows "12 products shown" per page and only the price filter, because Search and Discovery is not set up (manual).
+
+Also added: `scripts/catalog/to-shopify-csv.mjs` (+ 4 tests; with the shopify and catalog suites 180 script tests pass) and `storefront/.env.example` (names only; what a local start needs and what is optional).
+
 ## 8. Checks that were run on the code
 
 In `storefront/`: `npm run typecheck`, `npm run lint`, `npx vitest run` (6366 tests), `npm run build`, `npm run perf:bundle`: all passed (2026-10-26). In `scripts/shopify/`: `node --test scripts/shopify/apply-definitions.test.mjs`: 35 passing after the fixes above.

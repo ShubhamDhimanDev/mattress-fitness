@@ -1,0 +1,427 @@
+model,brand,product_line,handle,product_type,size,dimensions,sku,price,sale_price,comfort_level,mattress_type,sleep_positions,benefits,height_inches,delivery_type,description,overview_bullets,specifications,seo_title,seo_description,images,extend_category,related_foundations,related_protectors,related_bedding,compare_group,copy_approved
+Puffy Mattress,Puffy,Puffy,puffy,,Twin,38 in x 75 in,PUF01-T,1849.00,,Medium,Foam,Back|Side,,10,both,"The Puffy Mattress is a medium 10 inch foam mattress from Puffy, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Foam construction|10 inch profile|Sizes: Twin to California King,Firmness=Medium|Construction=Foam|Thickness=10 in,Puffy Mattress Mattress,"Shop the Puffy Mattress, a medium foam mattress from Puffy. Sample text for the development store.",puffy-1.jpg|puffy-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,puffy-foam,no
+,,,puffy,,Twin XL,38 in x 80 in,PUF01-TXL,2099.00,,,,,,,,,,,,,,,,,,,
+,,,puffy,,Full,54 in x 75 in,PUF01-F,2249.00,,,,,,,,,,,,,,,,,,,
+,,,puffy,,Queen,60 in x 80 in,PUF01-Q,2399.00,,,,,,,,,,,,,,,,,,,
+,,,puffy,,King,76 in x 80 in,PUF01-K,2599.00,,,,,,,,,,,,,,,,,,,
+,,,puffy,,California King,72 in x 84 in,PUF01-CK,2599.00,,,,,,,,,,,,,,,,,,,
+Puffy Lux Hybrid,Puffy,Puffy Lux,puffy-lux-hybrid,,Twin,38 in x 75 in,PUF02-T,2149.00,,Medium,Hybrid,Back|Side,,12,both,"The Puffy Lux Hybrid is a medium 12 inch hybrid mattress from Puffy, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|12 inch profile|Sizes: Twin to California King,Firmness=Medium|Construction=Hybrid|Thickness=12 in,Puffy Lux Hybrid Mattress,"Shop the Puffy Lux Hybrid, a medium hybrid mattress from Puffy. Sample text for the development store.",puffy-lux-hybrid-1.jpg|puffy-lux-hybrid-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,puffy-hybrid,no
+,,,puffy-lux-hybrid,,Twin XL,38 in x 80 in,PUF02-TXL,2449.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-lux-hybrid,,Full,54 in x 75 in,PUF02-F,2699.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-lux-hybrid,,Queen,60 in x 80 in,PUF02-Q,2899.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-lux-hybrid,,King,76 in x 80 in,PUF02-K,3099.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-lux-hybrid,,California King,72 in x 84 in,PUF02-CK,3099.00,,,,,,,,,,,,,,,,,,,
+Puffy Royal Hybrid,Puffy,Puffy Royal,puffy-royal-hybrid,,Twin,38 in x 75 in,PUF03-T,2499.00,,Medium,Hybrid,Back|Side,,14,both,"The Puffy Royal Hybrid is a medium 14 inch hybrid mattress from Puffy, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|14 inch profile|Sizes: Twin to California King,Firmness=Medium|Construction=Hybrid|Thickness=14 in,Puffy Royal Hybrid Mattress,"Shop the Puffy Royal Hybrid, a medium hybrid mattress from Puffy. Sample text for the development store.",puffy-royal-hybrid-1.jpg|puffy-royal-hybrid-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,puffy-hybrid,no
+,,,puffy-royal-hybrid,,Twin XL,38 in x 80 in,PUF03-TXL,2849.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-royal-hybrid,,Full,54 in x 75 in,PUF03-F,3549.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-royal-hybrid,,Queen,60 in x 80 in,PUF03-Q,3799.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-royal-hybrid,,King,76 in x 80 in,PUF03-K,4099.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-royal-hybrid,,California King,72 in x 84 in,PUF03-CK,4099.00,,,,,,,,,,,,,,,,,,,
+Puffy Monarch Hybrid,Puffy,Puffy Monarch,puffy-monarch-hybrid,,Twin XL,38 in x 80 in,PUF04-TXL,3399.00,,Medium,Hybrid,Back|Side,,16,both,"The Puffy Monarch Hybrid is a medium 16 inch hybrid mattress from Puffy, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|16 inch profile|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid|Thickness=16 in,Puffy Monarch Hybrid Mattress,"Shop the Puffy Monarch Hybrid, a medium hybrid mattress from Puffy. Sample text for the development store.",puffy-monarch-hybrid-1.jpg|puffy-monarch-hybrid-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,puffy-hybrid,no
+,,,puffy-monarch-hybrid,,Queen,60 in x 80 in,PUF04-Q,4699.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-monarch-hybrid,,King,76 in x 80 in,PUF04-K,5199.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-monarch-hybrid,,California King,72 in x 84 in,PUF04-CK,5199.00,,,,,,,,,,,,,,,,,,,
+Puffy Legacy Hybrid,Puffy,Puffy Legacy,puffy-legacy-hybrid,,Twin XL,38 in x 80 in,PUF05-TXL,4899.00,,Medium,Hybrid,Back|Side,,16,both,"The Puffy Legacy Hybrid is a medium 16 inch hybrid mattress from Puffy, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|16 inch profile|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid|Thickness=16 in,Puffy Legacy Hybrid Mattress,"Shop the Puffy Legacy Hybrid, a medium hybrid mattress from Puffy. Sample text for the development store.",puffy-legacy-hybrid-1.jpg|puffy-legacy-hybrid-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,puffy-hybrid,no
+,,,puffy-legacy-hybrid,,Queen,60 in x 80 in,PUF05-Q,6899.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-legacy-hybrid,,King,76 in x 80 in,PUF05-K,7899.00,,,,,,,,,,,,,,,,,,,
+,,,puffy-legacy-hybrid,,California King,72 in x 84 in,PUF05-CK,7899.00,,,,,,,,,,,,,,,,,,,
+Molecule Core 10,Molecule,Molecule Core,molecule-core-10,,Twin,38 in x 75 in,MOL01-T,799.00,,Medium,Memory Foam,Back|Side,,10,both,"The Molecule Core 10 is a medium 10 inch memory foam mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Memory Foam construction|10 inch profile|Sizes: Twin to California King,Firmness=Medium|Construction=Memory Foam|Thickness=10 in,Molecule Core 10 Mattress,"Shop the Molecule Core 10, a medium memory foam mattress from Molecule. Sample text for the development store.",molecule-core-10-1.jpg|molecule-core-10-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-memory-foam,no
+,,,molecule-core-10,,Twin XL,38 in x 80 in,MOL01-TXL,799.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-core-10,,Full,54 in x 75 in,MOL01-F,899.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-core-10,,Queen,60 in x 80 in,MOL01-Q,999.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-core-10,,King,76 in x 80 in,MOL01-K,1199.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-core-10,,California King,72 in x 84 in,MOL01-CK,1199.00,,,,,,,,,,,,,,,,,,,
+Molecule Core Hybrid 10,Molecule,Molecule Core,molecule-core-hybrid-10,,Twin,38 in x 75 in,MOL02-T,899.00,,Medium,Hybrid,Back|Side,,10,both,"The Molecule Core Hybrid 10 is a medium 10 inch hybrid mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|10 inch profile|Sizes: Twin to California King,Firmness=Medium|Construction=Hybrid|Thickness=10 in,Molecule Core Hybrid 10 Mattress,"Shop the Molecule Core Hybrid 10, a medium hybrid mattress from Molecule. Sample text for the development store.",molecule-core-hybrid-10-1.jpg|molecule-core-hybrid-10-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-hybrid,no
+,,,molecule-core-hybrid-10,,Twin XL,38 in x 80 in,MOL02-TXL,899.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-core-hybrid-10,,Full,54 in x 75 in,MOL02-F,999.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-core-hybrid-10,,Queen,60 in x 80 in,MOL02-Q,1099.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-core-hybrid-10,,King,76 in x 80 in,MOL02-K,1299.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-core-hybrid-10,,California King,72 in x 84 in,MOL02-CK,1299.00,,,,,,,,,,,,,,,,,,,
+Molecule Copperwell 12,Molecule,Molecule Copperwell,molecule-copperwell-12,,Twin,38 in x 75 in,MOL03-T,799.00,,Medium,Memory Foam,Back|Side,,12,both,"The Molecule Copperwell 12 is a medium 12 inch memory foam mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Memory Foam construction|12 inch profile|Sizes: Twin to California King,Firmness=Medium|Construction=Memory Foam|Thickness=12 in,Molecule Copperwell 12 Mattress,"Shop the Molecule Copperwell 12, a medium memory foam mattress from Molecule. Sample text for the development store.",molecule-copperwell-12-1.jpg|molecule-copperwell-12-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-memory-foam,no
+,,,molecule-copperwell-12,,Twin XL,38 in x 80 in,MOL03-TXL,799.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-copperwell-12,,Full,54 in x 75 in,MOL03-F,899.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-copperwell-12,,Queen,60 in x 80 in,MOL03-Q,999.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-copperwell-12,,King,76 in x 80 in,MOL03-K,1199.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-copperwell-12,,California King,72 in x 84 in,MOL03-CK,1199.00,,,,,,,,,,,,,,,,,,,
+Molecule Copperwell Hybrid 13,Molecule,Molecule Copperwell,molecule-copperwell-hybrid-13,,Twin,38 in x 75 in,MOL04-T,1299.00,,Medium,Hybrid,Back|Side,,13,both,"The Molecule Copperwell Hybrid 13 is a medium 13 inch hybrid mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|13 inch profile|Sizes: Twin to California King,Firmness=Medium|Construction=Hybrid|Thickness=13 in,Molecule Copperwell Hybrid 13 Mattress,"Shop the Molecule Copperwell Hybrid 13, a medium hybrid mattress from Molecule. Sample text for the development store.",molecule-copperwell-hybrid-13-1.jpg|molecule-copperwell-hybrid-13-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-hybrid,no
+,,,molecule-copperwell-hybrid-13,,Twin XL,38 in x 80 in,MOL04-TXL,1299.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-copperwell-hybrid-13,,Full,54 in x 75 in,MOL04-F,1699.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-copperwell-hybrid-13,,Queen,60 in x 80 in,MOL04-Q,1899.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-copperwell-hybrid-13,,King,76 in x 80 in,MOL04-K,2299.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-copperwell-hybrid-13,,California King,72 in x 84 in,MOL04-CK,2299.00,,,,,,,,,,,,,,,,,,,
+Molecule Reflex 11,Molecule,Molecule Reflex,molecule-reflex-11,,Twin,38 in x 75 in,MOL05-T,1299.00,,Firm,Memory Foam,Back|Stomach,,11,both,"The Molecule Reflex 11 is a firm 11 inch memory foam mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Memory Foam construction|11 inch profile|Sizes: Twin to California King,Firmness=Firm|Construction=Memory Foam|Thickness=11 in,Molecule Reflex 11 Mattress,"Shop the Molecule Reflex 11, a firm memory foam mattress from Molecule. Sample text for the development store.",molecule-reflex-11-1.jpg|molecule-reflex-11-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-memory-foam,no
+,,,molecule-reflex-11,,Twin XL,38 in x 80 in,MOL05-TXL,1299.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-11,,Full,54 in x 75 in,MOL05-F,1499.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-11,,Queen,60 in x 80 in,MOL05-Q,1599.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-11,,King,76 in x 80 in,MOL05-K,1999.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-11,,California King,72 in x 84 in,MOL05-CK,1999.00,,,,,,,,,,,,,,,,,,,
+Molecule Reflex Hybrid 11,Molecule,Molecule Reflex,molecule-reflex-hybrid-11,,Twin,38 in x 75 in,MOL06-T,1599.00,,Firm,Hybrid,Back|Stomach,,11,both,"The Molecule Reflex Hybrid 11 is a firm 11 inch hybrid mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Hybrid construction|11 inch profile|Sizes: Twin to California King,Firmness=Firm|Construction=Hybrid|Thickness=11 in,Molecule Reflex Hybrid 11 Mattress,"Shop the Molecule Reflex Hybrid 11, a firm hybrid mattress from Molecule. Sample text for the development store.",molecule-reflex-hybrid-11-1.jpg|molecule-reflex-hybrid-11-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-hybrid,no
+,,,molecule-reflex-hybrid-11,,Twin XL,38 in x 80 in,MOL06-TXL,1599.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-hybrid-11,,Full,54 in x 75 in,MOL06-F,1799.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-hybrid-11,,Queen,60 in x 80 in,MOL06-Q,1899.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-hybrid-11,,King,76 in x 80 in,MOL06-K,2299.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-hybrid-11,,California King,72 in x 84 in,MOL06-CK,2299.00,,,,,,,,,,,,,,,,,,,
+Molecule Reflex Pro 12,Molecule,Molecule Reflex,molecule-reflex-pro-12,,Twin,38 in x 75 in,MOL07-T,1799.00,,Firm,Memory Foam,Back|Stomach,,12,both,"The Molecule Reflex Pro 12 is a firm 12 inch memory foam mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Memory Foam construction|12 inch profile|Sizes: Twin to California King,Firmness=Firm|Construction=Memory Foam|Thickness=12 in,Molecule Reflex Pro 12 Mattress,"Shop the Molecule Reflex Pro 12, a firm memory foam mattress from Molecule. Sample text for the development store.",molecule-reflex-pro-12-1.jpg|molecule-reflex-pro-12-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-memory-foam,no
+,,,molecule-reflex-pro-12,,Twin XL,38 in x 80 in,MOL07-TXL,1799.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-pro-12,,Full,54 in x 75 in,MOL07-F,1999.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-pro-12,,Queen,60 in x 80 in,MOL07-Q,2099.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-pro-12,,King,76 in x 80 in,MOL07-K,2599.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-pro-12,,California King,72 in x 84 in,MOL07-CK,2599.00,,,,,,,,,,,,,,,,,,,
+Molecule Reflex Pro Hybrid 12,Molecule,Molecule Reflex,molecule-reflex-pro-hybrid-12,,Twin,38 in x 75 in,MOL08-T,2099.00,,Firm,Hybrid,Back|Stomach,,12,both,"The Molecule Reflex Pro Hybrid 12 is a firm 12 inch hybrid mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Hybrid construction|12 inch profile|Sizes: Twin to California King,Firmness=Firm|Construction=Hybrid|Thickness=12 in,Molecule Reflex Pro Hybrid 12 Mattress,"Shop the Molecule Reflex Pro Hybrid 12, a firm hybrid mattress from Molecule. Sample text for the development store.",molecule-reflex-pro-hybrid-12-1.jpg|molecule-reflex-pro-hybrid-12-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-hybrid,no
+,,,molecule-reflex-pro-hybrid-12,,Twin XL,38 in x 80 in,MOL08-TXL,2099.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-pro-hybrid-12,,Full,54 in x 75 in,MOL08-F,2299.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-pro-hybrid-12,,Queen,60 in x 80 in,MOL08-Q,2399.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-pro-hybrid-12,,King,76 in x 80 in,MOL08-K,2899.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-pro-hybrid-12,,California King,72 in x 84 in,MOL08-CK,2899.00,,,,,,,,,,,,,,,,,,,
+Molecule Reflex Elite 14,Molecule,Molecule Reflex,molecule-reflex-elite-14,,Twin,38 in x 75 in,MOL09-T,2199.00,,Firm,Memory Foam,Back|Stomach,,14,both,"The Molecule Reflex Elite 14 is a firm 14 inch memory foam mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Memory Foam construction|14 inch profile|Sizes: Twin to California King,Firmness=Firm|Construction=Memory Foam|Thickness=14 in,Molecule Reflex Elite 14 Mattress,"Shop the Molecule Reflex Elite 14, a firm memory foam mattress from Molecule. Sample text for the development store.",molecule-reflex-elite-14-1.jpg|molecule-reflex-elite-14-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-memory-foam,no
+,,,molecule-reflex-elite-14,,Twin XL,38 in x 80 in,MOL09-TXL,2199.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-elite-14,,Full,54 in x 75 in,MOL09-F,2399.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-elite-14,,Queen,60 in x 80 in,MOL09-Q,2499.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-elite-14,,King,76 in x 80 in,MOL09-K,2999.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-elite-14,,California King,72 in x 84 in,MOL09-CK,2999.00,,,,,,,,,,,,,,,,,,,
+Molecule Reflex Elite Hybrid 14,Molecule,Molecule Reflex,molecule-reflex-elite-hybrid-14,,Twin,38 in x 75 in,MOL10-T,2499.00,,Firm,Hybrid,Back|Stomach,,14,both,"The Molecule Reflex Elite Hybrid 14 is a firm 14 inch hybrid mattress from Molecule, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Hybrid construction|14 inch profile|Sizes: Twin to California King,Firmness=Firm|Construction=Hybrid|Thickness=14 in,Molecule Reflex Elite Hybrid 14 Mattress,"Shop the Molecule Reflex Elite Hybrid 14, a firm hybrid mattress from Molecule. Sample text for the development store.",molecule-reflex-elite-hybrid-14-1.jpg|molecule-reflex-elite-hybrid-14-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-hybrid,no
+,,,molecule-reflex-elite-hybrid-14,,Twin XL,38 in x 80 in,MOL10-TXL,2499.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-elite-hybrid-14,,Full,54 in x 75 in,MOL10-F,2699.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-elite-hybrid-14,,Queen,60 in x 80 in,MOL10-Q,2799.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-elite-hybrid-14,,King,76 in x 80 in,MOL10-K,3299.00,,,,,,,,,,,,,,,,,,,
+,,,molecule-reflex-elite-hybrid-14,,California King,72 in x 84 in,MOL10-CK,3299.00,,,,,,,,,,,,,,,,,,,
+Molecule Engage 12,Molecule,Molecule Engage,molecule-engage-12,,Twin XL,38 in x 80 in,MOL11-TXL,2199.99,,Medium,Memory Foam,Back|Side,,12,both,"The Molecule Engage 12 is a medium 12 inch memory foam mattress from Molecule, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Memory Foam construction|12 inch profile|Sizes: Twin XL to California King,Firmness=Medium|Construction=Memory Foam|Thickness=12 in,Molecule Engage 12 Mattress,"Shop the Molecule Engage 12, a medium memory foam mattress from Molecule. Sample text for the development store.",molecule-engage-12-1.jpg|molecule-engage-12-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-memory-foam,no
+,,,molecule-engage-12,,Full,54 in x 75 in,MOL11-F,2399.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-12,,Queen,60 in x 80 in,MOL11-Q,2499.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-12,,King,76 in x 80 in,MOL11-K,3099.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-12,,California King,72 in x 84 in,MOL11-CK,3099.99,,,,,,,,,,,,,,,,,,,
+Molecule Engage Hybrid 12,Molecule,Molecule Engage,molecule-engage-hybrid-12,,Twin XL,38 in x 80 in,MOL12-TXL,2199.99,,Medium,Hybrid,Back|Side,,12,both,"The Molecule Engage Hybrid 12 is a medium 12 inch hybrid mattress from Molecule, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|12 inch profile|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid|Thickness=12 in,Molecule Engage Hybrid 12 Mattress,"Shop the Molecule Engage Hybrid 12, a medium hybrid mattress from Molecule. Sample text for the development store.",molecule-engage-hybrid-12-1.jpg|molecule-engage-hybrid-12-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-hybrid,no
+,,,molecule-engage-hybrid-12,,Full,54 in x 75 in,MOL12-F,2399.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-hybrid-12,,Queen,60 in x 80 in,MOL12-Q,2499.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-hybrid-12,,King,76 in x 80 in,MOL12-K,3099.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-hybrid-12,,California King,72 in x 84 in,MOL12-CK,3099.99,,,,,,,,,,,,,,,,,,,
+Molecule Engage Pro 13,Molecule,Molecule Engage,molecule-engage-pro-13,,Twin XL,38 in x 80 in,MOL13-TXL,2699.99,,Medium,Memory Foam,Back|Side,,13,both,"The Molecule Engage Pro 13 is a medium 13 inch memory foam mattress from Molecule, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Memory Foam construction|13 inch profile|Sizes: Twin XL to California King,Firmness=Medium|Construction=Memory Foam|Thickness=13 in,Molecule Engage Pro 13 Mattress,"Shop the Molecule Engage Pro 13, a medium memory foam mattress from Molecule. Sample text for the development store.",molecule-engage-pro-13-1.jpg|molecule-engage-pro-13-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-memory-foam,no
+,,,molecule-engage-pro-13,,Full,54 in x 75 in,MOL13-F,2899.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-pro-13,,Queen,60 in x 80 in,MOL13-Q,2999.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-pro-13,,King,76 in x 80 in,MOL13-K,3599.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-pro-13,,California King,72 in x 84 in,MOL13-CK,3599.99,,,,,,,,,,,,,,,,,,,
+Molecule Engage Pro Hybrid 13,Molecule,Molecule Engage,molecule-engage-pro-hybrid-13,,Twin XL,38 in x 80 in,MOL14-TXL,2899.99,,Medium,Hybrid,Back|Side,,13,both,"The Molecule Engage Pro Hybrid 13 is a medium 13 inch hybrid mattress from Molecule, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|13 inch profile|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid|Thickness=13 in,Molecule Engage Pro Hybrid 13 Mattress,"Shop the Molecule Engage Pro Hybrid 13, a medium hybrid mattress from Molecule. Sample text for the development store.",molecule-engage-pro-hybrid-13-1.jpg|molecule-engage-pro-hybrid-13-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-hybrid,no
+,,,molecule-engage-pro-hybrid-13,,Full,54 in x 75 in,MOL14-F,3099.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-pro-hybrid-13,,Queen,60 in x 80 in,MOL14-Q,3199.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-pro-hybrid-13,,King,76 in x 80 in,MOL14-K,3799.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-pro-hybrid-13,,California King,72 in x 84 in,MOL14-CK,3799.99,,,,,,,,,,,,,,,,,,,
+Molecule Engage Pro Hybrid 12,Molecule,Molecule Engage,molecule-engage-pro-hybrid-12,,Twin XL,38 in x 80 in,MOL15-TXL,2699.99,,Medium,Hybrid,Back|Side,,12,both,"The Molecule Engage Pro Hybrid 12 is a medium 12 inch hybrid mattress from Molecule, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|12 inch profile|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid|Thickness=12 in,Molecule Engage Pro Hybrid 12 Mattress,"Shop the Molecule Engage Pro Hybrid 12, a medium hybrid mattress from Molecule. Sample text for the development store.",molecule-engage-pro-hybrid-12-1.jpg|molecule-engage-pro-hybrid-12-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-hybrid,no
+,,,molecule-engage-pro-hybrid-12,,Full,54 in x 75 in,MOL15-F,2899.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-pro-hybrid-12,,Queen,60 in x 80 in,MOL15-Q,2999.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-pro-hybrid-12,,King,76 in x 80 in,MOL15-K,3599.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-pro-hybrid-12,,California King,72 in x 84 in,MOL15-CK,3599.99,,,,,,,,,,,,,,,,,,,
+Molecule Engage Elite 14,Molecule,Molecule Engage,molecule-engage-elite-14,,Twin XL,38 in x 80 in,MOL16-TXL,3599.99,,Medium,Memory Foam,Back|Side,,14,both,"The Molecule Engage Elite 14 is a medium 14 inch memory foam mattress from Molecule, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Memory Foam construction|14 inch profile|Sizes: Twin XL to California King,Firmness=Medium|Construction=Memory Foam|Thickness=14 in,Molecule Engage Elite 14 Mattress,"Shop the Molecule Engage Elite 14, a medium memory foam mattress from Molecule. Sample text for the development store.",molecule-engage-elite-14-1.jpg|molecule-engage-elite-14-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-memory-foam,no
+,,,molecule-engage-elite-14,,Queen,60 in x 80 in,MOL16-Q,3999.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-elite-14,,King,76 in x 80 in,MOL16-K,4699.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-elite-14,,California King,72 in x 84 in,MOL16-CK,4699.99,,,,,,,,,,,,,,,,,,,
+Molecule Engage Elite Hybrid 14,Molecule,Molecule Engage,molecule-engage-elite-hybrid-14,,Twin XL,38 in x 80 in,MOL17-TXL,3899.99,,Medium,Hybrid,Back|Side,,14,both,"The Molecule Engage Elite Hybrid 14 is a medium 14 inch hybrid mattress from Molecule, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|14 inch profile|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid|Thickness=14 in,Molecule Engage Elite Hybrid 14 Mattress,"Shop the Molecule Engage Elite Hybrid 14, a medium hybrid mattress from Molecule. Sample text for the development store.",molecule-engage-elite-hybrid-14-1.jpg|molecule-engage-elite-hybrid-14-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,molecule-hybrid,no
+,,,molecule-engage-elite-hybrid-14,,Queen,60 in x 80 in,MOL17-Q,4299.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-elite-hybrid-14,,King,76 in x 80 in,MOL17-K,4999.99,,,,,,,,,,,,,,,,,,,
+,,,molecule-engage-elite-hybrid-14,,California King,72 in x 84 in,MOL17-CK,4999.99,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Series One,Beautyrest,Beautyrest Black,beautyrest-black-series-one,,Twin XL,38 in x 80 in,BRT01-TXL,1749.00,,Extra Firm,Innerspring,Back|Stomach,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Series One is a extra firm innerspring mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Extra Firm feel|Innerspring construction|Sizes: Twin XL to California King,Firmness=Extra Firm|Construction=Innerspring,Beautyrest Black Series One Mattress,"Shop the Beautyrest Black Series One, a extra firm innerspring mattress from Beautyrest. Sample text for the development store.",beautyrest-black-series-one-1.jpg|beautyrest-black-series-one-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-innerspring,no
+,,,beautyrest-black-series-one,,Full,54 in x 75 in,BRT01-F,2029.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-one,,Queen,60 in x 80 in,BRT01-Q,2199.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-one,,King,76 in x 80 in,BRT01-K,2899.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-one,,California King,72 in x 84 in,BRT01-CK,2899.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Series Two,Beautyrest,Beautyrest Black,beautyrest-black-series-two,,Twin XL,38 in x 80 in,BRT02-TXL,2749.00,,Firm,Innerspring,Back|Stomach,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Series Two is a firm innerspring mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Innerspring construction|Sizes: Twin XL to California King,Firmness=Firm|Construction=Innerspring,Beautyrest Black Series Two Mattress,"Shop the Beautyrest Black Series Two, a firm innerspring mattress from Beautyrest. Sample text for the development store.",beautyrest-black-series-two-1.jpg|beautyrest-black-series-two-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-innerspring,no
+,,,beautyrest-black-series-two,,Full,54 in x 75 in,BRT02-F,3029.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-two,,Queen,60 in x 80 in,BRT02-Q,3199.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-two,,King,76 in x 80 in,BRT02-K,3899.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-two,,California King,72 in x 84 in,BRT02-CK,3899.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Series Three,Beautyrest,Beautyrest Black,beautyrest-black-series-three,,Twin XL,38 in x 80 in,BRT03-TXL,3449.00,,Extra Firm,Innerspring,Back|Stomach,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Series Three is a extra firm innerspring mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Extra Firm feel|Innerspring construction|Sizes: Twin XL to California King,Firmness=Extra Firm|Construction=Innerspring,Beautyrest Black Series Three Mattress,"Shop the Beautyrest Black Series Three, a extra firm innerspring mattress from Beautyrest. Sample text for the development store.",beautyrest-black-series-three-1.jpg|beautyrest-black-series-three-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-innerspring,no
+,,,beautyrest-black-series-three,,Full,54 in x 75 in,BRT03-F,3729.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-three,,Queen,60 in x 80 in,BRT03-Q,3999.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-three,,King,76 in x 80 in,BRT03-K,4799.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-three,,California King,72 in x 84 in,BRT03-CK,4799.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Series Four,Beautyrest,Beautyrest Black,beautyrest-black-series-four,,Twin XL,38 in x 80 in,BRT04-TXL,4949.00,,Firm,Innerspring,Back|Stomach,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Series Four is a firm innerspring mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Innerspring construction|Sizes: Twin XL to California King,Firmness=Firm|Construction=Innerspring,Beautyrest Black Series Four Mattress,"Shop the Beautyrest Black Series Four, a firm innerspring mattress from Beautyrest. Sample text for the development store.",beautyrest-black-series-four-1.jpg|beautyrest-black-series-four-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-innerspring,no
+,,,beautyrest-black-series-four,,Full,54 in x 75 in,BRT04-F,5229.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-four,,Queen,60 in x 80 in,BRT04-Q,5599.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-four,,King,76 in x 80 in,BRT04-K,6599.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-series-four,,California King,72 in x 84 in,BRT04-CK,6599.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Hybrid Series One,Beautyrest,Beautyrest Black,beautyrest-black-hybrid-series-one,,Twin XL,38 in x 80 in,BRT05-TXL,1749.00,,Firm,Hybrid,Back|Stomach,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Hybrid Series One is a firm hybrid mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Firm|Construction=Hybrid,Beautyrest Black Hybrid Series One Mattress,"Shop the Beautyrest Black Hybrid Series One, a firm hybrid mattress from Beautyrest. Sample text for the development store.",beautyrest-black-hybrid-series-one-1.jpg|beautyrest-black-hybrid-series-one-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-hybrid,no
+,,,beautyrest-black-hybrid-series-one,,Full,54 in x 75 in,BRT05-F,2029.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-one,,Queen,60 in x 80 in,BRT05-Q,2199.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-one,,King,76 in x 80 in,BRT05-K,2899.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-one,,California King,72 in x 84 in,BRT05-CK,2899.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Hybrid Series Three,Beautyrest,Beautyrest Black,beautyrest-black-hybrid-series-three,,Twin XL,38 in x 80 in,BRT06-TXL,3349.00,,Firm,Hybrid,Back|Stomach,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Hybrid Series Three is a firm hybrid mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Firm|Construction=Hybrid,Beautyrest Black Hybrid Series Three Mattress,"Shop the Beautyrest Black Hybrid Series Three, a firm hybrid mattress from Beautyrest. Sample text for the development store.",beautyrest-black-hybrid-series-three-1.jpg|beautyrest-black-hybrid-series-three-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-hybrid,no
+,,,beautyrest-black-hybrid-series-three,,Full,54 in x 75 in,BRT06-F,3629.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-three,,Queen,60 in x 80 in,BRT06-Q,3899.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-three,,King,76 in x 80 in,BRT06-K,4699.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-three,,California King,72 in x 84 in,BRT06-CK,4699.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Hybrid Series Four,Beautyrest,Beautyrest Black,beautyrest-black-hybrid-series-four,,Twin XL,38 in x 80 in,BRT07-TXL,4949.00,,Firm,Hybrid,Back|Stomach,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Hybrid Series Four is a firm hybrid mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Firm|Construction=Hybrid,Beautyrest Black Hybrid Series Four Mattress,"Shop the Beautyrest Black Hybrid Series Four, a firm hybrid mattress from Beautyrest. Sample text for the development store.",beautyrest-black-hybrid-series-four-1.jpg|beautyrest-black-hybrid-series-four-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-hybrid,no
+,,,beautyrest-black-hybrid-series-four,,Full,54 in x 75 in,BRT07-F,5229.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-four,,Queen,60 in x 80 in,BRT07-Q,5599.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-four,,King,76 in x 80 in,BRT07-K,6599.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-four,,California King,72 in x 84 in,BRT07-CK,6599.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Hybrid Series Three XCS,Beautyrest,Beautyrest Black,beautyrest-black-hybrid-series-three-xcs,,Twin XL,38 in x 80 in,BRT08-TXL,3449.00,,Medium,Hybrid,Back|Side,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Hybrid Series Three XCS is a medium hybrid mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid,Beautyrest Black Hybrid Series Three XCS Mattress,"Shop the Beautyrest Black Hybrid Series Three XCS, a medium hybrid mattress from Beautyrest. Sample text for the development store.",beautyrest-black-hybrid-series-three-xcs-1.jpg|beautyrest-black-hybrid-series-three-xcs-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-hybrid,no
+,,,beautyrest-black-hybrid-series-three-xcs,,Queen,60 in x 80 in,BRT08-Q,3999.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-three-xcs,,King,76 in x 80 in,BRT08-K,4699.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-three-xcs,,California King,72 in x 84 in,BRT08-CK,4699.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Hybrid Series Four XCS,Beautyrest,Beautyrest Black,beautyrest-black-hybrid-series-four-xcs,,Twin XL,38 in x 80 in,BRT09-TXL,3849.00,,Medium,Hybrid,Back|Side,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Hybrid Series Four XCS is a medium hybrid mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid,Beautyrest Black Hybrid Series Four XCS Mattress,"Shop the Beautyrest Black Hybrid Series Four XCS, a medium hybrid mattress from Beautyrest. Sample text for the development store.",beautyrest-black-hybrid-series-four-xcs-1.jpg|beautyrest-black-hybrid-series-four-xcs-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-hybrid,no
+,,,beautyrest-black-hybrid-series-four-xcs,,Queen,60 in x 80 in,BRT09-Q,4499.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-four-xcs,,King,76 in x 80 in,BRT09-K,5399.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-four-xcs,,California King,72 in x 84 in,BRT09-CK,5399.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Black Hybrid Series Five XCS Plush,Beautyrest,Beautyrest Black,beautyrest-black-hybrid-series-five-xcs-plush,,Twin XL,38 in x 80 in,BRT10-TXL,5049.00,,Plush,Hybrid,Side,Cooling|Pressure Relief|Motion Separation,,both,"The Beautyrest Black Hybrid Series Five XCS Plush is a plush hybrid mattress from Beautyrest, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Plush feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Plush|Construction=Hybrid,Beautyrest Black Hybrid Series Five XCS Plush Mattress,"Shop the Beautyrest Black Hybrid Series Five XCS Plush, a plush hybrid mattress from Beautyrest. Sample text for the development store.",beautyrest-black-hybrid-series-five-xcs-plush-1.jpg|beautyrest-black-hybrid-series-five-xcs-plush-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-hybrid,no
+,,,beautyrest-black-hybrid-series-five-xcs-plush,,Queen,60 in x 80 in,BRT10-Q,5699.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-five-xcs-plush,,King,76 in x 80 in,BRT10-K,6599.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-black-hybrid-series-five-xcs-plush,,California King,72 in x 84 in,BRT10-CK,6599.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Level One,Beautyrest,Beautyrest Beautyrest,beautyrest-level-one,,Twin,38 in x 75 in,BRT11-T,699.00,,Medium,Innerspring,Back|Side,,,both,"The Beautyrest Level One is a medium innerspring mattress from Beautyrest, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Beautyrest Level One Mattress,"Shop the Beautyrest Level One, a medium innerspring mattress from Beautyrest. Sample text for the development store.",beautyrest-level-one-1.jpg|beautyrest-level-one-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-innerspring,no
+,,,beautyrest-level-one,,Twin XL,38 in x 80 in,BRT11-TXL,729.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-level-one,,Full,54 in x 75 in,BRT11-F,779.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-level-one,,Queen,60 in x 80 in,BRT11-Q,799.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-level-one,,King,76 in x 80 in,BRT11-K,1149.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-level-one,,California King,72 in x 84 in,BRT11-CK,1149.00,,,,,,,,,,,,,,,,,,,
+Beautyrest Level Two,Beautyrest,Beautyrest Beautyrest,beautyrest-level-two,,Twin,38 in x 75 in,BRT12-T,999.00,,Medium,Innerspring,Back|Side,,,both,"The Beautyrest Level Two is a medium innerspring mattress from Beautyrest, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Beautyrest Level Two Mattress,"Shop the Beautyrest Level Two, a medium innerspring mattress from Beautyrest. Sample text for the development store.",beautyrest-level-two-1.jpg|beautyrest-level-two-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-innerspring,no
+,,,beautyrest-level-two,,Twin XL,38 in x 80 in,BRT12-TXL,1029.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-level-two,,Full,54 in x 75 in,BRT12-F,1079.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-level-two,,Queen,60 in x 80 in,BRT12-Q,1099.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-level-two,,King,76 in x 80 in,BRT12-K,1499.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-level-two,,California King,72 in x 84 in,BRT12-CK,1499.00,,,,,,,,,,,,,,,,,,,
+Beautyrest World Class Level Three,Beautyrest,Beautyrest World Class,beautyrest-world-class-level-three,,Twin,38 in x 75 in,BRT13-T,1399.00,,Medium,Innerspring,Back|Side,,,both,"The Beautyrest World Class Level Three is a medium innerspring mattress from Beautyrest, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Beautyrest World Class Level Three Mattress,"Shop the Beautyrest World Class Level Three, a medium innerspring mattress from Beautyrest. Sample text for the development store.",beautyrest-world-class-level-three-1.jpg|beautyrest-world-class-level-three-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-innerspring,no
+,,,beautyrest-world-class-level-three,,Twin XL,38 in x 80 in,BRT13-TXL,1429.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-level-three,,Full,54 in x 75 in,BRT13-F,1479.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-level-three,,Queen,60 in x 80 in,BRT13-Q,1499.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-level-three,,King,76 in x 80 in,BRT13-K,1999.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-level-three,,California King,72 in x 84 in,BRT13-CK,1999.00,,,,,,,,,,,,,,,,,,,
+Beautyrest World Class Level Four,Beautyrest,Beautyrest World Class,beautyrest-world-class-level-four,,Twin,38 in x 75 in,BRT14-T,1699.00,,Medium,Innerspring,Back|Side,,,both,"The Beautyrest World Class Level Four is a medium innerspring mattress from Beautyrest, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Beautyrest World Class Level Four Mattress,"Shop the Beautyrest World Class Level Four, a medium innerspring mattress from Beautyrest. Sample text for the development store.",beautyrest-world-class-level-four-1.jpg|beautyrest-world-class-level-four-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-innerspring,no
+,,,beautyrest-world-class-level-four,,Twin XL,38 in x 80 in,BRT14-TXL,1729.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-level-four,,Full,54 in x 75 in,BRT14-F,1779.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-level-four,,Queen,60 in x 80 in,BRT14-Q,1799.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-level-four,,King,76 in x 80 in,BRT14-K,2399.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-level-four,,California King,72 in x 84 in,BRT14-CK,2399.00,,,,,,,,,,,,,,,,,,,
+Beautyrest World Class Hybrid Level Three,Beautyrest,Beautyrest World Class,beautyrest-world-class-hybrid-level-three,,Twin,38 in x 75 in,BRT15-T,1399.00,,Medium,Hybrid,Back|Side,,,both,"The Beautyrest World Class Hybrid Level Three is a medium hybrid mattress from Beautyrest, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|Sizes: Twin to California King,Firmness=Medium|Construction=Hybrid,Beautyrest World Class Hybrid Level Three Mattress,"Shop the Beautyrest World Class Hybrid Level Three, a medium hybrid mattress from Beautyrest. Sample text for the development store.",beautyrest-world-class-hybrid-level-three-1.jpg|beautyrest-world-class-hybrid-level-three-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-hybrid,no
+,,,beautyrest-world-class-hybrid-level-three,,Twin XL,38 in x 80 in,BRT15-TXL,1429.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-hybrid-level-three,,Full,54 in x 75 in,BRT15-F,1479.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-hybrid-level-three,,Queen,60 in x 80 in,BRT15-Q,1499.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-hybrid-level-three,,King,76 in x 80 in,BRT15-K,1999.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-world-class-hybrid-level-three,,California King,72 in x 84 in,BRT15-CK,1999.00,,,,,,,,,,,,,,,,,,,
+BeautySleep Soothing Nights,Beautyrest,Beautyrest BeautySleep,beautyrest-beautysleep-soothing-nights,,Twin,38 in x 75 in,BRT16-T,183.20,,Firm,Foam,Back|Stomach,,,both,"The BeautySleep Soothing Nights is a firm foam mattress from Beautyrest, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Foam construction|Sizes: Twin to California King,Firmness=Firm|Construction=Foam,BeautySleep Soothing Nights Mattress,"Shop the BeautySleep Soothing Nights, a firm foam mattress from Beautyrest. Sample text for the development store.",beautyrest-beautysleep-soothing-nights-1.jpg|beautyrest-beautysleep-soothing-nights-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-foam,no
+,,,beautyrest-beautysleep-soothing-nights,,Twin XL,38 in x 80 in,BRT16-TXL,223.20,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-beautysleep-soothing-nights,,Full,54 in x 75 in,BRT16-F,223.20,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-beautysleep-soothing-nights,,Queen,60 in x 80 in,BRT16-Q,239.20,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-beautysleep-soothing-nights,,King,76 in x 80 in,BRT16-K,399.20,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-beautysleep-soothing-nights,,California King,72 in x 84 in,BRT16-CK,399.20,,,,,,,,,,,,,,,,,,,
+BeautySleep Dream Weaver,Beautyrest,Beautyrest BeautySleep,beautyrest-beautysleep-dream-weaver,,Twin,38 in x 75 in,BRT17-T,399.00,,Medium,Innerspring,Back|Side,,,both,"The BeautySleep Dream Weaver is a medium innerspring mattress from Beautyrest, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,BeautySleep Dream Weaver Mattress,"Shop the BeautySleep Dream Weaver, a medium innerspring mattress from Beautyrest. Sample text for the development store.",beautyrest-beautysleep-dream-weaver-1.jpg|beautyrest-beautysleep-dream-weaver-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,beautyrest-innerspring,no
+,,,beautyrest-beautysleep-dream-weaver,,Twin XL,38 in x 80 in,BRT17-TXL,429.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-beautysleep-dream-weaver,,Full,54 in x 75 in,BRT17-F,479.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-beautysleep-dream-weaver,,Queen,60 in x 80 in,BRT17-Q,499.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-beautysleep-dream-weaver,,King,76 in x 80 in,BRT17-K,749.00,,,,,,,,,,,,,,,,,,,
+,,,beautyrest-beautysleep-dream-weaver,,California King,72 in x 84 in,BRT17-CK,749.00,,,,,,,,,,,,,,,,,,,
+Serta Classic Mattress - Standard,Serta,Serta Classic,serta-classic-mattress-standard,,Twin,38 in x 75 in,SRT01-T,299.00,,Medium,Innerspring,Back|Side,,,both,"The Serta Classic Mattress - Standard is a medium innerspring mattress from Serta, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Serta Classic Mattress - Standard Mattress,"Shop the Serta Classic Mattress - Standard, a medium innerspring mattress from Serta. Sample text for the development store.",serta-classic-mattress-standard-1.jpg|serta-classic-mattress-standard-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-innerspring,no
+,,,serta-classic-mattress-standard,,Twin XL,38 in x 80 in,SRT01-TXL,329.00,,,,,,,,,,,,,,,,,,,
+,,,serta-classic-mattress-standard,,Full,54 in x 75 in,SRT01-F,379.00,,,,,,,,,,,,,,,,,,,
+,,,serta-classic-mattress-standard,,Queen,60 in x 80 in,SRT01-Q,399.00,,,,,,,,,,,,,,,,,,,
+,,,serta-classic-mattress-standard,,King,76 in x 80 in,SRT01-K,699.00,,,,,,,,,,,,,,,,,,,
+,,,serta-classic-mattress-standard,,California King,72 in x 84 in,SRT01-CK,699.00,,,,,,,,,,,,,,,,,,,
+Serta Classic Mattress - Enhanced,Serta,Serta Classic,serta-classic-mattress-enhanced,,Twin,38 in x 75 in,SRT02-T,499.00,,Medium,Innerspring,Back|Side,,,both,"The Serta Classic Mattress - Enhanced is a medium innerspring mattress from Serta, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Serta Classic Mattress - Enhanced Mattress,"Shop the Serta Classic Mattress - Enhanced, a medium innerspring mattress from Serta. Sample text for the development store.",serta-classic-mattress-enhanced-1.jpg|serta-classic-mattress-enhanced-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-innerspring,no
+,,,serta-classic-mattress-enhanced,,Twin XL,38 in x 80 in,SRT02-TXL,529.00,,,,,,,,,,,,,,,,,,,
+,,,serta-classic-mattress-enhanced,,Full,54 in x 75 in,SRT02-F,579.00,,,,,,,,,,,,,,,,,,,
+,,,serta-classic-mattress-enhanced,,Queen,60 in x 80 in,SRT02-Q,599.00,,,,,,,,,,,,,,,,,,,
+,,,serta-classic-mattress-enhanced,,King,76 in x 80 in,SRT02-K,899.00,,,,,,,,,,,,,,,,,,,
+,,,serta-classic-mattress-enhanced,,California King,72 in x 84 in,SRT02-CK,899.00,,,,,,,,,,,,,,,,,,,
+Serta Five Star Mattress,Serta,Serta Five Star,serta-five-star,,Twin,38 in x 75 in,SRT03-T,219.00,,Medium,Innerspring,Back|Side,,,both,"The Serta Five Star Mattress is a medium innerspring mattress from Serta, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Serta Five Star Mattress Mattress,"Shop the Serta Five Star Mattress, a medium innerspring mattress from Serta. Sample text for the development store.",serta-five-star-1.jpg|serta-five-star-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-innerspring,no
+,,,serta-five-star,,Twin XL,38 in x 80 in,SRT03-TXL,299.00,,,,,,,,,,,,,,,,,,,
+,,,serta-five-star,,Full,54 in x 75 in,SRT03-F,299.00,,,,,,,,,,,,,,,,,,,
+,,,serta-five-star,,Queen,60 in x 80 in,SRT03-Q,319.00,,,,,,,,,,,,,,,,,,,
+,,,serta-five-star,,King,76 in x 80 in,SRT03-K,619.00,,,,,,,,,,,,,,,,,,,
+,,,serta-five-star,,California King,72 in x 84 in,SRT03-CK,619.00,,,,,,,,,,,,,,,,,,,
+Serta iComfort Mattress - Standard,Serta,Serta iComfort,serta-icomfort-mattress-standard,,Twin XL,38 in x 80 in,SRT04-TXL,1099.00,,Medium,Memory Foam,Back|Side,Cooling,,both,"The Serta iComfort Mattress - Standard is a medium memory foam mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Memory Foam construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Memory Foam,Serta iComfort Mattress - Standard Mattress,"Shop the Serta iComfort Mattress - Standard, a medium memory foam mattress from Serta. Sample text for the development store.",serta-icomfort-mattress-standard-1.jpg|serta-icomfort-mattress-standard-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-memory-foam,no
+,,,serta-icomfort-mattress-standard,,Full,54 in x 75 in,SRT04-F,1249.00,,,,,,,,,,,,,,,,,,,
+,,,serta-icomfort-mattress-standard,,Queen,60 in x 80 in,SRT04-Q,1399.00,,,,,,,,,,,,,,,,,,,
+,,,serta-icomfort-mattress-standard,,King,76 in x 80 in,SRT04-K,2099.00,,,,,,,,,,,,,,,,,,,
+,,,serta-icomfort-mattress-standard,,California King,72 in x 84 in,SRT04-CK,2099.00,,,,,,,,,,,,,,,,,,,
+Serta iComfortPro Mattress Level Two,Serta,Serta iComfortPro,serta-icomfortpro-mattress-level-two,,Twin XL,38 in x 80 in,SRT05-TXL,2299.00,,Medium,Latex,Back|Side,Cooling|Back Support,,both,"The Serta iComfortPro Mattress Level Two is a medium latex mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Latex construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Latex,Serta iComfortPro Mattress Level Two Mattress,"Shop the Serta iComfortPro Mattress Level Two, a medium latex mattress from Serta. Sample text for the development store.",serta-icomfortpro-mattress-level-two-1.jpg|serta-icomfortpro-mattress-level-two-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-latex,no
+,,,serta-icomfortpro-mattress-level-two,,Queen,60 in x 80 in,SRT05-Q,2799.00,,,,,,,,,,,,,,,,,,,
+,,,serta-icomfortpro-mattress-level-two,,King,76 in x 80 in,SRT05-K,3499.00,,,,,,,,,,,,,,,,,,,
+,,,serta-icomfortpro-mattress-level-two,,California King,72 in x 84 in,SRT05-CK,3499.00,,,,,,,,,,,,,,,,,,,
+Serta iComfortPro Mattress Level Three,Serta,Serta iComfortPro,serta-icomfortpro-mattress-level-three,,Twin XL,38 in x 80 in,SRT06-TXL,3699.00,,Medium,Latex,Back|Side,Cooling|Back Support,,both,"The Serta iComfortPro Mattress Level Three is a medium latex mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Latex construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Latex,Serta iComfortPro Mattress Level Three Mattress,"Shop the Serta iComfortPro Mattress Level Three, a medium latex mattress from Serta. Sample text for the development store.",serta-icomfortpro-mattress-level-three-1.jpg|serta-icomfortpro-mattress-level-three-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-latex,no
+,,,serta-icomfortpro-mattress-level-three,,Queen,60 in x 80 in,SRT06-Q,4199.00,,,,,,,,,,,,,,,,,,,
+,,,serta-icomfortpro-mattress-level-three,,King,76 in x 80 in,SRT06-K,4999.00,,,,,,,,,,,,,,,,,,,
+,,,serta-icomfortpro-mattress-level-three,,California King,72 in x 84 in,SRT06-CK,4999.00,,,,,,,,,,,,,,,,,,,
+Serta iSeries NXG Mattress - 1500 Hybrid Firm,Serta,Serta iSeries NXG,serta-iseries-nxg-mattress-1500-hybrid-firm,,Twin XL,38 in x 80 in,SRT07-TXL,1899.00,,Firm,Hybrid,Back|Stomach,Cooling|Pressure Relief,,both,"The Serta iSeries NXG Mattress - 1500 Hybrid Firm is a firm hybrid mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Firm feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Firm|Construction=Hybrid,Serta iSeries NXG Mattress - 1500 Hybrid Firm Mattress,"Shop the Serta iSeries NXG Mattress - 1500 Hybrid Firm, a firm hybrid mattress from Serta. Sample text for the development store.",serta-iseries-nxg-mattress-1500-hybrid-firm-1.jpg|serta-iseries-nxg-mattress-1500-hybrid-firm-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-hybrid,no
+,,,serta-iseries-nxg-mattress-1500-hybrid-firm,,Full,54 in x 75 in,SRT07-F,2049.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-1500-hybrid-firm,,Queen,60 in x 80 in,SRT07-Q,2199.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-1500-hybrid-firm,,King,76 in x 80 in,SRT07-K,2899.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-1500-hybrid-firm,,California King,72 in x 84 in,SRT07-CK,2899.00,,,,,,,,,,,,,,,,,,,
+Serta iSeries NXG Mattress - 2500 Hybrid,Serta,Serta iSeries NXG,serta-iseries-nxg-mattress-2500-hybrid,,Twin XL,38 in x 80 in,SRT08-TXL,2199.00,,Medium,Hybrid,Back|Side,Cooling|Pressure Relief,,both,"The Serta iSeries NXG Mattress - 2500 Hybrid is a medium hybrid mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid,Serta iSeries NXG Mattress - 2500 Hybrid Mattress,"Shop the Serta iSeries NXG Mattress - 2500 Hybrid, a medium hybrid mattress from Serta. Sample text for the development store.",serta-iseries-nxg-mattress-2500-hybrid-1.jpg|serta-iseries-nxg-mattress-2500-hybrid-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-hybrid,no
+,,,serta-iseries-nxg-mattress-2500-hybrid,,Full,54 in x 75 in,SRT08-F,2349.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-2500-hybrid,,Queen,60 in x 80 in,SRT08-Q,2499.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-2500-hybrid,,King,76 in x 80 in,SRT08-K,3199.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-2500-hybrid,,California King,72 in x 84 in,SRT08-CK,3199.00,,,,,,,,,,,,,,,,,,,
+Serta iSeries NXG Mattress - 3500 Hybrid,Serta,Serta iSeries NXG,serta-iseries-nxg-mattress-3500-hybrid,,Twin XL,38 in x 80 in,SRT09-TXL,2599.00,,Medium,Hybrid,Back|Side,Cooling|Pressure Relief,,both,"The Serta iSeries NXG Mattress - 3500 Hybrid is a medium hybrid mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid,Serta iSeries NXG Mattress - 3500 Hybrid Mattress,"Shop the Serta iSeries NXG Mattress - 3500 Hybrid, a medium hybrid mattress from Serta. Sample text for the development store.",serta-iseries-nxg-mattress-3500-hybrid-1.jpg|serta-iseries-nxg-mattress-3500-hybrid-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-hybrid,no
+,,,serta-iseries-nxg-mattress-3500-hybrid,,Full,54 in x 75 in,SRT09-F,2749.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-3500-hybrid,,Queen,60 in x 80 in,SRT09-Q,2899.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-3500-hybrid,,King,76 in x 80 in,SRT09-K,3599.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-3500-hybrid,,California King,72 in x 84 in,SRT09-CK,3599.00,,,,,,,,,,,,,,,,,,,
+Serta iSeries NXG Mattress - 3500 Medium Foam,Serta,Serta iSeries NXG,serta-iseries-nxg-mattress-3500-medium-foam,,Twin XL,38 in x 80 in,SRT10-TXL,2599.00,,Medium,Memory Foam,Back|Side,Cooling|Pressure Relief,,both,"The Serta iSeries NXG Mattress - 3500 Medium Foam is a medium memory foam mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Memory Foam construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Memory Foam,Serta iSeries NXG Mattress - 3500 Medium Foam Mattress,"Shop the Serta iSeries NXG Mattress - 3500 Medium Foam, a medium memory foam mattress from Serta. Sample text for the development store.",serta-iseries-nxg-mattress-3500-medium-foam-1.jpg|serta-iseries-nxg-mattress-3500-medium-foam-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-memory-foam,no
+,,,serta-iseries-nxg-mattress-3500-medium-foam,,Full,54 in x 75 in,SRT10-F,2749.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-3500-medium-foam,,Queen,60 in x 80 in,SRT10-Q,2899.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-3500-medium-foam,,King,76 in x 80 in,SRT10-K,3599.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-3500-medium-foam,,California King,72 in x 84 in,SRT10-CK,3599.00,,,,,,,,,,,,,,,,,,,
+Serta iSeries NXG Mattress - 4500 Ultra Plush Foam,Serta,Serta iSeries NXG,serta-iseries-nxg-mattress-4500-ultra-plush-foam,,Twin XL,38 in x 80 in,SRT11-TXL,2899.00,,Ultra Plush,Memory Foam,Side,Cooling|Pressure Relief,,both,"The Serta iSeries NXG Mattress - 4500 Ultra Plush Foam is a ultra plush memory foam mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Ultra Plush feel|Memory Foam construction|Sizes: Twin XL to California King,Firmness=Ultra Plush|Construction=Memory Foam,Serta iSeries NXG Mattress - 4500 Ultra Plush Foam,"Shop the Serta iSeries NXG Mattress - 4500 Ultra Plush Foam, a ultra plush memory foam mattress from Serta. Sample text for the development store.",serta-iseries-nxg-mattress-4500-ultra-plush-foam-1.jpg|serta-iseries-nxg-mattress-4500-ultra-plush-foam-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-memory-foam,no
+,,,serta-iseries-nxg-mattress-4500-ultra-plush-foam,,Full,54 in x 75 in,SRT11-F,3049.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-4500-ultra-plush-foam,,Queen,60 in x 80 in,SRT11-Q,3199.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-4500-ultra-plush-foam,,King,76 in x 80 in,SRT11-K,3899.00,,,,,,,,,,,,,,,,,,,
+,,,serta-iseries-nxg-mattress-4500-ultra-plush-foam,,California King,72 in x 84 in,SRT11-CK,3899.00,,,,,,,,,,,,,,,,,,,
+Serta Perfect Sleeper Hybrid Mattress,Serta,Serta Perfect Sleeper,serta-perfect-sleeper-hybrid,,Twin,38 in x 75 in,SRT12-T,1099.00,,Medium,Hybrid,Back|Side,,,both,"The Serta Perfect Sleeper Hybrid Mattress is a medium hybrid mattress from Serta, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|Sizes: Twin to California King,Firmness=Medium|Construction=Hybrid,Serta Perfect Sleeper Hybrid Mattress Mattress,"Shop the Serta Perfect Sleeper Hybrid Mattress, a medium hybrid mattress from Serta. Sample text for the development store.",serta-perfect-sleeper-hybrid-1.jpg|serta-perfect-sleeper-hybrid-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-hybrid,no
+,,,serta-perfect-sleeper-hybrid,,Twin XL,38 in x 80 in,SRT12-TXL,1129.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-hybrid,,Full,54 in x 75 in,SRT12-F,1179.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-hybrid,,Queen,60 in x 80 in,SRT12-Q,1199.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-hybrid,,King,76 in x 80 in,SRT12-K,1499.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-hybrid,,California King,72 in x 84 in,SRT12-CK,1499.00,,,,,,,,,,,,,,,,,,,
+Serta Perfect Sleeper Hybrid Mattress 2023 Version,Serta,Serta Perfect Sleeper,serta-perfect-sleeper-hybrid-mattress-2023-version,,Twin,38 in x 75 in,SRT13-T,799.00,,Medium,Hybrid,Back|Side,Cooling,,both,"The Serta Perfect Sleeper Hybrid Mattress 2023 Version is a medium hybrid mattress from Serta, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|Sizes: Twin to California King,Firmness=Medium|Construction=Hybrid,Serta Perfect Sleeper Hybrid Mattress 2023 Version,"Shop the Serta Perfect Sleeper Hybrid Mattress 2023 Version, a medium hybrid mattress from Serta. Sample text for the development store.",serta-perfect-sleeper-hybrid-mattress-2023-version-1.jpg|serta-perfect-sleeper-hybrid-mattress-2023-version-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-hybrid,no
+,,,serta-perfect-sleeper-hybrid-mattress-2023-version,,Twin XL,38 in x 80 in,SRT13-TXL,849.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-hybrid-mattress-2023-version,,Full,54 in x 75 in,SRT13-F,679.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-hybrid-mattress-2023-version,,Queen,60 in x 80 in,SRT13-Q,699.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-hybrid-mattress-2023-version,,King,76 in x 80 in,SRT13-K,999.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-hybrid-mattress-2023-version,,California King,72 in x 84 in,SRT13-CK,999.00,,,,,,,,,,,,,,,,,,,
+Serta Perfect Sleeper Innerspring Mattress Cascade Ridge Plush 12.5,Serta,Serta Perfect Sleeper,serta-perfect-sleeper-innerspring-mattress-cascade-ridge-plush-12-5,,Twin,38 in x 75 in,SRT14-T,699.00,,Plush,Innerspring,Side,Pressure Relief|Back Support,12.5,both,"The Serta Perfect Sleeper Innerspring Mattress Cascade Ridge Plush 12.5 is a plush 12.5 inch innerspring mattress from Serta, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Plush feel|Innerspring construction|12.5 inch profile|Sizes: Twin to California King,Firmness=Plush|Construction=Innerspring|Thickness=12.5 in,Serta Perfect Sleeper Innerspring Mattress Cascade Ridge Plu,"Shop the Serta Perfect Sleeper Innerspring Mattress Cascade Ridge Plush 12.5, a plush innerspring mattress from Serta. Sample text for the development store.",serta-perfect-sleeper-innerspring-mattress-cascade-ridge-plush-12-5-1.jpg|serta-perfect-sleeper-innerspring-mattress-cascade-ridge-plush-12-5-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-innerspring,no
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-ridge-plush-12-5,,Twin XL,38 in x 80 in,SRT14-TXL,729.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-ridge-plush-12-5,,Full,54 in x 75 in,SRT14-F,779.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-ridge-plush-12-5,,Queen,60 in x 80 in,SRT14-Q,799.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-ridge-plush-12-5,,King,76 in x 80 in,SRT14-K,1099.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-ridge-plush-12-5,,California King,72 in x 84 in,SRT14-CK,1099.00,,,,,,,,,,,,,,,,,,,
+Serta Perfect Sleeper Innerspring Mattress 2023 Version,Serta,Serta Perfect Sleeper,serta-perfect-sleeper-innerspring-mattress-2023-version,,Twin,38 in x 75 in,SRT15-T,399.00,,Medium,Innerspring,Back|Side,Pressure Relief,,both,"The Serta Perfect Sleeper Innerspring Mattress 2023 Version is a medium innerspring mattress from Serta, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Serta Perfect Sleeper Innerspring Mattress 2023 Version,"Shop the Serta Perfect Sleeper Innerspring Mattress 2023 Version, a medium innerspring mattress from Serta. Sample text for the development store.",serta-perfect-sleeper-innerspring-mattress-2023-version-1.jpg|serta-perfect-sleeper-innerspring-mattress-2023-version-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-innerspring,no
+,,,serta-perfect-sleeper-innerspring-mattress-2023-version,,Twin XL,38 in x 80 in,SRT15-TXL,449.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-2023-version,,Full,54 in x 75 in,SRT15-F,379.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-2023-version,,Queen,60 in x 80 in,SRT15-Q,399.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-2023-version,,King,76 in x 80 in,SRT15-K,499.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-2023-version,,California King,72 in x 84 in,SRT15-CK,499.00,,,,,,,,,,,,,,,,,,,
+Serta Perfect Sleeper Innerspring Mattress Cascade Canyon,Serta,Serta Perfect Sleeper,serta-perfect-sleeper-innerspring-mattress-cascade-canyon,,Twin,38 in x 75 in,SRT16-T,799.00,,Medium,Innerspring,Back|Side,Cooling|Back Support,,both,"The Serta Perfect Sleeper Innerspring Mattress Cascade Canyon is a medium innerspring mattress from Serta, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Serta Perfect Sleeper Innerspring Mattress Cascade Canyon,"Shop the Serta Perfect Sleeper Innerspring Mattress Cascade Canyon, a medium innerspring mattress from Serta. Sample text for the development store.",serta-perfect-sleeper-innerspring-mattress-cascade-canyon-1.jpg|serta-perfect-sleeper-innerspring-mattress-cascade-canyon-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-innerspring,no
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-canyon,,Twin XL,38 in x 80 in,SRT16-TXL,829.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-canyon,,Full,54 in x 75 in,SRT16-F,879.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-canyon,,Queen,60 in x 80 in,SRT16-Q,899.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-canyon,,King,76 in x 80 in,SRT16-K,1199.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-canyon,,California King,72 in x 84 in,SRT16-CK,1199.00,,,,,,,,,,,,,,,,,,,
+Serta Perfect Sleeper Innerspring Mattress Cascade Range,Serta,Serta Perfect Sleeper,serta-perfect-sleeper-innerspring-mattress-cascade-range,,Twin,38 in x 75 in,SRT17-T,999.00,,Medium,Innerspring,Back|Side,Cooling,,both,"The Serta Perfect Sleeper Innerspring Mattress Cascade Range is a medium innerspring mattress from Serta, offered in Twin to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Innerspring construction|Sizes: Twin to California King,Firmness=Medium|Construction=Innerspring,Serta Perfect Sleeper Innerspring Mattress Cascade Range,"Shop the Serta Perfect Sleeper Innerspring Mattress Cascade Range, a medium innerspring mattress from Serta. Sample text for the development store.",serta-perfect-sleeper-innerspring-mattress-cascade-range-1.jpg|serta-perfect-sleeper-innerspring-mattress-cascade-range-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-innerspring,no
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-range,,Twin XL,38 in x 80 in,SRT17-TXL,1029.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-range,,Full,54 in x 75 in,SRT17-F,1079.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-range,,Queen,60 in x 80 in,SRT17-Q,1099.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-range,,King,76 in x 80 in,SRT17-K,1399.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-innerspring-mattress-cascade-range,,California King,72 in x 84 in,SRT17-CK,1399.00,,,,,,,,,,,,,,,,,,,
+Serta Perfect Sleeper X Quilted Hybrid Mattress - Level One,Serta,Serta Perfect Sleeper,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-one,,Twin XL,38 in x 80 in,SRT18-TXL,1099.00,,Medium,Hybrid,Back|Side,Back Support,,both,"The Serta Perfect Sleeper X Quilted Hybrid Mattress - Level One is a medium hybrid mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid,Serta Perfect Sleeper X Quilted Hybrid Mattress - Level One,"Shop the Serta Perfect Sleeper X Quilted Hybrid Mattress - Level One, a medium hybrid mattress from Serta. Sample text for the development store.",serta-perfect-sleeper-x-quilted-hybrid-mattress-level-one-1.jpg|serta-perfect-sleeper-x-quilted-hybrid-mattress-level-one-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-hybrid,no
+,,,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-one,,Full,54 in x 75 in,SRT18-F,1249.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-one,,Queen,60 in x 80 in,SRT18-Q,1399.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-one,,King,76 in x 80 in,SRT18-K,2099.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-one,,California King,72 in x 84 in,SRT18-CK,2099.00,,,,,,,,,,,,,,,,,,,
+Serta Perfect Sleeper X Quilted Hybrid Mattress - Level Two,Serta,Serta Perfect Sleeper,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-two,,Twin XL,38 in x 80 in,SRT19-TXL,1799.00,,Medium,Hybrid,Back|Side,Back Support,,both,"The Serta Perfect Sleeper X Quilted Hybrid Mattress - Level Two is a medium hybrid mattress from Serta, offered in Twin XL to California King.
+
+Sample catalog text written for the development store from the maker's public product data (2026-10-26). Replace with copy the client approves.",Medium feel|Hybrid construction|Sizes: Twin XL to California King,Firmness=Medium|Construction=Hybrid,Serta Perfect Sleeper X Quilted Hybrid Mattress - Level Two,"Shop the Serta Perfect Sleeper X Quilted Hybrid Mattress - Level Two, a medium hybrid mattress from Serta. Sample text for the development store.",serta-perfect-sleeper-x-quilted-hybrid-mattress-level-two-1.jpg|serta-perfect-sleeper-x-quilted-hybrid-mattress-level-two-2.jpg,mattress,sample-foundation,sample-protector,sample-pillow,serta-hybrid,no
+,,,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-two,,Full,54 in x 75 in,SRT19-F,1949.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-two,,Queen,60 in x 80 in,SRT19-Q,2099.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-two,,King,76 in x 80 in,SRT19-K,2799.00,,,,,,,,,,,,,,,,,,,
+,,,serta-perfect-sleeper-x-quilted-hybrid-mattress-level-two,,California King,72 in x 84 in,SRT19-CK,2799.00,,,,,,,,,,,,,,,,,,,
