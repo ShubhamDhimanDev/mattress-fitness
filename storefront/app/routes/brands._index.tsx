@@ -2,7 +2,6 @@ import {Image} from '~/lib/hydrogen/image';
 import {Link, useLoaderData} from 'react-router';
 import type {Route} from './+types/brands._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {cardStyles} from '~/components/ui/Card';
 import {cn} from '~/components/ui/cn';
@@ -24,18 +23,12 @@ export async function loader({context}: Route.LoaderArgs) {
 }
 
 export default function BrandsIndex() {
-  const {source, brands} = useLoaderData<typeof loader>();
+  const {brands} = useLoaderData<typeof loader>();
 
   return (
     <div className="py-4">
       <Breadcrumb items={[{label: 'Home', to: '/'}, {label: 'Brands'}]} />
       <h1 className="mt-2 type-display text-4xl md:text-5xl">Brands</h1>
-
-      {source === 'fixtures' ? (
-        <div className="mt-4">
-          <PreviewNotice subject="brands" />
-        </div>
-      ) : null}
 
       {brands.length === 0 ? (
         <p className="mt-6 text-base text-fg-muted">

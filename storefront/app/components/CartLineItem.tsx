@@ -159,11 +159,11 @@ function LineTitle({
 function LineDetails({
   line,
   hideSize,
-  className,
+  compact = false,
 }: {
   line: CartLine;
   hideSize: boolean;
-  className?: string;
+  compact?: boolean;
 }) {
   const options = visibleOptions(line.merchandise.selectedOptions).filter(
     (option) => !(hideSize && option.name.toLowerCase() === 'size'),
@@ -172,7 +172,12 @@ function LineDetails({
   const promotions = linePromotions(line.discountAllocations);
   if (options.length + properties.length + promotions.length === 0) return null;
   return (
-    <div className={cn('flex flex-col text-sm text-fg-muted', className)}>
+    <div
+      className={cn(
+        'flex flex-col text-fg-muted',
+        compact ? 'text-xs' : 'text-sm',
+      )}
+    >
       {options.length > 0 ? (
         <p>
           {options
@@ -206,10 +211,13 @@ function LinePrice({
   line,
   size,
   className,
+  hideEach = false,
 }: {
   line: CartLine;
   size: 'sm' | 'md' | 'lg';
   className?: string;
+  /** The drawer shows the each-price under the name instead. */
+  hideEach?: boolean;
 }) {
   const pending = Boolean(line.isOptimistic);
   const each = moneyText(line.cost?.amountPerQuantity);
@@ -222,7 +230,9 @@ function LinePrice({
         stale={pending}
         className="md:justify-end"
       />
-      {each ? <p className="text-sm text-fg-muted">{each} each</p> : null}
+      {each && !hideEach ? (
+        <p className="text-sm text-fg-muted">{each} each</p>
+      ) : null}
     </div>
   );
 }
@@ -336,42 +346,51 @@ function CompactLine(props: CartLineItemProps) {
   const sizeChoices = lineSizes?.[id];
   const {covering, others} = splitChildren(childrenMap[id]);
 
+  const each = moneyText(line.cost?.amountPerQuantity);
+
+  // Drawer row (CR-31 follow-up): image left, name and price on one line, then the trash and the quantity pill under the
+  // name. Type is one step smaller than on the page; every control keeps its 44 px target.
   return (
     <li
       aria-busy={pending || undefined}
       className="border-b border-line py-4 first:pt-0 last:border-b-0"
     >
-      <div className="grid grid-cols-[calc(var(--spacing)*21)_minmax(0,1fr)_auto] gap-x-3">
-        <LineMedia image={merchandise.image} sizes="84px" className="size-21" />
+      <div className="grid grid-cols-[calc(var(--spacing)*18)_minmax(0,1fr)_auto] gap-x-3">
+        <LineMedia image={merchandise.image} sizes="72px" className="size-18" />
         <div className="flex min-w-0 flex-col items-start">
           <Brand vendor={product.vendor} />
           <LineTitle
             line={line}
             layout={layout}
-            className="text-base font-extrabold text-fg"
+            className="text-sm leading-snug font-bold text-fg"
           />
-          <LineDetails line={line} hideSize={Boolean(sizeChoices)} />
+          <LineDetails line={line} hideSize={Boolean(sizeChoices)} compact />
+          {each ? <p className="text-xs text-fg-muted">{each} each</p> : null}
         </div>
-        <LinePrice line={line} size="md" className="text-right" />
-      </div>
-      {sizeChoices ? (
-        <CartSizeSelect
-          lineId={id}
-          title={product.title}
-          currentVariantId={merchandise.id}
-          choices={sizeChoices}
-          disabled={pending}
-          className="mt-3"
-        />
-      ) : null}
-      <div className="mt-3 flex items-center justify-between gap-4">
-        <LineQuantity line={line} title={product.title} />
-        <RemoveButton
-          lineId={id}
-          title={product.title}
-          disabled={pending}
-          onRemove={onRemove}
-        />
+        <LinePrice line={line} size="sm" className="text-right" hideEach />
+        <div className="col-span-2 col-start-2 flex flex-col gap-1">
+          {sizeChoices ? (
+            <CartSizeSelect
+              lineId={id}
+              title={product.title}
+              currentVariantId={merchandise.id}
+              choices={sizeChoices}
+              disabled={pending}
+              className="mt-2"
+            />
+          ) : null}
+          <div className="mt-1 flex items-center gap-2">
+            <RemoveButton
+              lineId={id}
+              title={product.title}
+              disabled={pending}
+              onRemove={onRemove}
+              iconOnly
+              className="-ml-2"
+            />
+            <LineQuantity line={line} title={product.title} size="sm" />
+          </div>
+        </div>
       </div>
       <ProtectionStrip
         compact

@@ -188,10 +188,11 @@ function AddOnList({
     <div className="flex min-w-0 flex-col gap-3">
       <Heading
         id={headingId}
-        className={cn(
-          'type-display',
-          aside ? 'text-lg' : 'text-2xl md:text-3xl',
-        )}
+        className={
+          aside
+            ? 'text-base font-extrabold text-fg'
+            : 'type-display text-2xl md:text-3xl'
+        }
       >
         {ADD_ONS_HEADING}
       </Heading>
@@ -229,14 +230,51 @@ function AddOnCard({
   aside: boolean;
 }) {
   const {variant} = addOn;
+  // Drawer: a plain row (name and price left, the Add button right) instead of a bordered card, one line per offer.
+  if (aside) {
+    return (
+      <li className="border-b border-line pb-3 last:border-b-0 last:pb-0">
+        <CartActionForm
+          route="/cart"
+          action={ADD_ADDON_ACTION}
+          inputs={{variantId: variant.variantId}}
+        >
+          {(fetcher) => (
+            <div className="flex items-center justify-between gap-3">
+              <AddedFocus data={fetcher.data} onAdded={onAdded} />
+              <div className="flex min-w-0 flex-col">
+                <span className="text-xs font-semibold text-fg-muted">
+                  {PICKER_COPY.addOns.categories[addOn.category]}
+                  {addOn.size ? ` for your ${addOn.size} mattress` : ''}
+                </span>
+                <span className="text-sm font-bold text-fg">
+                  {variant.productTitle}
+                  {variant.variantTitle ? `, ${variant.variantTitle}` : ''}
+                </span>
+                <Price price={variant.price} size="sm" />
+              </div>
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                loading={fetcher.state !== 'idle'}
+                loadingLabel={PICKER_COPY.addOns.adding}
+                aria-label={`Add ${variant.productTitle} to cart${fetcher.state !== 'idle' ? ', adding' : ''}`}
+              >
+                {PICKER_COPY.addOns.add}
+              </Button>
+            </div>
+          )}
+        </CartActionForm>
+      </li>
+    );
+  }
   return (
     <Card
       as="li"
       padding="sm"
-      className={cn(
-        'flex flex-col [&>form]:flex [&>form]:flex-1',
-        !aside && 'w-44 shrink-0 snap-start md:w-auto',
-      )}
+      className="flex w-44 shrink-0 snap-start flex-col md:w-auto [&>form]:flex [&>form]:flex-1"
     >
       <CartActionForm
         route="/cart"

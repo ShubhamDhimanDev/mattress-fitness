@@ -10,7 +10,6 @@ import type {Route} from './+types/compare';
 import {CompareTable} from '~/components/compare/CompareTable';
 import {ComparePicker} from '~/components/compare/ComparePicker';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {buttonStyles} from '~/components/ui/Button';
 import {cardStyles} from '~/components/ui/Card';
 import {cn} from '~/components/ui/cn';
@@ -199,10 +198,6 @@ export default function ComparePage() {
           comfort level, type, height and benefits side by side.
         </p>
       </header>
-
-      {data.source === 'fixtures' ? (
-        <PreviewNotice subject="mattresses" />
-      ) : null}
 
       <div role="status" aria-live="polite" className="min-h-6">
         {message ? (

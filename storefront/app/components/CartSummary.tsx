@@ -15,6 +15,7 @@ import {Skeleton} from '~/components/ui/Skeleton';
 import {CHECKOUT_STEPS_PATH, getCheckoutHref} from '~/lib/cart/checkout';
 import {subtotalView, type SubtotalView} from '~/lib/cart/subtotal';
 import {REASSURANCE_ITEMS} from '~/lib/navigation';
+import {useLeavingPage} from '~/lib/use-leaving-page';
 import type {FreeDeliveryProgress} from '~/lib/offers/types';
 import type {BlockReason} from '~/lib/offers-runtime/messages';
 
@@ -63,30 +64,49 @@ export function CartSummary({
         aria-labelledby={headingId}
         // Inside the drawer's padded scroller: it bleeds to the panel edges and sticks to the bottom (the shell's `footer` prop
         // would do the same job; this keeps the cart independent of it).
-        className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-auto flex flex-col gap-3 border-t border-line bg-surface p-4 shadow-md"
+        className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-auto flex flex-col gap-2 border-t border-line bg-surface p-4 shadow-md"
       >
         <h3 id={headingId} className="sr-only">
           Order summary
         </h3>
         <dl>
-          <SubtotalRow subtotal={subtotal} large />
+          <SubtotalRow subtotal={subtotal} compact />
         </dl>
-        <p className="-mt-2 text-sm text-fg-muted">
+        <p className="text-xs text-fg-muted">
           {delivery.free
             ? 'Delivery is free. Tax is calculated at checkout.'
             : 'Delivery and tax are calculated at checkout.'}
         </p>
         {financing}
-        <CheckoutPanel
-          state={state}
-          blocked={blocked}
-          optimistic={optimistic}
-          extra={
-            <Button to="/cart" variant="outline" size="lg" fullWidth>
-              View full cart
-            </Button>
-          }
-        />
+        {/* Estimated total at the left, checkout button at the right (the cart page's "View full cart" is in the drawer header).
+            A blocked or unavailable cart shows its message full width instead, so the alert never sits in a narrow column. */}
+        {state === 'ready' ? (
+          <div className="mt-1 flex items-center gap-4 border-t border-line pt-3">
+            <div className="shrink-0">
+              <span className="block text-xs font-semibold text-fg-muted">
+                Estimated total
+              </span>
+              {total.status === 'ready' ? (
+                <Price price={total.amount} size="md" stale={total.updating} />
+              ) : (
+                <Skeleton className="h-7 w-24" />
+              )}
+            </div>
+            <CheckoutPanel
+              state={state}
+              blocked={blocked}
+              optimistic={optimistic}
+              buttonSize="md"
+              className="min-w-0 flex-1"
+            />
+          </div>
+        ) : (
+          <CheckoutPanel
+            state={state}
+            blocked={blocked}
+            optimistic={optimistic}
+          />
+        )}
       </section>
     );
   }
@@ -163,14 +183,15 @@ function checkoutStateOf(
 
 function SubtotalRow({
   subtotal,
-  large = false,
+  compact = false,
 }: {
   subtotal: SubtotalView;
-  large?: boolean;
+  /** The drawer's smaller row: muted label, medium amount. */
+  compact?: boolean;
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className={cn(large ? 'text-base font-bold' : 'text-fg-muted')}>
+      <dt className={cn(compact ? 'text-sm text-fg-muted' : 'text-fg-muted')}>
         Subtotal
       </dt>
       {/* While Shopify answers there is either an out-of-date amount (kept, in italic, never dimmed: dimming would drop
@@ -181,7 +202,7 @@ function SubtotalRow({
         {subtotal.status === 'ready' ? (
           <Price
             price={subtotal.amount}
-            size={large ? 'lg' : 'md'}
+            size={compact ? 'sm' : 'md'}
             stale={subtotal.updating}
           />
         ) : (
@@ -207,12 +228,16 @@ function CheckoutPanel({
   blocked,
   optimistic,
   buttonClassName,
+  buttonSize,
+  className,
   extra,
 }: {
   state: CheckoutState;
   blocked: readonly BlockReason[];
   optimistic: boolean;
   buttonClassName?: string;
+  buttonSize?: 'md' | 'lg';
+  className?: string;
   extra?: ReactNode;
 }) {
   if (state === 'blocked') {
@@ -255,8 +280,12 @@ function CheckoutPanel({
     );
   }
   return (
-    <div className="flex flex-col gap-3">
-      <CheckoutButton optimistic={optimistic} className={buttonClassName} />
+    <div className={cn('flex flex-col gap-3', className)}>
+      <CheckoutButton
+        optimistic={optimistic}
+        className={buttonClassName}
+        size={buttonSize}
+      />
       {extra}
     </div>
   );
@@ -274,6 +303,7 @@ function CheckoutButton({
   // One link in both states. A first add has no checkout URL until Shopify answers; the control is the same element
   // meanwhile (inert, with a spinner), so a keyboard user who is focused on it keeps focus when the cart arrives.
   // Swapping a busy button for a link would drop focus to the page.
+  const leaving = useLeavingPage();
   return (
     <Button
       to={CHECKOUT_STEPS_PATH}
@@ -282,9 +312,10 @@ function CheckoutButton({
       size={size}
       fullWidth
       className={cn('whitespace-nowrap', className)}
-      loading={optimistic}
-      loadingLabel="Updating cart"
+      loading={optimistic || leaving.active}
+      loadingLabel={optimistic ? 'Updating cart' : 'Checking your cart'}
       leadingIcon={<LockIcon />}
+      onClick={leaving.start}
     >
       Checkout securely
     </Button>

@@ -7,7 +7,6 @@ import {
 } from 'react-router';
 import type {Route} from './+types/quiz._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {QuizIntro} from '~/components/quiz/QuizIntro';
 import {QuizQuestion} from '~/components/quiz/QuizQuestion';
 import {QuizResults, type ResultClick} from '~/components/quiz/QuizResults';
@@ -263,10 +262,6 @@ export default function QuizPage() {
           Take the <span className="type-mark">sleep quiz.</span>
         </h1>
       </header>
-      {data.source === 'fixtures' ? (
-        <PreviewNotice subject="mattresses" />
-      ) : null}
-
       <div className="max-w-prose md:max-w-none">
         {state.phase === 'intro' ? (
           <QuizIntro

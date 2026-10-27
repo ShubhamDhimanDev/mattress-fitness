@@ -669,6 +669,15 @@ export type CatalogBrandPageQuery = {
   anyBrand: {nodes: Array<Pick<StorefrontAPI.Metaobject, 'id'>>};
 };
 
+export type CollectionHandlesQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type CollectionHandlesQuery = {
+  collections: {nodes: Array<Pick<StorefrontAPI.Collection, 'handle'>>};
+};
+
 export type ContentPagesQueryVariables = StorefrontAPI.Exact<{
   country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
   language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
@@ -1834,6 +1843,10 @@ interface GeneratedQueryTypes {
   '#graphql\n  query CatalogBrandPage(\n    $handle: String!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    brand: metaobject(handle: {handle: $handle, type: "brand"}) {\n      id\n      handle\n      fields {\n        key\n        value\n        reference {\n          ... on MediaImage {\n            image {\n              url\n              altText\n              width\n              height\n            }\n          }\n        }\n      }\n    }\n    anyBrand: metaobjects(type: "brand", first: 1) {\n      nodes {\n        id\n      }\n    }\n  }\n': {
     return: CatalogBrandPageQuery;
     variables: CatalogBrandPageQueryVariables;
+  };
+  '#graphql\n  query CollectionHandles($country: CountryCode, $language: LanguageCode)\n    @inContext(country: $country, language: $language) {\n    collections(first: 250) {\n      nodes {\n        handle\n      }\n    }\n  }\n': {
+    return: CollectionHandlesQuery;
+    variables: CollectionHandlesQueryVariables;
   };
   '#graphql\n  query ContentPages($country: CountryCode, $language: LanguageCode)\n    @inContext(country: $country, language: $language) {\n    page0: page(handle: "contact") { body }\n    page1: page(handle: "delivery-and-shipping") { body }\n    page2: page(handle: "financing") { body }\n    page3: page(handle: "warranty-and-returns") { body }\n    page4: page(handle: "faq") { body }\n    page5: page(handle: "size-guide") { body }\n    page6: page(handle: "comfort-guide") { body }\n    page7: page(handle: "mattress-types-guide") { body }\n    page8: page(handle: "adjustable-base-guide") { body }\n    page9: page(handle: "about") { body }\n    page10: page(handle: "comfort-guarantee") { body }\n    page11: page(handle: "price-guarantee") { body }\n    page12: page(handle: "privacy-policy") { body }\n    page13: page(handle: "terms") { body }\n    page14: page(handle: "accessibility") { body }\n    blog0: blog(handle: "journal") { handle articles(first: 1) { nodes { id } } }\n    shop {\n      privacyPolicy { id }\n      termsOfService { id }\n    }\n  }\n': {
     return: ContentPagesQuery;

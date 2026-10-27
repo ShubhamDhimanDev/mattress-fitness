@@ -1,7 +1,6 @@
 import {Link, data as withHeaders, useLoaderData} from 'react-router';
 import type {Route} from './+types/stores.$state.$city.$slug';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {MyStoreControl} from '~/components/stores/MyStoreControl';
 import {StatusLine} from '~/components/stores/StoreCard';
 import {StoreHoursTable} from '~/components/stores/StoreHoursTable';
@@ -114,7 +113,6 @@ export default function StorePage() {
           {data.isMine ? 'This is your store.' : ''}
         </p>
       </header>
-      {data.source === 'fixtures' ? <PreviewNotice subject="stores" /> : null}
       {data.backToProduct ? (
         <Link
           to={data.backToProduct}

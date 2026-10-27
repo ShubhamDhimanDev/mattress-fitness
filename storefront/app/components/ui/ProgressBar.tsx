@@ -13,6 +13,8 @@ type ProgressBarProps = {
   valueText?: string;
   /** `red` while the goal is open, `success` once it is reached. */
   tone?: ProgressTone;
+  /** `sm` is the thin 6 px bar of the cart drawer. */
+  size?: 'md' | 'sm';
   className?: string;
 };
 
@@ -42,6 +44,7 @@ export function ProgressBar({
   label,
   valueText,
   tone = 'red',
+  size = 'md',
   className,
 }: ProgressBarProps) {
   const percent = progressPercent(value, min, max);
@@ -58,7 +61,8 @@ export function ProgressBar({
       aria-valuenow={now}
       aria-valuetext={valueText}
       className={cn(
-        'h-2.5 w-full overflow-hidden rounded-pill bg-ink-100',
+        'w-full overflow-hidden rounded-pill bg-ink-100',
+        size === 'sm' ? 'h-1.5' : 'h-2.5',
         className,
       )}
     >

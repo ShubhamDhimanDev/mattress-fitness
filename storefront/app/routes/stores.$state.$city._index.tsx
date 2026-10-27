@@ -1,7 +1,6 @@
 import {data as withHeaders, useLoaderData} from 'react-router';
 import type {Route} from './+types/stores.$state.$city._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {StoreCard} from '~/components/stores/StoreCard';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {previewRobotsMeta} from '~/lib/pages/head';
@@ -81,7 +80,6 @@ export default function StoresCityPage() {
           {storeCountText(data.stores.length)}
         </p>
       </header>
-      {data.source === 'fixtures' ? <PreviewNotice subject="stores" /> : null}
       <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {data.stores.map((entry) => (
           <li key={entry.view.path}>

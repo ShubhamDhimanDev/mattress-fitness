@@ -4,7 +4,6 @@ import type {Route} from './+types/brands.$handle';
 import {BrandHeader} from '~/components/brand/BrandHeader';
 import {ProductListing} from '~/components/collection/ProductListing';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {SORT_KEYS, parseFilterParams} from '~/lib/filters';
 import {previewRobotsMeta} from '~/lib/pages/head';
@@ -110,12 +109,6 @@ export default function BrandPage() {
         ]}
       />
       <BrandHeader name={brand.name} logo={brand.logo} about={brand.about} />
-
-      {data.source === 'fixtures' ? (
-        <div className="mt-4">
-          <PreviewNotice subject="brand and products" />
-        </div>
-      ) : null}
 
       <ProductListing
         products={data.products}

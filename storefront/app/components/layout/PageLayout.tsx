@@ -1,12 +1,14 @@
-import {useEffect, useState} from 'react';
-import {Await} from 'react-router';
+import {useEffect, useRef, useState} from 'react';
+import {Await, Link, useLocation, useNavigation} from 'react-router';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
-import {Aside} from '~/components/Aside';
+import {Aside, useAside} from '~/components/Aside';
 import {LazyBoundary, PanelFailed} from '~/components/layout/LazyPanel';
 import {cartPanel, mobileMenuPanel} from '~/components/layout/lazyPanels';
+import {NavigationProgress} from '~/components/layout/NavigationProgress';
 import {MAIN_CONTENT_ID} from '~/components/layout/SkipLink';
 import {MobileMenuContent, SiteHeader} from '~/components/layout/SiteHeader';
 import {SiteFooter} from '~/components/layout/SiteFooter';
+import {SpinnerIcon} from '~/components/ui/Icons';
 import {Skeleton} from '~/components/ui/Skeleton';
 import type {
   FooterLinks,
@@ -62,6 +64,7 @@ export function PageLayout({
 }: PageLayoutProps) {
   return (
     <Aside.Provider preload={ASIDE_PRELOAD}>
+      <NavigationProgress />
       <SiteHeader
         cart={cart}
         isLoggedIn={isLoggedIn}
@@ -131,17 +134,50 @@ function useCartItemCount(cart: PageLayoutProps['cart']): number | null {
   return count;
 }
 
+/**
+ * The link to the cart page sits in the drawer's header. The drawer is a modal that lives in the root layout, so it would
+ * otherwise stay open on top of the page it just opened. It does not close on the click, though: the cart page's loader
+ * takes a moment on a slow connection, and a drawer that vanishes at once leaves the old page standing there with nothing
+ * happening. Instead the link shows a spinner while the page loads and the drawer closes when the cart page has arrived.
+ * Already on the cart page there is nothing to wait for, so it closes at once.
+ */
+function ViewFullCartLink() {
+  const {close} = useAside();
+  const location = useLocation();
+  const navigation = useNavigation();
+  const onCartPage = location.pathname === '/cart';
+  // The drawer can be opened on the cart page itself; only an arrival that happens while it is open closes it.
+  const openedOnCartPage = useRef(onCartPage);
+  const pending =
+    navigation.state !== 'idle' && navigation.location?.pathname === '/cart';
+
+  useEffect(() => {
+    if (onCartPage && !openedOnCartPage.current) close();
+  }, [onCartPage, close]);
+
+  return (
+    <Link
+      to="/cart"
+      onClick={openedOnCartPage.current ? close : undefined}
+      aria-busy={pending || undefined}
+      className="inline-flex min-h-touch items-center gap-2 px-1 text-sm font-semibold text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+    >
+      {pending ? <SpinnerIcon className="size-4" /> : null}
+      View full cart
+      {pending ? <span className="sr-only">, opening</span> : null}
+    </Link>
+  );
+}
+
 function CartAside({cart}: Pick<PageLayoutProps, 'cart'>) {
   const count = useCartItemCount(cart);
   return (
     <Aside
       type="cart"
-      heading="Your cart"
-      countLabel={
-        count !== null && count > 0
-          ? `${count} ${count === 1 ? 'item' : 'items'}`
-          : undefined
+      heading={
+        count !== null && count > 0 ? `Your cart (${count})` : 'Your cart'
       }
+      headerAction={<ViewFullCartLink />}
     >
       {/* The cart contents are a lazy chunk (P7-06); /cart, the no-JavaScript path, renders them statically. */}
       <LazyBoundary

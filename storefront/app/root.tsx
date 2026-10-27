@@ -34,6 +34,7 @@ import {
   existingContentPaths,
   buildFallbackNav,
 } from '~/lib/navigation';
+import {loadCollectionHandles} from '~/lib/shopify/collection-handles-data';
 import {loadFooterPageLinks} from '~/lib/shopify/content-pages-data';
 import {publicSignupConfig} from '~/lib/signup/config';
 import {loadMainNav} from '~/lib/shopify/menu-data';
@@ -154,15 +155,23 @@ export async function loader(args: Route.LoaderArgs) {
   // The store lookup, the ZIP cookie read, the site settings, the menu and the footer's page links are independent
   // of each other, so they run together. None of them fails the page: each degrades to "nothing" or to the fixed
   // navigation.
-  const [myStore, delivery, siteSettings, mainNav, footerPages, shop] =
-    await Promise.all([
-      loadMyStore(args.request, storefront),
-      loadDeliverySummary(args.request, env),
-      loadSiteSettings(storefront),
-      loadMainNav(storefront, env),
-      loadFooterPageLinks(storefront),
-      loadShopIdentity(storefront, env),
-    ]);
+  const [
+    myStore,
+    delivery,
+    siteSettings,
+    mainNav,
+    footerPages,
+    shop,
+    collectionHandles,
+  ] = await Promise.all([
+    loadMyStore(args.request, storefront),
+    loadDeliverySummary(args.request, env),
+    loadSiteSettings(storefront),
+    loadMainNav(storefront, env),
+    loadFooterPageLinks(storefront),
+    loadShopIdentity(storefront, env),
+    loadCollectionHandles(storefront),
+  ]);
 
   const footerLinks = buildFooterLinks(footerPages);
   const analytics = parseAnalyticsConfig(env);
@@ -214,7 +223,7 @@ export async function loader(args: Route.LoaderArgs) {
     // the fixed navigation is only sent when no admin menu is in use.
     fallbackNav: mainNav
       ? null
-      : buildFallbackNav(existingContentPaths(footerPages)),
+      : buildFallbackNav(existingContentPaths(footerPages), collectionHandles),
     utilityLinks: buildUtilityLinks(existingContentPaths(footerPages), {
       chat: chat ?? false,
     }),

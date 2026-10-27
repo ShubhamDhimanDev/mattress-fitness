@@ -25,35 +25,53 @@ export function FreeDeliveryProgress({
   const reached = view.status === 'reached';
   const aside = layout === 'aside';
 
+  // Drawer: the message centred over a thin bar, no icon tile (one row less of chrome in a narrow panel).
+  if (aside) {
+    return (
+      <div
+        className={cn('border-b border-line px-4 py-3 text-center', className)}
+      >
+        <p role="status" className="text-sm font-semibold text-fg">
+          {view.message}
+        </p>
+        <ProgressBar
+          className="mt-2"
+          size="sm"
+          value={view.percent}
+          label="Progress to free delivery"
+          valueText={view.message}
+          tone={reached ? 'success' : 'red'}
+        />
+      </div>
+    );
+  }
+
   const body = (
     <>
       <div className="flex items-center gap-3">
         <span
           className={cn(
             'flex shrink-0 items-center justify-center',
-            aside ? 'size-8 rounded-sm' : 'size-11 rounded-choice',
+            'size-11 rounded-choice',
             reached ? 'bg-success-solid text-white' : 'bg-paper text-fg',
           )}
         >
-          <TruckIcon className={aside ? 'size-5' : 'size-6'} />
+          <TruckIcon className="size-6" />
         </span>
         <p
           role="status"
-          className={cn(
-            'min-w-0 flex-1 font-bold text-fg',
-            aside ? 'text-sm' : 'text-base md:text-lg',
-          )}
+          className="min-w-0 flex-1 text-base font-bold text-fg md:text-lg"
         >
           {view.message}
         </p>
-        {!aside && !reached ? (
+        {!reached ? (
           <span className="hidden shrink-0 text-caption font-semibold text-fg-muted md:inline">
             Free over {view.threshold}
           </span>
         ) : null}
       </div>
       <ProgressBar
-        className={aside ? 'mt-3' : 'mt-3 md:mt-4'}
+        className="mt-3 md:mt-4"
         value={view.percent}
         label="Progress to free delivery"
         valueText={view.message}
@@ -62,12 +80,5 @@ export function FreeDeliveryProgress({
     </>
   );
 
-  if (aside) {
-    return (
-      <div className={cn('border-b border-line bg-paper px-4 py-3', className)}>
-        {body}
-      </div>
-    );
-  }
   return <Card className={className}>{body}</Card>;
 }

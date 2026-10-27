@@ -257,6 +257,17 @@
   --animate-drawer-in-right: drawer-in-right 200ms ease-out;
   --animate-drawer-in-left: drawer-in-left 200ms ease-out;
   --animate-dialog-in: dialog-in 180ms ease-out;
+  --animate-nav-progress: nav-progress 1.1s ease-in-out infinite;
+
+  /* The sliding segment of the page-loading bar: in from the left edge, out past the right one. */
+  @keyframes nav-progress {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
 
   @keyframes fade-in {
     from {

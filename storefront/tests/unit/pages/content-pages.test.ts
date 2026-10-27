@@ -606,4 +606,51 @@ describe('REQ-CNT-001 the shell default navigation links nothing that could 404'
       `/blogs/${JOURNAL_BLOG_HANDLE}`,
     ]);
   });
+
+  const everyPath = (items: ReturnType<typeof buildFallbackNav>) =>
+    items.flatMap((item) =>
+      item.kind === 'menu'
+        ? [item.to, ...item.groups.flatMap((g) => g.links.map((l) => l.to))]
+        : [item.to],
+    );
+
+  it('points every "Shop by" link at a filtered view of the mattresses collection, not at a collection of its own', () => {
+    const mattresses = MAIN_NAV.find((item) => item.id === 'mattresses');
+    const shopBy =
+      mattresses?.kind === 'menu'
+        ? mattresses.groups
+            .filter((group) => group.id !== 'mattresses-brand')
+            .flatMap((group) => group.links.map((link) => link.to))
+        : [];
+    expect(shopBy.length).toBeGreaterThan(0);
+    for (const to of shopBy) {
+      expect(to).toMatch(/^\/collections\/mattresses\?/);
+    }
+  });
+
+  it('drops links to collections that do not exist, keeps the built-in all-products route and every other path', () => {
+    const pruned = buildFallbackNav(new Set(), new Set(['mattresses']));
+    const paths = everyPath(pruned);
+    expect(paths).toContain('/collections/mattresses');
+    expect(paths).toContain('/brands');
+    expect(paths).not.toContain('/collections/sale');
+    expect(paths).not.toContain('/collections/box-springs');
+    expect(
+      paths.some((to) => to?.startsWith('/collections/mattresses?size=')),
+    ).toBe(true);
+  });
+
+  it('keeps every link when the collection read failed (null), so a shop outage never empties the menu', () => {
+    const paths = everyPath(buildFallbackNav(new Set(), null));
+    expect(paths).toContain('/collections/sale');
+    expect(paths).toContain('/collections/box-springs');
+  });
+
+  it('drops the whole Mattresses filter set when the mattresses collection itself is missing', () => {
+    const paths = everyPath(buildFallbackNav(new Set(), new Set(['sale'])));
+    expect(paths.some((to) => to?.startsWith('/collections/mattresses'))).toBe(
+      false,
+    );
+    expect(paths).toContain('/collections/sale');
+  });
 });

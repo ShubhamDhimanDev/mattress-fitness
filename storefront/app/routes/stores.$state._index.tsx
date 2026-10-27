@@ -1,7 +1,6 @@
 import {Link, data, useLoaderData} from 'react-router';
 import type {Route} from './+types/stores.$state._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {StoreCard} from '~/components/stores/StoreCard';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {previewRobotsMeta} from '~/lib/pages/head';
@@ -62,7 +61,7 @@ export async function loader({params, request, context}: Route.LoaderArgs) {
 export const headers = forwardLoaderHeaders;
 
 export default function StoresStatePage() {
-  const {source, name, storeCount, cities} = useLoaderData<typeof loader>();
+  const {name, storeCount, cities} = useLoaderData<typeof loader>();
   return (
     <div className="mx-auto flex max-w-page flex-col gap-8 py-8">
       <Breadcrumb
@@ -76,7 +75,6 @@ export default function StoresStatePage() {
         <h1 className="type-display text-4xl md:text-5xl">Stores in {name}</h1>
         <p className="text-base text-fg-muted">{storeCountText(storeCount)}</p>
       </header>
-      {source === 'fixtures' ? <PreviewNotice subject="stores" /> : null}
       {cities.map((city) => (
         <section
           key={city.path}

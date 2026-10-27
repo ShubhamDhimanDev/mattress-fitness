@@ -1,7 +1,6 @@
 import {Link, data, redirect, useLoaderData} from 'react-router';
 import type {Route} from './+types/stores._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {StoreCard} from '~/components/stores/StoreCard';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {cardStyles} from '~/components/ui/Card';
@@ -85,7 +84,7 @@ export async function action({request, context}: Route.ActionArgs) {
 export const headers = forwardLoaderHeaders;
 
 export default function StoresIndexPage() {
-  const {source, myStore, states, storeCount} = useLoaderData<typeof loader>();
+  const {myStore, states, storeCount} = useLoaderData<typeof loader>();
   return (
     <div className="mx-auto flex max-w-page flex-col gap-8 py-8">
       <Breadcrumb items={[{label: 'Home', to: '/'}, {label: 'Stores'}]} />
@@ -97,7 +96,6 @@ export default function StoresIndexPage() {
           directions.
         </p>
       </header>
-      {source === 'fixtures' ? <PreviewNotice subject="stores" /> : null}
 
       {myStore ? (
         <section

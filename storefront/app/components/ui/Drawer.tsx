@@ -12,6 +12,8 @@ type DrawerProps = {
   title: ReactNode;
   /** Text of the small count chip beside the title, e.g. "3 items". Omit for no chip. */
   countLabel?: string;
+  /** A link or button between the title and the close button (the cart's "View full cart"). */
+  headerAction?: ReactNode;
   side?: 'left' | 'right';
   children: ReactNode;
   /**
@@ -35,6 +37,7 @@ export function Drawer({
   onClose,
   title,
   countLabel,
+  headerAction,
   side = 'right',
   children,
   footer,
@@ -51,20 +54,23 @@ export function Drawer({
       placement={side}
       initialFocusRef={initialFocusRef}
     >
-      <div className="flex min-h-18 shrink-0 items-center justify-between gap-4 border-b border-line py-2 pr-3 pl-5">
+      <div className="flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-line py-2 pr-3 pl-5">
         <div className="flex min-w-0 items-center gap-3">
-          <h2 id={titleId} className="type-display text-2xl">
+          <h2 id={titleId} className="type-display text-xl">
             {title}
           </h2>
           {countLabel ? <Chip>{countLabel}</Chip> : null}
         </div>
-        <IconButton
-          label={closeLabel}
-          icon={<CloseIcon />}
-          onClick={onClose}
-          variant="soft"
-          shape="round"
-        />
+        <div className="flex shrink-0 items-center gap-2">
+          {headerAction}
+          <IconButton
+            label={closeLabel}
+            icon={<CloseIcon />}
+            onClick={onClose}
+            variant="soft"
+            shape="round"
+          />
+        </div>
       </div>
       <div
         className={cn(

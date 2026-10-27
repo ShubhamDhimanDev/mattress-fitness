@@ -97,7 +97,11 @@ export function CartDiscount({
           aria-controls={panelId}
           onClick={() => setOpen((value) => !value)}
           className={cn(
-            'flex min-h-13 w-full items-center justify-between gap-2 border-t border-line text-left text-base font-bold text-fg',
+            'flex w-full items-center justify-between gap-2 border-t border-line text-left',
+            // The drawer's fold is a quiet muted row; the phone page's is a bold one.
+            fold === 'always'
+              ? 'min-h-11 text-sm font-semibold text-fg-muted'
+              : 'min-h-13 text-base font-bold text-fg',
             fold === 'below-lg' && 'lg:hidden',
           )}
         >

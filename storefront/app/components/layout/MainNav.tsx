@@ -264,78 +264,82 @@ export function MainNav({items}: MainNavProps) {
                 id={panelId}
                 data-nav-panel={item.id}
                 hidden={!open}
-                // A transparent full-width layer holds the floating card. It sits inside the list item, so moving the
-                // pointer from the button onto the card keeps the panel open.
-                className="absolute inset-x-0 top-full z-40 px-4 pt-2 md:px-10"
+                // A transparent full-width layer positions the floating card. It sits inside the list item, so moving the
+                // pointer from the button onto the card keeps the panel open. The layer itself ignores the pointer: only
+                // the card and the 8 px gap above it (inside the card's wrapper) count as "on the menu", so leaving the
+                // card sideways closes it instead of hovering an invisible strip.
+                className="pointer-events-none absolute inset-x-0 top-full z-40 px-4 md:px-10"
               >
-                <div className="mx-auto grid max-w-page grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-x-8 gap-y-6 rounded-card border border-line bg-surface p-6 shadow-lift">
-                  {item.groups.map((group) => {
-                    const headingId = `${panelId}-${group.id}`;
-                    return (
-                      <div key={group.id}>
-                        {group.heading === null ? null : (
-                          <p
-                            id={headingId}
-                            className={cn(
-                              'mb-1 text-caption font-extrabold text-primary-700',
-                              fitsDisplayType(group.heading) &&
-                                'tracking-wide uppercase',
-                            )}
+                <div className="pointer-events-auto mx-auto flex max-w-page flex-col pt-2">
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-x-8 gap-y-6 rounded-card border border-line bg-surface p-6 shadow-lift">
+                    {item.groups.map((group) => {
+                      const headingId = `${panelId}-${group.id}`;
+                      return (
+                        <div key={group.id}>
+                          {group.heading === null ? null : (
+                            <p
+                              id={headingId}
+                              className={cn(
+                                'mb-1 text-caption font-extrabold text-primary-700',
+                                fitsDisplayType(group.heading) &&
+                                  'tracking-wide uppercase',
+                              )}
+                            >
+                              {group.headingTo ? (
+                                <NavAnchor
+                                  to={group.headingTo}
+                                  external={group.headingExternal}
+                                  onKeyDown={(event) =>
+                                    onPanelKeyDown(event, item)
+                                  }
+                                  className="inline-flex min-h-touch items-center hover:text-primary-700 hover:underline"
+                                >
+                                  {group.heading}
+                                </NavAnchor>
+                              ) : (
+                                group.heading
+                              )}
+                            </p>
+                          )}
+                          <ul
+                            aria-labelledby={
+                              group.heading === null ? undefined : headingId
+                            }
+                            aria-label={
+                              group.heading === null ? item.label : undefined
+                            }
                           >
-                            {group.headingTo ? (
-                              <NavAnchor
-                                to={group.headingTo}
-                                external={group.headingExternal}
-                                onKeyDown={(event) =>
-                                  onPanelKeyDown(event, item)
-                                }
-                                className="inline-flex min-h-touch items-center hover:text-primary-700 hover:underline"
-                              >
-                                {group.heading}
-                              </NavAnchor>
-                            ) : (
-                              group.heading
-                            )}
-                          </p>
-                        )}
-                        <ul
-                          aria-labelledby={
-                            group.heading === null ? undefined : headingId
-                          }
-                          aria-label={
-                            group.heading === null ? item.label : undefined
-                          }
+                            {group.links.map((link) => (
+                              <li key={link.to}>
+                                <NavAnchor
+                                  to={link.to}
+                                  external={link.external}
+                                  onKeyDown={(event) =>
+                                    onPanelKeyDown(event, item)
+                                  }
+                                  className="inline-flex min-h-touch items-center text-base text-fg hover:text-primary-700 hover:underline"
+                                >
+                                  {link.label}
+                                </NavAnchor>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                    {item.to ? (
+                      <div className="col-span-full border-t border-line pt-3">
+                        <NavAnchor
+                          to={item.to}
+                          external={item.external}
+                          onKeyDown={(event) => onPanelKeyDown(event, item)}
+                          className="inline-flex min-h-touch items-center text-base font-bold text-primary-700 hover:underline"
                         >
-                          {group.links.map((link) => (
-                            <li key={link.to}>
-                              <NavAnchor
-                                to={link.to}
-                                external={link.external}
-                                onKeyDown={(event) =>
-                                  onPanelKeyDown(event, item)
-                                }
-                                className="inline-flex min-h-touch items-center text-base text-fg hover:text-primary-700 hover:underline"
-                              >
-                                {link.label}
-                              </NavAnchor>
-                            </li>
-                          ))}
-                        </ul>
+                          View all {item.label.toLowerCase()}
+                        </NavAnchor>
                       </div>
-                    );
-                  })}
-                  {item.to ? (
-                    <div className="col-span-full border-t border-line pt-3">
-                      <NavAnchor
-                        to={item.to}
-                        external={item.external}
-                        onKeyDown={(event) => onPanelKeyDown(event, item)}
-                        className="inline-flex min-h-touch items-center text-base font-bold text-primary-700 hover:underline"
-                      >
-                        View all {item.label.toLowerCase()}
-                      </NavAnchor>
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </li>

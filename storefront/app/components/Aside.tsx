@@ -30,6 +30,7 @@ export function Aside({
   type,
   side = 'right',
   countLabel,
+  headerAction,
   footer,
   bodyPadding,
 }: {
@@ -38,6 +39,7 @@ export function Aside({
   heading: ReactNode;
   side?: 'left' | 'right';
   countLabel?: string;
+  headerAction?: ReactNode;
   footer?: ReactNode;
   bodyPadding?: 'default' | 'none';
 }) {
@@ -49,6 +51,7 @@ export function Aside({
       title={heading}
       side={side}
       countLabel={countLabel}
+      headerAction={headerAction}
       footer={footer}
       bodyPadding={bodyPadding}
     >
