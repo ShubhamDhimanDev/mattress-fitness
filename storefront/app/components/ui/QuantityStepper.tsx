@@ -23,8 +23,9 @@ export function clampQuantity(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.trunc(value)));
 }
 
+// 46 px buttons inside a 2 px bordered group (CR-31); both are above the 44 px touch target.
 const STEP_BUTTON =
-  'inline-flex size-touch shrink-0 items-center justify-center text-fg hover:bg-surface-muted aria-disabled:cursor-not-allowed aria-disabled:text-fg-muted aria-disabled:hover:bg-transparent';
+  'inline-flex size-11.5 shrink-0 items-center justify-center rounded-sm text-fg motion-safe:transition-colors hover:bg-paper active:bg-ink-100 aria-disabled:cursor-not-allowed aria-disabled:text-fg-muted aria-disabled:hover:bg-transparent';
 
 export function QuantityStepper({
   value,
@@ -75,7 +76,7 @@ export function QuantityStepper({
       role="group"
       aria-label={label}
       className={cn(
-        'inline-flex items-center rounded-choice border-2 border-line-strong bg-surface',
+        'inline-flex items-center rounded-choice border-2 border-line-strong bg-surface hover:border-ink-600',
         className,
       )}
     >
@@ -101,7 +102,7 @@ export function QuantityStepper({
           if (draft !== null) commit(event.target.value);
         }}
         onKeyDown={onInputKeyDown}
-        className="h-touch w-12 border-x-2 border-line bg-transparent text-center text-base font-bold text-fg disabled:text-fg-muted"
+        className="h-11.5 w-12 border-x-2 border-line bg-transparent text-center text-base font-extrabold text-fg disabled:text-fg-muted"
       />
       <button
         type="button"

@@ -3,6 +3,7 @@ import {Pagination} from '~/lib/hydrogen/pagination';
 import type {ComponentProps, ReactNode} from 'react';
 import {Link} from 'react-router';
 import {buttonStyles} from '~/components/ui/Button';
+import {cardStyles} from '~/components/ui/Card';
 import {cn} from '~/components/ui/cn';
 import {articlePath, formatLongDate} from '~/lib/pages/content-pages-blog';
 
@@ -32,13 +33,18 @@ export function ArticleCard({
 }) {
   const date = formatLongDate(article.publishedAt);
   return (
-    <li className="flex flex-col gap-2">
+    <li
+      className={
+        cardStyles({interactive: true, padding: 'none'}) +
+        ' flex flex-col gap-2 overflow-hidden pb-4'
+      }
+    >
       {article.image ? (
         <Link
           to={articlePath(article.blogHandle, article.handle)}
           tabIndex={-1}
           aria-hidden="true"
-          className="block overflow-hidden rounded-card"
+          className="block overflow-hidden"
         >
           <Image
             alt=""
@@ -49,7 +55,12 @@ export function ArticleCard({
           />
         </Link>
       ) : null}
-      <h2 className="text-xl font-bold text-fg">
+      <h2
+        className={cn(
+          'type-display px-4 text-title text-fg',
+          !article.image && 'pt-4',
+        )}
+      >
         <Link
           to={articlePath(article.blogHandle, article.handle)}
           className="text-fg hover:text-primary-700 hover:underline"
@@ -57,13 +68,13 @@ export function ArticleCard({
           {article.title}
         </Link>
       </h2>
-      <p className="text-sm text-fg-muted">
+      <p className="px-4 text-sm text-fg-muted">
         {date ? <time dateTime={article.publishedAt}>{date}</time> : null}
         {date && article.authorName ? ' · ' : null}
         {article.authorName}
       </p>
       {article.excerpt ? (
-        <p className="max-w-prose text-base text-fg">{article.excerpt}</p>
+        <p className="max-w-prose px-4 text-base text-fg">{article.excerpt}</p>
       ) : null}
     </li>
   );
@@ -73,7 +84,7 @@ type Connection<NodeType> = ComponentProps<
   typeof Pagination<NodeType>
 >['connection'];
 
-const MORE_LINK = cn(buttonStyles({variant: 'secondary'}), 'self-center');
+const MORE_LINK = cn(buttonStyles({variant: 'outline'}), 'self-center');
 
 /**
  * A paginated list of cards on Hydrogen's cursor `Pagination` (REQ-CNT-002): "Load more" is a real link

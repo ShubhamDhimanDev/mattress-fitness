@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import {useNavigate} from 'react-router';
 import {AddToCartButton} from '~/components/AddToCartButton';
 import {useAside} from '~/components/Aside';
@@ -10,13 +10,20 @@ import {AddWithProtectionButton} from '~/components/extend/AddWithProtectionButt
 import {ProtectionPanel} from '~/components/extend/ProtectionPanel';
 import {PickupSlot} from '~/components/product/PickupSlot';
 import {ProductAddOns} from '~/components/product/ProductAddOns';
+import {StickyAddBar} from '~/components/product/StickyAddBar';
+import {useStickyAddBar} from '~/components/product/useStickyAddBar';
 import {VendorName} from '~/components/product/VendorName';
 import {useProtectionOffers} from '~/components/extend/useProtectionOffers';
 import {Badge} from '~/components/ui/Badge';
+import {Card} from '~/components/ui/Card';
+import {Chip} from '~/components/ui/Chip';
+import {cn} from '~/components/ui/cn';
+import {CheckIcon} from '~/components/ui/Icons';
 import {Price} from '~/components/ui/Price';
 import {Rating} from '~/components/ui/Rating';
 import {SizeSelector} from '~/components/ui/SizeSelector';
 import {SIZE_OPTION_NAME, toSlug} from '~/lib/catalog/attributes';
+import {displayHeadingClass} from '~/lib/display-type';
 import {sizeOf} from '~/lib/offers-runtime/sizes';
 import type {ReviewsAggregate} from '~/lib/reviews/provider';
 import type {BrandLink} from '~/lib/shopify/brand-link';
@@ -41,6 +48,9 @@ import {
  * shows the accident-protection panel above the button and holds its height while it loads; 'unknown' (the category
  * could not be read) shows it BELOW the button with no reserved space, so its answer cannot move Add to cart. A chosen
  * plan turns the button into an add-with-protection submission.
+ *
+ * Below 1024 px a bar fixed to the bottom of the screen repeats the price and the button once the main button has been
+ * scrolled past (CR-31). It presses the main button instead of posting anything itself.
  */
 export function ProductBuyBox({
   product,
@@ -86,6 +96,21 @@ export function ProductBuyBox({
     ...product.benefits,
   ].flatMap((value) => (value ? [value] : []));
 
+  // The phone's sticky bar is shown while the main button is scrolled past. Pressing it clicks that button, so every rule
+  // behind it (the form, the selected size, a chosen plan, opening the cart drawer) is the main button's own.
+  const actionRef = useRef<HTMLDivElement>(null);
+  const stickyVisible = useStickyAddBar(actionRef);
+  const mainLabel = !variant.available
+    ? 'Sold out'
+    : chosenPlan
+      ? 'Add with protection'
+      : 'Add to cart';
+  function pressMainButton() {
+    actionRef.current
+      ?.querySelector<HTMLButtonElement>('button[type="submit"]')
+      ?.click();
+  }
+
   function choose(optionName: string, value: string) {
     const next = selection.map((choice) =>
       choice.name === optionName ? {name: optionName, value} : choice,
@@ -112,12 +137,19 @@ export function ProductBuyBox({
   return (
     // min-w-0: a grid item must be allowed to shrink below its content, or a long unbroken title or option row widens the
     // column and the page scrolls sideways (BV-014).
-    <div className="flex min-w-0 flex-col gap-4">
-      <div>
+    <Card variant="raised" className="flex min-w-0 flex-col gap-5">
+      <div className="flex flex-col gap-1">
         {product.vendor ? (
           <VendorName vendor={product.vendor} brandLink={brandLink} />
         ) : null}
-        <h1 className="text-3xl font-bold">{product.title}</h1>
+        <h1
+          className={cn(
+            displayHeadingClass(product.title),
+            'text-3xl md:text-4xl',
+          )}
+        >
+          {product.title}
+        </h1>
         {/* Only with real reviews from the provider (REQ-PDP-005): nothing renders, and nothing is reserved, otherwise. */}
         {rating ? (
           <Rating
@@ -130,10 +162,10 @@ export function ProductBuyBox({
       </div>
 
       {attributeBadges.length > 0 ? (
-        <ul className="flex flex-wrap gap-1">
+        <ul className="flex flex-wrap gap-2">
           {attributeBadges.map((badge) => (
             <li key={badge}>
-              <Badge variant="neutral">{badge}</Badge>
+              <Chip>{badge}</Chip>
             </li>
           ))}
         </ul>
@@ -141,16 +173,23 @@ export function ProductBuyBox({
 
       {/* Price, saving and stock change together when the size changes, so all three sit in one live region and are
           announced once. The saving is the badge below the price (not Price's own showSavings text), so it is not read twice. */}
-      <div aria-live="polite" className="flex flex-col gap-1">
+      <div aria-live="polite" className="flex flex-col gap-2">
         <Price price={variant.price} compareAt={variant.compareAt} size="lg" />
         {savings ? (
           <div>
             <Badge variant="sale">{savings}</Badge>
           </div>
         ) : null}
-        <p className="text-sm text-fg-muted">
-          {variant.available ? 'In stock' : 'Sold out'}
-          {variant.sku ? ` · SKU ${variant.sku}` : ''}
+        <p className="flex flex-wrap items-center gap-x-3 text-sm text-fg-muted">
+          {variant.available ? (
+            <span className="inline-flex items-center gap-1 font-bold text-success-fg">
+              <CheckIcon className="size-4" />
+              In stock
+            </span>
+          ) : (
+            <span className="font-bold">Sold out</span>
+          )}
+          {variant.sku ? <span>SKU {variant.sku}</span> : null}
         </p>
       </div>
       {/* Hidden unless a financing provider is switched on (REQ-CART-005). The amount is the selected variant's Shopify price. */}
@@ -193,45 +232,59 @@ export function ProductBuyBox({
       {/* Accident protection for the selected size (P5A-05): above the button only when its height is reserved. */}
       {protection === 'eligible' ? panel : null}
 
-      {chosenPlan ? (
-        <AddWithProtectionButton
-          variantId={variant.id}
-          planKey={chosenPlan.planId}
-          disabled={!variant.available}
-          onClick={() => open('cart')}
-        />
-      ) : (
-        <AddToCartButton
-          disabled={!variant.available}
-          onClick={() => open('cart')}
-          lines={[
-            {
-              merchandiseId: variant.id,
-              quantity: 1,
-              selectedVariant: {
-                id: variant.id,
-                title: variant.title,
-                availableForSale: variant.available,
-                requiresShipping: true,
-                price: variant.price,
-                compareAtPrice: variant.compareAt,
-                image: variant.image ?? product.images[0] ?? null,
-                selectedOptions: [...variant.selectedOptions],
-                product: {
-                  id: product.id,
-                  handle: product.handle,
-                  title: product.title,
-                  vendor: product.vendor,
+      {/* The wrapper stays mounted while the button inside swaps between the plain and the with-protection form, so the
+          sticky bar always watches, and presses, the live one. */}
+      <div ref={actionRef}>
+        {chosenPlan ? (
+          <AddWithProtectionButton
+            variantId={variant.id}
+            planKey={chosenPlan.planId}
+            disabled={!variant.available}
+            onClick={() => open('cart')}
+          />
+        ) : (
+          <AddToCartButton
+            disabled={!variant.available}
+            onClick={() => open('cart')}
+            lines={[
+              {
+                merchandiseId: variant.id,
+                quantity: 1,
+                selectedVariant: {
+                  id: variant.id,
+                  title: variant.title,
+                  availableForSale: variant.available,
+                  requiresShipping: true,
+                  price: variant.price,
+                  compareAtPrice: variant.compareAt,
+                  image: variant.image ?? product.images[0] ?? null,
+                  selectedOptions: [...variant.selectedOptions],
+                  product: {
+                    id: product.id,
+                    handle: product.handle,
+                    title: product.title,
+                    vendor: product.vendor,
+                  },
                 },
               },
-            },
-          ]}
-        >
-          {variant.available ? 'Add to cart' : 'Sold out'}
-        </AddToCartButton>
-      )}
+            ]}
+          >
+            {variant.available ? 'Add to cart' : 'Sold out'}
+          </AddToCartButton>
+        )}
+      </div>
       {protection === 'unknown' ? panel : null}
-      {/* Size-matched foundations, bases and frames (P4-03): under the button, above the shared cart messages that report their result. */}
+      <CartMessages suppressed={asideType === 'cart'} />
+
+      {/* The fulfilment choices as cards: home delivery for the saved ZIP (P5B-03, REQ-DEL-002; read after load so this page
+          carries no ZIP), store pickup for this size and "my store", and "Try in store" (P3B-10, REQ-PDP-003, REQ-PDP-004). */}
+      {/* TODO(P5B-03): hide it for products that never ship in-home once the catalog says which (Q-008, CLR-009). */}
+      <div className="flex flex-col gap-3">
+        <DeliveryCheck />
+        <PickupSlot variantId={variant.id} productHandle={product.handle} />
+      </div>
+
+      {/* Size-matched foundations, bases and frames (P4-03): the "Complete your sleep setup" cards. */}
       {addOns ? (
         <ProductAddOns
           productId={product.id}
@@ -243,16 +296,18 @@ export function ProductBuyBox({
           onViewCart={() => open('cart')}
         />
       ) : null}
-      <CartMessages suppressed={asideType === 'cart'} />
       <CompareToggle handle={product.handle} title={product.title} />
 
-      {/* Delivery promise for the saved ZIP (P5B-03, REQ-DEL-002). Read after load so this page carries no ZIP. */}
-      {/* TODO(P5B-03): hide it for products that never ship in-home once the catalog says which (Q-008, CLR-009). */}
-      <DeliveryCheck />
-
-      {/* Extension slots, each filled by its own task; they render nothing today. */}
-      {/* Store pickup for this size and "my store", and "Try in store" (P3B-10, REQ-PDP-003, REQ-PDP-004). */}
-      <PickupSlot variantId={variant.id} productHandle={product.handle} />
-    </div>
+      {stickyVisible ? (
+        <StickyAddBar
+          productTitle={product.title}
+          price={variant.price}
+          compareAt={variant.compareAt}
+          label={mainLabel}
+          disabled={!variant.available}
+          onPress={pressMainButton}
+        />
+      ) : null}
+    </Card>
   );
 }

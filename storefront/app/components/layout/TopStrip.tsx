@@ -11,7 +11,7 @@ export function TopStrip({visible = false, children}: TopStripProps) {
   if (!visible || !children) return null;
   return (
     <div className="on-dark bg-ink-800 text-fg-inverse">
-      <div className="mx-auto flex max-w-page items-center justify-center px-4 py-1 text-xs font-bold tracking-wide uppercase md:px-6">
+      <div className="mx-auto flex max-w-page items-center justify-center px-4 py-1 text-caption font-bold md:px-10">
         {children}
       </div>
     </div>

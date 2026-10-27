@@ -4,7 +4,9 @@ import {CartForm, type OptimisticCartLineInput} from '~/lib/hydrogen/cart-form';
 import {CartActionForm} from '~/components/cart/CartActionForm';
 import {useAside} from '~/components/Aside';
 import {ProductTile} from '~/components/pages/ProductTile';
+import {Badge} from '~/components/ui/Badge';
 import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
 import {matchPriceView} from '~/lib/pages/quiz-view';
 import type {QuizMatch, QuizOutcome} from '~/lib/quiz/types';
 
@@ -56,11 +58,11 @@ export function QuizResults({
           id="quiz-results-heading"
           ref={headingRef}
           tabIndex={-1}
-          className="text-2xl font-bold text-fg"
+          className="type-display text-3xl md:text-heading"
         >
           {matches.length > 0 ? 'Your best matches' : 'No matches found'}
         </h2>
-        <p role="status" className="text-base text-fg-muted">
+        <p role="status" className="text-lead text-fg-muted">
           {matches.length > 0
             ? `${matches.length} ${matches.length === 1 ? 'mattress' : 'mattresses'} matched in ${outcome.size}.`
             : (emptyMessage ?? '')}
@@ -71,7 +73,7 @@ export function QuizResults({
       </div>
 
       {matches.length > 0 ? (
-        <ol className="grid gap-4 md:grid-cols-3">
+        <ol className="grid gap-4 md:grid-cols-3 md:gap-6">
           {matches.map((match) => (
             <li key={match.productId}>
               <ResultCard
@@ -86,6 +88,7 @@ export function QuizResults({
 
       <div className="flex flex-wrap items-center gap-3">
         <Button
+          size="lg"
           to={seeAllHref}
           onClick={() =>
             onResultClick({
@@ -101,7 +104,8 @@ export function QuizResults({
         <Button
           to={retakeHref}
           preventScrollReset
-          variant="secondary"
+          variant="outline"
+          size="lg"
           onClick={onRetake}
         >
           Retake quiz
@@ -109,8 +113,8 @@ export function QuizResults({
       </div>
 
       {answerSummary.length > 0 ? (
-        <details className="rounded-card border-2 border-line p-4">
-          <summary className="min-h-touch cursor-pointer py-2 font-bold">
+        <details className="rounded-card border border-line bg-paper p-4">
+          <summary className="min-h-touch cursor-pointer py-2 text-lg font-extrabold">
             Your answers
           </summary>
           <dl className="mt-2 grid gap-2">
@@ -144,18 +148,22 @@ function ResultCard({
     target,
   });
   return (
-    <article
+    <Card
+      as="article"
+      variant="raised"
       aria-labelledby={`match-${match.rank}-title`}
-      className="flex h-full flex-col gap-3 rounded-card border-2 border-line bg-surface p-4"
+      className="flex h-full flex-col gap-3"
     >
       {/* Placeholder on purpose: QuizMatch carries no image (scoring keeps handles, sizes and variant ids
           only) and the preview fixtures have none. When the live loader (P6-01) adds `image` to QuizMatch,
           pass it here. */}
       <ProductTile image={null} />
-      <p className="text-sm font-bold text-fg-muted">
-        Match {match.rank} · {match.brand}
+      <p className="flex items-center gap-2 text-sm font-bold text-fg-muted">
+        <Badge variant="new">Match {match.rank}</Badge>
+        <span aria-hidden="true">·</span>
+        <span>{match.brand}</span>
       </p>
-      <h3 id={`match-${match.rank}-title`} className="text-lg font-bold">
+      <h3 id={`match-${match.rank}-title`} className="type-display text-title">
         <Link
           to={`/products/${encodeURIComponent(match.handle)}`}
           onClick={() => onResultClick(click('product'))}
@@ -164,11 +172,11 @@ function ResultCard({
           {match.title}
         </Link>
       </h3>
-      <p className="text-base text-fg">
+      <p className="rounded-choice bg-paper p-3 text-base text-fg">
         <span className="font-bold">Why it matches:</span> {match.reasonLine}
       </p>
       <p className="mt-auto flex flex-wrap items-baseline gap-x-2">
-        <span className="text-xl font-bold">{price.text}</span>
+        <span className="text-2xl font-extrabold">{price.text}</span>
         {price.compareAtText ? (
           <s className="text-sm text-fg-muted">
             <span className="sr-only">Original price: </span>
@@ -192,7 +200,7 @@ function ResultCard({
           </p>
         </div>
       )}
-    </article>
+    </Card>
   );
 }
 

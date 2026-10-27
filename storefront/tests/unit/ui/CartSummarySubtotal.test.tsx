@@ -124,7 +124,7 @@ describe('cart summary while the cart is being updated (RS-02)', () => {
       within(value as HTMLElement).getByRole('status'),
     ).toBeEmptyDOMElement();
     expect(value?.querySelector('.italic')).toBeNull();
-    expect(screen.getByRole('link', {name: 'Checkout'})).toBeVisible();
+    expect(screen.getByRole('link', {name: 'Checkout securely'})).toBeVisible();
   });
 });
 
@@ -154,7 +154,7 @@ describe('Checkout keeps keyboard focus when the checkout URL arrives (m5)', () 
 
     act(() => settle());
 
-    const after = screen.getByRole('link', {name: 'Checkout'});
+    const after = screen.getByRole('link', {name: 'Checkout securely'});
     expect(after).toBe(before);
     expect(document.activeElement).toBe(after);
     expect(after).not.toHaveAttribute('aria-busy');

@@ -1,6 +1,5 @@
 import {Link} from 'react-router';
 import {cn} from '~/components/ui/cn';
-import {displayHeadingClass} from '~/lib/display-type';
 import type {PromoMessage} from '~/lib/navigation';
 
 type PromoBarProps = {
@@ -14,9 +13,9 @@ type PromoBarProps = {
 const BOX_CLASSES = 'inline-flex min-h-touch items-center';
 const LINK_CLASSES = `${BOX_CLASSES} underline underline-offset-2 hover:no-underline`;
 
-// The text is free text from Shopify admin: heavy uppercase only while it is short (lib/display-type.ts), otherwise
-// the same weight in sentence case. Each part (message, link label) is judged on its own length.
-const textClass = (text: string) => cn('text-sm', displayHeadingClass(text));
+// The text is free text from Shopify admin and only 13 to 14 px high, so it uses plain bold type in sentence case, never
+// `type-display` (its tight tracking is too cramped at this size) and never capitals.
+const TEXT_CLASSES = 'text-caption font-extrabold md:text-sm';
 
 /** Site paths use the router; another site opens as a plain anchor (the target is allow-listed upstream). */
 function PromoLink({
@@ -26,7 +25,7 @@ function PromoLink({
   message: PromoMessage & {to: string};
   label: string;
 }) {
-  const className = cn(LINK_CLASSES, textClass(label));
+  const className = cn(LINK_CLASSES, TEXT_CLASSES);
   if (message.external === true) {
     return (
       <a href={message.to} rel="noopener noreferrer" className={className}>
@@ -51,13 +50,11 @@ export function PromoBar({message}: PromoBarProps) {
   const linked = to === undefined ? null : {...message, to};
   return (
     <div className="on-dark bg-primary-500 text-white">
-      <p className="mx-auto flex max-w-page flex-wrap items-center justify-center gap-x-3 px-4 text-center md:px-6">
+      <p className="mx-auto flex max-w-page flex-wrap items-center justify-center gap-x-3 px-4 text-center md:px-10">
         {linked && !message.linkLabel ? (
           <PromoLink message={linked} label={message.text} />
         ) : (
-          <span className={cn(BOX_CLASSES, textClass(message.text))}>
-            {message.text}
-          </span>
+          <span className={cn(BOX_CLASSES, TEXT_CLASSES)}>{message.text}</span>
         )}
         {linked && message.linkLabel ? (
           <PromoLink message={linked} label={message.linkLabel} />

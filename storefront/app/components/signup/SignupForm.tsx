@@ -20,6 +20,12 @@ export type SignupFormProps = {
   readonly config: SignupPublicConfig;
   /** Where this copy sits: sent with the form and written into Klaviyo's consent source (footer or home). */
   readonly surface: SignupSurface;
+  /**
+   * `stack` (default) is the plain column used in the footer. `band` is the home page's red band (CR-31): the text sits
+   * on the red in white and the form, its messages and the privacy note sit together on a white card, so field errors and
+   * the consent sentence keep their dark-on-white contrast. Behaviour and wording are the same in both.
+   */
+  readonly layout?: 'stack' | 'band';
 };
 
 const NO_ERRORS: SignupFieldErrors = {};
@@ -35,7 +41,12 @@ const NO_ERRORS: SignupFieldErrors = {};
  *   when text appears. Field problems are inline, tied to their field, and focus moves to the first one.
  * - Nothing the shopper typed is echoed into the page by the server; a successful send clears the form.
  */
-export function SignupForm({config, surface}: SignupFormProps) {
+export function SignupForm({
+  config,
+  surface,
+  layout = 'stack',
+}: SignupFormProps) {
+  const band = layout === 'band';
   const headingId = useId();
   const fetcher = useFetcher<SignupResponse>();
   const formRef = useRef<HTMLFormElement>(null);
@@ -89,132 +100,156 @@ export function SignupForm({config, surface}: SignupFormProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <h2 id={headingId} className="text-xl font-bold text-fg">
-        Get sleep tips and offers
-      </h2>
-      <p className="text-base text-fg-muted">
-        Join our email list for new arrivals, offers and sleep advice.
-      </p>
-      <fetcher.Form
-        method="post"
-        action="/signup"
-        noValidate
-        // The answer is all the page needs: no loader (root, footer links, cart) re-runs for a signup (SU-L4).
-        defaultShouldRevalidate={false}
-        onSubmit={onSubmit}
-        ref={formRef}
-        aria-labelledby={headingId}
-        className="flex flex-col gap-3"
+    <div
+      className={
+        band
+          ? 'grid gap-6 md:grid-cols-2 md:items-center md:gap-12'
+          : 'flex flex-col gap-3'
+      }
+    >
+      {/* `contents` in the column layout keeps the original flat structure (heading, text, form, status as siblings). */}
+      <div className={band ? 'flex flex-col gap-3' : 'contents'}>
+        <h2
+          id={headingId}
+          className={
+            band
+              ? 'type-display text-3xl text-white md:text-4xl'
+              : 'text-xl font-bold text-fg'
+          }
+        >
+          Get sleep tips and offers
+        </h2>
+        <p className={band ? 'text-lg text-white' : 'text-base text-fg-muted'}>
+          Join our email list for new arrivals, offers and sleep advice.
+        </p>
+      </div>
+      <div
+        className={
+          band
+            ? 'on-light flex flex-col gap-3 rounded-card bg-surface p-4 text-fg md:p-6'
+            : 'contents'
+        }
       >
-        <input type="hidden" name={SIGNUP_FIELDS.surface} value={surface} />
-        <input
-          type="hidden"
-          name={SIGNUP_FIELDS.emailConsentVersion}
-          value={EMAIL_CONSENT.version}
-        />
-        <input
-          ref={ageRef}
-          type="hidden"
-          name={SIGNUP_FIELDS.formAge}
-          defaultValue=""
-        />
-        {/* A field no person sees: a bot that fills every input fills this one, and the server drops the signup. */}
-        <div aria-hidden="true" className="sr-only">
-          <label>
-            Leave this field empty
-            <input
-              type="text"
-              name={SIGNUP_FIELDS.honeypot}
-              tabIndex={-1}
-              autoComplete="off"
-              defaultValue=""
-            />
-          </label>
-        </div>
+        <fetcher.Form
+          method="post"
+          action="/signup"
+          noValidate
+          // The answer is all the page needs: no loader (root, footer links, cart) re-runs for a signup (SU-L4).
+          defaultShouldRevalidate={false}
+          onSubmit={onSubmit}
+          ref={formRef}
+          aria-labelledby={headingId}
+          className="flex flex-col gap-3"
+        >
+          <input type="hidden" name={SIGNUP_FIELDS.surface} value={surface} />
+          <input
+            type="hidden"
+            name={SIGNUP_FIELDS.emailConsentVersion}
+            value={EMAIL_CONSENT.version}
+          />
+          <input
+            ref={ageRef}
+            type="hidden"
+            name={SIGNUP_FIELDS.formAge}
+            defaultValue=""
+          />
+          {/* A field no person sees: a bot that fills every input fills this one, and the server drops the signup. */}
+          <div aria-hidden="true" className="sr-only">
+            <label>
+              Leave this field empty
+              <input
+                type="text"
+                name={SIGNUP_FIELDS.honeypot}
+                tabIndex={-1}
+                autoComplete="off"
+                defaultValue=""
+              />
+            </label>
+          </div>
 
-        <Input
-          name={SIGNUP_FIELDS.email}
-          type="email"
-          label="Email address"
-          required
-          maxLength={254}
-          autoComplete="email"
-          inputMode="email"
-          autoCapitalize="none"
-          spellCheck={false}
-          error={errors.email}
-        />
-        <Checkbox
-          name={SIGNUP_FIELDS.emailConsent}
-          value={CONSENT_GIVEN}
-          required
-          label={EMAIL_CONSENT.text}
-          error={errors.consent}
-        />
-        {config.sms ? (
-          <>
-            <input
-              type="hidden"
-              name={SIGNUP_FIELDS.smsConsentVersion}
-              value={SMS_CONSENT.version}
-            />
-            <Input
-              name={SIGNUP_FIELDS.phone}
-              type="tel"
-              label="Mobile number (optional)"
-              hint="US numbers only."
-              maxLength={30}
-              autoComplete="tel"
-              inputMode="tel"
-              error={errors.phone}
-            />
-            <Checkbox
-              name={SIGNUP_FIELDS.smsConsent}
-              value={CONSENT_GIVEN}
-              label={SMS_CONSENT.text}
-              error={errors.smsConsent}
-            />
-          </>
-        ) : null}
-        <p className="text-sm text-fg-muted">
-          We use your details only to send these messages.
-          {config.privacyHref ? (
+          <Input
+            name={SIGNUP_FIELDS.email}
+            type="email"
+            label="Email address"
+            required
+            maxLength={254}
+            autoComplete="email"
+            inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            error={errors.email}
+          />
+          <Checkbox
+            name={SIGNUP_FIELDS.emailConsent}
+            value={CONSENT_GIVEN}
+            required
+            label={EMAIL_CONSENT.text}
+            error={errors.consent}
+          />
+          {config.sms ? (
             <>
-              {' '}
-              <Link
-                to={config.privacyHref}
-                className="inline-flex min-h-touch items-center font-bold text-primary-700 underline underline-offset-2"
-              >
-                Privacy policy
-              </Link>
+              <input
+                type="hidden"
+                name={SIGNUP_FIELDS.smsConsentVersion}
+                value={SMS_CONSENT.version}
+              />
+              <Input
+                name={SIGNUP_FIELDS.phone}
+                type="tel"
+                label="Mobile number (optional)"
+                hint="US numbers only."
+                maxLength={30}
+                autoComplete="tel"
+                inputMode="tel"
+                error={errors.phone}
+              />
+              <Checkbox
+                name={SIGNUP_FIELDS.smsConsent}
+                value={CONSENT_GIVEN}
+                label={SMS_CONSENT.text}
+                error={errors.smsConsent}
+              />
             </>
           ) : null}
-        </p>
-        <div>
-          <Button
-            type="submit"
-            variant="pill"
-            loading={busy}
-            loadingLabel="Signing you up"
-          >
-            Sign up
-          </Button>
-        </div>
-      </fetcher.Form>
-      {/* Always in the document, empty until there is something to say, so the announcement is not missed. */}
-      <div role="status" aria-live="polite" className="empty:hidden">
-        {message !== '' || errors.form ? (
-          <p
-            className={
-              answer?.status === 'ok' && !clientErrors
-                ? 'text-base font-bold text-fg'
-                : 'text-base font-bold text-error-fg'
-            }
-          >
-            {errors.form ?? message}
+          <p className="text-sm text-fg-muted">
+            We use your details only to send these messages.
+            {config.privacyHref ? (
+              <>
+                {' '}
+                <Link
+                  to={config.privacyHref}
+                  className="inline-flex min-h-touch items-center font-bold text-primary-700 underline underline-offset-2"
+                >
+                  Privacy policy
+                </Link>
+              </>
+            ) : null}
           </p>
-        ) : null}
+          <div>
+            <Button
+              type="submit"
+              size={band ? 'lg' : 'md'}
+              loading={busy}
+              loadingLabel="Signing you up"
+            >
+              Sign up
+            </Button>
+          </div>
+        </fetcher.Form>
+        {/* Always in the document, empty until there is something to say, so the announcement is not missed. */}
+        <div role="status" aria-live="polite" className="empty:hidden">
+          {message !== '' || errors.form ? (
+            <p
+              className={
+                answer?.status === 'ok' && !clientErrors
+                  ? 'text-base font-bold text-fg'
+                  : 'text-base font-bold text-error-fg'
+              }
+            >
+              {errors.form ?? message}
+            </p>
+          ) : null}
+        </div>
       </div>
     </div>
   );

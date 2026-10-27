@@ -2,6 +2,7 @@ import {useLoaderData, data, type HeadersFunction} from 'react-router';
 import type {Route} from './+types/cart';
 import {CartForm} from '~/lib/hydrogen/cart-form';
 import {CartMain} from '~/components/CartMain';
+import {CartPageShell} from '~/components/cart/CartPageShell';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {
   validateAddAddOn,
@@ -280,11 +281,9 @@ export default function Cart() {
   const {cart, offers} = useLoaderData<typeof loader>();
 
   return (
-    <div className="py-6">
-      <h1 className="type-display border-b border-line pb-4 text-3xl">
-        Your cart
-      </h1>
+    <CartPageShell>
+      <h1 className="type-display text-4xl md:text-5xl">Your cart</h1>
       <CartMain layout="page" cart={cart} offers={offers} />
-    </div>
+    </CartPageShell>
   );
 }

@@ -32,7 +32,7 @@ export function ProductGallery({
       <div
         role="img"
         aria-label={`No image available for ${title}`}
-        className="aspect-square w-full rounded-card bg-surface-muted"
+        className="aspect-square w-full rounded-hero bg-surface-muted"
       />
     );
   }
@@ -72,7 +72,7 @@ export function ProductGallery({
       className="flex min-w-0 flex-col gap-3"
     >
       <div
-        className="relative aspect-square touch-pan-y overflow-hidden rounded-card bg-surface-muted"
+        className="relative aspect-square touch-pan-y overflow-hidden rounded-hero border border-line bg-surface-muted"
         onPointerDown={(event) => {
           swipeStart.current = event.clientX;
         }}
@@ -96,7 +96,7 @@ export function ProductGallery({
               type="button"
               aria-label="Previous image"
               onClick={() => go(index - 1)}
-              className="absolute top-1/2 left-2 inline-flex size-touch -translate-y-1/2 items-center justify-center rounded-pill bg-surface text-fg shadow-md hover:bg-surface-muted"
+              className="absolute top-1/2 left-3 inline-flex size-touch -translate-y-1/2 items-center justify-center rounded-pill bg-surface text-fg shadow-md hover:bg-surface-muted"
             >
               <ChevronRightIcon className="size-5 rotate-180" />
             </button>
@@ -104,11 +104,11 @@ export function ProductGallery({
               type="button"
               aria-label="Next image"
               onClick={() => go(index + 1)}
-              className="absolute top-1/2 right-2 inline-flex size-touch -translate-y-1/2 items-center justify-center rounded-pill bg-surface text-fg shadow-md hover:bg-surface-muted"
+              className="absolute top-1/2 right-3 inline-flex size-touch -translate-y-1/2 items-center justify-center rounded-pill bg-surface text-fg shadow-md hover:bg-surface-muted"
             >
               <ChevronRightIcon className="size-5" />
             </button>
-            <p className="absolute right-2 bottom-2 rounded-choice bg-ink-900 px-2 py-1 text-xs font-bold text-white">
+            <p className="absolute right-3 bottom-3 rounded-pill bg-ink-900 px-3 py-1 text-caption font-bold text-white">
               {index + 1} / {count}
             </p>
           </>
@@ -132,7 +132,7 @@ export function ProductGallery({
                 aria-current={position === index ? 'true' : undefined}
                 onClick={() => setIndex(position)}
                 className={cn(
-                  'size-16 overflow-hidden rounded-choice border-2 bg-surface-muted',
+                  'size-18 overflow-hidden rounded-choice border-2 bg-surface-muted',
                   position === index
                     ? 'border-primary-500'
                     : 'border-line hover:border-line-strong',
@@ -142,7 +142,7 @@ export function ProductGallery({
                   data={image}
                   alt=""
                   aspectRatio="1/1"
-                  sizes="64px"
+                  sizes="72px"
                   loading="lazy"
                   className="size-full object-cover"
                 />

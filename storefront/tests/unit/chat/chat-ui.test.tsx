@@ -227,8 +227,8 @@ describe('NFR-013 provider failure hides chat only', () => {
     ).toBeNull();
     expect(screen.queryByRole('button', {name: 'Dismiss'})).toBeNull();
     expect(screen.getByRole('status').textContent).toBe('');
-    // Only the two ordinary links remain: no empty item where the call-out was.
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    // Only the ordinary links remain ("Find a store" and the two given ones): no empty item where the call-out was.
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 
   it('after the shopper pressed it, a failure removes the button, announces, shows a notice with the contact page, and focus is not lost', async () => {
@@ -318,11 +318,12 @@ describe('REQ-ANL-004 header integration', () => {
   it('UtilityBar renders the chat entry as a button after the other links, and nothing while hidden', async () => {
     render(<Page config={open} />);
     expect(screen.queryByText('Chat with us')).toBeNull();
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    // The bar always lists "Find a store" first (CR-31), then the links it was given.
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
     await flushIdle();
     expect(await chatButton()).toBeTruthy();
     expect(screen.queryByRole('link', {name: 'Chat with us'})).toBeNull();
-    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getAllByRole('listitem')).toHaveLength(4);
   });
 
   it('a chat entry without a configuration (the boolean form) renders nothing: never the old stand-in link', async () => {
@@ -340,6 +341,6 @@ describe('REQ-ANL-004 header integration', () => {
     );
     await shellLoaded();
     expect(screen.queryByText('Chat with us')).toBeNull();
-    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 });

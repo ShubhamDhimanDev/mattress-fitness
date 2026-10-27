@@ -19,19 +19,27 @@ type AsideContextValue = {
 /**
  * A side panel opened through the Aside context (`useAside().open('cart')`). Rendered with the shared
  * Drawer, so focus trap, Escape and focus return come from one place.
+ * `countLabel`, `footer` and `bodyPadding` are passed straight to the Drawer (the count chip beside the title, a
+ * pinned footer, edge-to-edge body).
  * @example
- * <Aside type="cart" heading="Cart"><CartMain ... /></Aside>
+ * <Aside type="cart" heading="Your cart" countLabel="3 items"><CartMain ... /></Aside>
  */
 export function Aside({
   children,
   heading,
   type,
   side = 'right',
+  countLabel,
+  footer,
+  bodyPadding,
 }: {
   children?: ReactNode;
   type: Exclude<AsideType, 'closed'>;
   heading: ReactNode;
   side?: 'left' | 'right';
+  countLabel?: string;
+  footer?: ReactNode;
+  bodyPadding?: 'default' | 'none';
 }) {
   const {type: activeType, close} = useAside();
   return (
@@ -40,6 +48,9 @@ export function Aside({
       onClose={close}
       title={heading}
       side={side}
+      countLabel={countLabel}
+      footer={footer}
+      bodyPadding={bodyPadding}
     >
       {children}
     </Drawer>

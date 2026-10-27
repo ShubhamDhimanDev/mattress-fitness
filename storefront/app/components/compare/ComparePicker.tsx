@@ -24,16 +24,17 @@ export function ComparePicker({
   return (
     <form method="get" action="/compare" className="flex flex-col gap-4">
       <fieldset className="min-w-0">
-        <legend className="text-lg font-bold">
+        <legend className="type-display text-2xl">
           Choose products to compare
         </legend>
         <p className="mt-1 text-sm text-fg-muted" aria-live="polite">
           {selectedCount} of {COMPARE_MAX_PRODUCTS} selected.
         </p>
-        <ul className="mt-2 grid gap-x-6 md:grid-cols-2">
+        <ul className="mt-3 grid gap-3 md:grid-cols-2">
           {items.map((item) => (
             <li key={item.handle}>
               <Checkbox
+                variant="card"
                 name="handles"
                 value={item.handle}
                 checked={item.checked}
@@ -42,7 +43,7 @@ export function ComparePicker({
                 }
                 label={
                   <span>
-                    <span className="font-bold">{item.title}</span>
+                    <span className="font-extrabold">{item.title}</span>
                     <span className="block text-sm text-fg-muted">
                       {item.brand}
                     </span>

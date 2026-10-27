@@ -44,9 +44,11 @@ test.describe('component gallery: page', () => {
     await gotoGallery(page);
     for (const title of [
       'Design tokens',
+      'Typography (Plus Jakarta Sans)',
       'Buttons',
       'Form controls',
       'Display',
+      'Cards and progress',
       'Selectors, accordion and tabs',
       'Dialog and drawers',
       'Toast notifications',
@@ -507,9 +509,11 @@ test.describe('component gallery: brand states (BA-03)', () => {
       .first();
     await expect(primary).toHaveCSS('background-color', RED);
     await expect(primary).toHaveCSS('color', 'rgb(255, 255, 255)');
-    await expect(primary).toHaveCSS('text-transform', 'uppercase');
-    await expect(primary).toHaveCSS('font-weight', '800');
-    await expect(primary).toHaveCSS('border-top-left-radius', '8px');
+    // CR-31: bold sentence-case labels, 48 px high, 12 px radius.
+    await expect(primary).toHaveCSS('text-transform', 'none');
+    await expect(primary).toHaveCSS('font-weight', '700');
+    await expect(primary).toHaveCSS('border-top-left-radius', '12px');
+    expect((await primary.boundingBox())?.height).toBeGreaterThanOrEqual(47.5);
 
     await primary.hover();
     await expect(primary).toHaveCSS('background-color', RED_HOVER);
@@ -632,5 +636,193 @@ test.describe('component gallery: brand states (BA-03)', () => {
     expect(await columns()).toBe(2);
     await page.setViewportSize({width: 360, height: 800});
     await expect.poll(columns).toBe(3);
+  });
+});
+
+// CR-31 R1/R2: the redesign tokens and primitives as the browser computes them (the class contracts are unit-tested in
+// tests/unit/ui/redesignPrimitives.test.tsx and fontAndTypeTokens.test.ts; computed values catch a token that resolves
+// to the wrong thing).
+test.describe('component gallery: redesign foundation (CR-31)', () => {
+  test('the self-hosted Plus Jakarta Sans loads and is the body font; no third-party font request is made', async ({
+    page,
+  }) => {
+    const fontRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.resourceType() === 'font') fontRequests.push(request.url());
+    });
+    await gotoGallery(page);
+    await expect(page.locator('body')).toHaveCSS(
+      'font-family',
+      /Plus Jakarta Sans/,
+    );
+    const loaded = await page.evaluate(async () => {
+      await document.fonts.ready;
+      return document.fonts.check("800 16px 'Plus Jakarta Sans'");
+    });
+    expect(loaded).toBe(true);
+    expect(fontRequests.length).toBeGreaterThan(0);
+    for (const url of fontRequests) {
+      expect(new URL(url).origin).toBe(new URL(page.url()).origin);
+    }
+  });
+
+  test('type-display is heavy, tight and not upper-cased; the eyebrow is capitals; the mark is red with white text', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const display = page.locator('p.type-display', {
+      hasText: 'Shop by size (heading, 40)',
+    });
+    await expect(display).toHaveCSS('font-weight', '800');
+    await expect(display).toHaveCSS('text-transform', 'none');
+    await expect(display).toHaveCSS('font-size', '40px');
+    const eyebrow = page.locator('p.type-eyebrow', {
+      hasText: 'Sleep better, shop smarter',
+    });
+    await expect(eyebrow).toHaveCSS('text-transform', 'uppercase');
+    await expect(eyebrow).toHaveCSS('font-size', '13px');
+    await expect(eyebrow).toHaveCSS('color', 'rgb(168, 3, 12)');
+    const mark = page.locator('span.type-mark').first();
+    await expect(mark).toHaveCSS('background-color', 'rgb(222, 5, 16)');
+    await expect(mark).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await expect(mark).toHaveCSS('border-top-left-radius', '10px');
+  });
+
+  test('an eyebrow on a dark band can be recoloured with a text utility', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const onDark = page.locator('p.type-eyebrow', {
+      hasText: 'Eyebrow on a dark band',
+    });
+    await expect(onDark).toHaveCSS('color', 'rgb(255, 134, 138)');
+  });
+
+  test('tokens resolve: paper, hairline, radii, lift shadow and the 1400 px page width', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const swatch = (name: string) =>
+      page.locator('li', {hasText: new RegExp(`^${name}`)}).first();
+    await expect(swatch('paper \\(surface-muted\\)')).toHaveCSS(
+      'background-color',
+      'rgb(247, 244, 239)',
+    );
+    await expect(swatch('paper-line')).toHaveCSS(
+      'background-color',
+      'rgb(230, 226, 220)',
+    );
+    const radii = {
+      'rounded-sm': '8px',
+      'rounded-choice': '12px',
+      'rounded-card': '18px',
+      'rounded-panel': '24px',
+      'rounded-hero': '28px',
+    };
+    for (const [name, px] of Object.entries(radii)) {
+      await expect(
+        page.getByRole('listitem').filter({hasText: new RegExp(`^${name}$`)}),
+      ).toHaveCSS('border-top-left-radius', px);
+    }
+    const lift = page
+      .getByRole('listitem')
+      .filter({hasText: 'shadow-lift (raised card)'});
+    await expect(lift).toHaveCSS(
+      'box-shadow',
+      /rgba\(20, 20, 20, 0\.18\) 0px 12px 40px -12px$/,
+    );
+    const pageWidth = await page.evaluate(() => {
+      const probe = document.createElement('div');
+      probe.className = 'max-w-page';
+      document.body.append(probe);
+      const width = getComputedStyle(probe).maxWidth;
+      probe.remove();
+      return width;
+    });
+    expect(pageWidth).toBe('1400px');
+  });
+
+  test('the large button is 56 px, fields are 52 px, the stepper buttons are 46 px', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(
+      isMobile,
+      'Sizes are the same on both profiles; one run is enough.',
+    );
+    await gotoGallery(page);
+    const large = page.getByRole('button', {name: 'Checkout securely'}).first();
+    expect((await large.boundingBox())?.height).toBeCloseTo(56, 0);
+    const email = page.getByRole('textbox', {name: 'Email'});
+    expect((await email.boundingBox())?.height).toBeCloseTo(52, 0);
+    await expect(email).toHaveCSS('border-top-width', '2px');
+    await expect(email).toHaveCSS('border-top-color', 'rgb(140, 140, 140)');
+    const plus = page.getByRole('button', {
+      name: 'Increase quantity of Queen mattress',
+    });
+    const box = await plus.boundingBox();
+    expect(box?.width).toBeCloseTo(46, 0);
+    expect(box?.height).toBeCloseTo(46, 0);
+  });
+
+  test('the progress bar exposes its value and the fill widens to match', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const bar = page.getByRole('progressbar', {
+      name: 'Progress to free delivery',
+      exact: true,
+    });
+    await expect(bar).toHaveAttribute('aria-valuenow', '70');
+    await expect(bar).toHaveAttribute('aria-valuemin', '0');
+    await expect(bar).toHaveAttribute('aria-valuemax', '100');
+    const widths = await bar.evaluate((element) => {
+      const fill = element.firstElementChild;
+      return fill
+        ? [
+            fill.getBoundingClientRect().width,
+            element.getBoundingClientRect().width,
+          ]
+        : [0, 1];
+    });
+    const [fill = 0, track = 1] = widths;
+    expect(fill / track).toBeCloseTo(0.7, 1);
+    await expect(bar).toHaveCSS('height', '10px');
+  });
+
+  test('cards: the gift card has a dashed amber border; a tab shows the 4 px red bar', async ({
+    page,
+  }) => {
+    await gotoGallery(page);
+    const gift = page.locator('section[aria-labelledby="g-card-gift"]');
+    await expect(gift).toHaveCSS('border-top-style', 'dashed');
+    await expect(gift).toHaveCSS('border-top-color', 'rgb(246, 180, 20)');
+    await expect(gift).toHaveCSS('border-top-left-radius', '18px');
+    const tab = page.getByRole('tab', {name: 'Overview'});
+    await expect(tab).toHaveCSS('border-bottom-width', '4px');
+    await expect(tab).toHaveCSS('border-bottom-color', 'rgb(222, 5, 16)');
+  });
+
+  test('the drawer is 440 px wide, has the count chip and keeps its footer in view', async ({
+    page,
+  }) => {
+    await page.setViewportSize({width: 1280, height: 800});
+    await gotoGallery(page);
+    const drawer = page.getByRole('dialog', {name: 'Right drawer'});
+    await openUntilVisible(
+      page.getByRole('button', {name: 'Open right drawer'}),
+      drawer,
+    );
+    await expect(drawer).toContainText('3 items');
+    const box = await drawer.boundingBox();
+    expect(box?.width).toBeCloseTo(440, 0);
+    await expect(
+      drawer.getByRole('button', {name: 'Checkout securely'}),
+    ).toBeInViewport();
+    const close = drawer.getByRole('button', {name: 'Close'});
+    await expect(close).toHaveCSS('border-top-left-radius', '9999px');
+    const closeBox = await close.boundingBox();
+    expect(closeBox?.width).toBeCloseTo(44, 0);
+    expect(closeBox?.height).toBeCloseTo(44, 0);
   });
 });

@@ -60,7 +60,7 @@ export function CartMessages({
         <button
           type="button"
           onClick={() => setDismissedAt(seq)}
-          className="min-h-touch text-sm text-primary-700 underline underline-offset-2"
+          className="mb-3 min-h-touch text-sm font-bold text-primary-700 underline underline-offset-2"
         >
           Dismiss
         </button>
@@ -75,11 +75,11 @@ function MessageRow({message}: {message: CartMessage}) {
     <p
       className={
         isError
-          ? 'mb-2 flex items-start gap-2 rounded-choice bg-error-bg p-3 text-sm font-bold text-error-fg'
-          : 'mb-2 flex items-start gap-2 rounded-choice bg-warning-bg p-3 text-sm text-warning-fg'
+          ? 'mb-3 flex items-start gap-3 rounded-card border border-error-solid bg-error-bg px-4 py-3 text-sm font-bold text-error-fg'
+          : 'mb-3 flex items-start gap-3 rounded-card border border-warning-solid bg-warning-bg px-4 py-3 text-sm font-semibold text-warning-fg'
       }
     >
-      <AlertIcon className="mt-0.5 size-4 shrink-0" />
+      <AlertIcon className="mt-0.5 size-5 shrink-0" />
       <span>
         <span className="sr-only">{isError ? 'Error: ' : 'Notice: '}</span>
         {message.text}

@@ -3,6 +3,8 @@ import type {Route} from './+types/policies._index';
 import type {PoliciesQuery, PolicyItemFragment} from 'storefrontapi.generated';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {cardStyles} from '~/components/ui/Card';
+import {ChevronRightIcon} from '~/components/ui/Icons';
 import {catalogCache} from '~/lib/shopify/cache';
 
 export const meta: Route.MetaFunction = () => [
@@ -34,22 +36,26 @@ export default function Policies() {
   const {policies} = useLoaderData<typeof loader>();
 
   return (
-    <div className="py-4">
+    <div className="mx-auto max-w-prose py-6 md:py-10">
       <Breadcrumb
         items={[{label: 'Home', to: '/'}, {label: 'Policies'}]}
         className="print:hidden"
       />
-      <h1 className="mt-2 border-b border-line pb-4 text-3xl font-bold">
+      <h1 className="type-display mt-4 border-b border-line pb-6 text-4xl md:text-5xl">
         Policies
       </h1>
-      <ul className="mt-4">
+      <ul className="mt-6 flex flex-col gap-3">
         {policies.map((policy) => (
           <li key={policy.id}>
             <Link
               to={`/policies/${policy.handle}`}
-              className="inline-flex min-h-touch items-center text-base text-primary-700 underline underline-offset-2 hover:text-primary-800"
+              className={
+                cardStyles({interactive: true, padding: 'sm'}) +
+                ' flex min-h-14 items-center justify-between gap-3 text-lg font-bold'
+              }
             >
               {policy.title}
+              <ChevronRightIcon className="text-primary-700" />
             </Link>
           </li>
         ))}

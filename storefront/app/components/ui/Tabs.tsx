@@ -49,7 +49,7 @@ export function Tabs({tabs, label, defaultTabId, className}: TabsProps) {
       <div
         role="tablist"
         aria-label={label}
-        className="flex overflow-x-auto border-b border-line"
+        className="flex overflow-x-auto border-b-2 border-line"
       >
         {tabs.map((tab, index) => {
           const selected = tab.id === selectedId;
@@ -69,10 +69,12 @@ export function Tabs({tabs, label, defaultTabId, className}: TabsProps) {
               onKeyDown={(event) => onKeyDown(event, index)}
               className={cn(
                 // The tab list scrolls, so it clips an outside ring; the ring is drawn inside the tab instead (BV-003).
-                'min-h-touch shrink-0 -outline-offset-3 border-b-4 px-4 text-base font-bold whitespace-nowrap',
+                // Underline tabs: the selected one carries a 4 px brand-red bar and ink text (the bar is 5.08:1 on white,
+                // and the tab is also marked by aria-selected and the heavier text, so colour is not the only cue).
+                'min-h-14 shrink-0 -outline-offset-3 border-b-4 px-5 text-base whitespace-nowrap motion-safe:transition-colors',
                 selected
-                  ? 'border-primary-700 text-primary-700'
-                  : 'border-transparent text-fg-muted hover:text-fg',
+                  ? 'border-primary-500 font-extrabold text-fg'
+                  : 'border-transparent font-bold text-fg-muted hover:border-line-strong hover:text-fg',
               )}
             >
               {tab.label}

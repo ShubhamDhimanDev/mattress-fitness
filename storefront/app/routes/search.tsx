@@ -65,29 +65,34 @@ export default function SearchPage() {
 
   return (
     <div className="py-4">
-      <h1 className="text-3xl font-bold">
-        {data.term ? `Search results for “${data.term}”` : 'Search'}
-      </h1>
-      <form
-        method="get"
-        action="/search"
-        role="search"
-        aria-label="Search this store"
-        className="mt-4 flex max-w-xl items-end gap-2"
-      >
-        <Input
-          label="Search products and pages"
-          name="q"
-          type="search"
-          defaultValue={data.term}
-          maxLength={100}
-          className="flex-1"
-        />
-        <Button type="submit">Search</Button>
-      </form>
+      <header className="rounded-panel bg-paper p-6 md:p-10">
+        <h1 className="type-display text-4xl md:text-heading">
+          {data.term ? `Search results for “${data.term}”` : 'Search'}
+        </h1>
+        <form
+          method="get"
+          action="/search"
+          role="search"
+          aria-label="Search this store"
+          className="mt-4 flex max-w-xl items-end gap-2"
+        >
+          <Input
+            label="Search products and pages"
+            name="q"
+            type="search"
+            defaultValue={data.term}
+            maxLength={100}
+            className="flex-1"
+          />
+          <Button type="submit">Search</Button>
+        </form>
+      </header>
 
       {data.failed ? (
-        <p role="alert" className="mt-6 text-base">
+        <p
+          role="alert"
+          className="mt-6 rounded-card border-2 border-error-fg bg-error-bg p-4 text-base font-bold text-error-fg"
+        >
           Search is not available right now. Please try again in a moment.
         </p>
       ) : null}

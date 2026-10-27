@@ -45,8 +45,8 @@ export function FooterLogo() {
       alt={BRAND_NAME}
       loading="lazy"
       decoding="async"
-      // The PNG has opaque white corners; the round clip keeps them from showing on the footer's grey surface.
-      className="size-24 shrink-0 rounded-full md:size-28"
+      // The PNG has opaque white corners; the round clip keeps them from showing on the footer's ink surface.
+      className="size-24 shrink-0 rounded-full"
     />
   );
 }

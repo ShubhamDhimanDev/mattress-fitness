@@ -4,6 +4,7 @@
 
 import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {
+  CatalogHomeFaqsQuery,
   CatalogHomeQuery,
   CatalogHomeSectionsQuery,
 } from 'storefrontapi.generated';
@@ -19,23 +20,35 @@ import {mapProductCards} from '~/lib/shopify/card';
 import {brandPath, normalizeBrandSlug} from '~/lib/shopify/brand-data';
 import {fieldRecord, mapImage} from '~/lib/shopify/common';
 import {BRAND_FIELDS, PRIMARY_COLLECTION_HANDLE} from '~/lib/shopify/config';
+import {buildFinder, type HomeFinderData} from '~/lib/shopify/home-finder';
 import {
   PLACEHOLDER_HOME_SECTIONS,
   mapHomeSections,
   type HomeSection,
 } from '~/lib/shopify/home-sections';
+import {BED_SHAPES, type BedShape} from '~/lib/shopify/home-sizes';
+import {mapFaqs} from '~/lib/shopify/product';
 import {HOME_QUERY} from '~/lib/shopify/queries';
-import type {ImageView, ProductCardView} from '~/lib/shopify/types';
+import type {FaqView, ImageView, ProductCardView} from '~/lib/shopify/types';
 import {logError} from '~/lib/logging/logger';
 
-const MAX_BRAND_TILES = 8;
+const MAX_BRAND_TILES = 12;
 const MAX_COLLECTION_TILES = 6;
+const MAX_HOME_FAQS = 10;
+/** `faq.scope` value for entries that belong on general pages such as the home page. */
+const GENERAL_FAQ_SCOPE = 'general';
+const FAQ_SCOPE_FIELD = 'scope';
 /** Shopify's built-in "Home page" list (`frontpage`) is an internal collection, not a category a shopper would browse (seen on the real store). */
 const INTERNAL_COLLECTION_HANDLES: ReadonlySet<string> = new Set(['frontpage']);
 /** Sizes offered as tiles when the catalog has no size data yet: the six regular sizes. */
 const DEFAULT_SIZE_TILES: readonly Size[] = SIZES.slice(0, 6);
 
-export type SizeTile = {readonly label: string; readonly to: string};
+export type SizeTile = {
+  readonly label: string;
+  readonly to: string;
+  /** The real width and length for the drawn bed. */
+  readonly shape: BedShape;
+};
 
 export type BrandTile = {
   readonly name: string;
@@ -51,7 +64,8 @@ export type CollectionTile = {
 
 /**
  * The homepage_section entries (REQ-HOME-001). No price or availability is read here, so unlike the product
- * cards it uses the long cache; the client's edits show after the cache window.
+ * cards it uses the long cache; the client's edits show after the cache window. `references` carries the
+ * `homepage_card` entries of the `cards` field (CR-31); on every other field it is null.
  */
 export const HOME_SECTIONS_QUERY = `#graphql
   query CatalogHomeSections($country: CountryCode, $language: LanguageCode)
@@ -72,6 +86,46 @@ export const HOME_SECTIONS_QUERY = `#graphql
               }
             }
           }
+          references(first: 6) {
+            nodes {
+              ... on Metaobject {
+                id
+                fields {
+                  key
+                  value
+                  reference {
+                    ... on MediaImage {
+                      image {
+                        url
+                        altText
+                        width
+                        height
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+` as const;
+
+/**
+ * The FAQ entries for the home `faq` block. Read only when admin has such a block (see `loadHome`), with the long cache
+ * like the sections. Which entries belong on the home page is decided by their `scope` field (`general`), not here.
+ */
+export const HOME_FAQS_QUERY = `#graphql
+  query CatalogHomeFaqs($country: CountryCode, $language: LanguageCode)
+  @inContext(country: $country, language: $language) {
+    faqs: metaobjects(type: "faq", first: 50) {
+      nodes {
+        id
+        fields {
+          key
+          value
         }
       }
     }
@@ -87,6 +141,10 @@ export type HomeData = {
   readonly sizeTiles: readonly SizeTile[];
   readonly brandTiles: readonly BrandTile[];
   readonly collectionTiles: readonly CollectionTile[];
+  /** The hero's finder card; null when there is nothing to choose from (the card is then left out). */
+  readonly finder: HomeFinderData | null;
+  /** The general FAQ entries for the home `faq` block; empty when there are none or the page has no such block. */
+  readonly faqs: readonly FaqView[];
   /** Blocks in display order: from admin when it has usable entries, else the placeholder layout. */
   readonly sections: readonly HomeSection[];
   readonly sectionsSource: 'admin' | 'placeholder';
@@ -168,9 +226,25 @@ function brandTilesFrom(
   }));
 }
 
+/**
+ * The FAQ entries whose `scope` is `general` (case and spacing forgiven), in the order Shopify returned them. An entry
+ * missing its question or answer is skipped by `mapFaqs`; at most ten are shown.
+ */
+export function mapGeneralFaqs(
+  nodes: CatalogHomeFaqsQuery['faqs']['nodes'] | null | undefined,
+): FaqView[] {
+  const general = (nodes ?? []).filter(
+    (node) =>
+      fieldRecord(node.fields)[FAQ_SCOPE_FIELD]?.trim().toLowerCase() ===
+      GENERAL_FAQ_SCOPE,
+  );
+  return mapFaqs(general).slice(0, MAX_HOME_FAQS);
+}
+
 export function buildHomeData(
   home: CatalogHomeQuery,
   sectionNodes: CatalogHomeSectionsQuery['sections']['nodes'] = [],
+  faqNodes: CatalogHomeFaqsQuery['faqs']['nodes'] = [],
 ): HomeData {
   const adminSections = mapHomeSections(sectionNodes);
   const primary = home.primary;
@@ -184,6 +258,7 @@ export function buildHomeData(
 
   const sizes = knownSizes(products);
   const sizeList = sizes.length > 0 ? sizes : DEFAULT_SIZE_TILES;
+  const brandTiles = brandTilesFrom(home, products, collectionHandle);
 
   return {
     featured:
@@ -197,10 +272,19 @@ export function buildHomeData(
     sizeTiles: sizeList.map((size) => ({
       label: size,
       to: sizeTileHref(collectionHandle, size),
+      shape: BED_SHAPES[size],
     })),
-    brandTiles: brandTilesFrom(home, products, collectionHandle),
+    brandTiles,
+    finder: buildFinder(
+      collectionHandle,
+      sizeList,
+      brandTiles.map((tile) => tile.name),
+    ),
+    faqs: mapGeneralFaqs(faqNodes),
     collectionTiles: home.collections.nodes
-      .filter((collection) => !INTERNAL_COLLECTION_HANDLES.has(collection.handle))
+      .filter(
+        (collection) => !INTERNAL_COLLECTION_HANDLES.has(collection.handle),
+      )
       .slice(0, MAX_COLLECTION_TILES)
       .map((collection) => ({
         title: collection.title,
@@ -222,7 +306,30 @@ export async function loadHome(storefront: Storefront): Promise<HomeData> {
     }),
     loadHomeSections(storefront),
   ]);
-  return buildHomeData(home, sections);
+  // The FAQ entries are read only when admin placed a `faq` block: a page without one does not ask for them.
+  const wantsFaqs = mapHomeSections(sections).some(
+    (section) => section.kind === 'block' && section.type === 'faq',
+  );
+  return buildHomeData(
+    home,
+    sections,
+    wantsFaqs ? await loadHomeFaqs(storefront) : [],
+  );
+}
+
+/** A failed FAQ read leaves the block out and nothing else (NFR-013). */
+async function loadHomeFaqs(
+  storefront: Storefront,
+): Promise<CatalogHomeFaqsQuery['faqs']['nodes']> {
+  try {
+    const {faqs} = await storefront.query(HOME_FAQS_QUERY, {
+      cache: catalogCache(storefront),
+    });
+    return faqs.nodes;
+  } catch {
+    logError('home.faqs_read_failed');
+    return [];
+  }
 }
 
 /** A failed sections read must not take the home page down: the placeholder layout is used instead (NFR-013). */

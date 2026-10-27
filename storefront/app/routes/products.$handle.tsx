@@ -8,6 +8,7 @@ import type {Route} from './+types/products.$handle';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {ProductBuyBox} from '~/components/product/ProductBuyBox';
 import {ProductGallery} from '~/components/product/ProductGallery';
+import {PRODUCT_END_ID} from '~/components/product/sticky-add-bar';
 import {ProductSections} from '~/components/product/ProductSections';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {buildBreadcrumbJsonLd, buildProductJsonLd} from '~/lib/shopify/jsonld';
@@ -182,7 +183,8 @@ export default function Product() {
     : -1;
 
   return (
-    <div className="py-4">
+    // pb-24 below 1024 px: room for the phone's sticky Add to cart bar, so it never covers the last lines of the page.
+    <div className="py-4 pb-24 max-lg:[&_:is(a,button,input,select,summary,textarea,[tabindex])]:scroll-mb-28 lg:pb-4">
       <Breadcrumb
         items={[
           {label: 'Home', to: '/'},
@@ -190,13 +192,18 @@ export default function Product() {
           {label: product.title},
         ]}
       />
-      <div className="mt-4 grid gap-8 lg:grid-cols-2 lg:gap-10">
-        <ProductGallery
-          key={variant.image?.url ?? 'default'}
-          images={product.images}
-          title={product.title}
-          initialIndex={Math.max(variantImageIndex, 0)}
-        />
+      <div className="mt-4 grid gap-6 lg:grid-cols-2 lg:gap-10">
+        {/* The gallery is the sticky column on desktop, not the buy box: the buy box holds the protection, delivery, pickup and
+            add-on cards and can be taller than a laptop screen, and a sticky box taller than the screen would hide its lower
+            controls until the end of the grid. */}
+        <div className="min-w-0 lg:sticky lg:top-4 lg:self-start">
+          <ProductGallery
+            key={variant.image?.url ?? 'default'}
+            images={product.images}
+            title={product.title}
+            initialIndex={Math.max(variantImageIndex, 0)}
+          />
+        </div>
         <ProductBuyBox
           key={product.id}
           product={product}
@@ -212,6 +219,8 @@ export default function Product() {
         brandLink={brandLink}
         reviews={reviewsEnabled}
       />
+      {/* Where the phone's sticky bar steps aside (useStickyAddBar), so it never covers the footer. */}
+      <div id={PRODUCT_END_ID} className="h-px" />
       <Analytics.ProductView
         data={{
           products: [

@@ -113,6 +113,7 @@ const TEXT_PAIRS: readonly Pair[] = [
   ['primary-800', 'ink-100', 'link hover on grey'],
   ['primary-400', 'ink-900', 'red text on black'],
   ['primary-200', 'ink-900', 'tinted text on black'],
+  ['primary-300', 'ink-900', 'eyebrow on a dark band'],
   // Button variants on their surfaces
   ['white', 'primary-500', 'inverse-outline label on the red band'],
   ['ink-900', 'accent-400', 'accent button, sale badge'],
@@ -136,6 +137,40 @@ const TEXT_PAIRS: readonly Pair[] = [
   ['sale-fg', 'ink-100', 'sale price on a grey card'],
   ['ink-600', 'sale-bg', 'muted text in a sale callout'],
   ['accent-700', 'white', 'amber text on a light surface'],
+  // Warm paper (CR-31): bands, the cart page background, tinted cards, chips, hovered quiet buttons
+  ['ink-900', 'paper', 'body text on a band (16.79)'],
+  ['ink-700', 'paper', 'chip text, footer links on a band (9.90)'],
+  ['ink-600', 'paper', 'muted text on a band (6.90)'],
+  ['ink-500', 'paper', 'placeholder text on a band (4.65)'],
+  [
+    'primary-500',
+    'paper',
+    'red text on paper: only at 16 px and larger (4.63), small red text uses primary-700',
+  ],
+  ['primary-700', 'paper', 'links and eyebrows on a band (7.13)'],
+  ['primary-800', 'paper', 'link hover on a band'],
+  ['sale-fg', 'paper', 'savings amount on a band'],
+  ['success-fg', 'paper', 'success text on a band'],
+  ['error-fg', 'paper', 'error text on a band'],
+  ['accent-700', 'paper', 'amber text on a band'],
+  ['ink-900', 'accent-50', 'free-gift card text'],
+  ['ink-600', 'accent-50', 'muted text in the free-gift card'],
+  [
+    'sale-fg',
+    'accent-50',
+    'struck-through value and savings in the free-gift card',
+  ],
+  // Button states added with the redesign
+  ['white', 'ink-700', 'dark button hover'],
+  ['white', 'ink-800', 'dark button pressed'],
+  ['ink-900', 'paper', 'white and outline button hover'],
+  [
+    'ink-900',
+    'ink-100',
+    'white and outline button pressed, soft icon button hover',
+  ],
+  ['primary-800', 'white', 'link button hover'],
+  ['primary-900', 'white', 'link button pressed'],
   // Status
   ['success-fg', 'success-bg', 'success message'],
   ['warning-fg', 'warning-bg', 'warning message'],
@@ -159,6 +194,13 @@ const UI_PAIRS: readonly Pair[] = [
   ['focus', 'ink-50', 'focus ring on a subtle panel'],
   ['focus', 'ink-100', 'focus ring on grey (footer, utility bar)'],
   ['focus', 'ink-200', 'focus ring on hairline grey'],
+  ['ink-400', 'paper', 'control border on a band (3.07)'],
+  ['focus', 'paper', 'focus ring on a band'],
+  ['focus', 'accent-50', 'focus ring on the free-gift card'],
+  ['primary-500', 'ink-100', 'progress bar fill (red) against its track'],
+  ['success-solid', 'ink-100', 'progress bar fill (success) against its track'],
+  ['primary-500', 'paper', 'tab bar and secondary button border on a band'],
+  ['error-solid', 'paper', 'invalid field border on a band'],
   ['focus', 'primary-50', 'focus ring on a red tint'],
   ['focus', 'primary-100', 'focus ring on a red tint, pressed'],
   ['focus-inverse', 'ink-900', 'yellow ring on black (.on-dark)'],
@@ -273,8 +315,32 @@ describe('design tokens: contrast (NFR-003)', () => {
       'sale-bg',
       'focus',
       'focus-inverse',
+      'paper',
+      'paper-line',
     ]) {
       expect(colors.has(name), name).toBe(true);
     }
+  });
+
+  // CR-31: the warm neutrals and the roles that point at them (REDESIGN_PLAN section 3).
+  it('uses the warm paper for muted surfaces and the warm hairline for dividers', () => {
+    expect(colors.get('paper')).toBe('#f7f4ef');
+    expect(colors.get('paper-line')).toBe('#e6e2dc');
+    expect(roles.get('surface-muted')).toBe('paper');
+    expect(roles.get('line')).toBe('paper-line');
+  });
+
+  it('matches the ratios quoted in the palette comment for the paper pairs', () => {
+    expect(contrast('ink-900', 'paper')).toBeCloseTo(16.79, 2);
+    expect(contrast('ink-600', 'paper')).toBeCloseTo(6.9, 2);
+    expect(contrast('primary-500', 'paper')).toBeCloseTo(4.63, 2);
+    expect(contrast('ink-400', 'paper')).toBeCloseTo(3.07, 2);
+  });
+
+  // The hairline is decoration (1.29:1 on white): a control never relies on it as its only edge. Control borders use
+  // line-strong (ink-400), which the pairs above check.
+  it('keeps the hairline decorative and the control border strong', () => {
+    expect(contrast('line', 'white')).toBeLessThan(UI);
+    expect(contrast('line-strong', 'white')).toBeGreaterThanOrEqual(UI);
   });
 });

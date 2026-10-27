@@ -1,5 +1,7 @@
 import type {RefObject} from 'react';
 import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
+import {InfoIcon} from '~/components/ui/Icons';
 
 type QuizIntroProps = {
   questionCount: number;
@@ -29,39 +31,48 @@ export function QuizIntro({
       aria-labelledby="quiz-intro-heading"
       className="flex flex-col gap-6"
     >
-      <div className="flex flex-col gap-3">
+      <Card variant="raised" padding="md" className="flex flex-col gap-5">
         <h2
           id="quiz-intro-heading"
           ref={headingRef}
           tabIndex={-1}
-          className="text-2xl font-bold text-fg"
+          className="type-display text-3xl md:text-heading"
         >
           Find a mattress that fits how you sleep
         </h2>
-        <p className="text-base text-fg">
+        <p className="max-w-prose text-lead text-fg">
           Answer {questionCount} quick questions, one tap each. We will match
           your answers to the mattresses we sell and show your three best
           matches in your size and budget.
         </p>
-        <p className="rounded-card border-2 border-line bg-surface-muted p-4 text-sm text-fg">
-          <strong>Shopping guidance, not medical advice.</strong> The quiz
-          suggests mattresses based on your preferences. If you have a medical
-          condition or ongoing pain, talk to a health professional about what is
-          right for you.
-        </p>
-      </div>
-      <div>
-        <Button to={startHref} preventScrollReset onClick={onStart} size="lg">
-          Start the quiz
-        </Button>
-      </div>
+        <div>
+          <Button to={startHref} preventScrollReset onClick={onStart} size="lg">
+            Start the quiz
+          </Button>
+        </div>
+        <Card
+          variant="tinted"
+          padding="sm"
+          className="flex max-w-prose gap-3 text-sm text-fg"
+        >
+          <InfoIcon className="mt-0.5 text-primary-700" />
+          <p>
+            <strong>Shopping guidance, not medical advice.</strong> The quiz
+            suggests mattresses based on your preferences. If you have a medical
+            condition or ongoing pain, talk to a health professional about what
+            is right for you.
+          </p>
+        </Card>
+      </Card>
       {saved ? (
-        <div
+        <Card
+          as="section"
+          variant="flat"
           role="region"
           aria-labelledby="quiz-saved-heading"
-          className="flex flex-col gap-3 rounded-card border-2 border-ink-900 bg-ink-50 p-4"
+          className="flex flex-col gap-3"
         >
-          <h3 id="quiz-saved-heading" className="text-lg font-bold">
+          <h3 id="quiz-saved-heading" className="type-display text-title">
             Continue where you left off
           </h3>
           <p className="text-base text-fg">
@@ -71,7 +82,7 @@ export function QuizIntro({
             <Button to={saved.resumeHref} preventScrollReset size="sm">
               See my saved results
             </Button>
-            <Button variant="secondary" size="sm" onClick={saved.onClear}>
+            <Button variant="outline" size="sm" onClick={saved.onClear}>
               Clear saved results
             </Button>
           </div>
@@ -83,15 +94,17 @@ export function QuizIntro({
               to keep your results across devices.
             </p>
           ) : null}
-        </div>
+        </Card>
       ) : null}
       {accountOffer ? (
-        <div
+        <Card
+          as="section"
+          variant="flat"
           role="region"
           aria-labelledby="quiz-account-heading"
-          className="flex flex-col gap-3 rounded-card border-2 border-ink-900 bg-ink-50 p-4"
+          className="flex flex-col gap-3"
         >
-          <h3 id="quiz-account-heading" className="text-lg font-bold">
+          <h3 id="quiz-account-heading" className="type-display text-title">
             Restore your saved results
           </h3>
           <p className="text-base text-fg">
@@ -102,14 +115,14 @@ export function QuizIntro({
               Restore my results
             </Button>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={accountOffer.onDismiss}
             >
               Not now
             </Button>
           </div>
-        </div>
+        </Card>
       ) : null}
     </section>
   );

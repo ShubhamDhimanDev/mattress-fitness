@@ -2,7 +2,7 @@ import {useId, useState, type FormEvent} from 'react';
 import {Link, useNavigate} from 'react-router';
 import {Button} from '~/components/ui/Button';
 import {Checkbox} from '~/components/ui/Checkbox';
-import {ChevronDownIcon} from '~/components/ui/Icons';
+import {ChevronDownIcon, CloseIcon} from '~/components/ui/Icons';
 import {Input} from '~/components/ui/Input';
 import {
   FILTER_DIMENSIONS,
@@ -44,7 +44,7 @@ export function FilterPanel({groups, state, pathname, base}: FilterPanelProps) {
         <Link
           to={hrefForReset(pathname, state, base)}
           preventScrollReset
-          className="inline-flex min-h-touch items-center text-sm font-bold text-primary-700 underline underline-offset-2"
+          className="inline-flex min-h-touch items-center text-base font-bold text-primary-700 underline underline-offset-2"
         >
           Clear all filters ({active})
         </Link>
@@ -54,9 +54,9 @@ export function FilterPanel({groups, state, pathname, base}: FilterPanelProps) {
         <details
           key={group.dimension}
           open={position < 3 || group.options.some((option) => option.selected)}
-          className="group border-b border-line pb-2"
+          className="group border-b border-line pb-2 last:border-b-0"
         >
-          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between text-lg font-extrabold [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between text-lg font-extrabold [&::-webkit-details-marker]:hidden">
             {group.label}
             <ChevronDownIcon className="size-5 text-fg-muted motion-safe:transition-transform group-open:rotate-180" />
           </summary>
@@ -81,7 +81,9 @@ export function FilterPanel({groups, state, pathname, base}: FilterPanelProps) {
                     label={
                       <>
                         {option.value}{' '}
-                        <span className="text-fg-muted">({option.count})</span>
+                        <span className="text-sm font-semibold text-fg-muted">
+                          ({option.count})
+                        </span>
                       </>
                     }
                   />
@@ -123,7 +125,7 @@ function PriceRange({
     <form
       onSubmit={submit}
       aria-labelledby={headingId}
-      className="flex flex-col gap-2"
+      className="flex flex-col gap-2 pt-2"
     >
       <h3 id={headingId} className="text-lg font-extrabold">
         Price
@@ -148,7 +150,7 @@ function PriceRange({
           onChange={(event) => setMax(event.target.value.replace(/\D/g, ''))}
         />
       </div>
-      <Button type="submit" variant="secondary" size="sm">
+      <Button type="submit" variant="outline" size="sm">
         Apply price
       </Button>
     </form>
@@ -189,10 +191,10 @@ export function ActiveFilters({
             to={chip.href}
             preventScrollReset
             aria-label={`Remove filter ${chip.group}: ${chip.label}`}
-            className="inline-flex min-h-touch items-center gap-1 rounded-pill bg-primary-50 px-3 text-sm font-bold text-primary-800 hover:bg-primary-100"
+            className="inline-flex min-h-touch items-center gap-2 rounded-pill border border-line-strong bg-surface-muted py-1 pr-2 pl-4 text-sm font-bold text-ink-900 hover:border-ink-600 hover:bg-ink-100"
           >
             {chip.label}
-            <span aria-hidden="true">&times;</span>
+            <CloseIcon aria-hidden="true" className="size-4" />
           </Link>
         </li>
       ))}

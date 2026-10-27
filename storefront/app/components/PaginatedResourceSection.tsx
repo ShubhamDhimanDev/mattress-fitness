@@ -1,5 +1,9 @@
 import * as React from 'react';
+import {buttonStyles} from '~/components/ui/Button';
 import {Pagination} from '~/lib/hydrogen/pagination';
+
+// Large outline buttons, like the listing's Load more; a link stays a link (it is a real navigation).
+const PAGE_LINK = `${buttonStyles({variant: 'outline', size: 'lg'})} self-center`;
 
 /**
  * <PaginatedResourceSection> encapsulates the previous and next pagination behaviors throughout your application.
@@ -23,8 +27,8 @@ export function PaginatedResourceSection<NodesType>({
         );
 
         return (
-          <div>
-            <PreviousLink>
+          <div className="flex flex-col gap-6">
+            <PreviousLink className={PAGE_LINK}>
               {isLoading ? (
                 'Loading...'
               ) : (
@@ -44,7 +48,7 @@ export function PaginatedResourceSection<NodesType>({
             ) : (
               resourcesMarkup
             )}
-            <NextLink>
+            <NextLink className={PAGE_LINK}>
               {isLoading ? (
                 'Loading...'
               ) : (

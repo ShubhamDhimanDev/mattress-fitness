@@ -29,12 +29,12 @@ const TOTAL = spec.metaobjectDefinitions.length + spec.metafieldDefinitions.leng
 
 // ---- the shipped spec ------------------------------------------------------------------------------------
 
-test('definitions.json is valid and declares the eleven metaobject types of the data model', () => {
+test('definitions.json is valid and declares the twelve metaobject types of the data model', () => {
   const checked = validateSpec(spec);
   assert.deepEqual(checked.ok ? [] : checked.errors, []);
-  assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'quiz_scoring_rule', 'site_settings', 'store']);
+  assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_card', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'quiz_scoring_rule', 'site_settings', 'store']);
   assert.equal(spec.metafieldDefinitions.length, 19, '16 product metafields, the variant dimensions field, the collection FAQs and the customer quiz result');
-  assert.equal(TOTAL, 30);
+  assert.equal(TOTAL, 31);
 });
 
 test('custom.faqs is defined for products and for collections with the same shape (REQ-COL-004)', () => {
@@ -61,6 +61,7 @@ test('every definition the storefront reads has Storefront API access enabled (P
 test('definitions are ordered so a metaobject is declared before anything that references it', () => {
   const types = spec.metaobjectDefinitions.map((definition) => definition.type);
   assert.ok(types.indexOf('quiz_option') < types.indexOf('quiz_question'));
+  assert.ok(types.indexOf('homepage_card') < types.indexOf('homepage_section'));
   assert.ok(spec.metafieldDefinitions.length > 0);
 });
 
@@ -124,9 +125,15 @@ test('homepage_section fixes its section types and promo_tile its grid position 
   const definition = (/** @type {string} */ type) => spec.metaobjectDefinitions.find((candidate) => candidate.type === type);
   const field = (/** @type {string} */ type, /** @type {string} */ key) => definition(type).fieldDefinitions.find((candidate) => candidate.key === key);
   // The storefront lists the same values in HOMEPAGE_SECTION_TYPES (tests/unit/catalog/home-sections.test.ts).
-  assert.deepEqual(field('homepage_section', 'type').validations, [{ name: 'choices', value: ['hero', 'promo-banner', 'shop-by-size', 'featured', 'brands', 'categories', 'financing', 'signup'] }]);
-  assert.deepEqual(definition('homepage_section').fieldDefinitions.map((candidate) => candidate.key), ['type', 'heading', 'body', 'image', 'link', 'link_label', 'order', 'enabled']);
+  assert.deepEqual(field('homepage_section', 'type').validations, [{ name: 'choices', value: ['hero', 'promo-banner', 'shop-by-size', 'featured', 'brands', 'categories', 'financing', 'signup', 'quiz-band', 'setup-cards', 'how-it-works', 'store-finder', 'faq'] }]);
+  assert.deepEqual(definition('homepage_section').fieldDefinitions.map((candidate) => candidate.key), ['type', 'heading', 'body', 'image', 'link', 'link_label', 'order', 'enabled', 'cards']);
   assert.equal(field('homepage_section', 'link_label').required, undefined, 'the label is optional: without it the heading is the link');
+  // The cards of the setup and how-it-works blocks (CR-31): a list of homepage_card entries, declared before the section.
+  assert.equal(field('homepage_section', 'cards').type, 'list.metaobject_reference');
+  assert.deepEqual(field('homepage_section', 'cards').validations, [{ name: 'metaobject_definition_type', value: 'homepage_card' }]);
+  assert.deepEqual(definition('homepage_card').fieldDefinitions.map((candidate) => candidate.key), ['title', 'text', 'image', 'link', 'link_label']);
+  assert.equal(field('homepage_card', 'title').required, true, 'a card without a title is not shown');
+  assert.equal(definition('homepage_card').storefrontAccess, 'PUBLIC_READ');
   assert.deepEqual(field('promo_tile', 'position').validations, [{ name: 'min', value: 1 }]);
   assert.equal(field('promo_tile', 'collection').type, 'collection_reference');
   assert.equal(field('promo_tile', 'collection').required, true);

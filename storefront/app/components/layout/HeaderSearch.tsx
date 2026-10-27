@@ -217,10 +217,16 @@ export function HeaderSearch() {
       <SearchFormPredictive
         role="search"
         aria-label="Site search"
-        className="flex w-full items-stretch"
+        // The outlined pill (CR-31). The input draws no ring of its own: the pill shows the focus ring while the input has
+        // keyboard focus, so one clear outline surrounds the whole field (WCAG 2.4.7); the button keeps the global ring.
+        className="flex h-13 w-full items-center rounded-pill border-2 border-ink-900 bg-surface pr-1 pl-4 has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus"
       >
         {({fetchResults, goToSearch, inputRef}) => (
           <>
+            <SearchIcon
+              aria-hidden="true"
+              className="mr-2 size-5 shrink-0 text-fg md:hidden"
+            />
             <label htmlFor={inputId} className="sr-only">
               Search products and pages
             </label>
@@ -257,13 +263,15 @@ export function HeaderSearch() {
                 setExpanded(true);
               }}
               onKeyDown={onKeyDown}
-              className="min-h-touch min-w-0 flex-1 rounded-l-choice border-2 border-r-0 border-line-strong bg-surface pl-4 text-base text-fg"
+              className="h-full min-h-touch min-w-0 flex-1 bg-transparent pr-2 text-base font-medium text-fg outline-none"
             />
             <button
               type="submit"
               onClick={goToSearch}
               aria-label="Search"
-              className="inline-flex min-h-touch min-w-touch items-center justify-center rounded-r-choice border-2 border-primary-500 bg-primary-500 text-white hover:border-primary-600 hover:bg-primary-600"
+              // On a phone the field needs the room beside the menu, logo, account and cart: a decorative magnifier
+              // stands in and the keyboard's search key submits (enterKeyHint="search").
+              className="inline-flex size-11 shrink-0 items-center max-md:hidden justify-center rounded-pill bg-primary-500 text-white motion-safe:transition-colors hover:bg-primary-600 active:bg-primary-700"
             >
               <SearchIcon />
             </button>
@@ -295,7 +303,7 @@ export function HeaderSearch() {
                 tabIndex: 0,
               }
             : {role: 'presentation'})}
-          className="absolute inset-x-0 top-full z-40 mt-1 max-h-[70dvh] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-lg"
+          className="absolute inset-x-0 top-full z-40 mt-2 max-h-[70dvh] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-lift"
           // Keep focus in the text field when the panel is pressed (a click would otherwise blur it first).
           onMouseDown={(event) => event.preventDefault()}
         >

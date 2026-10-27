@@ -61,6 +61,6 @@ describe('REQ-ANL-004 no chat provider configured', () => {
     expect(runtimeLoaded).not.toHaveBeenCalled();
     expect(screen.queryByRole('status')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 });

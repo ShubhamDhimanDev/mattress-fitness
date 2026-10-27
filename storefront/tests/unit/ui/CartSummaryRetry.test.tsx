@@ -82,7 +82,9 @@ describe('cart summary, checkout paused (REQ-PRE-006)', () => {
       const retry = screen.getByRole('link', {name: 'Try again'});
       expect(retry).toHaveAttribute('href', '/cart');
       // No Checkout button while paused: an unverified cart must not reach Shopify (ADR-0003, REQ-PRE-006).
-      expect(screen.queryByRole('link', {name: 'Checkout'})).toBeNull();
+      expect(
+        screen.queryByRole('link', {name: 'Checkout securely'}),
+      ).toBeNull();
 
       // The router leaves the click to the browser: a full document load re-runs the loaders (a refetch of the cart check).
       expect(clickLeavesNavigationToBrowser(retry)).toBe(true);
@@ -101,7 +103,7 @@ describe('cart summary, checkout paused (REQ-PRE-006)', () => {
     renderSummary([OTHER_REASON]);
     expect(screen.getByRole('alert')).toHaveTextContent(OTHER_REASON.message);
     expect(screen.queryByRole('link', {name: 'Try again'})).toBeNull();
-    expect(screen.queryByRole('link', {name: 'Checkout'})).toBeNull();
+    expect(screen.queryByRole('link', {name: 'Checkout securely'})).toBeNull();
   });
 
   it('shows neither the hold message nor Try again when nothing blocks (control)', () => {

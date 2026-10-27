@@ -33,10 +33,12 @@ export function ContentArticle({
   empty = false,
 }: ContentArticleProps) {
   return (
-    <article className="py-4">
+    <article className="mx-auto max-w-prose py-6 md:py-10">
       <Breadcrumb items={breadcrumb} className="print:hidden" />
-      <header className="mt-2 border-b border-line pb-4">
-        <h1 className={`${displayHeadingClass(title)} text-3xl`}>{title}</h1>
+      <header className="mt-4 border-b border-line pb-6">
+        <h1 className={`${displayHeadingClass(title)} text-4xl md:text-5xl`}>
+          {title}
+        </h1>
         {updated ? (
           <p className="mt-2 text-sm text-fg-muted">
             Last updated <time dateTime={updated.iso}>{updated.text}</time>
@@ -46,10 +48,10 @@ export function ContentArticle({
       {toc.length > 0 ? (
         <nav
           aria-label="On this page"
-          className="mt-4 max-w-prose rounded-card border border-line p-4 print:hidden"
+          className="mt-6 max-w-prose rounded-card bg-paper p-4 md:p-6 print:hidden"
         >
-          <p className="font-bold">On this page</p>
-          <ul>
+          <p className="text-lg font-extrabold">On this page</p>
+          <ul className="mt-1">
             {toc.map((entry) => (
               <li key={entry.id} className={entry.level === 3 ? 'ml-4' : ''}>
                 <a
@@ -63,9 +65,11 @@ export function ContentArticle({
           </ul>
         </nav>
       ) : null}
-      <SafeHtml html={body} headingIds={anchors} className="mt-4" />
+      <SafeHtml html={body} headingIds={anchors} className="mt-6" />
       {empty ? (
-        <p className="mt-4 text-fg-muted">This page has no content yet.</p>
+        <p className="mt-6 rounded-card bg-paper p-4 text-fg-muted">
+          This page has no content yet.
+        </p>
       ) : null}
     </article>
   );

@@ -1,9 +1,15 @@
 import {Link} from 'react-router';
 import {ProductTile} from '~/components/pages/ProductTile';
+import {buttonStyles} from '~/components/ui/Button';
+import {Chip} from '~/components/ui/Chip';
 import {Price} from '~/components/ui/Price';
 import {Rating} from '~/components/ui/Rating';
 import {fromCents} from '~/lib/money';
-import type {ComparisonCell, ComparisonTable} from '~/lib/compare';
+import type {
+  ComparisonCell,
+  ComparisonRowKey,
+  ComparisonTable,
+} from '~/lib/compare';
 
 type CompareTableProps = {
   table: ComparisonTable;
@@ -31,7 +37,7 @@ export function CompareTable({table, removeHref, onRemove}: CompareTableProps) {
       // scrolls a focused Remove or product link clear of the column (WCAG 2.4.11, A11Y-001).
       // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region
       tabIndex={0}
-      className="relative max-w-full scroll-pl-30 overflow-x-auto rounded-card border-2 border-line md:scroll-pl-42"
+      className="relative max-w-full scroll-pl-30 overflow-x-auto rounded-card border border-line bg-surface md:scroll-pl-42"
     >
       <table className="w-max min-w-full border-collapse text-left">
         <caption id={captionId} className="sr-only">
@@ -43,7 +49,7 @@ export function CompareTable({table, removeHref, onRemove}: CompareTableProps) {
           <tr>
             <th
               scope="col"
-              className="sticky left-0 z-10 w-28 min-w-28 border-r-2 border-b-2 border-line bg-surface-muted p-3 text-sm md:w-40 md:min-w-40"
+              className="sticky left-0 z-10 w-28 min-w-28 border-r border-b border-line bg-paper p-3 text-sm md:w-40 md:min-w-40"
             >
               <span className="sr-only">Feature</span>
             </th>
@@ -51,16 +57,16 @@ export function CompareTable({table, removeHref, onRemove}: CompareTableProps) {
               <th
                 key={column.handle}
                 scope="col"
-                className="w-56 min-w-56 border-b-2 border-line p-3 align-top"
+                className="w-56 min-w-56 border-b border-line bg-paper p-3 align-top"
               >
                 <div className="flex flex-col gap-2">
                   <ProductTile image={column.image} />
-                  <span className="text-sm font-bold text-fg-muted">
+                  <span className="text-caption font-bold tracking-wide text-fg-muted uppercase">
                     {column.brand}
                   </span>
                   <Link
                     to={`/products/${encodeURIComponent(column.handle)}`}
-                    className="inline-flex min-h-touch w-fit items-center text-base font-bold underline-offset-2 hover:underline"
+                    className="inline-flex min-h-touch w-fit items-center text-lg font-extrabold underline-offset-2 hover:underline"
                   >
                     {column.title}
                   </Link>
@@ -70,7 +76,7 @@ export function CompareTable({table, removeHref, onRemove}: CompareTableProps) {
                     preventScrollReset
                     onClick={() => onRemove(column.handle)}
                     aria-label={`Remove ${column.title} from comparison`}
-                    className="inline-flex min-h-touch w-fit items-center rounded-choice border-2 border-primary-700 px-4 text-sm font-bold text-primary-700 hover:bg-primary-50"
+                    className={buttonStyles({variant: 'secondary', size: 'sm'})}
                   >
                     Remove
                   </Link>
@@ -81,10 +87,10 @@ export function CompareTable({table, removeHref, onRemove}: CompareTableProps) {
         </thead>
         <tbody>
           {table.rows.map((row) => (
-            <tr key={row.key} className="border-b border-line">
+            <tr key={row.key} className="border-b border-line last:border-b-0">
               <th
                 scope="row"
-                className="sticky left-0 z-10 w-28 min-w-28 border-r-2 border-line bg-surface-muted p-3 text-sm font-bold md:w-40 md:min-w-40"
+                className="sticky left-0 z-10 w-28 min-w-28 border-r border-line bg-paper p-3 text-sm font-bold md:w-40 md:min-w-40"
               >
                 {row.label}
               </th>
@@ -93,7 +99,7 @@ export function CompareTable({table, removeHref, onRemove}: CompareTableProps) {
                   key={table.columns[position]?.handle ?? position}
                   className="p-3 align-top text-base"
                 >
-                  <CellValue cell={cell} />
+                  <CellValue cell={cell} rowKey={row.key} />
                 </td>
               ))}
             </tr>
@@ -104,12 +110,36 @@ export function CompareTable({table, removeHref, onRemove}: CompareTableProps) {
   );
 }
 
-function CellValue({cell}: {cell: ComparisonCell}) {
+// Feel, type and benefits are short attribute words, so they read as chips; the text stays the cell's content.
+const CHIP_ROWS: ReadonlySet<ComparisonRowKey> = new Set<ComparisonRowKey>([
+  'comfort',
+  'type',
+]);
+
+function CellValue({
+  cell,
+  rowKey,
+}: {
+  cell: ComparisonCell;
+  rowKey: ComparisonRowKey;
+}) {
   switch (cell.kind) {
     case 'text':
-      return <span>{cell.text}</span>;
+      return CHIP_ROWS.has(rowKey) ? (
+        <Chip>{cell.text}</Chip>
+      ) : (
+        <span>{cell.text}</span>
+      );
     case 'list':
-      return (
+      return rowKey === 'benefits' ? (
+        <ul className="flex flex-wrap gap-1.5">
+          {cell.items.map((item) => (
+            <li key={item}>
+              <Chip>{item}</Chip>
+            </li>
+          ))}
+        </ul>
+      ) : (
         <ul className="list-disc pl-5">
           {cell.items.map((item) => (
             <li key={item}>{item}</li>

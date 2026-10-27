@@ -7,19 +7,25 @@ import {Accordion} from '~/components/ui/Accordion';
 import {Badge} from '~/components/ui/Badge';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
 import {Checkbox} from '~/components/ui/Checkbox';
+import {Chip} from '~/components/ui/Chip';
 import {Dialog} from '~/components/ui/Dialog';
 import {Drawer} from '~/components/ui/Drawer';
+import {Field} from '~/components/ui/Field';
 import {IconButton} from '~/components/ui/IconButton';
 import {
   CartIcon,
   CheckIcon,
+  GiftIcon,
   MapPinIcon,
   SearchIcon,
+  ShieldCheckIcon,
   TruckIcon,
 } from '~/components/ui/Icons';
-import {Input} from '~/components/ui/Input';
+import {CONTROL_CLASSES, Input} from '~/components/ui/Input';
 import {Price} from '~/components/ui/Price';
+import {ProgressBar} from '~/components/ui/ProgressBar';
 import {QuantityStepper} from '~/components/ui/QuantityStepper';
 import {Radio} from '~/components/ui/Radio';
 import {Rating} from '~/components/ui/Rating';
@@ -72,9 +78,11 @@ export default function ComponentGallery() {
         </p>
       </header>
       <TokensSection />
+      <TypographySection />
       <ButtonsSection />
       <FormsSection />
       <DisplaySection />
+      <CardsSection />
       <ComposedSection />
       <OverlaysSection />
       <ToastsSection />
@@ -129,6 +137,8 @@ const SWATCHES: ReadonlyArray<{name: string; swatch: string; ink: string}> = [
   {name: 'accent-700', swatch: 'bg-accent-700', ink: 'text-white'},
   {name: 'sale-bg', swatch: 'bg-sale-bg', ink: 'text-sale-fg'},
   {name: 'sale-fg', swatch: 'bg-sale-fg', ink: 'text-white'},
+  {name: 'paper (surface-muted)', swatch: 'bg-paper', ink: 'text-ink-900'},
+  {name: 'paper-line (line)', swatch: 'bg-paper-line', ink: 'text-ink-900'},
   {name: 'ink-50', swatch: 'bg-ink-50', ink: 'text-ink-900'},
   {name: 'ink-100', swatch: 'bg-ink-100', ink: 'text-ink-900'},
   {name: 'ink-300', swatch: 'bg-ink-300', ink: 'text-ink-900'},
@@ -166,22 +176,81 @@ function TokensSection() {
         <p className="text-xl">text-xl: the quick brown fox</p>
         <p className="text-3xl font-bold">text-3xl: the quick brown fox</p>
         <p className="type-display text-2xl">
-          type-display: heavy uppercase for short labels
+          type-display: heavy sentence-case heading look
         </p>
       </div>
-      <ul className="flex flex-wrap gap-4">
+      <ul className="flex flex-wrap items-center gap-4">
+        <li className="rounded-sm border border-line-strong p-4">rounded-sm</li>
         <li className="rounded-choice border border-line-strong p-4">
           rounded-choice
         </li>
         <li className="rounded-card border border-line-strong p-4">
           rounded-card
         </li>
+        <li className="rounded-panel border border-line-strong p-4">
+          rounded-panel
+        </li>
+        <li className="rounded-hero border border-line-strong p-4">
+          rounded-hero
+        </li>
         <li className="rounded-pill border border-line-strong px-6 py-4">
           rounded-pill
         </li>
-        <li className="rounded-card p-4 shadow-md">shadow-md</li>
-        <li className="rounded-card p-4 shadow-lg">shadow-lg</li>
       </ul>
+      <ul className="flex flex-wrap items-center gap-6 rounded-card bg-paper p-6">
+        <li className="rounded-card bg-surface p-4 shadow-sm">shadow-sm</li>
+        <li className="rounded-card bg-surface p-4 shadow-md">shadow-md</li>
+        <li className="rounded-card bg-surface p-4 shadow-lg">shadow-lg</li>
+        <li className="rounded-card bg-surface p-4 shadow-lift">
+          shadow-lift (raised card)
+        </li>
+        <li className="rounded-card bg-surface p-4 shadow-drawer">
+          shadow-drawer (deep)
+        </li>
+      </ul>
+    </Section>
+  );
+}
+
+function TypographySection() {
+  return (
+    <Section id="g-type" title="Typography (Plus Jakarta Sans)">
+      <div className="flex flex-col gap-4">
+        <p className="type-eyebrow">Sleep better, shop smarter</p>
+        <p className="type-display text-hero md:text-display">
+          Sleep <span className="type-mark">better.</span>
+        </p>
+        <p className="type-display text-hero md:text-heading">
+          A highlighted phrase that wraps across{' '}
+          <span className="type-mark">two or more lines of the heading</span>{' '}
+          keeps its rounded ends.
+        </p>
+        <p className="type-display text-heading">Shop by size (heading, 40)</p>
+        <p className="type-display text-title">
+          TEMPUR-Cloud Mattress (title, 22)
+        </p>
+        <p className="text-lead text-fg-muted">
+          Lead text, 17 px: compare the top brands side by side, try them in
+          store, and get yours delivered and set up at home.
+        </p>
+        <p className="text-sm text-fg-muted">
+          Small text, 14 px: delivery estimate shown at checkout.
+        </p>
+      </div>
+      <div className="rounded-card bg-paper p-6">
+        <p className="type-eyebrow">Eyebrow on warm paper</p>
+        <p className="type-display text-heading">Heading on paper</p>
+        <p className="text-fg-muted">
+          Muted body text on paper (6.90:1).{' '}
+          <span className="text-primary-500 text-lg">
+            Red text on paper is 16 px and up.
+          </span>
+        </p>
+      </div>
+      <div className="on-dark rounded-card bg-ink-900 p-6 text-white">
+        <p className="type-eyebrow text-primary-300">Eyebrow on a dark band</p>
+        <p className="type-display text-heading">Heading on ink</p>
+      </div>
     </Section>
   );
 }
@@ -200,6 +269,34 @@ function ButtonsSection() {
         </Button>
         <Button variant="secondary" shape="pill">
           Secondary pill
+        </Button>
+      </Sample>
+      <Sample label="Redesign variants: dark, outline, amber, link">
+        <Button variant="dark">Dark</Button>
+        <Button variant="outline">Outline</Button>
+        <Button variant="amber">Amber</Button>
+        <Button variant="link">Compare these mattresses</Button>
+        <Button variant="dark" disabled>
+          Dark disabled
+        </Button>
+        <Button variant="outline" disabled>
+          Outline disabled
+        </Button>
+        <Button variant="outline" loading loadingLabel="Saving">
+          Outline loading
+        </Button>
+      </Sample>
+      <Sample label="Large (56 px, 12 px radius) for the hero, cart and checkout">
+        <Button size="lg">Checkout securely</Button>
+        <Button size="lg" variant="outline">
+          View full cart
+        </Button>
+        <Button
+          size="lg"
+          variant="dark"
+          leadingIcon={<ShieldCheckIcon className="size-5" />}
+        >
+          Dark with icon
         </Button>
       </Sample>
       <Sample label="On a red band (carries on-dark, so the focus ring is yellow): inverse and inverse-outline">
@@ -228,7 +325,7 @@ function ButtonsSection() {
           </Button>
         </div>
       </Sample>
-      <Sample label="On a black band (carries on-dark): accent">
+      <Sample label="On a black band (carries on-dark): accent and white">
         <div className="on-dark flex w-full flex-wrap items-center gap-3 rounded-panel bg-ink-900 p-6 text-white">
           <Button variant="accent" size="lg">
             Accent
@@ -238,6 +335,19 @@ function ButtonsSection() {
           </Button>
           <Button variant="accent" loading loadingLabel="Sending">
             Accent loading
+          </Button>
+          <Button variant="white" size="lg">
+            White on black
+          </Button>
+          <Button variant="white" disabled>
+            White disabled
+          </Button>
+        </div>
+      </Sample>
+      <Sample label="White on the red band (carries on-dark)">
+        <div className="on-dark flex w-full flex-wrap items-center gap-3 rounded-panel bg-primary-500 p-6 text-white">
+          <Button variant="white" size="lg">
+            White on red
           </Button>
         </div>
       </Sample>
@@ -397,6 +507,75 @@ function FormsSection() {
             error="You must agree to continue."
           />
         </div>
+        <Field
+          label="Delivery date (custom control through Field)"
+          hint="Weekdays only."
+        >
+          {(control) => (
+            <input
+              {...control}
+              type="date"
+              name="delivery-date"
+              className={CONTROL_CLASSES}
+            />
+          )}
+        </Field>
+        <Field
+          label="Haul-away items (Field with an error)"
+          error="Enter 1 to 3 items."
+          required
+        >
+          {(control) => (
+            <input
+              {...control}
+              type="text"
+              inputMode="numeric"
+              name="haul-away"
+              defaultValue="9"
+              className={CONTROL_CLASSES}
+            />
+          )}
+        </Field>
+        <fieldset className="flex flex-col gap-2 md:col-span-2">
+          <legend className="mb-2 text-sm font-bold">
+            How should we get it to you? (choice cards)
+          </legend>
+          <Radio
+            name="method"
+            value="home"
+            label="Home delivery and setup"
+            variant="card"
+            defaultChecked
+          />
+          <Radio
+            name="method"
+            value="pickup"
+            label="Pick up in store"
+            variant="card"
+          />
+          <Radio
+            name="method"
+            value="try"
+            label="Try in store first (unavailable)"
+            variant="card"
+            disabled
+          />
+          <Checkbox label="Add to compare" variant="card" />
+        </fieldset>
+      </div>
+      <div className="rounded-card bg-paper p-6">
+        <p className="mb-4 text-sm font-bold text-fg-muted">
+          Fields on warm paper (finder card, cart page): white fill, 2 px border
+        </p>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Input label="ZIP code on paper" name="zip-paper" />
+          <Select
+            label="Feel on paper"
+            name="feel-paper"
+            placeholder="Any feel"
+            options={[{value: 'firm', label: 'Firm'}]}
+          />
+        </div>
       </div>
     </Section>
   );
@@ -410,6 +589,13 @@ function DisplaySection() {
         <Badge variant="gift">Free gift</Badge>
         <Badge variant="new">New</Badge>
         <Badge>Neutral</Badge>
+      </Sample>
+      <Sample label="Success badge and chips (neutral paper, outline for use on paper, success)">
+        <Badge variant="success">Delivery included</Badge>
+        <Chip>Memory foam</Chip>
+        <Chip tone="outline">Firm</Chip>
+        <Chip tone="success">In our delivery zone</Chip>
+        <Chip icon={<GiftIcon className="size-4" />}>With a free pillow</Chip>
       </Sample>
       <Sample label="Badges as the tag line under a card image (size tag: sentence case)">
         <Badge variant="sale" size="tag">
@@ -453,6 +639,99 @@ function DisplaySection() {
           ]}
         />
       </Sample>
+    </Section>
+  );
+}
+
+function CardsSection() {
+  return (
+    <Section id="g-cards" title="Cards and progress">
+      <div className="grid gap-6 rounded-card bg-paper p-4 md:grid-cols-2 md:p-6">
+        <Card variant="flat" as="section" aria-labelledby="g-card-flat">
+          <h3 id="g-card-flat" className="type-display text-title">
+            Flat card
+          </h3>
+          <p className="mt-2 text-fg-muted">
+            White, 1 px warm hairline, 18 px radius.
+          </p>
+        </Card>
+        <Card variant="raised" as="section" aria-labelledby="g-card-raised">
+          <h3 id="g-card-raised" className="type-display text-title">
+            Raised card
+          </h3>
+          <p className="mt-2 text-fg-muted">
+            The soft lift shadow for the finder and the cart summary.
+          </p>
+        </Card>
+        <Card variant="dashed-amber" as="section" aria-labelledby="g-card-gift">
+          <div className="flex items-center gap-3">
+            <Badge variant="gift">Free gift</Badge>
+            <h3 id="g-card-gift" className="type-display text-title">
+              Cooling pillow
+            </h3>
+          </div>
+          <p className="mt-2 text-fg-muted">
+            <s>$79.00</s> <span className="font-bold text-sale-fg">Free</span>{' '}
+            with your mattress.
+          </p>
+        </Card>
+        <Card variant="tinted" as="section" aria-labelledby="g-card-tinted">
+          <h3 id="g-card-tinted" className="type-display text-title">
+            Tinted card
+          </h3>
+          <p className="mt-2 text-fg-muted">
+            Paper fill, for a strip inside a card (the protection plan).
+          </p>
+        </Card>
+        <Card interactive as="section" aria-labelledby="g-card-hover">
+          <h3 id="g-card-hover" className="type-display text-title">
+            Interactive card
+          </h3>
+          <p className="mt-2 text-fg-muted">
+            Gains the shadow on hover and lifts 2 px when motion is allowed.
+          </p>
+        </Card>
+        <Card
+          variant="flat"
+          padding="none"
+          as="section"
+          aria-label="Padding none"
+        >
+          <p className="p-4 text-fg-muted">
+            padding none: the content brings its own spacing.
+          </p>
+          <div className="flex items-center gap-3 rounded-b-card bg-paper p-4">
+            <ShieldCheckIcon className="size-6" />
+            <span className="font-bold">Protection plan strip</span>
+          </div>
+        </Card>
+      </div>
+      <div className="flex max-w-xl flex-col gap-6">
+        <div className="flex flex-col gap-2">
+          <p className="font-bold">$300 away from free delivery</p>
+          <ProgressBar
+            value={70}
+            label="Progress to free delivery"
+            valueText="$300 away from free delivery"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="flex items-center gap-2 font-bold text-success-fg">
+            <CheckIcon className="size-5" />
+            You have free delivery
+          </p>
+          <ProgressBar
+            value={100}
+            tone="success"
+            label="Progress to free delivery (reached)"
+            valueText="Free delivery reached"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <p className="font-bold">Empty bar</p>
+          <ProgressBar value={0} label="Progress with nothing in the cart" />
+        </div>
+      </div>
     </Section>
   );
 }
@@ -671,7 +950,20 @@ function OverlaysSection() {
         open={drawerSide !== null}
         onClose={() => setDrawerSide(null)}
         title={drawerSide === 'left' ? 'Left drawer' : 'Right drawer'}
+        countLabel="3 items"
         side={drawerSide ?? 'right'}
+        footer={
+          <div className="flex flex-col gap-3">
+            <ProgressBar
+              value={70}
+              label="Progress to free delivery (drawer)"
+              valueText="$300 away from free delivery"
+            />
+            <Button fullWidth size="lg">
+              Checkout securely
+            </Button>
+          </div>
+        }
       >
         <div className="flex flex-col gap-4">
           <p>Drawer content.</p>

@@ -64,7 +64,7 @@ test.describe('collection page (REQ-COL-001, REQ-COL-002)', () => {
     if (isMobile) {
       await page
         .getByRole('dialog', {name: 'Filters'})
-        .getByRole('button', {name: 'Show results'})
+        .getByRole('button', {name: /^Show (\d+ )?results?$/})
         .click();
     }
     const chips = page.getByRole('list', {name: 'Active filters'});

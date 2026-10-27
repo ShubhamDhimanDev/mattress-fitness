@@ -1,6 +1,9 @@
-import {data as routeData, redirect, useLoaderData} from 'react-router';
+import {Link, data as routeData, redirect, useLoaderData} from 'react-router';
 import type {Route} from './+types/account.orders.$id';
 import {Money} from '~/components/Money';
+import {OrderStatusChip} from '~/components/orders/OrderStatusChip';
+import {buttonStyles} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
 import {Image} from '~/lib/hydrogen/image';
 import type {
   OrderLineItemFullFragment,
@@ -123,112 +126,146 @@ export default function OrderRoute() {
     fulfillmentStatus,
   } = useLoaderData<typeof loader>();
   return (
-    <div className="account-order">
-      <h2>Order {order.name}</h2>
-      <p>Placed on {new Date(order.processedAt!).toDateString()}</p>
-      {order.confirmationNumber && (
-        <p>Confirmation: {order.confirmationNumber}</p>
-      )}
-      <br />
-      <div>
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Product</th>
-              <th scope="col">Price</th>
-              <th scope="col">Quantity</th>
-              <th scope="col">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lineItems.map((lineItem, lineItemIndex) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <OrderLineRow key={lineItemIndex} lineItem={lineItem} />
-            ))}
-          </tbody>
-          <tfoot>
-            {((discountValue && discountValue.amount) ||
-              discountPercentage) && (
-              <tr>
-                <th scope="row" colSpan={3}>
-                  <p>Discounts</p>
-                </th>
-                <th scope="row">
-                  <p>Discounts</p>
-                </th>
-                <td>
-                  {discountPercentage ? (
-                    <span>-{discountPercentage}% OFF</span>
-                  ) : (
-                    discountValue && <Money data={discountValue!} />
-                  )}
-                </td>
-              </tr>
-            )}
-            <tr>
-              <th scope="row" colSpan={3}>
-                <p>Subtotal</p>
-              </th>
-              <th scope="row">
-                <p>Subtotal</p>
-              </th>
-              <td>
-                <Money data={order.subtotal!} />
-              </td>
-            </tr>
-            <tr>
-              <th scope="row" colSpan={3}>
-                Tax
-              </th>
-              <th scope="row">
-                <p>Tax</p>
-              </th>
-              <td>
-                <Money data={order.totalTax!} />
-              </td>
-            </tr>
-            <tr>
-              <th scope="row" colSpan={3}>
-                Total
-              </th>
-              <th scope="row">
-                <p>Total</p>
-              </th>
-              <td>
-                <Money data={order.totalPrice!} />
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-        <div>
-          <h3>Shipping Address</h3>
-          {order?.shippingAddress ? (
-            <address>
-              <p>{order.shippingAddress.name}</p>
-              {order.shippingAddress.formatted ? (
-                <p>{order.shippingAddress.formatted}</p>
-              ) : (
-                ''
-              )}
-              {order.shippingAddress.formattedArea ? (
-                <p>{order.shippingAddress.formattedArea}</p>
-              ) : (
-                ''
-              )}
-            </address>
-          ) : (
-            <p>No shipping address defined</p>
-          )}
-          <h3>Status</h3>
+    <div className="account-order flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <Link
+          to="/account/orders"
+          className="inline-flex min-h-touch w-fit items-center font-bold text-primary-700 underline underline-offset-2"
+        >
+          Back to all orders
+        </Link>
+        <h2 className="type-display text-2xl md:text-3xl">
+          Order {order.name}
+        </h2>
+        <p className="text-fg-muted">
+          Placed on {new Date(order.processedAt!).toDateString()}
+        </p>
+        {order.confirmationNumber && (
+          <p className="text-fg-muted">
+            Confirmation: {order.confirmationNumber}
+          </p>
+        )}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <Card padding="none" className="overflow-hidden">
           <div>
-            <p>{fulfillmentStatus}</p>
+            <table className="w-full border-collapse text-left">
+              <thead className="bg-paper text-xs sm:text-sm">
+                <tr>
+                  <th scope="col" className="px-2 py-3 font-extrabold sm:px-4">
+                    Product
+                  </th>
+                  <th scope="col" className="px-2 py-3 font-extrabold sm:px-4">
+                    Price
+                  </th>
+                  <th scope="col" className="px-2 py-3 font-extrabold sm:px-4">
+                    Quantity
+                  </th>
+                  <th scope="col" className="px-2 py-3 font-extrabold sm:px-4">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {lineItems.map((lineItem, lineItemIndex) => (
+                  // eslint-disable-next-line react/no-array-index-key
+                  <OrderLineRow key={lineItemIndex} lineItem={lineItem} />
+                ))}
+              </tbody>
+              <tfoot className="border-t border-line bg-paper">
+                {((discountValue && discountValue.amount) ||
+                  discountPercentage) && (
+                  <tr>
+                    <th scope="row" colSpan={3} className="px-2 py-2 sm:px-4">
+                      Discounts
+                    </th>
+                    <td className="px-2 py-2 sm:px-4">
+                      {discountPercentage ? (
+                        <span>-{discountPercentage}% OFF</span>
+                      ) : (
+                        discountValue && <Money data={discountValue!} />
+                      )}
+                    </td>
+                  </tr>
+                )}
+                <tr>
+                  <th scope="row" colSpan={3} className="px-2 py-2 sm:px-4">
+                    Subtotal
+                  </th>
+                  <td className="px-2 py-2 sm:px-4">
+                    <Money data={order.subtotal!} />
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" colSpan={3} className="px-2 py-2 sm:px-4">
+                    Tax
+                  </th>
+                  <td className="px-2 py-2 sm:px-4">
+                    <Money data={order.totalTax!} />
+                  </td>
+                </tr>
+                <tr className="text-lg font-extrabold">
+                  <th scope="row" colSpan={3} className="px-2 py-3 sm:px-4">
+                    Total
+                  </th>
+                  <td className="px-2 py-3 sm:px-4">
+                    <Money data={order.totalPrice!} />
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
+        </Card>
+        <div className="flex flex-col gap-6">
+          <Card as="section" aria-labelledby="order-shipping-heading">
+            <h3
+              id="order-shipping-heading"
+              className="type-display mb-3 text-title"
+            >
+              Shipping address
+            </h3>
+            {order?.shippingAddress ? (
+              <address className="flex flex-col gap-1 not-italic">
+                <p className="font-bold">{order.shippingAddress.name}</p>
+                {order.shippingAddress.formatted ? (
+                  <p>{order.shippingAddress.formatted}</p>
+                ) : (
+                  ''
+                )}
+                {order.shippingAddress.formattedArea ? (
+                  <p>{order.shippingAddress.formattedArea}</p>
+                ) : (
+                  ''
+                )}
+              </address>
+            ) : (
+              <p>No shipping address defined</p>
+            )}
+          </Card>
+          <Card as="section" aria-labelledby="order-status-heading">
+            <h3
+              id="order-status-heading"
+              className="type-display mb-3 text-title"
+            >
+              Status
+            </h3>
+            {fulfillmentStatus === 'N/A' ? (
+              <p>{fulfillmentStatus}</p>
+            ) : (
+              <OrderStatusChip status={fulfillmentStatus} />
+            )}
+          </Card>
         </div>
       </div>
-      <br />
       <p>
-        <a target="_blank" href={order.statusPageUrl} rel="noreferrer">
-          View Order Status →
+        <a
+          target="_blank"
+          href={order.statusPageUrl}
+          rel="noreferrer"
+          className={buttonStyles({variant: 'outline'})}
+        >
+          View order status
+          <span className="sr-only"> (opens in a new tab)</span>
         </a>
       </p>
     </div>
@@ -238,24 +275,24 @@ export default function OrderRoute() {
 function OrderLineRow({lineItem}: {lineItem: OrderLineItemFullFragment}) {
   return (
     <tr key={lineItem.id}>
-      <td>
-        <div>
+      <td className="px-2 py-3 sm:px-4">
+        <div className="flex items-center gap-3">
           {lineItem?.image && (
-            <div>
+            <div className="hidden size-16 shrink-0 overflow-hidden rounded-choice bg-paper sm:block">
               <Image data={lineItem.image} width={96} height={96} />
             </div>
           )}
           <div>
-            <p>{lineItem.title}</p>
-            <small>{lineItem.variantTitle}</small>
+            <p className="font-bold">{lineItem.title}</p>
+            <small className="text-fg-muted">{lineItem.variantTitle}</small>
           </div>
         </div>
       </td>
-      <td>
+      <td className="px-2 py-3 sm:px-4">
         <Money data={lineItem.price!} />
       </td>
-      <td>{lineItem.quantity}</td>
-      <td>
+      <td className="px-2 py-3 sm:px-4">{lineItem.quantity}</td>
+      <td className="px-2 py-3 sm:px-4">
         <Money data={lineItem.totalDiscount!} />
       </td>
     </tr>

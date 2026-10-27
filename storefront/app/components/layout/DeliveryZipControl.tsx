@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
-import {TruckIcon} from '~/components/ui/Icons';
+import {cn} from '~/components/ui/cn';
+import {ChevronDownIcon, MapPinIcon} from '~/components/ui/Icons';
 import {zipFormPanel} from '~/components/layout/lazyPanels';
 import {ZipEntryDialog} from '~/components/layout/ZipEntryDialog';
 
@@ -16,15 +17,21 @@ type DeliveryZipControlProps = {
   pending?: boolean;
   /** Shopper-facing text of a server error, shown in the dialog so it can be read and corrected. */
   error?: string;
+  /**
+   * `chip` is the paper chip in the main header row (from 1024 px); `strip` is the plain row under the sticky header
+   * on phones and tablets. Both open the same dialog.
+   */
+  variant?: 'chip' | 'strip';
 };
 
-/** Utility-bar entry point for the delivery ZIP (REQ-NAV-003). Opens the ZIP dialog. */
+/** Header entry point for the delivery ZIP (REQ-NAV-003). Opens the ZIP dialog. */
 export function DeliveryZipControl({
   zip,
   onSubmit,
   onClear,
   pending,
   error,
+  variant = 'chip',
 }: DeliveryZipControlProps) {
   const [open, setOpen] = useState(false);
   const tracksPending = pending !== undefined;
@@ -61,18 +68,24 @@ export function DeliveryZipControl({
         onPointerEnter={() => void zipFormPanel.preload()}
         onFocus={() => void zipFormPanel.preload()}
         onPointerDown={() => void zipFormPanel.preload()}
-        className="inline-flex min-h-touch shrink-0 items-center gap-2 font-bold underline underline-offset-2 hover:no-underline"
+        className={cn(
+          'inline-flex items-center gap-2 text-left font-semibold text-fg motion-safe:transition-colors',
+          variant === 'chip'
+            ? 'min-h-12 shrink-0 rounded-choice bg-paper px-4 text-sm hover:bg-ink-100 lg:min-w-56'
+            : 'min-h-touch min-w-0 flex-1 text-caption',
+        )}
       >
-        <TruckIcon className="size-5" />
-        <span>
+        <MapPinIcon className="size-5 shrink-0" />
+        <span className="min-w-0 flex-1 truncate">
           {zip ? (
             <>
-              Delivering to <span className="underline">{zip}</span>
+              Delivering to <span className="font-extrabold">{zip}</span>
             </>
           ) : (
             'Enter delivery ZIP'
           )}
         </span>
+        <ChevronDownIcon className="size-4 shrink-0" />
       </button>
       <ZipEntryDialog
         open={open}
@@ -96,10 +109,21 @@ export function DeliveryZipControl({
  * Shown in place of the control when this deployment cannot keep a ZIP (P3B-11). Plain text, not a button: a
  * control that opens a form which can never save would be worse than saying so. No ZIP, no promise.
  */
-export function DeliveryZipUnavailable() {
+export function DeliveryZipUnavailable({
+  variant = 'chip',
+}: {
+  variant?: 'chip' | 'strip';
+}) {
   return (
-    <span className="inline-flex min-h-touch shrink-0 items-center gap-2">
-      <TruckIcon className="size-5" />
+    <span
+      className={cn(
+        'inline-flex items-center gap-2 text-fg',
+        variant === 'chip'
+          ? 'min-h-12 shrink-0 rounded-choice bg-paper px-4 text-sm font-semibold'
+          : 'min-h-touch flex-1 text-caption font-semibold',
+      )}
+    >
+      <MapPinIcon className="size-5 shrink-0" />
       {/* One word below 412 px so the utility bar stays one row at 320 and 360 px (BV-015: the full text needs about
           352 px beside the store link, and this project's `sm` is only 360 px). The full text is always the accessible name. */}
       <span className="sr-only min-[412px]:not-sr-only">

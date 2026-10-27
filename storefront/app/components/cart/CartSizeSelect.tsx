@@ -14,17 +14,21 @@ export function CartSizeSelect({
   currentVariantId,
   choices,
   disabled,
+  className,
 }: {
   lineId: string;
   title: string;
   currentVariantId: string;
   choices: readonly SizeChoice[];
   disabled: boolean;
+  /** Layout only (width, placement); the control's own look comes from the shared Select. */
+  className?: string;
 }) {
   const {submit, pending} = useCartSubmit(`cart-size-${lineId}`);
   return (
     <Select
       label={`Size of ${title}`}
+      className={className}
       value={currentVariantId}
       disabled={disabled || pending}
       options={choices.map((choice) => ({

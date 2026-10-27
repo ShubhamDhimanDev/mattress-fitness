@@ -13,6 +13,7 @@ import {
 import {loadStoreIndex, notFound} from '~/lib/pages/stores-data';
 import {storeCountText, storeEntry} from '~/lib/pages/stores-view';
 import {STORES_ROOT_PATH, findCity, statePath} from '~/lib/stores/grouping';
+import {RouteErrorPage} from '~/components/pages/ErrorPageView';
 
 // P6-06: stores in one city (REQ-LOC-001).
 
@@ -73,7 +74,7 @@ export default function StoresCityPage() {
         ]}
       />
       <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">
+        <h1 className="type-display text-4xl md:text-5xl">
           Stores in {data.cityName}, {data.stateCode}
         </h1>
         <p className="text-base text-fg-muted">
@@ -95,4 +96,9 @@ export default function StoresCityPage() {
       </ul>
     </div>
   );
+}
+
+/** A missing or failed page keeps the site header and footer (the 404 status is set by the loader). */
+export function ErrorBoundary() {
+  return <RouteErrorPage />;
 }

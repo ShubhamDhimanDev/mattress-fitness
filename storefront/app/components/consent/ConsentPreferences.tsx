@@ -78,7 +78,7 @@ function CategorySwitch({
   const id = useId();
   const hintId = `${id}-hint`;
   return (
-    <div className="flex min-h-touch items-start gap-3 py-2">
+    <div className="flex min-h-touch items-start gap-3 rounded-choice border-2 border-line-strong bg-surface p-3 motion-safe:transition-colors has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50">
       <input
         id={id}
         type="checkbox"
@@ -88,7 +88,10 @@ function CategorySwitch({
         className="mt-0.5 size-6 shrink-0 cursor-pointer accent-primary-500"
       />
       <div className="flex flex-col">
-        <label htmlFor={id} className="cursor-pointer text-base text-fg">
+        <label
+          htmlFor={id}
+          className="cursor-pointer text-base font-bold text-fg"
+        >
           {label}
         </label>
         <span id={hintId} className="text-sm text-fg-muted">
@@ -142,7 +145,7 @@ function PreferencesForm({
         </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           fullWidth
           onClick={onRejectAll}

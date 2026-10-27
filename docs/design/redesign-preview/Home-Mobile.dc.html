@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mattress Fitness home, mobile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#141414;background:#fff;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,h4,p,ul{margin:0;padding:0}
+ul{list-style:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:10px;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border:2px solid transparent;white-space:nowrap}
+.btn-red{background:#DE0510;color:#fff}
+.btn-ink{background:#141414;color:#fff}
+.btn-line{background:#fff;color:#141414;border-color:#141414}
+.btn-white{background:#fff;color:#141414}
+.btn-lg{min-height:56px;font-size:17px;border-radius:12px}
+.h2{font-weight:800;letter-spacing:-.02em;line-height:1.1;font-size:30px}
+.mark{background:#DE0510;color:#fff;padding:0 .14em;border-radius:8px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.eyebrow{font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#B8040D}
+.card{background:#fff;border:1px solid #E6E2DC;border-radius:16px}
+.ph{position:relative;display:flex;align-items:flex-end;background:linear-gradient(135deg,#EFE9E0,#DDD3C5);overflow:hidden;border-radius:16px}
+.ph:before{content:"";position:absolute;left:50%;top:48%;width:46%;height:28%;transform:translate(-50%,-50%);border:3px solid rgba(20,20,20,.14);border-radius:12px}
+.ph-tag{position:relative;z-index:1;margin:8px;padding:4px 8px;background:#fff;color:#141414;border-radius:6px;font-weight:700;font-size:10px}
+.ph-dark{background:linear-gradient(135deg,#2C2C2C,#1B1B1B)}
+.ph-dark:before{border-color:rgba(255,255,255,.16)}
+.chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:#F7F4EF;font-weight:600;font-size:12px;color:#3D3D3D}
+.badge{display:inline-block;padding:4px 8px;border-radius:6px;background:#F6B414;color:#141414;font-weight:800;font-size:11px}
+.ico{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+details{border-bottom:1px solid #3D3D3D}
+summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:52px;font-weight:700;font-size:16px}
+summary::-webkit-details-marker{display:none}
+</style>
+</helmet>
+
+<div style="width:390px">
+
+<div style="background:#141414;color:#fff;font-size:12px;font-weight:600;text-align:center;padding:9px 12px">Free delivery over $999 · <a href="#" style="text-decoration:underline">Find a store</a></div>
+
+<header style="background:#fff;border-bottom:1px solid #E6E2DC">
+<div style="display:flex;align-items:center;gap:10px;padding:10px 16px">
+<a href="#" aria-label="Menu" style="width:44px;height:44px;border-radius:12px;background:#F7F4EF;display:flex;align-items:center;justify-content:center"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></a>
+<a href="#" aria-label="Mattress Fitness home"><img src="/_blob/2b5b24dbd72e160e94e6a90791559ee4" alt="Mattress Fitness" width="48" height="48" style="display:block;width:48px;height:48px"></a>
+<span style="flex:1"></span>
+<a href="#" aria-label="Search" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></a>
+<a href="#" aria-label="Cart, 2 items" style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;background:#F7F4EF;border-radius:12px"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.400 11h10.200L20 7H6.500"/><circle cx="9" cy="19.500" r="1.500"/><circle cx="17" cy="19.500" r="1.500"/></svg><span style="position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:999px;background:#DE0510;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">2</span></a>
+</div>
+<a href="#" style="display:flex;align-items:center;gap:8px;padding:0 16px;min-height:44px;background:#F7F4EF;font-weight:600;font-size:13px"><svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.800 7 11 7 11z"/><circle cx="12" cy="10" r="2.500"/></svg><span style="flex:1">Delivering to <strong>60601</strong></span><span style="color:#A8030C;font-weight:700;text-decoration:underline">Change</span></a>
+</header>
+
+<!-- Hero -->
+<section style="background:linear-gradient(180deg,#fff,#F7F4EF);padding:28px 16px 36px">
+<p class="eyebrow">Sleep better, shop smarter</p>
+<h1 style="margin-top:12px;font-weight:800;letter-spacing:-.03em;line-height:1.02;font-size:46px">Find the mattress that <span class="mark">fits you.</span></h1>
+<p style="margin-top:16px;font-size:17px;line-height:1.55;color:#545454">Compare top brands side by side, try them in store, and get yours delivered and set up at home.</p>
+<div class="card" style="margin-top:24px;padding:18px;box-shadow:0 12px 32px -12px rgba(20,20,20,.2)">
+<p style="font-weight:800;font-size:16px">Shop by size</p>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px">
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:10px;border:2px solid #8C8C8C;font-weight:700;font-size:14px">Twin</a>
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:10px;border:2px solid #8C8C8C;font-weight:700;font-size:14px">Full</a>
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:10px;background:#DE0510;color:#fff;border:2px solid #DE0510;font-weight:800;font-size:14px">Queen</a>
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:10px;border:2px solid #8C8C8C;font-weight:700;font-size:14px">King</a>
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:10px;border:2px solid #8C8C8C;font-weight:700;font-size:14px">Cal King</a>
+<a href="#" style="display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:10px;border:2px solid #8C8C8C;font-weight:700;font-size:14px">Twin XL</a>
+</div>
+<a class="btn btn-red btn-lg" href="#" style="width:100%;margin-top:14px">Show mattresses</a>
+<a class="btn btn-line" href="#" style="width:100%;margin-top:10px">Take the sleep quiz</a>
+</div>
+<div class="ph" style="aspect-ratio:5/6;margin-top:24px;border-radius:24px"><span class="ph-tag">IMG-01 · 5:6 · Hero bedroom lifestyle</span></div>
+</section>
+
+<!-- Trust -->
+<section style="background:#F7F4EF;border-top:1px solid #E6E2DC;border-bottom:1px solid #E6E2DC;padding:20px 16px">
+<ul style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+<li style="display:flex;gap:10px;align-items:center"><span style="width:38px;height:38px;border-radius:999px;background:#DE0510;color:#fff;display:flex;align-items:center;justify-content:center;flex:none"><svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><strong style="font-size:13px;line-height:1.3">Free delivery over $999</strong></li>
+<li style="display:flex;gap:10px;align-items:center"><span style="width:38px;height:38px;border-radius:999px;background:#DE0510;color:#fff;display:flex;align-items:center;justify-content:center;flex:none"><svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l8-4 8 4v6c0 4-3.500 7-8 8-4.500-1-8-4-8-8z"/><path d="M9 12l2 2 4-4"/></svg></span><strong style="font-size:13px;line-height:1.3">Protection plans</strong></li>
+<li style="display:flex;gap:10px;align-items:center"><span style="width:38px;height:38px;border-radius:999px;background:#DE0510;color:#fff;display:flex;align-items:center;justify-content:center;flex:none"><svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10l2-5h12l2 5M5 10v9h14v-9M9 19v-5h6v5"/></svg></span><strong style="font-size:13px;line-height:1.3">Try in store</strong></li>
+<li style="display:flex;gap:10px;align-items:center"><span style="width:38px;height:38px;border-radius:999px;background:#DE0510;color:#fff;display:flex;align-items:center;justify-content:center;flex:none"><svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg></span><strong style="font-size:13px;line-height:1.3">Flexible financing</strong></li>
+</ul>
+</section>
+
+<!-- Brands -->
+<section style="background:#DE0510;color:#fff;padding:44px 16px">
+<h2 class="h2" style="text-align:center">Shop the brands you trust</h2>
+<p style="text-align:center;margin-top:10px;font-size:15px">Twelve leading mattress makers in one place.</p>
+<ul style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:26px">
+<sc-for list="{{brands}}" as="b" hint-placeholder-count="12">
+<li><a href="#" style="display:flex;align-items:center;justify-content:center;min-height:76px;background:#fff;color:#141414;border-radius:12px;padding:8px;text-align:center"><span style="{{b.style}}">{{b.name}}</span></a></li>
+</sc-for>
+</ul>
+<a class="btn btn-white btn-lg" href="#" style="width:100%;margin-top:24px">See all brands</a>
+</section>
+
+<!-- Sizes -->
+<section style="padding:44px 0 20px">
+<div style="padding:0 16px"><p class="eyebrow">Start here</p><h2 class="h2" style="margin-top:8px">Shop by size</h2></div>
+<ul style="display:flex;gap:12px;overflow-x:auto;padding:20px 16px 8px">
+<sc-for list="{{sizes}}" as="s" hint-placeholder-count="6">
+<li style="flex:none;width:128px"><a href="#" class="card" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 8px 16px"><span style="display:flex;align-items:flex-end;justify-content:center;height:96px"><span style="{{s.bedStyle}}"></span></span><strong style="font-size:15px">{{s.name}}</strong><span style="font-size:12px;color:#545454">{{s.dims}}</span></a></li>
+</sc-for>
+</ul>
+</section>
+
+<!-- Best sellers -->
+<section style="padding:28px 16px 44px">
+<div style="display:flex;justify-content:space-between;align-items:flex-end"><h2 class="h2">Best sellers</h2><a href="#" style="font-weight:700;font-size:14px;text-decoration:underline;min-height:44px;display:inline-flex;align-items:center">Shop all</a></div>
+<ul style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px">
+<sc-for list="{{products}}" as="p" hint-placeholder-count="4">
+<li class="card" style="overflow:hidden;display:flex;flex-direction:column">
+<div class="ph" style="aspect-ratio:1/1;border-radius:0;align-items:flex-start"><span class="ph-tag">Photo</span><sc-if value="{{p.badge}}" hint-placeholder-val="{{true}}"><span class="badge" style="position:absolute;right:8px;top:8px;z-index:1">{{p.badge}}</span></sc-if></div>
+<div style="padding:12px 12px 14px;display:flex;flex-direction:column;gap:4px;flex:1">
+<span style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#545454">{{p.brand}}</span>
+<h3 style="font-size:15px;font-weight:800;line-height:1.25">{{p.name}}</h3>
+<span><span class="chip">{{p.type}}</span></span>
+<span style="margin-top:auto;padding-top:8px;font-size:12px;color:#545454">From <strong style="font-size:19px;color:#141414;letter-spacing:-.02em">{{p.price}}</strong></span>
+</div>
+</li>
+</sc-for>
+</ul>
+</section>
+
+<!-- Offers -->
+<section style="padding:0 16px 44px;display:flex;flex-direction:column;gap:14px">
+<h2 class="h2">Latest offers</h2>
+<div style="background:#141414;color:#fff;border-radius:20px;padding:24px"><span style="font-weight:800;font-size:38px;letter-spacing:-.03em;line-height:1">Free gift</span><p style="margin-top:12px;font-weight:700;font-size:17px">Free pillow with select mattresses</p><p style="margin-top:6px;font-size:14px;color:#C4C4C4">Added to your cart automatically.</p><a class="btn btn-red" href="#" style="margin-top:16px">View offer</a></div>
+<div style="background:#DE0510;color:#fff;border-radius:20px;padding:24px"><span style="font-weight:800;font-size:38px;letter-spacing:-.03em;line-height:1">Bundle &amp; save</span><p style="margin-top:12px;font-weight:700;font-size:17px">Mattress + base + protector</p><p style="margin-top:6px;font-size:14px">See the savings in your cart.</p><a class="btn btn-white" href="#" style="margin-top:16px">View offer</a></div>
+<div style="background:#F6B414;color:#141414;border-radius:20px;padding:24px"><span style="font-weight:800;font-size:38px;letter-spacing:-.03em;line-height:1">Free delivery</span><p style="margin-top:12px;font-weight:700;font-size:17px">On orders over $999</p><p style="margin-top:6px;font-size:14px">Enter your ZIP to see delivery options.</p><a class="btn btn-ink" href="#" style="margin-top:16px">Check my ZIP</a></div>
+</section>
+
+<!-- Quiz -->
+<section style="background:#F7F4EF;padding:44px 16px">
+<p class="eyebrow">Not sure where to start?</p>
+<h2 class="h2" style="margin-top:8px">Take the <span class="mark">sleep quiz.</span></h2>
+<p style="margin-top:14px;font-size:16px;line-height:1.55;color:#545454">Tell us how you sleep and we will suggest mattresses that match.</p>
+<div class="ph" style="aspect-ratio:4/3;margin-top:20px"><span class="ph-tag">IMG-03 · 4:3 · Person choosing, calm bedroom</span></div>
+<a class="btn btn-red btn-lg" href="#" style="width:100%;margin-top:20px">Start the quiz</a>
+</section>
+
+<!-- Stores -->
+<section style="background:#141414;color:#fff;padding:44px 16px">
+<p class="eyebrow" style="color:#FF868A">Try before you buy</p>
+<h2 class="h2" style="margin-top:8px">Find a store near you</h2>
+<div class="ph ph-dark" style="aspect-ratio:4/3;margin-top:20px"><span class="ph-tag">IMG-05 · 4:3 · Stylised map with pins</span></div>
+<form style="display:flex;gap:10px;margin-top:20px"><label style="flex:1"><span style="position:absolute;left:-9999px">ZIP code</span><input type="text" placeholder="ZIP code" style="width:100%;min-height:52px;padding:0 14px;border-radius:10px;border:2px solid #8C8C8C;background:#fff;font-family:inherit;font-size:16px;font-weight:600"></label><a class="btn btn-red" href="#" style="min-height:52px">Find</a></form>
+</section>
+
+<!-- Footer -->
+<footer style="background:#1A1A1A;color:#fff;padding:36px 16px 24px">
+<img src="/_blob/2b5b24dbd72e160e94e6a90791559ee4" alt="Mattress Fitness" width="72" height="72" style="display:block;width:72px;height:72px;border-radius:999px">
+<p style="margin-top:14px;color:#C4C4C4;font-size:14px;line-height:1.6">Mattresses from the brands you know, with delivery, setup and stores to try them in.</p>
+<div style="margin-top:20px;border-top:1px solid #3D3D3D">
+<details><summary>Shop<svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><ul style="padding-bottom:12px"><li><a href="#" style="display:block;min-height:44px;line-height:44px;color:#C4C4C4">Mattresses</a></li><li><a href="#" style="display:block;min-height:44px;line-height:44px;color:#C4C4C4">Brands</a></li><li><a href="#" style="display:block;min-height:44px;line-height:44px;color:#C4C4C4">Bedding and pillows</a></li></ul></details>
+<details><summary>Help<svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><ul style="padding-bottom:12px"><li><a href="#" style="display:block;min-height:44px;line-height:44px;color:#C4C4C4">Delivery</a></li><li><a href="#" style="display:block;min-height:44px;line-height:44px;color:#C4C4C4">Track your order</a></li><li><a href="#" style="display:block;min-height:44px;line-height:44px;color:#C4C4C4">Warranty and returns</a></li></ul></details>
+<details><summary>Discover<svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary><ul style="padding-bottom:12px"><li><a href="#" style="display:block;min-height:44px;line-height:44px;color:#C4C4C4">Sleep quiz</a></li><li><a href="#" style="display:block;min-height:44px;line-height:44px;color:#C4C4C4">Compare mattresses</a></li><li><a href="#" style="display:block;min-height:44px;line-height:44px;color:#C4C4C4">Find a store</a></li></ul></details>
+</div>
+<p style="margin-top:20px;font-size:12px;color:#C4C4C4">© 2026 Mattress Fitness · Terms · Privacy · Your privacy choices</p>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":4300}}'>
+class Component extends DCLogic {
+renderVals() {
+const wm = (w, ls, tt, st) => 'font-size:14px;line-height:1.15;font-weight:' + w + ';letter-spacing:' + ls + ';text-transform:' + tt + ';font-style:' + st;
+const brands = [
+{ name: 'Tempur-Pedic', style: wm(800, '.04em', 'uppercase', 'normal') },
+{ name: 'Stearns & Foster', style: wm(500, '.01em', 'none', 'italic') },
+{ name: 'Sealy', style: wm(800, '-.02em', 'none', 'normal') },
+{ name: 'Molecule', style: wm(700, '.1em', 'uppercase', 'normal') },
+{ name: 'Serta', style: wm(800, '.14em', 'uppercase', 'normal') },
+{ name: 'Brooklyn Bedding', style: wm(700, '-.01em', 'none', 'normal') },
+{ name: 'Helix', style: wm(800, '.08em', 'uppercase', 'normal') },
+{ name: 'Puffy', style: wm(800, '-.03em', 'none', 'normal') },
+{ name: 'Beautyrest', style: wm(500, '.02em', 'none', 'italic') },
+{ name: 'Aireloom', style: wm(700, '.06em', 'uppercase', 'normal') },
+{ name: 'Kingsdown', style: wm(800, '.01em', 'none', 'normal') },
+{ name: 'Casper', style: wm(700, '.16em', 'uppercase', 'normal') }
+];
+const dim = (name, dims, w, h) => ({ name, dims, bedStyle: 'display:block;width:' + Math.round(w * 1.1) + 'px;height:' + Math.round(h * 1.1) + 'px;border:3px solid #141414;border-radius:8px;background:#F7F4EF' });
+const sizes = [dim('Twin', '38 x 75 in', 38, 75), dim('Twin XL', '38 x 80 in', 38, 80), dim('Full', '54 x 75 in', 54, 75), dim('Queen', '60 x 80 in', 60, 80), dim('King', '76 x 80 in', 76, 80), dim('Cal King', '72 x 84 in', 72, 84)];
+const products = [
+{ brand: 'Tempur-Pedic', name: 'TEMPUR-Cloud Mattress', type: 'Memory foam', price: '$1,699', badge: 'Free gift' },
+{ brand: 'Puffy', name: 'Puffy Cloud Mattress', type: 'Foam', price: '$1,849', badge: '' },
+{ brand: 'Molecule', name: 'Molecule Core', type: 'Memory foam', price: '$799', badge: 'Bundle & save' },
+{ brand: 'Helix', name: 'Helix Midnight', type: 'Hybrid', price: '$999', badge: '' }
+];
+return { brands, sizes, products };
+}
+}
+</script>
+</body>
+</html>

@@ -82,8 +82,8 @@ export default function TrackOrderPage() {
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-8">
-      <h1 className="text-3xl font-bold">Track your order</h1>
-      <p className="text-fg-muted">
+      <h1 className="type-display text-4xl md:text-5xl">Track your order</h1>
+      <p className="text-lead text-fg-muted">
         Enter your order number and the email address you used. This works for
         orders placed in the last 60 days. For older orders, sign in to your
         account or use the link in your confirmation email.

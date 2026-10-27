@@ -10,10 +10,10 @@ const PickupAvailability = lazy(() =>
 );
 
 const PLACEHOLDER = (
-  <div
-    aria-hidden="true"
-    className="min-h-28 rounded-card border border-line"
-  />
+  <div aria-hidden="true" className="flex flex-col gap-3">
+    <div className="min-h-28 rounded-card border border-line" />
+    <div className="min-h-20 rounded-card border border-line" />
+  </div>
 );
 
 export function PickupSlot({

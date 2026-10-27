@@ -1,7 +1,8 @@
 import {useId} from 'react';
 import {Link, useRouteLoaderData} from 'react-router';
 import {usePickupAvailability} from '~/components/product/usePickupAvailability';
-import {MapPinIcon} from '~/components/ui/Icons';
+import {Card} from '~/components/ui/Card';
+import {ChevronRightIcon, MapPinIcon, MoonIcon} from '~/components/ui/Icons';
 import {Skeleton} from '~/components/ui/Skeleton';
 import {STORE_LOCATOR_PATH} from '~/lib/navigation';
 import {myStoreFromRootData} from '~/lib/pages/my-store-summary';
@@ -25,51 +26,64 @@ export function PickupAvailability({
   productHandle: string;
 }) {
   const headingId = useId();
+  const tryId = useId();
   const myStore = myStoreFromRootData(useRouteLoaderData('root'));
   const state = usePickupAvailability(variantId, myStore?.key ?? null);
 
+  // Two option cards beside the delivery card above them (CR-31): pickup at "my store", and trying the mattress in store.
   return (
-    <section
-      aria-labelledby={headingId}
-      className="flex min-h-28 flex-col gap-2 rounded-card border border-line p-4"
-    >
-      <h2
-        id={headingId}
-        className="flex items-center gap-2 text-base font-bold"
+    <>
+      <Card
+        as="section"
+        padding="sm"
+        aria-labelledby={headingId}
+        className="flex min-h-28 flex-col gap-2"
       >
-        <MapPinIcon className="size-5" />
-        Store pickup
-      </h2>
-
-      {/* Mounted before it has text, so a change of size or store is announced (WCAG 4.1.3). */}
-      <div
-        role="status"
-        aria-live="polite"
-        className="flex flex-col gap-1 text-sm"
-      >
-        {state.status === 'loading' ? (
-          <>
-            <span className="sr-only">Checking pickup at your store.</span>
-            <Skeleton className="h-5 w-3/4" />
-          </>
-        ) : null}
-        {state.status === 'answer' ? <Answer answer={state.answer} /> : null}
-      </div>
-
-      <div className="flex flex-wrap gap-x-6">
-        {myStore ? (
-          <Link to={STORE_LOCATOR_PATH} className={LINK}>
-            Change store
-          </Link>
-        ) : null}
-        <Link
-          to={tryInStorePath(myStore?.path ?? null, productHandle)}
-          className={LINK}
+        <h2
+          id={headingId}
+          className="flex items-center gap-2 text-base font-extrabold"
         >
-          Try in store
-        </Link>
-      </div>
-    </section>
+          <MapPinIcon className="size-5" />
+          Store pickup
+        </h2>
+
+        {/* Mounted before it has text, so a change of size or store is announced (WCAG 4.1.3). */}
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-col gap-1 text-sm"
+        >
+          {state.status === 'loading' ? (
+            <>
+              <span className="sr-only">Checking pickup at your store.</span>
+              <Skeleton className="h-5 w-3/4" />
+            </>
+          ) : null}
+          {state.status === 'answer' ? <Answer answer={state.answer} /> : null}
+        </div>
+
+        {myStore ? (
+          <div className="flex flex-wrap gap-x-6">
+            <Link to={STORE_LOCATOR_PATH} className={LINK}>
+              Change store
+            </Link>
+          </div>
+        ) : null}
+      </Card>
+
+      <Card as="section" padding="sm" aria-labelledby={tryId}>
+        <h2 id={tryId} className="text-base font-extrabold">
+          <Link
+            to={tryInStorePath(myStore?.path ?? null, productHandle)}
+            className="flex min-h-touch items-center gap-2 hover:text-primary-700"
+          >
+            <MoonIcon className="size-5" />
+            Try in store
+            <ChevronRightIcon className="ml-auto size-5" />
+          </Link>
+        </h2>
+      </Card>
+    </>
   );
 }
 

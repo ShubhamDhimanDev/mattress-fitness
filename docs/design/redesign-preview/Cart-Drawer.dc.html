@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mattress Fitness mini cart drawer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#141414;background:#fff;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,h4,p,ul{margin:0;padding:0}
+ul{list-style:none}
+button{font-family:inherit;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:10px;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border:2px solid transparent;white-space:nowrap}
+.btn-red{background:#DE0510;color:#fff}
+.btn-line{background:#fff;color:#141414;border-color:#141414}
+.ph{position:relative;display:flex;align-items:flex-end;background:linear-gradient(135deg,#EFE9E0,#DDD3C5);overflow:hidden;border-radius:12px}
+.ph:before{content:"";position:absolute;left:50%;top:50%;width:52%;height:34%;transform:translate(-50%,-50%);border:3px solid rgba(20,20,20,.14);border-radius:10px}
+.ph-tag{position:relative;z-index:1;margin:5px;padding:2px 6px;background:#fff;color:#141414;border-radius:5px;font-weight:700;font-size:10px}
+.ico{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.qty{display:inline-flex;align-items:center;border:2px solid #8C8C8C;border-radius:10px;overflow:hidden;background:#fff}
+.qty button{width:44px;height:44px;border:0;background:#fff;font-size:20px;font-weight:700;color:#141414}
+.qty span{min-width:30px;text-align:center;font-weight:800;font-size:15px}
+.link{background:none;border:0;padding:0;min-height:44px;font-weight:700;font-size:13px;color:#A8030C;text-decoration:underline;text-underline-offset:3px}
+</style>
+</helmet>
+
+<div style="width:440px;height:940px;display:flex;flex-direction:column;background:#fff;box-shadow:0 0 48px rgba(20,20,20,.28)">
+
+<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid #E6E2DC">
+<h2 style="font-size:24px;font-weight:800;letter-spacing:-.02em">Your cart <span style="font-size:15px;font-weight:600;color:#545454">(3 items)</span></h2>
+<button aria-label="Close cart" style="width:44px;height:44px;border-radius:999px;border:2px solid #141414;background:#fff;display:flex;align-items:center;justify-content:center"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+
+<div style="padding:16px 20px;background:#F7F4EF;border-bottom:1px solid #E6E2DC">
+<div style="display:flex;align-items:center;gap:10px;font-weight:800;font-size:14px"><span style="width:32px;height:32px;border-radius:8px;background:#1B7A43;color:#fff;display:flex;align-items:center;justify-content:center"><svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span>You have unlocked free delivery</div>
+<div style="margin-top:10px;height:8px;border-radius:999px;background:#E6E2DC;overflow:hidden"><div style="height:100%;width:100%;background:#1B7A43;border-radius:999px"></div></div>
+</div>
+
+<ul style="flex:1;overflow:auto;padding:0 20px" aria-label="Cart items">
+<li style="padding:20px 0;border-bottom:1px solid #E6E2DC">
+<div style="display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:14px">
+<div class="ph" style="width:84px;height:84px"><span class="ph-tag">Photo</span></div>
+<div style="min-width:0"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#545454">Tempur-Pedic</span><h3 style="font-size:16px;font-weight:800;line-height:1.25;margin-top:2px">TEMPUR-Cloud Mattress</h3><span style="font-size:13px;color:#545454">Queen · 60 x 80 in</span></div>
+<strong style="font-size:17px;letter-spacing:-.01em">$1,999</strong>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><div class="qty" role="group" aria-label="Quantity"><button aria-label="Decrease quantity">−</button><span>1</span><button aria-label="Increase quantity">+</button></div><button class="link">Remove</button></div>
+<div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:#F7F4EF;border-radius:10px"><svg class="ico" style="color:#DE0510;width:20px;height:20px" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l8-4 8 4v6c0 4-3.500 7-8 8-4.500-1-8-4-8-8z"/><path d="M9 12l2 2 4-4"/></svg><span style="flex:1;font-size:13px;font-weight:700">Protection plan <span style="font-weight:500;color:#545454">· covers this mattress</span></span><strong style="font-size:14px">$129</strong></div>
+</li>
+<li style="padding:14px 0;border-bottom:1px solid #E6E2DC;display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center">
+<div class="ph" style="width:56px;height:56px"><span class="ph-tag">Gift</span></div>
+<div><span style="display:inline-block;padding:2px 7px;border-radius:5px;background:#F6B414;font-weight:800;font-size:10px">FREE GIFT</span><h3 style="font-size:14px;font-weight:800;margin-top:3px">Sleep pillow</h3></div>
+<strong style="font-size:15px">$0.00</strong>
+</li>
+<li style="padding:20px 0;border-bottom:1px solid #E6E2DC">
+<div style="display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:14px">
+<div class="ph" style="width:84px;height:84px"><span class="ph-tag">Photo</span></div>
+<div style="min-width:0"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#545454">Tempur-Pedic</span><h3 style="font-size:16px;font-weight:800;line-height:1.25;margin-top:2px">Flat Foundation</h3><span style="font-size:13px;color:#545454">Queen · 60 x 80 in</span></div>
+<strong style="font-size:17px;letter-spacing:-.01em">$419</strong>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><div class="qty" role="group" aria-label="Quantity"><button aria-label="Decrease quantity">−</button><span>1</span><button aria-label="Increase quantity">+</button></div><button class="link">Remove</button></div>
+</li>
+</ul>
+
+<div style="padding:18px 20px 20px;border-top:1px solid #E6E2DC;box-shadow:0 -10px 24px -14px rgba(20,20,20,.2)">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:700">Subtotal</span><strong style="font-size:28px;letter-spacing:-.03em">$2,547.00</strong></div>
+<p style="margin-top:4px;font-size:12px;color:#545454">Delivery is free. Tax is calculated at checkout.</p>
+<a class="btn btn-red" href="#" style="width:100%;min-height:56px;font-size:17px;border-radius:12px;margin-top:14px"><svg class="ico" style="width:20px;height:20px" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>Checkout securely</a>
+<a class="btn btn-line" href="#" style="width:100%;margin-top:10px">View full cart</a>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":440,"height":940}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

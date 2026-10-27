@@ -11,6 +11,7 @@ import {
 import {canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {catalogCache} from '~/lib/shopify/cache';
+import {RouteErrorPage} from '~/components/pages/ErrorPageView';
 
 // URL handle to the Shop field it reads. A closed list: the handle never becomes a variable name unchecked.
 const POLICY_FIELDS = {
@@ -116,3 +117,8 @@ const POLICY_CONTENT_QUERY = `#graphql
     }
   }
 ` as const;
+
+/** A missing or failed page keeps the site header and footer (the 404 status is set by the loader). */
+export function ErrorBoundary() {
+  return <RouteErrorPage />;
+}

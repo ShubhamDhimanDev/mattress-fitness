@@ -26,6 +26,8 @@ test.describe('REQ-HOME-001 home page', () => {
       'href',
       /^\/collections\/[^?]+\?size=/,
     );
+    // Each tile names the size and its real dimensions (CR-31).
+    await expect(sizes.getByRole('link').first()).toContainText(/\d+ x \d+ in/);
     // The "Buy with confidence" block is absent until the client supplies its claims (REQ-CNT-001, B-15);
     // the reassurance test below covers that.
     expect(ourErrors(errors), 'console errors on the home page').toEqual([]);
@@ -44,12 +46,46 @@ test.describe('REQ-HOME-001 home page', () => {
     await expect(page.getByRole('heading', {level: 1})).toHaveCount(1);
   });
 
-  test('has no serious accessibility violations and no horizontal scroll', async ({
+  test('the hero finder goes to the collection with only known filter values (CR-31)', async ({
     page,
   }) => {
     await gotoReady(page, '/');
-    await expectNoSeriousA11yViolations(page);
-    await expectNoHorizontalScroll(page);
+    const finder = page.getByRole('form', {name: 'Find mattresses by size'});
+    // The finder hides itself when there is nothing to choose from; the dev data has sizes.
+    await expect(finder).toBeVisible();
+    await finder.getByText('Queen', {exact: true}).click();
+    await finder.getByRole('button', {name: 'Show mattresses'}).click();
+    await expect(page).toHaveURL(/\/collections\/[^?]*\?size=queen$/);
+  });
+
+  test('the finder works as a plain GET form and the quiz tab links to the quiz (CR-31)', async ({
+    page,
+  }) => {
+    await gotoReady(page, '/');
+    const finder = page.getByRole('form', {name: 'Find mattresses by size'});
+    await expect(finder).toHaveAttribute('method', 'get');
+    await expect(finder).toHaveAttribute('action', /^\/collections/);
+    await page.getByRole('tab', {name: 'Sleep quiz'}).click();
+    await expect(
+      page
+        .getByRole('tabpanel')
+        .getByRole('link', {name: 'Take the sleep quiz'}),
+    ).toHaveAttribute('href', '/quiz');
+  });
+
+  test('has no serious accessibility violations and no horizontal scroll at 360, 768, 1280 and 1536 px', async ({
+    page,
+  }, info) => {
+    test.skip(
+      info.project.name.includes('mobile'),
+      'The widths are set by the test, so the desktop project covers them.',
+    );
+    for (const width of [360, 768, 1280, 1536]) {
+      await page.setViewportSize({width, height: 900});
+      await gotoReady(page, '/');
+      await expectNoSeriousA11yViolations(page);
+      await expectNoHorizontalScroll(page);
+    }
   });
 });
 

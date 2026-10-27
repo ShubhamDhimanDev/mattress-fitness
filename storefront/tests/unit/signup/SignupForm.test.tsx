@@ -399,6 +399,8 @@ describe('mounting: nothing when off, a lazy form when on (NFR-002, NFR-013)', (
     sizeTiles: [],
     brandTiles: [],
     collectionTiles: [],
+    finder: null,
+    faqs: [],
     sectionsSource: 'admin',
   };
   const SIGNUP_SECTIONS: HomeData['sections'] = [

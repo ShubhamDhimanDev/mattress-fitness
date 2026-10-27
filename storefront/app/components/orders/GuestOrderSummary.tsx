@@ -1,4 +1,6 @@
 import {useId} from 'react';
+import {OrderStatusChip} from '~/components/orders/OrderStatusChip';
+import {Card} from '~/components/ui/Card';
 import type {GuestOrderView} from '~/lib/orders/guest-lookup';
 
 /**
@@ -37,14 +39,16 @@ export function GuestOrderSummary({order}: {order: GuestOrderView}) {
   const headingId = useId();
   const placed = formatPlacedDate(order.placedAt);
   return (
-    <section
+    <Card
+      as="section"
+      variant="raised"
       aria-labelledby={headingId}
-      className="flex flex-col gap-4 rounded-card border border-line p-4"
+      className="flex flex-col gap-4"
     >
-      <h2 id={headingId} className="text-xl font-bold">
+      <h2 id={headingId} className="type-display text-title">
         Order {order.orderName}
       </h2>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-base">
+      <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-base">
         {placed !== '' ? (
           <>
             <dt className="font-bold">Placed</dt>
@@ -52,11 +56,13 @@ export function GuestOrderSummary({order}: {order: GuestOrderView}) {
           </>
         ) : null}
         <dt className="font-bold">Status</dt>
-        <dd>{order.statusLabel}</dd>
+        <dd>
+          <OrderStatusChip status={order.status} label={order.statusLabel} />
+        </dd>
       </dl>
 
       <div className="flex flex-col gap-1">
-        <h3 className="text-base font-bold">Items</h3>
+        <h3 className="text-lg font-extrabold">Items</h3>
         <ul className="list-disc pl-5">
           {withKeys(order.items, (item) => item.title).map(({key, item}) => (
             <li key={key}>
@@ -67,17 +73,20 @@ export function GuestOrderSummary({order}: {order: GuestOrderView}) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-base font-bold">Shipping</h3>
+        <h3 className="text-lg font-extrabold">Shipping</h3>
         {order.shipments.length === 0 ? (
           <p className="text-fg-muted">
             No tracking details yet. They appear here once your order has
             shipped.
           </p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-3">
             {withKeys(order.shipments, (s) => s.trackingNumber ?? '').map(
               ({key, item: shipment}) => (
-                <li key={key} className="flex flex-col gap-0.5">
+                <li
+                  key={key}
+                  className="flex flex-col gap-0.5 rounded-choice bg-paper p-3"
+                >
                   {shipment.statusLabel !== null ? (
                     <span className="font-bold">{shipment.statusLabel}</span>
                   ) : null}
@@ -94,7 +103,7 @@ export function GuestOrderSummary({order}: {order: GuestOrderView}) {
                       href={shipment.trackingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-bold underline"
+                      className="inline-flex min-h-touch items-center font-bold text-primary-700 underline underline-offset-2"
                     >
                       Track this package
                       <span className="sr-only"> (opens in a new tab)</span>
@@ -106,6 +115,6 @@ export function GuestOrderSummary({order}: {order: GuestOrderView}) {
           </ul>
         )}
       </div>
-    </section>
+    </Card>
   );
 }

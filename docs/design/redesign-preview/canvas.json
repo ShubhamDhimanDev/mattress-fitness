@@ -1,0 +1,18 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-27T08:00:00Z" },
+  "title": "MattressFitness Redesign",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 1280, "y": 0, "w": 1440, "h": 6900, "expand": "fill", "title": "Home - desktop" },
+    "Style.dc.html": { "x": 0, "y": 0, "w": 1100, "h": 1560, "title": "Style guide" },
+    "Home-Mobile.dc.html": { "x": 2800, "y": 0, "w": 390, "h": 4300, "title": "Home - mobile" },
+    "Cart.dc.html": { "x": 3270, "y": 0, "w": 1440, "h": 2200, "expand": "fill", "is_interactive": true, "title": "Cart - desktop (interactive)" },
+    "Cart-Mobile.dc.html": { "x": 4790, "y": 0, "w": 390, "h": 2300, "title": "Cart - mobile" },
+    "Cart-Drawer.dc.html": { "x": 5260, "y": 0, "w": 440, "h": 940, "title": "Mini cart drawer" }
+  },
+  "order": ["Main.dc.html", "Style.dc.html", "Home-Mobile.dc.html", "Cart.dc.html", "Cart-Mobile.dc.html", "Cart-Drawer.dc.html"],
+  "notes": {},
+  "designSystems": []
+}

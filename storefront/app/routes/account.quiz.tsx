@@ -6,6 +6,8 @@ import {
   accountNoStoreHeaders,
   requireAccountSession,
 } from '~/lib/account/results';
+import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
 import {isSameOriginRequest} from '~/lib/cart/http';
 import {getQuizConfigRaw, getQuizProducts} from '~/lib/pages/data-source';
 import {answerRows} from '~/lib/quiz/account-sync';
@@ -90,56 +92,76 @@ export default function AccountQuiz() {
   const result = useLoaderData<typeof loader>();
 
   return (
-    <div className="account-quiz">
-      <h2>Your sleep quiz result</h2>
-      <br />
+    <div className="account-quiz flex flex-col gap-6">
+      <h2 className="type-display text-2xl md:text-3xl">
+        Your sleep quiz result
+      </h2>
       {result.status === 'ok' ? (
         <>
-          <p>Saved on {result.savedOn}.</p>
-          <br />
-          <dl>
-            {result.rows.map((row) => (
-              <div key={row.question}>
-                <dt>{row.question}</dt>
-                <dd>{row.answer}</dd>
-              </div>
-            ))}
-          </dl>
-          <br />
+          <Card className="flex flex-col gap-4">
+            <p className="text-fg-muted">Saved on {result.savedOn}.</p>
+            <dl className="grid gap-4 md:grid-cols-2">
+              {result.rows.map((row) => (
+                <div key={row.question} className="rounded-choice bg-paper p-4">
+                  <dt className="text-sm text-fg-muted">{row.question}</dt>
+                  <dd className="font-extrabold">{row.answer}</dd>
+                </div>
+              ))}
+            </dl>
+          </Card>
           {result.picks.length > 0 ? (
-            <>
-              <h3>Your top matches then</h3>
-              <ul>
+            <Card as="section" aria-labelledby="quiz-picks-heading">
+              <h3
+                id="quiz-picks-heading"
+                className="type-display mb-3 text-title"
+              >
+                Your top matches then
+              </h3>
+              <ul className="flex flex-col gap-1">
                 {result.picks.map((pick) => (
                   <li key={pick.handle}>
-                    <Link to={`/products/${pick.handle}`}>{pick.title}</Link>
+                    <Link
+                      to={`/products/${pick.handle}`}
+                      className="inline-flex min-h-touch items-center font-bold text-primary-700 underline underline-offset-2"
+                    >
+                      {pick.title}
+                    </Link>
                   </li>
                 ))}
               </ul>
-              <br />
-            </>
+            </Card>
           ) : null}
-          <p>
-            <Link to="/quiz">Retake the quiz</Link>
-          </p>
-          <br />
-          <Form method="DELETE">
-            <button type="submit">Clear my saved result</button>
-          </Form>
+          <div className="flex flex-wrap gap-3">
+            <Button to="/quiz" size="lg">
+              Retake the quiz
+            </Button>
+            <Form method="DELETE">
+              <Button type="submit" variant="outline" size="lg">
+                Clear my saved result
+              </Button>
+            </Form>
+          </div>
         </>
       ) : null}
       {result.status === 'none' ? (
-        <p>
-          You have no saved quiz result yet.{' '}
-          <Link to="/quiz">Take the quiz</Link> while signed in and your result
-          is kept here.
-        </p>
+        <Card variant="tinted" className="flex flex-col items-start gap-4">
+          <p className="text-lead">
+            You have no saved quiz result yet. Take the quiz while signed in and
+            your result is kept here.
+          </p>
+          <Button to="/quiz">Take the quiz</Button>
+        </Card>
       ) : null}
       {result.status === 'unavailable' || result.status === 'signed_out' ? (
-        <p role="status">
-          We could not load your saved quiz result just now. Your result is
-          still kept on this device. <Link to="/quiz">Open the quiz</Link>
-        </p>
+        <Card variant="tinted" className="flex flex-col items-start gap-4">
+          <p role="status" className="text-lead">
+            We could not load your saved quiz result just now. Your result is
+            still kept on this device.
+          </p>
+          <Button to="/quiz" variant="outline">
+            Open the quiz
+          </Button>
+        </Card>
       ) : null}
     </div>
   );

@@ -720,8 +720,41 @@ export type CatalogHomeSectionsQuery = {
                 >
               >;
             }>;
+            references?: StorefrontAPI.Maybe<{
+              nodes: Array<
+                Pick<StorefrontAPI.Metaobject, 'id'> & {
+                  fields: Array<
+                    Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'> & {
+                      reference?: StorefrontAPI.Maybe<{
+                        image?: StorefrontAPI.Maybe<
+                          Pick<
+                            StorefrontAPI.Image,
+                            'url' | 'altText' | 'width' | 'height'
+                          >
+                        >;
+                      }>;
+                    }
+                  >;
+                }
+              >;
+            }>;
           }
         >;
+      }
+    >;
+  };
+};
+
+export type CatalogHomeFaqsQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type CatalogHomeFaqsQuery = {
+  faqs: {
+    nodes: Array<
+      Pick<StorefrontAPI.Metaobject, 'id'> & {
+        fields: Array<Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'>>;
       }
     >;
   };
@@ -1806,9 +1839,13 @@ interface GeneratedQueryTypes {
     return: ContentPagesQuery;
     variables: ContentPagesQueryVariables;
   };
-  '#graphql\n  query CatalogHomeSections($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    sections: metaobjects(type: "homepage_section", first: 30) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
+  '#graphql\n  query CatalogHomeSections($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    sections: metaobjects(type: "homepage_section", first: 30) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n          }\n          references(first: 6) {\n            nodes {\n              ... on Metaobject {\n                id\n                fields {\n                  key\n                  value\n                  reference {\n                    ... on MediaImage {\n                      image {\n                        url\n                        altText\n                        width\n                        height\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
     return: CatalogHomeSectionsQuery;
     variables: CatalogHomeSectionsQueryVariables;
+  };
+  '#graphql\n  query CatalogHomeFaqs($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    faqs: metaobjects(type: "faq", first: 50) {\n      nodes {\n        id\n        fields {\n          key\n          value\n        }\n      }\n    }\n  }\n': {
+    return: CatalogHomeFaqsQuery;
+    variables: CatalogHomeFaqsQueryVariables;
   };
   '#graphql\n  query MainMenu(\n    $handle: String!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    menu(handle: $handle) {\n      items {\n        title\n        type\n        url\n        items {\n          title\n          type\n          url\n          items {\n            title\n            type\n            url\n          }\n        }\n      }\n    }\n  }\n': {
     return: MainMenuQuery;

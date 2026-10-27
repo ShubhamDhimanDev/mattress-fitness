@@ -1,3 +1,4 @@
+import {useEffect, useState} from 'react';
 import {Await} from 'react-router';
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {Aside} from '~/components/Aside';
@@ -75,7 +76,7 @@ export function PageLayout({
       <main
         id={MAIN_CONTENT_ID}
         tabIndex={-1}
-        className="mx-auto w-full max-w-page flex-1 px-4 pb-12 md:px-6"
+        className="mx-auto w-full max-w-page flex-1 px-4 pb-12 md:px-10"
       >
         {children}
       </main>
@@ -106,9 +107,42 @@ const ASIDE_PRELOAD = {
 
 const CartMainPanel = cartPanel.Panel;
 
+/**
+ * The item count for the drawer's title chip, read from the cart promise the page already has (no new request). It
+ * is null until the cart arrives and when the cart failed, and the chip is then left out. It follows the server's
+ * cart, not the optimistic one, so after an add it updates once the cart has been revalidated.
+ */
+function useCartItemCount(cart: PageLayoutProps['cart']): number | null {
+  const [count, setCount] = useState<number | null>(null);
+  useEffect(() => {
+    let current = true;
+    void cart.then(
+      (resolved) => {
+        if (current) setCount(resolved?.totalQuantity ?? 0);
+      },
+      () => {
+        if (current) setCount(null);
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [cart]);
+  return count;
+}
+
 function CartAside({cart}: Pick<PageLayoutProps, 'cart'>) {
+  const count = useCartItemCount(cart);
   return (
-    <Aside type="cart" heading="Cart">
+    <Aside
+      type="cart"
+      heading="Your cart"
+      countLabel={
+        count !== null && count > 0
+          ? `${count} ${count === 1 ? 'item' : 'items'}`
+          : undefined
+      }
+    >
       {/* The cart contents are a lazy chunk (P7-06); /cart, the no-JavaScript path, renders them statically. */}
       <LazyBoundary
         loading={<CartSkeleton />}

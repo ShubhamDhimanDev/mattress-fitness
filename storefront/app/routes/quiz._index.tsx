@@ -256,9 +256,12 @@ export default function QuizPage() {
     : null;
 
   return (
-    <div className="mx-auto flex max-w-prose flex-col gap-6 py-8 md:max-w-page">
+    <div className="mx-auto flex max-w-prose flex-col gap-6 py-8 md:max-w-page md:py-12">
       <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Sleep quiz</h1>
+        <p className="type-eyebrow">Not sure where to start?</p>
+        <h1 className="type-display text-4xl md:text-5xl">
+          Take the <span className="type-mark">sleep quiz.</span>
+        </h1>
       </header>
       {data.source === 'fixtures' ? (
         <PreviewNotice subject="mattresses" />

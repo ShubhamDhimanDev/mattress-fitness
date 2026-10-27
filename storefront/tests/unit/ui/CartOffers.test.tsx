@@ -199,7 +199,7 @@ describe('add-on picker (REQ-CART-003)', () => {
 
   it('lists each add-on with its category, size match and Shopify price', () => {
     mount(ADD_ON_VIEW);
-    const list = screen.getByRole('list', {name: 'Goes with your mattress'});
+    const list = screen.getByRole('list', {name: 'Complete your sleep setup'});
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent(

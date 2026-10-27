@@ -9,6 +9,10 @@ import {
   useOutletContext,
 } from 'react-router';
 import type {Route} from './+types/account.profile';
+import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
+import {AlertIcon} from '~/components/ui/Icons';
+import {Input} from '~/components/ui/Input';
 import {isSameOriginRequest} from '~/lib/cart/http';
 import {readSmallForm} from '~/lib/delivery-runtime/form';
 import {
@@ -121,48 +125,55 @@ export default function AccountProfile() {
     action?.status === 'ok' ? action.customer : account?.customer;
 
   return (
-    <div className="account-profile">
-      <h2>My profile</h2>
-      <br />
-      <Form method="PUT">
-        <legend>Personal information</legend>
-        <fieldset>
-          <label htmlFor="firstName">First name</label>
-          <input
+    <Card
+      as="section"
+      aria-labelledby="profile-heading"
+      className="account-profile flex max-w-xl flex-col gap-5"
+    >
+      <h2 id="profile-heading" className="type-display text-2xl md:text-3xl">
+        My profile
+      </h2>
+      <Form method="PUT" className="flex flex-col gap-5">
+        <fieldset className="flex flex-col gap-4">
+          <legend className="mb-3 text-lg font-extrabold">
+            Personal information
+          </legend>
+          <Input
             id="firstName"
             name="firstName"
             type="text"
+            label="First name"
             autoComplete="given-name"
             placeholder="First name"
-            aria-label="First name"
             defaultValue={customer.firstName ?? ''}
             minLength={2}
           />
-          <label htmlFor="lastName">Last name</label>
-          <input
+          <Input
             id="lastName"
             name="lastName"
             type="text"
+            label="Last name"
             autoComplete="family-name"
             placeholder="Last name"
-            aria-label="Last name"
             defaultValue={customer.lastName ?? ''}
             minLength={2}
           />
         </fieldset>
         {action?.status === 'error' ? (
-          <p role="alert">
-            <mark>
-              <small>{action.message}</small>
-            </mark>
+          <p
+            role="alert"
+            className="flex items-start gap-2 rounded-choice border-2 border-error-solid bg-error-bg p-3 text-sm font-bold text-error-fg"
+          >
+            <AlertIcon className="mt-0.5 size-5" />
+            <span>{action.message}</span>
           </p>
-        ) : (
-          <br />
-        )}
-        <button type="submit" disabled={state !== 'idle'}>
-          {state !== 'idle' ? 'Updating' : 'Update'}
-        </button>
+        ) : null}
+        <div>
+          <Button type="submit" size="lg" disabled={state !== 'idle'}>
+            {state !== 'idle' ? 'Updating' : 'Update'}
+          </Button>
+        </div>
       </Form>
-    </div>
+    </Card>
   );
 }

@@ -204,14 +204,14 @@ The first browser run of these specs since P1-12 (`E2E_ENV_FILE=.env.bedding npx
 - **The default `storefront/.env` (mock.shop) answers 500 on `/`** (an unhandled error with no message in the log, which is redacted by design), so `npm run dev` without a mode and a Playwright run without `E2E_ENV_FILE` never start (Playwright waited 240 s and gave up). That file is off limits for me; not investigated. Use `--mode demo` or `E2E_ENV_FILE=.env.bedding` until it is looked at.
 - A background run (`nohup ... &` in this Git Bash) died with no output; foreground runs of about 4 minutes each worked.
 
-## 7i. The brand catalog (Puffy, Molecule, Beautyrest, Serta), 2026-10-26
+## 7i. The brand catalog (12 brands), rebuilt 2026-10-27
 
-Source facts, method and the open points are in [scripts/catalog/brand-catalog/README.md](../../scripts/catalog/brand-catalog/README.md). In short: public product data only (the Puffy and Molecule `products.json` feeds; the schema.org product data of the Beautyrest and Serta pages), one request every 10 seconds, no descriptions or images copied, **3Z Brands has no product list or prices on its site and is not included**. The result is 58 mattress models and 310 size rows.
+Source facts, method and the open points are in [scripts/catalog/brand-catalog/README.md](../../scripts/catalog/brand-catalog/README.md). In short: the 12 brands the owner listed (Tempur-Pedic, Stearns & Foster, Sealy, Molecule, Serta, Brooklyn Bedding, Helix, Puffy, Beautyrest, Aireloom, Kingsdown, Casper); public pages and product feeds only, the makers' own descriptions and photos (owner decision 2026-10-27; brand permission still to be confirmed by the client); everything a draft. The result is 599 products (278 mattresses) in the Shopify export layout, and 576 project-sheet models for the 335 products that sheet can describe (over the 400-product scope). **Helix is partial** (19 mattresses; its bot protection cut the connection) and **Aireloom has the Queen size only**. The old four-brand sheet (58 models) is replaced; the 2026-10-26 dev-store import of those four brands used placeholder photos and its own sample text.
 
 ```bash
-node scripts/catalog/validate.mjs scripts/catalog/brand-catalog/brand-mattresses.csv --images <placeholder folder>     # PASSED: 310 rows, 58 models, 0 errors, 38 warnings
-node scripts/catalog/to-shopify-csv.mjs scripts/catalog/brand-catalog/brand-mattresses.csv out.csv                   # the Shopify export layout of the owner's attached file
-bash scripts/setup/with-admin-token.sh node scripts/setup/seed-entries.mjs --live                                     # adds the four brand entries (19 entries in all)
+node scripts/catalog/validate.mjs scripts/catalog/brand-catalog/brand-mattresses.csv --images scripts/catalog/brand-catalog/images     # PASSED: 2,989 rows, 576 models, 0 errors, 2,294 warnings
+scripts/catalog/brand-catalog/brand-mattresses.shopify.csv                                                          # all 599 products in the Shopify export layout (built by scripts/catalog/scrape/build.mjs)
+bash scripts/setup/with-admin-token.sh node scripts/setup/seed-entries.mjs --live                                     # adds the eight new brand entries to the earlier four (27 entries in all)
 bash scripts/setup/with-admin-token.sh bash -c 'node scripts/catalog/import.mjs <dev-store copy of the sheet> --store "$STORE" --images <folder> --publication "$PUB" --live'
 bash scripts/setup/with-admin-token.sh node scripts/setup/demo-collection.mjs                                         # the mattresses collection: 74 mattresses
 ```

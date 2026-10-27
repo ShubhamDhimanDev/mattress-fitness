@@ -3,6 +3,8 @@ import type {Route} from './+types/collections._index';
 import {Image} from '~/lib/hydrogen/image';
 import type {CollectionFragment} from 'storefrontapi.generated';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
+import {cardStyles} from '~/components/ui/Card';
+import {cn} from '~/components/ui/cn';
 import {cursorPaginationVariables} from '~/lib/pages/cursor-pagination';
 
 export async function loader(args: Route.LoaderArgs) {
@@ -49,20 +51,24 @@ export default function Collections() {
   const {collections} = useLoaderData<typeof loader>();
 
   return (
-    <div className="collections">
-      <h1>Collections</h1>
-      <PaginatedResourceSection<CollectionFragment>
-        connection={collections}
-        resourcesClassName="collections-grid"
-      >
-        {({node: collection, index}) => (
-          <CollectionItem
-            key={collection.id}
-            collection={collection}
-            index={index}
-          />
-        )}
-      </PaginatedResourceSection>
+    <div className="py-4">
+      <header className="rounded-panel bg-paper p-6 md:p-10">
+        <h1 className="type-display text-hero md:text-heading">Collections</h1>
+      </header>
+      <div className="mt-6">
+        <PaginatedResourceSection<CollectionFragment>
+          connection={collections}
+          resourcesClassName="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3 xl:grid-cols-4"
+        >
+          {({node: collection, index}) => (
+            <CollectionItem
+              key={collection.id}
+              collection={collection}
+              index={index}
+            />
+          )}
+        </PaginatedResourceSection>
+      </div>
     </div>
   );
 }
@@ -76,22 +82,30 @@ function CollectionItem({
 }) {
   return (
     <Link
-      className="collection-item"
+      className={cn(
+        cardStyles({padding: 'none', interactive: true}),
+        'group flex flex-col overflow-hidden',
+      )}
       key={collection.id}
       to={`/collections/${collection.handle}`}
       prefetch="intent"
     >
-      {collection?.image && (
-        <Image
-          // The title is the link's text right below; repeating it as alt text makes a screen reader say it twice.
-          alt=""
-          aspectRatio="1/1"
-          data={collection.image}
-          loading={index < 3 ? 'eager' : undefined}
-          sizes="(min-width: 45em) 400px, 100vw"
-        />
-      )}
-      <h2 className="text-base font-bold">{collection.title}</h2>
+      {collection?.image ? (
+        <div className="aspect-square overflow-hidden bg-surface-muted">
+          <Image
+            // The title is the link's text right below; repeating it as alt text makes a screen reader say it twice.
+            alt=""
+            aspectRatio="1/1"
+            data={collection.image}
+            loading={index < 3 ? 'eager' : undefined}
+            sizes="(min-width: 80rem) 22vw, (min-width: 64rem) 30vw, 46vw"
+            className="size-full object-cover motion-safe:transition-transform motion-safe:group-hover:scale-105"
+          />
+        </div>
+      ) : null}
+      <h2 className="type-display p-4 text-title group-hover:underline">
+        {collection.title}
+      </h2>
     </Link>
   );
 }

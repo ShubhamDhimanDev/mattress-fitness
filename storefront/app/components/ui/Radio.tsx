@@ -1,5 +1,6 @@
 import {forwardRef, type ComponentPropsWithoutRef, type ReactNode} from 'react';
 import {cn} from '~/components/ui/cn';
+import {CHOICE_INPUT_CLASSES, choiceRowClasses} from '~/components/ui/Checkbox';
 import {
   FieldError,
   FieldHint,
@@ -14,28 +15,30 @@ export type RadioProps = Omit<
   label: ReactNode;
   hint?: string;
   error?: string;
+  /** `card` draws the row as a bordered choice card; see Checkbox. */
+  variant?: 'plain' | 'card';
   className?: string;
 };
 
 // Group radios in a <fieldset><legend> so the group has a name; arrow keys then move between them natively.
 export const Radio = forwardRef<HTMLInputElement, RadioProps>(function Radio(
-  {label, hint, error, className, id, ...rest},
+  {label, hint, error, variant = 'plain', className, id, ...rest},
   ref,
 ) {
   const ids = useFieldIds(id);
   return (
     <div className={cn('flex flex-col', className)}>
-      <label
-        htmlFor={ids.id}
-        className="flex min-h-touch cursor-pointer items-center gap-3 text-base text-fg has-[:disabled]:cursor-not-allowed has-[:disabled]:text-fg-muted"
-      >
+      <label htmlFor={ids.id} className={choiceRowClasses(variant)}>
         <input
           {...rest}
           ref={ref}
           id={ids.id}
           type="radio"
           aria-describedby={describedBy(ids, {hint, error})}
-          className="size-6 shrink-0 cursor-[inherit] accent-primary-500"
+          className={cn(
+            CHOICE_INPUT_CLASSES,
+            variant === 'card' && 'focus-visible:outline-none',
+          )}
         />
         <span>{label}</span>
       </label>

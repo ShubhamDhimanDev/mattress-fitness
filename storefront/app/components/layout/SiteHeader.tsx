@@ -19,7 +19,8 @@ import {ReassuranceStrip} from '~/components/layout/ReassuranceStrip';
 import {StoreSelectorLink} from '~/components/layout/StoreSelectorLink';
 import {TopStrip} from '~/components/layout/TopStrip';
 import {UtilityBar} from '~/components/layout/UtilityBar';
-import {CartIcon, MapPinIcon, MenuIcon, UserIcon} from '~/components/ui/Icons';
+import {Action} from '~/components/ui/Action';
+import {CartIcon, MenuIcon, UserIcon} from '~/components/ui/Icons';
 import {IconButton} from '~/components/ui/IconButton';
 import {Skeleton} from '~/components/ui/Skeleton';
 import {mainNavWithQuizCta} from '~/lib/nav-menu';
@@ -28,7 +29,6 @@ import {DELIVERY_ERROR_TEXT} from '~/lib/delivery-runtime/response';
 import {
   MAIN_NAV,
   SLEEP_QUIZ_LINK,
-  STORE_LOCATOR_PATH,
   type MainNavItem,
   type PromoMessage,
   type SupportPhone,
@@ -57,9 +57,10 @@ type SiteHeaderProps = {
 };
 
 /**
- * The header stack (REQ-NAV-001), top to bottom: promotional bar, optional top strip, utility bar, main row
- * (logo, search, store locator, account, cart), desktop navigation, reassurance strip. Below 1024 px the
- * navigation moves into a drawer behind the menu button and the main row becomes two rows.
+ * The header stack (REQ-NAV-001, CR-31), top to bottom: promotional bar, optional top strip, utility bar, main row
+ * (menu button below 1024 px, logo, delivery-ZIP chip from 1024 px, search, account, cart), a ZIP strip below
+ * 1024 px, the desktop navigation, the reassurance strip. Below 1024 px the navigation moves into a drawer behind
+ * the menu button and the main row sticks to the top of the page.
  */
 export function SiteHeader({
   cart,
@@ -85,61 +86,59 @@ export function SiteHeader({
       ? delivery.zip
       : null;
 
+  const zipControl = (variant: 'chip' | 'strip') =>
+    deliveryZipAvailable && delivery?.status !== 'service-unavailable' ? (
+      <DeliveryZipControl
+        variant={variant}
+        zip={zip}
+        onSubmit={(next) => void save(next)}
+        onClear={() => void clear()}
+        pending={pending}
+        error={
+          response?.error ? DELIVERY_ERROR_TEXT[response.error] : undefined
+        }
+      />
+    ) : (
+      <DeliveryZipUnavailable variant={variant} />
+    );
+
   return (
-    <header className="relative z-30 bg-surface">
+    // From 1024 px the whole header is one block that scrolls away. Below it the header element generates no box
+    // (`contents`), so the main row can stick to the top of the page while the bars above it scroll away: a sticky
+    // element is held inside its parent, and the parent would otherwise end with the header. The element keeps its
+    // banner role. `scroll-padding-top` in tailwind.css keeps focused elements clear of the sticky row (WCAG 2.4.11).
+    <header className="contents lg:relative lg:z-30 lg:block lg:bg-surface">
       <PromoBar message={promo} />
       <TopStrip visible={Boolean(topStrip)}>{topStrip}</TopStrip>
       <UtilityBar supportPhone={supportPhone} links={utilityLinks}>
-        {deliveryZipAvailable && delivery?.status !== 'service-unavailable' ? (
-          <DeliveryZipControl
-            zip={zip}
-            onSubmit={(next) => void save(next)}
-            onClear={() => void clear()}
-            pending={pending}
-            error={
-              response?.error ? DELIVERY_ERROR_TEXT[response.error] : undefined
-            }
-          />
-        ) : (
-          <DeliveryZipUnavailable />
-        )}
         <StoreSelectorLink storeName={storeName} />
       </UtilityBar>
 
-      <div className="border-b border-line">
-        <div className="relative mx-auto grid max-w-page grid-cols-[auto_1fr_auto_auto] items-center gap-x-1 gap-y-1 px-4 py-2 md:px-6 lg:grid-cols-[auto_1fr_auto_auto_auto] lg:gap-x-4">
-          <div className="col-span-2 col-start-1 row-start-1 flex lg:col-span-1">
-            <HeaderLogo />
-          </div>
-          <div className="col-span-2 col-start-3 row-start-1 justify-self-end lg:hidden">
-            <Link
-              to={SLEEP_QUIZ_LINK.to}
-              className="inline-flex min-h-touch items-center text-sm font-bold text-primary-700 underline underline-offset-4 hover:text-primary-800"
-            >
-              {SLEEP_QUIZ_LINK.label}
-            </Link>
-          </div>
-          <div className="col-start-1 row-start-2 lg:hidden">
+      <div className="sticky top-0 z-30 border-b border-line bg-surface lg:static">
+        <div className="relative mx-auto flex max-w-page items-center gap-1 px-4 py-2 md:gap-3 md:px-10 lg:gap-5 lg:py-3">
+          <div className="lg:hidden">
             <MobileMenuButton />
           </div>
-          {/* From lg the search is capped and pushed to the right, so a wide screen does not stretch it (BA-04). */}
-          <div className="col-start-2 row-start-2 min-w-0 lg:row-start-1 lg:w-full lg:max-w-xl lg:justify-self-end">
+          <HeaderLogo />
+          <div className="hidden lg:block">{zipControl('chip')}</div>
+          <div className="min-w-0 flex-1">
             <HeaderSearch />
           </div>
-          <div className="hidden lg:col-start-3 lg:row-start-1 lg:block">
-            <IconButton
-              to={STORE_LOCATOR_PATH}
-              label="Find a store"
-              caption="Stores"
-              icon={<MapPinIcon />}
-            />
-          </div>
-          <div className="col-start-3 row-start-2 lg:col-start-4 lg:row-start-1">
-            <AccountLink isLoggedIn={isLoggedIn} />
-          </div>
-          <div className="col-start-4 row-start-2 lg:col-start-5 lg:row-start-1">
-            <CartButton cart={cart} />
-          </div>
+          <AccountLink isLoggedIn={isLoggedIn} />
+          <CartButton cart={cart} />
+        </div>
+      </div>
+
+      {/* The delivery ZIP and the quiz link for phones and tablets; this row scrolls away under the sticky one. */}
+      <div className="border-b border-line bg-paper lg:hidden">
+        <div className="mx-auto flex max-w-page items-center gap-4 px-4 md:px-10">
+          {zipControl('strip')}
+          <Link
+            to={SLEEP_QUIZ_LINK.to}
+            className="inline-flex min-h-touch shrink-0 items-center text-caption font-extrabold text-primary-700 underline underline-offset-4 hover:text-primary-800"
+          >
+            {SLEEP_QUIZ_LINK.label}
+          </Link>
         </div>
       </div>
 
@@ -158,6 +157,7 @@ function MobileMenuButton() {
     <IconButton
       label="Menu"
       icon={<MenuIcon />}
+      variant="soft"
       aria-haspopup="dialog"
       onClick={() => open('mobile')}
       // The menu's chunk starts downloading on intent, so it is ready when the drawer opens (P7-06).
@@ -184,12 +184,17 @@ function AccountLink({isLoggedIn}: Pick<SiteHeaderProps, 'isLoggedIn'>) {
 function AccountButton({signedIn}: {signedIn: boolean}) {
   const label = signedIn ? 'Account' : 'Sign in';
   return (
-    <IconButton
+    <Link
       to="/account"
-      label={label}
-      caption={label}
-      icon={<UserIcon />}
-    />
+      aria-label={label}
+      className="inline-flex min-h-touch min-w-touch shrink-0 items-center justify-center gap-2 rounded-choice px-2 text-base font-bold text-fg motion-safe:transition-colors hover:bg-paper"
+    >
+      <UserIcon />
+      {/* The words show from lg; the link's accessible name is always the label above. */}
+      <span aria-hidden="true" className="hidden lg:inline">
+        {label}
+      </span>
+    </Link>
   );
 }
 
@@ -225,12 +230,9 @@ function CartLink({count}: {count: number}) {
 
   return (
     // A real link to /cart, so the cart is reachable without JavaScript; with JavaScript it opens the drawer.
-    <IconButton
+    <Action
       href="/cart"
-      label={label}
-      caption="Cart"
-      badge={count}
-      icon={<CartIcon />}
+      aria-label={label}
       aria-haspopup="dialog"
       onPointerEnter={() => void cartPanel.preload()}
       onFocus={() => void cartPanel.preload()}
@@ -245,7 +247,20 @@ function CartLink({count}: {count: number}) {
           url: window.location.href || '',
         } as CartViewPayload);
       }}
-    />
+      // The 52 px paper tile with the count bubble on its corner (CR-31). The bubble is hidden from assistive
+      // technology because the accessible name already carries the count.
+      className="relative inline-flex size-11 shrink-0 md:size-13 items-center justify-center rounded-choice bg-paper text-fg motion-safe:transition-colors hover:bg-ink-100 active:bg-ink-200"
+    >
+      <CartIcon className="size-6.5" />
+      {count > 0 ? (
+        <span
+          aria-hidden="true"
+          className="absolute -top-1.5 -right-1.5 inline-flex h-5.5 min-w-5.5 items-center justify-center rounded-pill bg-primary-500 px-1 text-xs font-extrabold text-white"
+        >
+          {count > 99 ? '99+' : count}
+        </span>
+      ) : null}
+    </Action>
   );
 }
 

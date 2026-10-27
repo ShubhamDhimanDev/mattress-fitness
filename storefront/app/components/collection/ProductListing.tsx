@@ -5,7 +5,7 @@ import {PromoTileCard} from '~/components/collection/PromoTileCard';
 import {useLoadMore} from '~/components/collection/useLoadMore';
 import {ProductItem} from '~/components/ProductItem';
 import {Button} from '~/components/ui/Button';
-import {cn} from '~/components/ui/cn';
+import {Card} from '~/components/ui/Card';
 import {Drawer} from '~/components/ui/Drawer';
 import {Select} from '~/components/ui/Select';
 import {
@@ -90,6 +90,12 @@ export function ProductListing({
     );
   }, [resetKey, visibleProducts, listId]);
 
+  // The drawer's button names the result count only when the whole result is on the page: while "Load more" is still offered
+  // the loaded count is a part, not the total, and a wrong number is worse than none.
+  const showResultsLabel = list.hasMore
+    ? 'Show results'
+    : `Show ${list.products.length} ${list.products.length === 1 ? 'result' : 'results'}`;
+
   const sortOptions = sortKeys.map((key) => ({
     value: key,
     label: SORT_LABELS[key],
@@ -106,26 +112,28 @@ export function ProductListing({
           <h2 id="listing-filters-heading" className="sr-only">
             Filters
           </h2>
-          <FilterPanel
-            groups={filterGroups}
-            state={state}
-            pathname={pathname}
-            base={base}
-          />
+          <Card padding="sm">
+            <FilterPanel
+              groups={filterGroups}
+              state={state}
+              pathname={pathname}
+              base={base}
+            />
+          </Card>
         </aside>
       ) : null}
 
       <div className="min-w-0 flex-1">
         {/* Below 1024 px the count, the Filters button and the sort are stacked; from there the sort sits at the right of the count. */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <p role="status" className="text-lg font-bold text-fg">
+          <p role="status" className="text-lg font-extrabold text-fg">
             {list.products.length}{' '}
             {list.products.length === 1 ? 'product' : 'products'}
             {list.hasMore ? ' shown' : ''}
           </p>
           {showFilters ? (
             <Button
-              variant="secondary"
+              variant="outline"
               fullWidth
               className="lg:hidden"
               aria-haspopup="dialog"
@@ -157,8 +165,8 @@ export function ProductListing({
         ) : null}
 
         {list.products.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 py-12">
-            <h2 className="text-xl font-bold">{emptyHeading}</h2>
+          <div className="mt-4 flex flex-col items-start gap-3 rounded-card bg-surface-muted p-6 md:p-10">
+            <h2 className="type-display text-2xl">{emptyHeading}</h2>
             <p className="text-base text-fg-muted">
               Try removing a filter or searching for something else.
             </p>
@@ -175,14 +183,8 @@ export function ProductListing({
         ) : (
           <>
             <h2 className="sr-only">Products</h2>
-            <ul
-              className={cn(
-                'mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-6',
-                showFilters
-                  ? 'lg:grid-cols-2 xl:grid-cols-3'
-                  : 'xl:grid-cols-4',
-              )}
-            >
+            {/* Two columns on a phone, as in the design; three from 1024 px and four from 1280 px, with or without the sidebar. */}
+            <ul className="mt-4 grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3 xl:grid-cols-4">
               {placePromoTiles(list.products, promoTiles, list.hasMore).map(
                 (item) =>
                   item.kind === 'tile' ? (
@@ -194,7 +196,6 @@ export function ProductListing({
                       <ProductItem
                         product={item.product}
                         index={item.productIndex}
-                        layout="row"
                         loading={item.productIndex < 4 ? 'eager' : 'lazy'}
                         listId={listId}
                       />
@@ -207,8 +208,9 @@ export function ProductListing({
                 <Button
                   to={list.nextHref}
                   preventScrollReset
-                  variant="secondary"
+                  variant="outline"
                   size="lg"
+                  className="min-w-60"
                   loading={list.loading}
                   loadingLabel="Loading more products"
                   onClick={(event) => {
@@ -229,7 +231,18 @@ export function ProductListing({
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
           title="Filters"
+          countLabel={active > 0 ? `${active} active` : undefined}
           side="left"
+          footer={
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={() => setDrawerOpen(false)}
+            >
+              {showResultsLabel}
+            </Button>
+          }
         >
           <FilterPanel
             groups={filterGroups}
@@ -237,14 +250,6 @@ export function ProductListing({
             pathname={pathname}
             base={base}
           />
-          <Button
-            variant="primary"
-            fullWidth
-            className="mt-6"
-            onClick={() => setDrawerOpen(false)}
-          >
-            Show results
-          </Button>
         </Drawer>
       ) : null}
     </div>

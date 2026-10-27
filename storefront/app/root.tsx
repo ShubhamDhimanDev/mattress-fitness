@@ -91,6 +91,15 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
  */
 export function links() {
   return [
+    // The one self-hosted variable font (CR-31). `crossOrigin` is required for font preloads even on the same origin,
+    // otherwise the browser fetches the file twice.
+    {
+      rel: 'preload',
+      href: '/fonts/PlusJakartaSans-Variable.woff2',
+      as: 'font',
+      type: 'font/woff2',
+      crossOrigin: 'anonymous',
+    },
     {
       rel: 'preconnect',
       href: 'https://cdn.shopify.com',

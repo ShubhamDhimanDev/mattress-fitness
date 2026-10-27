@@ -90,9 +90,7 @@ export default function BrandPage() {
             {label: 'Brands', to: '/brands'},
           ]}
         />
-        <h1 className="mt-2 border-b border-line pb-4 type-display text-3xl">
-          Brand
-        </h1>
+        <h1 className="mt-2 type-display text-4xl md:text-5xl">Brand</h1>
         <p className="mt-6 text-base text-fg-muted">
           This brand is not available right now. Please try again in a moment.
         </p>
@@ -130,7 +128,10 @@ export default function BrandPage() {
 
       {brand.warranty.length > 0 ? (
         <section aria-labelledby="brand-warranty-heading" className="mt-12">
-          <h2 id="brand-warranty-heading" className="mb-3 text-2xl font-bold">
+          <h2
+            id="brand-warranty-heading"
+            className="mb-3 type-display text-3xl md:text-heading"
+          >
             Warranty
           </h2>
           <div className="flex max-w-prose flex-col gap-2 text-base">

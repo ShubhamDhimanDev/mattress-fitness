@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {Link} from 'react-router';
 import {cn} from '~/components/ui/cn';
+import {CheckIcon, PlusIcon} from '~/components/ui/Icons';
 import {COMPARE_MAX_PRODUCTS} from '~/lib/compare';
 import {getLocalStorage} from '~/lib/pages/browser-storage';
 import {
@@ -27,8 +28,16 @@ type Outcome =
     }
   | {readonly kind: 'full'; readonly handles: readonly string[]};
 
+// A 44 px pill row with a plus (or check) in a ring, so it reads as a quiet option next to the price. It stays a link: the
+// no-JavaScript path is a plain navigation to /compare (REQ-CMP-001).
 const LINK_CLASS =
-  'inline-flex min-h-touch items-center text-sm font-bold text-primary-700 underline underline-offset-2';
+  'inline-flex min-h-touch items-center gap-2 rounded-choice text-sm font-bold text-ink-900 hover:text-primary-700';
+
+// cn() does not merge conflicting utilities, so the two states are whole strings.
+const MARK_OFF =
+  'inline-flex size-6 shrink-0 items-center justify-center rounded-sm border-2 border-line-strong bg-surface';
+const MARK_ON =
+  'inline-flex size-6 shrink-0 items-center justify-center rounded-sm border-2 border-primary-500 bg-primary-500 text-white';
 
 /**
  * "Add to compare" (REQ-CMP-001) on cards and the product page. It is a link to
@@ -102,10 +111,16 @@ export function CompareToggle({handle, title, className}: CompareToggleProps) {
           aria-label={`Add ${title} to comparison`}
           className={LINK_CLASS}
         >
+          <span aria-hidden="true" className={MARK_OFF}>
+            <PlusIcon className="size-4" />
+          </span>
           Add to compare
         </Link>
       ) : (
         <Link to={comparePath(outcome.handles)} className={LINK_CLASS}>
+          <span aria-hidden="true" className={MARK_ON}>
+            <CheckIcon className="size-4" />
+          </span>
           View comparison ({outcome.handles.length})
         </Link>
       )}

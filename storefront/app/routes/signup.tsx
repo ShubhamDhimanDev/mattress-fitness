@@ -12,6 +12,7 @@ import {data, useActionData, type HeadersFunction} from 'react-router';
 import type {Route} from './+types/signup';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
 import {noStoreHeaders} from '~/lib/cart/http';
 import {handleSignup, signupDepsFromEnv} from '~/lib/signup/handler';
 import type {SignupResponse} from '~/lib/signup/shared';
@@ -62,8 +63,12 @@ export default function SignupPage() {
   const posted = useActionData<typeof action>();
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-8">
-      <h1 className="text-3xl font-bold">Email signup</h1>
-      <div role="status" className="flex flex-col gap-2">
+      <h1 className="type-display text-4xl md:text-5xl">Email signup</h1>
+      <Card
+        variant="tinted"
+        role="status"
+        className="flex flex-col gap-2 text-lead"
+      >
         {posted === undefined ? (
           <p className="text-fg-muted">
             To sign up, use the form at the bottom of any page.
@@ -80,9 +85,9 @@ export default function SignupPage() {
             ) : null}
           </>
         )}
-      </div>
+      </Card>
       <div>
-        <Button to="/" variant="pill">
+        <Button to="/" size="lg">
           Back to the home page
         </Button>
       </div>

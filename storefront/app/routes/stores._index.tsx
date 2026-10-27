@@ -4,6 +4,7 @@ import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {StoreCard} from '~/components/stores/StoreCard';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {cardStyles} from '~/components/ui/Card';
 import {previewRobotsMeta} from '~/lib/pages/head';
 import {
   PRIVATE_NO_STORE_HEADERS,
@@ -89,7 +90,7 @@ export default function StoresIndexPage() {
     <div className="mx-auto flex max-w-page flex-col gap-8 py-8">
       <Breadcrumb items={[{label: 'Home', to: '/'}, {label: 'Stores'}]} />
       <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Find a store</h1>
+        <h1 className="type-display text-4xl md:text-5xl">Find a store</h1>
         <p className="max-w-prose text-base text-fg-muted">
           Visit us to try a mattress in person. Choose a state to see our{' '}
           {storeCountText(storeCount)}, with addresses, opening hours and
@@ -103,7 +104,10 @@ export default function StoresIndexPage() {
           aria-labelledby="my-store-heading"
           className="flex flex-col gap-3"
         >
-          <h2 id="my-store-heading" className="text-2xl font-bold">
+          <h2
+            id="my-store-heading"
+            className="type-display text-2xl md:text-3xl"
+          >
             Your store
           </h2>
           <div className="max-w-md">
@@ -117,7 +121,7 @@ export default function StoresIndexPage() {
       ) : null}
 
       <section aria-labelledby="states-heading" className="flex flex-col gap-3">
-        <h2 id="states-heading" className="text-2xl font-bold">
+        <h2 id="states-heading" className="type-display text-2xl md:text-3xl">
           Stores by state
         </h2>
         {states.length === 0 ? (
@@ -130,10 +134,13 @@ export default function StoresIndexPage() {
               <li key={state.code}>
                 <Link
                   to={state.path}
-                  className="flex min-h-14 items-center justify-between gap-3 rounded-card border-2 border-line bg-surface p-4 font-bold hover:border-ink-900"
+                  className={
+                    cardStyles({interactive: true, padding: 'sm'}) +
+                    ' flex min-h-14 items-center justify-between gap-3 font-bold'
+                  }
                 >
                   <span>{state.name}</span>
-                  <span className="text-sm font-normal text-fg-muted">
+                  <span className="text-sm font-semibold text-fg-muted">
                     {state.countText}
                   </span>
                 </Link>

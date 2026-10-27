@@ -90,3 +90,25 @@ Other differences read from the code and already covered: the home hero is a red
 5. Supply the logo as a transparent PNG or SVG, with clear-space and minimum-size rules (UXD-11).
 6. Approve or change the specified look: no sticky header (UXD-12), heavy uppercase type (UXD-13), a non-red sale colour (UXD-14), thumbnails instead of dots (UXD-17), no entry popups (UXD-20).
 7. Supply brand greys, black and any accent colour, or confirm the placeholders, and say whether a display typeface should be added (BRAND_APPLICATION_SPEC 2.7).
+
+## CR-31 redesign deviations (2026-10-27, DEC-134; built, not yet approved by the client)
+
+These record where the build differs from the preview mock-ups ([redesign-preview/](redesign-preview/)) or from earlier entries. UXD-12 (no sticky header) and UXD-13 (heavy uppercase type) are **superseded** by CR-31: the header now sticks on phones and headings are sentence case.
+
+| ID | Status | Entry |
+| --- | --- | --- |
+| CR31-01 | Built | Sticky header below `lg` (1024 px) only: the main row is `sticky top-0`; the `<header>` is `display: contents` there and a normal block from `lg`, banner role kept. One base-layer rule in `tailwind.css` sets `scroll-padding-top` on `html` below `lg` so focus is never hidden (WCAG 2.2 2.4.11). E2E checks position at 360, 768, 1023, 1024, 1280, 1536 px and a focused link below the row. |
+| CR31-02 | Built | Utility bar is about 44 px tall (mock-up 38) because its links need 44 px targets. |
+| CR31-03 | Built, flaw to fix | Phone header: the "Search" submit button is hidden below `md` so the field fits; at 360 px the placeholder "Search" is clipped to "Sea". |
+| CR31-04 | Built | Product page, desktop: the **gallery** is the sticky column, not the buy box (the plan said buy box). The buy box holds protection, delivery, pickup and add-on cards and can be taller than a laptop screen; a sticky buy box would hide its lower controls. Orchestrator decision. |
+| CR31-05 | Built | Filter drawer button reads "Show N results" only when the whole result is loaded, otherwise "Show results" (the loaded count is not the total while "Load more" is offered). |
+| CR31-06 | Not built | "Frequently bought together" card with Add all (REQ-ADD-002) has no UI in the code, so none was invented. |
+| CR31-07 | Not built | Cart delivery card has no home-delivery/pickup option cards or haul-away checkbox row: those choices are asked at the checkout-steps gate today and no behaviour was added. The line chip appears once the choice is answered. |
+| CR31-08 | Built | Cart add-on cards have no photo or brand line: the offers view carries no image or vendor. |
+| CR31-09 | Built | Cart phone bar button is 48 px (mock-up 56): the label wrapped at 360 px. When checkout is blocked it reads "See order summary". |
+| CR31-10 | Built | Home store-finder block has no ZIP field (`STORES_PAGE_READS_ZIP = false`): the stores page does not read a ZIP. It shows a "Find a store" button. |
+| CR31-11 | Built | Brand pages: the header is a paper band; the brand definition has no hero image field yet. |
+| CR31-12 | Built | Home hero floating cards: "Find a store" shows when the hero has an image; the delivery card only when a published delivery item exists (none today). No mock-up sample copy ships; every block takes its text from admin. |
+| CR31-13 | Built | Promo tiles in the collection grid are all red (the promo-tile entry has no tone field). |
+| CR31-14 | Built | `Chip tone="neutral"` is invisible on paper bands: use `tone="outline"` there. Order-status chip colours for unknown Shopify statuses default to "in progress" (unconfirmed against real orders). |
+| CR31-15 | Built | Brand names are text, not logos (D4: logo files and permission pending). Plus Jakarta Sans is self-hosted (OFL notice only; add the full licence text before the handover, REQ-HAND-001). |

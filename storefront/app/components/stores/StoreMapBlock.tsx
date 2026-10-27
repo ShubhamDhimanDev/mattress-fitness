@@ -21,12 +21,12 @@ export function StoreMapBlock({
   return (
     <section
       aria-labelledby="store-location-heading"
-      className="flex flex-col gap-3 rounded-card border-2 border-line bg-surface-muted p-4"
+      className="flex flex-col gap-4 rounded-hero bg-paper p-5 md:p-8"
     >
-      <h2 id="store-location-heading" className="text-xl font-bold">
+      <h2 id="store-location-heading" className="type-display text-title">
         Location
       </h2>
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 rounded-card border border-line bg-surface p-4">
         <MapPinIcon className="mt-1 size-6 text-primary-700" />
         <address className="not-italic">
           <span className="block font-bold">{name}</span>
@@ -41,7 +41,7 @@ export function StoreMapBlock({
         href={directionsUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={buttonStyles({size: 'md'}) + ' w-fit'}
+        className={buttonStyles({size: 'md', variant: 'dark'}) + ' w-fit'}
       >
         Get directions
         <span className="sr-only"> (opens Google Maps in a new tab)</span>

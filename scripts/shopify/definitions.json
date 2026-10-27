@@ -94,20 +94,35 @@
       ]
     },
     {
+      "type": "homepage_card",
+      "name": "Homepage card",
+      "description": "One card or step inside a homepage block: the cards of 'setup-cards' and the steps of 'how-it-works' (CR-31, REQ-HOME-001).",
+      "displayNameKey": "title",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "title", "name": "Title", "type": "single_line_text_field", "required": true, "validations": [{ "name": "max", "value": 80 }], "description": "Heading of the card or step. A card without a title is not shown." },
+        { "key": "text", "name": "Text", "type": "multi_line_text_field", "description": "One or two short paragraphs. Plain text; a blank line starts a new paragraph." },
+        { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }], "description": "Optional picture for the card (used by 'setup-cards')." },
+        { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL. Plain text on purpose: Shopify's url type rejects relative paths. The storefront validates it against an allow-list (T-08)." },
+        { "key": "link_label", "name": "Link label", "type": "single_line_text_field", "validations": [{ "name": "max", "value": 40 }], "description": "Text of the card's button. Leave empty to make the title itself the link." }
+      ]
+    },
+    {
       "type": "homepage_section",
       "name": "Homepage section",
       "description": "An editable, orderable block on the homepage (REQ-HOME-001).",
       "displayNameKey": "heading",
       "storefrontAccess": "PUBLIC_READ",
       "fieldDefinitions": [
-        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup"] }], "description": "Section kind. hero, promo-banner and financing show heading, body, image and link; shop-by-size, featured, brands and categories fill from the catalog (heading, order, enabled only); signup is the email signup (P7-02)." },
-        { "key": "heading", "name": "Heading", "type": "single_line_text_field" },
+        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup", "quiz-band", "setup-cards", "how-it-works", "store-finder", "faq"] }], "description": "Section kind. hero, promo-banner, financing, quiz-band, store-finder and faq use heading, body, image and link; setup-cards and how-it-works use Cards; shop-by-size, featured, brands, categories and signup need only heading, order, enabled." },
+        { "key": "heading", "name": "Heading", "type": "single_line_text_field", "description": "In hero, quiz-band, setup-cards, how-it-works, store-finder and faq, write [[a phrase]] in double square brackets to highlight it in red. Other types show the plain text." },
         { "key": "body", "name": "Body", "type": "multi_line_text_field" },
         { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL. Plain text on purpose: Shopify's url type rejects relative paths. The storefront validates it against an allow-list (T-08)." },
         { "key": "link_label", "name": "Link label", "type": "single_line_text_field", "description": "Text of the button for the link. Leave empty to make the heading itself the link. Added in P3B-13 so a link never needs generic wording like 'Learn more'." },
         { "key": "order", "name": "Order", "type": "number_integer", "required": true, "description": "Smaller numbers appear first. Entries without a whole number go last." },
-        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A section shows only when this is on." }
+        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A section shows only when this is on." },
+        { "key": "cards", "name": "Cards", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "homepage_card" }], "description": "For setup-cards (first 3 are shown) and how-it-works (first 6, numbered in this order). Add Homepage card entries here." }
       ]
     },
     {
