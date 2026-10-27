@@ -1,89 +1,58 @@
-# Brand mattress catalog (development store), 2026-10-26
+# Brand catalog (development store), rebuilt 2026-10-27
 
-58 mattress models and 310 size rows for the brands the store carries: **Puffy** (5 models), **Molecule** (17), **Beautyrest** (17) and **Serta** (19). Two files with the same content:
+599 products from the 12 brands the store carries, with the makers' own descriptions and photos. Two files with the same source data:
 
 | File | Format | Use |
 |---|---|---|
-| `brand-mattresses.csv` | the project sheet ([../README.md](../README.md)) | `node scripts/catalog/validate.mjs`, then `import.mjs`: sets the comfort, type, height and brand fields the storefront filters and spec tables read |
-| `brand-mattresses.shopify.csv` | the column layout of Shopify's own product export (the 47-column file the owner attached) | Shopify admin, Products, Import. It cannot set custom metafields or the brand reference |
+| `brand-mattresses.shopify.csv` | the 47-column layout of Shopify's own product export | Shopify admin, Products, Import. **Everything**: 599 products, 5,843 variants, up to 8 photo URLs each |
+| `brand-mattresses.csv` | the project sheet ([../README.md](../README.md)) | `validate.mjs`, then `import.mjs`: also sets the comfort, type, height and brand fields the storefront filters read. Holds only what that sheet can describe (see below) |
+| `review-notes.csv` | handle + note | What was assumed, derived or left out, per product |
+| `images/` (not in git, 2,530 files, 911 MB) | photos named `<handle>-<n>.<ext>` | the file names the project sheet lists |
 
-`node scripts/catalog/validate.mjs brand-mattresses.csv --images <folder>` reports **0 errors, 38 warnings** (40 models have no height because the source does not state one, a few size-order and SEO-length notes, and the unapproved-copy note). The Shopify-format file is made from the project sheet with `node scripts/catalog/to-shopify-csv.mjs <sheet> <out>`.
+## What is in it
 
-## Where the facts came from, and what was not taken
+| Brand | Source | Products | Notes |
+|---|---|---|---|
+| Tempur-Pedic | product pages (embedded product data) | 56 | list (retail) price, not the current promotion |
+| Stearns & Foster | product pages | 16 | |
+| Sealy | product pages | 12 | 5 mattress models, a pillow, a bundle and a foundation have no price on the site and are left out |
+| Molecule | Shopify feed | 24 | |
+| Serta | product pages | 127 | |
+| Brooklyn Bedding | Shopify feed | 54 | |
+| **Helix** | read in a browser, one page at a time | **19** | **Partial.** 19 mattresses (Original, Plus, Luxe and Elite lines) and nothing else: the site cut the connection after about 20 pages. Helix's other 47 product pages (Plus Luxe and Elite, Birch, kids, crib, protectors, pillows, bases, frames) are not in the files |
+| Puffy | Shopify feed | 23 | |
+| Beautyrest | product pages | 117 | |
+| Aireloom | product pages | 34 | **Queen only**: the site shows one price per model ("Queen starting at ...") |
+| Kingsdown | Shopify feed | 42 | |
+| Casper | Shopify feed | 75 | the 129 bundle listings are left out (bundle prices come from Shopify discounts) |
 
-Collected on 2026-10-26 from public pages, one request every 10 seconds (the Beautyrest and Serta crawl delay), only paths each site's robots.txt allows:
+By type: 278 mattresses, 118 pillows, 55 accessories, 33 bedding, 27 sheets, 25 adjustable bases, 17 foundations, 17 protectors, 14 toppers, 12 frames and furniture, 3 pet beds. Left out: gift cards, fees, haul-away and removal services, protection plans, bundles, products with no price (discontinued or in-store only), and 70 old URLs that now show the same product as another page.
 
-- **Puffy and Molecule:** the stores' public `products.json` feeds: model names, sizes, the listed price per size, and Puffy's size and thickness strings.
-- **Beautyrest and Serta:** the schema.org product data embedded in each product page (name and price per size); for Beautyrest also the feel its collection page states.
-- **3Z Brands (3zbrands.com) is not in the files.** The site is a portfolio of six brands (Helix Sleep, Brooklyn Bedding, Birch, Bear, Nolah, Leesa) with no product list and no prices, so there was nothing to take. Those brands' own sites would be the source.
-- **Not taken:** the sites' descriptions, images, logos, reviews and marketing text. Each description is one plain sentence written from the facts, and every image name is a placeholder (the dev store import used labelled placeholder pictures). `copy_approved` is `no` for every model, so the importer creates them as drafts until the client approves the text.
+## How it was collected
 
-## What the client must confirm before launch
+- Public pages and feeds only, one request at a time per site, the site's own crawl delay where it states one (10 seconds for Serta and Beautyrest), honest user agent, and only paths each site's robots.txt allows. Tempur-Pedic, Stearns & Foster and Sealy allow all crawlers. Aireloom has no robots.txt.
+- **Helix** answers plain requests with 403 (bot protection) and does serve its pages to a browser. They were read by loading each page in a browser like a visitor. Automated requests to Helix, including from inside the browser, were refused and not retried or worked around. When the connection started dropping the reading was stopped.
+- Raw pages and feeds are kept in `.scrape/` (not in git) so the parsers can be changed without fetching again.
+- **Texts and photos are the makers'.** Per the owner on 2026-10-27, the descriptions, feature lists and photos are copied as published (this replaces the first pass, which wrote its own text and used placeholders). The Shopify sheet points at the makers' image URLs (Shopify copies the file on import); the downloaded copies in `images/` are for the project sheet. **The client needs the brands' permission to use this material before it goes live.**
 
-- **Prices are the makers' listed prices on 2026-10-26, for reference.** For models sold in several feels or heights the lowest price per size is used. The retailer sets its own prices, and some makers have minimum advertised price rules. Two Serta 2023 models list a Full cheaper than a Twin XL; that is the source's data.
-- **Split sizes are left out** (Split Head Queen, Split Head King, Split King): the project's size list has Split California King only, and no source sells it.
-- **Assumed values** (the source does not state them, marked *assumed* below): the comfort level, the mattress type of Molecule's non-hybrid models (memory foam), of Beautyrest's Level One, Level Two and World Class models (innerspring) and of Serta's Classic and Five Star (innerspring), iComfort (memory foam) and iComfortPro (latex) lines; the sleep positions (derived from the comfort level: plush sides, medium back and side, firm and extra firm back and stomach); the delivery type (`both` everywhere); and the related add-on handles (the sample products of the offer setup).
-- Benefits are filled only where the source text names them (Cooling, Pressure Relief, Back Support; Motion Separation on Beautyrest Black).
+## What to know before using it
 
-## Model list
+- **Everything is a draft.** `Status` is `draft` and `Published` is `false` (project sheet: `copy_approved` is `no`), because no copy is client-approved yet.
+- **Prices are the makers' list prices on 2026-10-27, for reference.** For Tempur-Pedic, Stearns & Foster and Sealy it is the retail price, not the promotion shown that day. Helix's list price is the regular price, not its 20% sitewide offer. Brooklyn Bedding's feed and page show prices at two thirds of round numbers (for example $265.33 for a $398 item) with no struck-through price; they are used as shown. The retailer sets its own prices, and some makers have minimum advertised price rules.
+- **Serta and Beautyrest:** 45 products have several configurations per size (for example firm, medium and plush). The names of the second option are drawn by JavaScript on the maker site and are not in the page, so they are labelled `Part <number>` (the SKU's part number). Someone has to rename them in Shopify admin.
+- **Comfort, type, height** come from the source text when it states them. Where it does not, the project sheet assumes Medium (171 models) or Foam (10 models) and leaves the height blank (294 models); `review-notes.csv` lists each one. Sleep positions are derived from the comfort level, benefits only from words in the source text, delivery type is `both`, and the related add-ons are the sample handles of the offer setup.
+- **The project sheet has 576 models, over the 400 of the agreed scope** (validator warning `W_OVER_MODEL_LIMIT`). It has one model per combination of the options other than size (for example Firm and Medium of one Brooklyn Bedding model), because the sheet allows only one option. The Shopify sheet keeps the options as the makers have them (up to 3, up to 100 variants a product). Importing everything is a scope decision for the owner (change request, SOW section 11).
+- **The project sheet leaves out** products with no size option (most pillows), with non-bed sizes, and with more than 8 option combinations: 264 of the 599 products are only in the Shopify sheet. Split sizes other than Split California King are left out of it too.
+- `node scripts/catalog/validate.mjs brand-mattresses.csv --images images` reports **0 errors, 2,294 warnings** (copy not approved, many photos shared by the split models, heights missing, and a few price-order notes that are the makers' data).
+- The brand entries (`seed-entries.mjs`) now cover all 12 brands. The importer links a product to its brand by the slugged brand name (`stearns-and-foster`).
 
-| Handle | Brand | Comfort | Type | Height (in) | Sizes |
-|---|---|---|---|---|---|
-| puffy | Puffy | Medium *(assumed)* | Foam | 10 | 6 sizes |
-| puffy-lux-hybrid | Puffy | Medium *(assumed)* | Hybrid | 12 | 6 sizes |
-| puffy-royal-hybrid | Puffy | Medium *(assumed)* | Hybrid | 14 | 6 sizes |
-| puffy-monarch-hybrid | Puffy | Medium *(assumed)* | Hybrid | 16 | 4 sizes |
-| puffy-legacy-hybrid | Puffy | Medium *(assumed)* | Hybrid | 16 | 4 sizes |
-| molecule-core-10 | Molecule | Medium *(assumed)* | Memory Foam | 10 | 6 sizes |
-| molecule-core-hybrid-10 | Molecule | Medium *(assumed)* | Hybrid | 10 | 6 sizes |
-| molecule-copperwell-12 | Molecule | Medium *(assumed)* | Memory Foam | 12 | 6 sizes |
-| molecule-copperwell-hybrid-13 | Molecule | Medium *(assumed)* | Hybrid | 13 | 6 sizes |
-| molecule-reflex-11 | Molecule | Firm | Memory Foam | 11 | 6 sizes |
-| molecule-reflex-hybrid-11 | Molecule | Firm | Hybrid | 11 | 6 sizes |
-| molecule-reflex-pro-12 | Molecule | Firm | Memory Foam | 12 | 6 sizes |
-| molecule-reflex-pro-hybrid-12 | Molecule | Firm | Hybrid | 12 | 6 sizes |
-| molecule-reflex-elite-14 | Molecule | Firm | Memory Foam | 14 | 6 sizes |
-| molecule-reflex-elite-hybrid-14 | Molecule | Firm | Hybrid | 14 | 6 sizes |
-| molecule-engage-12 | Molecule | Medium *(assumed)* | Memory Foam | 12 | 5 sizes |
-| molecule-engage-hybrid-12 | Molecule | Medium *(assumed)* | Hybrid | 12 | 5 sizes |
-| molecule-engage-pro-13 | Molecule | Medium *(assumed)* | Memory Foam | 13 | 5 sizes |
-| molecule-engage-pro-hybrid-13 | Molecule | Medium *(assumed)* | Hybrid | 13 | 5 sizes |
-| molecule-engage-pro-hybrid-12 | Molecule | Medium *(assumed)* | Hybrid | 12 | 5 sizes |
-| molecule-engage-elite-14 | Molecule | Medium *(assumed)* | Memory Foam | 14 | 4 sizes |
-| molecule-engage-elite-hybrid-14 | Molecule | Medium *(assumed)* | Hybrid | 14 | 4 sizes |
-| beautyrest-black-series-one | Beautyrest | Extra Firm | Innerspring | not stated | 5 sizes |
-| beautyrest-black-series-two | Beautyrest | Firm | Innerspring | not stated | 5 sizes |
-| beautyrest-black-series-three | Beautyrest | Extra Firm | Innerspring | not stated | 5 sizes |
-| beautyrest-black-series-four | Beautyrest | Firm | Innerspring | not stated | 5 sizes |
-| beautyrest-black-hybrid-series-one | Beautyrest | Firm | Hybrid | not stated | 5 sizes |
-| beautyrest-black-hybrid-series-three | Beautyrest | Firm | Hybrid | not stated | 5 sizes |
-| beautyrest-black-hybrid-series-four | Beautyrest | Firm | Hybrid | not stated | 5 sizes |
-| beautyrest-black-hybrid-series-three-xcs | Beautyrest | Medium *(assumed)* | Hybrid | not stated | 4 sizes |
-| beautyrest-black-hybrid-series-four-xcs | Beautyrest | Medium *(assumed)* | Hybrid | not stated | 4 sizes |
-| beautyrest-black-hybrid-series-five-xcs-plush | Beautyrest | Plush | Hybrid | not stated | 4 sizes |
-| beautyrest-level-one | Beautyrest | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| beautyrest-level-two | Beautyrest | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| beautyrest-world-class-level-three | Beautyrest | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| beautyrest-world-class-level-four | Beautyrest | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| beautyrest-world-class-hybrid-level-three | Beautyrest | Medium *(assumed)* | Hybrid | not stated | 6 sizes |
-| beautyrest-beautysleep-soothing-nights | Beautyrest | Firm *(assumed)* | Foam | not stated | 6 sizes |
-| beautyrest-beautysleep-dream-weaver | Beautyrest | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| serta-classic-mattress-standard | Serta | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| serta-classic-mattress-enhanced | Serta | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| serta-five-star | Serta | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| serta-icomfort-mattress-standard | Serta | Medium *(assumed)* | Memory Foam | not stated | 5 sizes |
-| serta-icomfortpro-mattress-level-two | Serta | Medium *(assumed)* | Latex | not stated | 4 sizes |
-| serta-icomfortpro-mattress-level-three | Serta | Medium *(assumed)* | Latex | not stated | 4 sizes |
-| serta-iseries-nxg-mattress-1500-hybrid-firm | Serta | Firm | Hybrid | not stated | 5 sizes |
-| serta-iseries-nxg-mattress-2500-hybrid | Serta | Medium *(assumed)* | Hybrid | not stated | 5 sizes |
-| serta-iseries-nxg-mattress-3500-hybrid | Serta | Medium *(assumed)* | Hybrid | not stated | 5 sizes |
-| serta-iseries-nxg-mattress-3500-medium-foam | Serta | Medium | Memory Foam | not stated | 5 sizes |
-| serta-iseries-nxg-mattress-4500-ultra-plush-foam | Serta | Ultra Plush | Memory Foam | not stated | 5 sizes |
-| serta-perfect-sleeper-hybrid | Serta | Medium *(assumed)* | Hybrid | not stated | 6 sizes |
-| serta-perfect-sleeper-hybrid-mattress-2023-version | Serta | Medium *(assumed)* | Hybrid | not stated | 6 sizes |
-| serta-perfect-sleeper-innerspring-mattress-cascade-ridge-plush-12-5 | Serta | Plush | Innerspring | 12.5 | 6 sizes |
-| serta-perfect-sleeper-innerspring-mattress-2023-version | Serta | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| serta-perfect-sleeper-innerspring-mattress-cascade-canyon | Serta | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| serta-perfect-sleeper-innerspring-mattress-cascade-range | Serta | Medium *(assumed)* | Innerspring | not stated | 6 sizes |
-| serta-perfect-sleeper-x-quilted-hybrid-mattress-level-one | Serta | Medium *(assumed)* | Hybrid | not stated | 5 sizes |
-| serta-perfect-sleeper-x-quilted-hybrid-mattress-level-two | Serta | Medium *(assumed)* | Hybrid | not stated | 5 sizes |
+## Running it again
+
+```
+node scripts/catalog/scrape/shopify-feed.mjs scripts/catalog/brand-catalog/.scrape/raw     # the 5 Shopify feeds
+node scripts/catalog/scrape/pages.mjs scripts/catalog/brand-catalog/.scrape/pages <brand>  # tempur-pedic stearns-foster sealy beautyrest serta aireloom
+node scripts/catalog/scrape/build.mjs                                                       # both sheets and the notes
+node scripts/catalog/scrape/download-images.mjs && node scripts/catalog/scrape/build.mjs   # photos, then the project sheet lists the ones that exist
+```
+
+Helix records are JSON files in `.scrape/pages/helix/` (`helix-browser.mjs` is a standalone version of the reader; it is refused by Helix's bot protection, so the records were taken from an ordinary browser session).
