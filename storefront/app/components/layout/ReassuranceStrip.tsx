@@ -17,9 +17,9 @@ type ReassuranceStripProps = {
 };
 
 /**
- * Reassurance row under the header: compact columns on a phone, spread evenly with the icon beside the text
- * from 768 px. It shows only the items whose content the client has supplied (REQ-CNT-001, B-15), so it holds
- * one to three items and disappears when there are none.
+ * Trust strip under the header (CR-31): a paper band with a red round icon beside each short promise, as many columns
+ * as fit. It shows only the items whose content the client has supplied (REQ-CNT-001, B-15), so it holds none to
+ * three items today and disappears when there are none.
  */
 export function ReassuranceStrip({
   items = REASSURANCE_ITEMS,
@@ -29,17 +29,19 @@ export function ReassuranceStrip({
   if (shown.length === 0) return null;
 
   return (
-    <div className="border-b border-line bg-surface text-fg">
-      <ul className="mx-auto flex max-w-page px-2 md:px-6">
+    <div className="border-b border-line bg-paper text-fg">
+      <ul className="mx-auto grid max-w-page grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 px-4 py-3 md:px-10">
         {shown.map((item) => {
           const Icon = ICONS[item.icon];
           return (
-            <li key={item.id} className="flex flex-1">
+            <li key={item.id}>
               <Link
                 to={item.to}
-                className="flex min-h-touch w-full flex-col items-center justify-center gap-1 px-1 py-2 text-center type-display text-xs hover:underline md:flex-row md:gap-2 md:text-sm"
+                className="flex min-h-touch items-center gap-3 py-1 text-sm font-bold hover:underline md:text-base"
               >
-                <Icon className="size-6 text-primary-500" />
+                <span className="inline-flex size-11.5 shrink-0 items-center justify-center rounded-pill bg-primary-500 text-white">
+                  <Icon className="size-5.5" />
+                </span>
                 <span>{item.text}</span>
               </Link>
             </li>

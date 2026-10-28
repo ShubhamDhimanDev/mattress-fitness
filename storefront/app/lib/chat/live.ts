@@ -14,7 +14,9 @@ type Held = {readonly key: string; readonly controller: ChatController};
 let live: Held | null = null;
 
 function keyOf(config: PublicChatConfig): string {
-  return `${config.providerId}|${config.requiresConsent}`;
+  const tawk = config.tawk;
+  const ids = tawk ? `${tawk.propertyId}/${tawk.widgetId}` : '';
+  return `${config.providerId}|${config.requiresConsent}|${ids}`;
 }
 
 export function acquireChat(config: PublicChatConfig): ChatController {
@@ -22,7 +24,7 @@ export function acquireChat(config: PublicChatConfig): ChatController {
   if (live && live.key === key) return live.controller;
   releaseChat();
   const controller = createChatController({
-    create: () => createChatProvider(config.providerId),
+    create: () => createChatProvider(config),
     // Fixed words: which provider and which step. Written to the shopper's browser console, like the analytics lines.
     onFailure: (reason) =>
       logWarn('chat.provider_failed', {provider: config.providerId, reason}),

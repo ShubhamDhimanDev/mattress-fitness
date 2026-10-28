@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mattress Fitness cart, mobile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#141414;background:#F7F4EF;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,h4,p,ul{margin:0;padding:0}
+ul{list-style:none}
+button{font-family:inherit;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:10px;font-family:inherit;font-weight:700;font-size:15px;line-height:1;border:2px solid transparent;white-space:nowrap}
+.btn-red{background:#DE0510;color:#fff}
+.btn-line{background:#fff;color:#141414;border-color:#141414}
+.btn-ink{background:#141414;color:#fff}
+.card{background:#fff;border:1px solid #E6E2DC;border-radius:18px}
+.ph{position:relative;display:flex;align-items:flex-end;background:linear-gradient(135deg,#EFE9E0,#DDD3C5);overflow:hidden;border-radius:12px}
+.ph:before{content:"";position:absolute;left:50%;top:50%;width:52%;height:34%;transform:translate(-50%,-50%);border:3px solid rgba(20,20,20,.14);border-radius:10px}
+.ph-tag{position:relative;z-index:1;margin:6px;padding:3px 7px;background:#fff;color:#141414;border-radius:6px;font-weight:700;font-size:10px}
+.ico{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.chip{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#F7F4EF;font-weight:600;font-size:12px;color:#3D3D3D}
+.qty{display:inline-flex;align-items:center;border:2px solid #8C8C8C;border-radius:12px;overflow:hidden;background:#fff}
+.qty button{width:44px;height:44px;border:0;background:#fff;font-size:22px;font-weight:700;color:#141414}
+.qty span{min-width:34px;text-align:center;font-weight:800;font-size:16px}
+.link{background:none;border:0;padding:0;min-height:44px;font-weight:700;font-size:14px;color:#A8030C;text-decoration:underline;text-underline-offset:3px}
+</style>
+</helmet>
+
+<div style="width:390px;position:relative">
+
+<div style="background:#141414;color:#fff;font-size:12px;font-weight:600;text-align:center;padding:9px 12px">Free delivery over $999</div>
+<header style="background:#fff;border-bottom:1px solid #E6E2DC;display:flex;align-items:center;gap:12px;padding:10px 16px">
+<a href="#" aria-label="Mattress Fitness home"><img src="/_blob/2b5b24dbd72e160e94e6a90791559ee4" alt="Mattress Fitness" width="48" height="48" style="display:block;width:48px;height:48px"></a>
+<a href="#" style="flex:1;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;background:#F7F4EF;border-radius:12px;font-weight:600;font-size:13px"><svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Delivering to <strong>60601</strong></a>
+<a href="#" aria-label="Cart, 3 items" style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;background:#141414;color:#fff;border-radius:12px"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h10.2L20 7H6.5"/><circle cx="9" cy="19.500" r="1.500"/><circle cx="17" cy="19.500" r="1.500"/></svg><span style="position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:999px;background:#DE0510;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">3</span></a>
+</header>
+
+<main style="padding:20px 16px 120px;display:flex;flex-direction:column;gap:16px">
+
+<div>
+<h1 style="font-weight:800;letter-spacing:-.03em;font-size:36px;line-height:1">Your cart</h1>
+<p style="margin-top:8px;color:#545454;font-size:15px">3 items · delivery and tax at checkout</p>
+</div>
+
+<div class="card" style="padding:16px 18px">
+<div style="display:flex;align-items:center;gap:12px"><span style="width:40px;height:40px;border-radius:10px;background:#1B7A43;color:#fff;display:flex;align-items:center;justify-content:center;flex:none"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><strong style="font-size:15px;line-height:1.3">You have unlocked free delivery</strong></div>
+<div style="margin-top:12px;height:8px;border-radius:999px;background:#EFEFEF;overflow:hidden"><div style="height:100%;width:100%;background:#1B7A43;border-radius:999px"></div></div>
+</div>
+
+<ul style="display:flex;flex-direction:column;gap:16px" aria-label="Cart items">
+<li class="card" style="overflow:hidden">
+<div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;padding:16px">
+<div class="ph" style="width:96px;height:96px"><span class="ph-tag">Photo</span></div>
+<div style="min-width:0">
+<span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#545454">Tempur-Pedic</span>
+<h3 style="font-size:17px;font-weight:800;line-height:1.25;margin-top:2px">TEMPUR-Cloud Mattress</h3>
+<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><span class="chip">Queen · 60 x 80 in</span><span class="chip">Home delivery</span></div>
+</div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 16px">
+<div class="qty" role="group" aria-label="Quantity"><button aria-label="Decrease quantity">−</button><span>1</span><button aria-label="Increase quantity">+</button></div>
+<strong style="font-size:22px;letter-spacing:-.02em">$2,128.00</strong>
+</div>
+<div style="display:flex;justify-content:space-between;padding:0 16px 8px"><button class="link">Change size</button><button class="link">Remove</button></div>
+<div style="border-top:1px solid #E6E2DC;background:#F7F4EF;padding:14px 16px;display:flex;align-items:center;gap:12px">
+<span style="width:40px;height:40px;border-radius:10px;background:#fff;color:#DE0510;display:flex;align-items:center;justify-content:center;flex:none"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l8-4 8 4v6c0 4-3.500 7-8 8-4.500-1-8-4-8-8z"/><path d="M9 12l2 2 4-4"/></svg></span>
+<div style="flex:1;min-width:0"><strong style="display:block;font-size:14px">Protection plan added</strong><span style="font-size:12px;color:#545454">$129.00 · covers this mattress only</span></div>
+<button class="link" style="font-size:13px">Remove</button>
+</div>
+</li>
+<li class="card" style="display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 16px;border:2px dashed #F6B414;background:#FFFBEF">
+<div class="ph" style="width:72px;height:72px"><span class="ph-tag">Gift</span></div>
+<div><span style="display:inline-block;padding:3px 8px;border-radius:6px;background:#F6B414;font-weight:800;font-size:11px">FREE GIFT</span><h3 style="font-size:15px;font-weight:800;margin-top:4px">Sleep pillow</h3></div>
+<strong style="font-size:17px">$0.00</strong>
+</li>
+<li class="card" style="overflow:hidden">
+<div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;padding:16px">
+<div class="ph" style="width:96px;height:96px"><span class="ph-tag">Photo</span></div>
+<div style="min-width:0"><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#545454">Tempur-Pedic</span><h3 style="font-size:17px;font-weight:800;line-height:1.25;margin-top:2px">Flat Foundation</h3><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><span class="chip">Queen · 60 x 80 in</span></div></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 8px"><div class="qty" role="group" aria-label="Quantity"><button aria-label="Decrease quantity">−</button><span>1</span><button aria-label="Increase quantity">+</button></div><strong style="font-size:22px;letter-spacing:-.02em">$419.00</strong></div>
+<div style="display:flex;justify-content:space-between;padding:0 16px 8px"><button class="link">Change size</button><button class="link">Remove</button></div>
+</li>
+</ul>
+
+<div class="card" style="padding:18px">
+<div style="display:flex;align-items:center;gap:10px"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><h2 style="font-size:18px;font-weight:800;flex:1">Delivery to 60601</h2><button class="link">Change</button></div>
+<div style="margin-top:12px;border:2px solid #DE0510;background:#FFF1F1;border-radius:12px;padding:12px 14px;font-weight:700;font-size:14px">Home delivery <span style="font-weight:500;color:#545454;display:block;font-size:12px">Delivery estimate shown at checkout</span></div>
+<label style="display:flex;align-items:center;gap:12px;margin-top:10px;padding:12px 14px;border:2px solid #E6E2DC;border-radius:12px;min-height:56px"><input type="checkbox" style="width:22px;height:22px;accent-color:#DE0510"><span style="flex:1;font-weight:700;font-size:14px">Haul away my old mattress</span><strong style="font-size:14px">+$49</strong></label>
+</div>
+
+<div>
+<h2 style="font-size:20px;font-weight:800;letter-spacing:-.01em">Complete your sleep setup</h2>
+<ul style="display:flex;gap:12px;margin-top:12px;overflow-x:auto;padding-bottom:8px">
+<li class="card" style="flex:none;width:176px;padding:12px;display:flex;flex-direction:column;gap:8px"><div class="ph" style="aspect-ratio:4/3"><span class="ph-tag">Photo</span></div><strong style="font-size:14px;line-height:1.25">Mattress Protector, Queen</strong><div style="display:flex;justify-content:space-between;align-items:center"><strong>$189</strong><a class="btn btn-line" href="#" style="min-height:44px;padding:0 14px">Add</a></div></li>
+<li class="card" style="flex:none;width:176px;padding:12px;display:flex;flex-direction:column;gap:8px"><div class="ph" style="aspect-ratio:4/3"><span class="ph-tag">Photo</span></div><strong style="font-size:14px;line-height:1.25">Cloud Pillow, Queen</strong><div style="display:flex;justify-content:space-between;align-items:center"><strong>$104</strong><a class="btn btn-line" href="#" style="min-height:44px;padding:0 14px">Add</a></div></li>
+<li class="card" style="flex:none;width:176px;padding:12px;display:flex;flex-direction:column;gap:8px"><div class="ph" style="aspect-ratio:4/3"><span class="ph-tag">Photo</span></div><strong style="font-size:14px;line-height:1.25">Cotton Sheet Set, Queen</strong><div style="display:flex;justify-content:space-between;align-items:center"><strong>$159</strong><a class="btn btn-line" href="#" style="min-height:44px;padding:0 14px">Add</a></div></li>
+</ul>
+</div>
+
+<div class="card" style="padding:20px">
+<h2 style="font-size:20px;font-weight:800">Order summary</h2>
+<dl style="margin:16px 0 0;display:flex;flex-direction:column;gap:12px;font-size:15px">
+<div style="display:flex;justify-content:space-between"><dt style="color:#545454">Subtotal</dt><dd style="margin:0;font-weight:700">$2,547.00</dd></div>
+<div style="display:flex;justify-content:space-between"><dt style="color:#545454">Delivery</dt><dd style="margin:0;font-weight:700;color:#1B7A43">Free</dd></div>
+</dl>
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:16px;border-top:2px solid #141414"><strong style="font-size:16px">Estimated total</strong><strong style="font-size:28px;letter-spacing:-.03em">$2,547.00</strong></div>
+<details style="margin-top:14px;border-top:1px solid #E6E2DC"><summary style="display:flex;justify-content:space-between;align-items:center;min-height:52px;font-weight:700;font-size:15px;cursor:pointer;list-style:none">Add a discount code<svg class="ico" style="width:18px;height:18px" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+<div style="display:flex;gap:8px;padding-bottom:6px"><input type="text" aria-label="Discount code" placeholder="Code" style="flex:1;min-width:0;min-height:48px;padding:0 12px;border:2px solid #8C8C8C;border-radius:10px;font-family:inherit;font-size:15px"><a class="btn btn-line" href="#">Apply</a></div></details>
+<div style="margin-top:12px;padding:12px 14px;border:2px dashed #C4C4C4;border-radius:12px;font-size:12px;color:#545454;line-height:1.5">Financing message slot, shown when the provider is connected.</div>
+</div>
+
+</main>
+
+<!-- Sticky checkout bar -->
+<div style="position:sticky;bottom:0;background:#fff;border-top:1px solid #E6E2DC;box-shadow:0 -10px 30px -12px rgba(20,20,20,.25);padding:12px 16px 16px;display:flex;align-items:center;gap:14px">
+<div style="min-width:104px"><span style="font-size:12px;color:#545454;font-weight:600">Total</span><strong style="display:block;font-size:22px;letter-spacing:-.02em">$2,547.00</strong></div>
+<a class="btn btn-red" href="#" style="flex:1;min-height:56px;font-size:17px;border-radius:12px"><svg class="ico" style="width:20px;height:20px" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>Checkout securely</a>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2300}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

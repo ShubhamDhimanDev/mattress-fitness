@@ -1154,6 +1154,110 @@ test.describe('NFR-001 no horizontal scroll', () => {
   }
 });
 
+// CR-31 / DEC-134 (D3): below 1024 px the header's main row sticks to the top while the bars above it scroll away; from
+// 1024 px the whole header scrolls away as before. Focus must never end up behind the sticky row (WCAG 2.4.11).
+test.describe('CR-31 sticky compact header below 1024 px', () => {
+  test.skip(
+    ({isMobile}) => isMobile,
+    'Width is set explicitly here, so the desktop project covers every width.',
+  );
+
+  /** The ancestor of the search box that is the header's main row, with its computed position and bottom edge. */
+  async function mainRow(page: Page) {
+    return page
+      .getByRole('banner')
+      .getByRole('search')
+      .evaluate((search) => {
+        let node: HTMLElement | null = search.parentElement;
+        while (node && getComputedStyle(node).position === 'static') {
+          node = node.parentElement;
+        }
+        // The first non-static ancestor is the row's grid (`relative`); the sticky element is its parent.
+        const row = node?.parentElement ?? null;
+        return {
+          position: row ? getComputedStyle(row).position : 'missing',
+          bottom: row ? row.getBoundingClientRect().bottom : 0,
+        };
+      });
+  }
+
+  for (const width of [360, 768, 1023]) {
+    test(`at ${width} px the main row is sticky and stays at the top after scrolling`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({width, height: 700});
+      await gotoReady(page, '/pages/does-not-exist');
+      expect((await mainRow(page)).position).toBe('sticky');
+
+      await page.evaluate(() => {
+        const spacer = document.createElement('div');
+        spacer.style.height = '2000px';
+        document.querySelector('main')?.before(spacer);
+        window.scrollTo(0, 1200);
+      });
+      const search = page.getByRole('banner').getByRole('search');
+      await expect(search).toBeInViewport();
+      const top = await search.evaluate(
+        (element) => element.getBoundingClientRect().top,
+      );
+      expect(
+        top,
+        'the search box is still at the top of the screen',
+      ).toBeLessThan(80);
+    });
+  }
+
+  for (const width of [1024, 1280, 1536]) {
+    test(`at ${width} px the whole header scrolls away`, async ({page}) => {
+      await page.setViewportSize({width, height: 700});
+      await gotoReady(page, '/pages/does-not-exist');
+      expect((await mainRow(page)).position).toBe('static');
+      await page.evaluate(() => {
+        const spacer = document.createElement('div');
+        spacer.style.height = '2000px';
+        document.querySelector('main')?.before(spacer);
+        window.scrollTo(0, 1200);
+      });
+      await expect(
+        page.getByRole('banner').getByRole('search'),
+      ).not.toBeInViewport();
+    });
+  }
+
+  test('a link scrolled under the sticky row is not left behind it when it takes focus (WCAG 2.4.11)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({width: 360, height: 700});
+    await gotoReady(page, '/pages/does-not-exist');
+    const link = page.getByRole('link', {name: 'Back to the home page'});
+    await page.evaluate(() => {
+      const spacer = document.createElement('div');
+      spacer.style.height = '2000px';
+      document.querySelector('main')?.before(spacer);
+    });
+    // Put the link 10 px from the top of the screen, which is under the sticky row, then give it keyboard focus.
+    await link.evaluate((element) =>
+      window.scrollTo(0, element.getBoundingClientRect().top + scrollY - 10),
+    );
+    await link.focus();
+    await expect(link).toBeFocused();
+    const {rowBottom, linkTop} = await page.evaluate(() => {
+      const search = document.querySelector('[role="search"]');
+      const row = search?.closest('.sticky');
+      const target = document.activeElement;
+      return {
+        rowBottom: row?.getBoundingClientRect().bottom ?? 0,
+        linkTop: target?.getBoundingClientRect().top ?? 0,
+      };
+    });
+    expect(rowBottom, 'the sticky row was found').toBeGreaterThan(0);
+    expect(
+      linkTop,
+      'the focused link is fully below the sticky row',
+    ).toBeGreaterThanOrEqual(rowBottom);
+  });
+});
+
 test.describe('NFR-003 accessibility of the shell', () => {
   test('home has no serious or critical axe violations', async ({page}) => {
     await gotoReady(page);

@@ -117,6 +117,13 @@ function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
+/**
+ * The "Shop by ..." links are filtered views of the one mattresses collection, not collections of their own: the
+ * collection route already reads `size`, `comfort`, `mattress_type` and the price range from the URL (lib/filters.ts),
+ * so they work on any store that has the `mattresses` collection and never 404 on a collection nobody created.
+ */
+const MATTRESSES_PATH = '/collections/mattresses';
+
 export const MAIN_NAV: readonly MainNavItem[] = [
   {kind: 'link', id: 'sale', label: 'Sale', to: '/collections/sale'},
   {
@@ -130,7 +137,7 @@ export const MAIN_NAV: readonly MainNavItem[] = [
         heading: 'Shop by size',
         links: MATTRESS_SIZES.map((size) => ({
           label: size,
-          to: `/collections/mattresses-${slug(size)}`,
+          to: `${MATTRESSES_PATH}?size=${slug(size)}`,
         })),
       },
       {
@@ -142,29 +149,41 @@ export const MAIN_NAV: readonly MainNavItem[] = [
         id: 'mattresses-comfort',
         heading: 'Shop by comfort',
         links: [
-          {label: 'Plush', to: '/collections/plush-mattresses'},
-          {label: 'Medium', to: '/collections/medium-mattresses'},
-          {label: 'Firm', to: '/collections/firm-mattresses'},
+          {label: 'Plush', to: `${MATTRESSES_PATH}?comfort=plush`},
+          {label: 'Medium', to: `${MATTRESSES_PATH}?comfort=medium`},
+          {label: 'Firm', to: `${MATTRESSES_PATH}?comfort=firm`},
         ],
       },
       {
         id: 'mattresses-type',
         heading: 'Shop by type',
         links: [
-          {label: 'Memory foam', to: '/collections/memory-foam-mattresses'},
-          {label: 'Hybrid', to: '/collections/hybrid-mattresses'},
-          {label: 'Innerspring', to: '/collections/innerspring-mattresses'},
-          {label: 'Latex', to: '/collections/latex-mattresses'},
+          {
+            label: 'Memory foam',
+            to: `${MATTRESSES_PATH}?mattress_type=memory-foam`,
+          },
+          {label: 'Hybrid', to: `${MATTRESSES_PATH}?mattress_type=hybrid`},
+          {
+            label: 'Innerspring',
+            to: `${MATTRESSES_PATH}?mattress_type=innerspring`,
+          },
+          {label: 'Latex', to: `${MATTRESSES_PATH}?mattress_type=latex`},
         ],
       },
       {
         id: 'mattresses-price',
         heading: 'Shop by price',
         links: [
-          {label: 'Under $500', to: '/collections/mattresses-under-500'},
-          {label: '$500 to $1,000', to: '/collections/mattresses-500-1000'},
-          {label: '$1,000 to $2,000', to: '/collections/mattresses-1000-2000'},
-          {label: 'Over $2,000', to: '/collections/mattresses-over-2000'},
+          {label: 'Under $500', to: `${MATTRESSES_PATH}?price_max=500`},
+          {
+            label: '$500 to $1,000',
+            to: `${MATTRESSES_PATH}?price_min=500&price_max=1000`,
+          },
+          {
+            label: '$1,000 to $2,000',
+            to: `${MATTRESSES_PATH}?price_min=1000&price_max=2000`,
+          },
+          {label: 'Over $2,000', to: `${MATTRESSES_PATH}?price_min=2000`},
         ],
       },
     ],
@@ -317,8 +336,30 @@ export function existingContentPaths(
   return new Set(pages.map((page) => page.to));
 }
 
-function linkExists(to: string | undefined, existing: ReadonlySet<string>) {
-  return to === undefined || !SHOPIFY_CONTENT_PATH.test(to) || existing.has(to);
+const COLLECTION_PATH = /^\/collections\/([^/?#]+)/;
+
+/** The handles of the collections that exist in Shopify; null when the read failed, which keeps every link. */
+export type CollectionHandles = ReadonlySet<string> | null;
+
+// `all` is built into the route (it lists every product), so it never needs a collection of its own.
+function collectionExists(to: string, handles: CollectionHandles): boolean {
+  const handle = COLLECTION_PATH.exec(to)?.[1];
+  return (
+    handle === undefined ||
+    handle === 'all' ||
+    handles === null ||
+    handles.has(handle)
+  );
+}
+
+function linkExists(
+  to: string | undefined,
+  existing: ReadonlySet<string>,
+  collections: CollectionHandles = null,
+) {
+  if (to === undefined) return true;
+  if (!SHOPIFY_CONTENT_PATH.test(to)) return collectionExists(to, collections);
+  return existing.has(to);
 }
 
 /**
@@ -358,18 +399,21 @@ export function buildUtilityLinks(
 export function pruneMainNav(
   items: readonly MainNavItem[],
   existing: ReadonlySet<string>,
+  collections: CollectionHandles = null,
 ): MainNavItem[] {
   return items.flatMap((item): MainNavItem[] => {
     if (item.kind === 'link')
-      return linkExists(item.to, existing) ? [item] : [];
+      return linkExists(item.to, existing, collections) ? [item] : [];
     const groups = item.groups
       .map((group) => ({
         ...group,
-        links: group.links.filter((link) => linkExists(link.to, existing)),
+        links: group.links.filter((link) =>
+          linkExists(link.to, existing, collections),
+        ),
       }))
       .filter((group) => group.links.length > 0);
     const next: NavMenuItem = {...item, groups};
-    if (!linkExists(item.to, existing)) delete next.to;
+    if (!linkExists(item.to, existing, collections)) delete next.to;
     return groups.length === 0 && next.to === undefined ? [] : [next];
   });
 }
@@ -379,10 +423,14 @@ export function pruneMainNav(
  * pruned. `MAIN_NAV` itself holds no Shopify-written link, so a shell given no availability data (its default)
  * links nothing that could 404.
  */
-export function buildFallbackNav(existing: ReadonlySet<string>): MainNavItem[] {
+export function buildFallbackNav(
+  existing: ReadonlySet<string>,
+  collections: CollectionHandles = null,
+): MainNavItem[] {
   return pruneMainNav(
     MAIN_NAV.map((item) => (item.id === 'guides' ? GUIDES_WITH_CONTENT : item)),
     existing,
+    collections,
   );
 }
 
@@ -647,5 +695,5 @@ export const NO_FOOTER_LINKS: FooterLinks = {
 
 /** Sizes for the temporary home tiles and the size selector samples. */
 export const SHOP_BY_SIZE_LINKS: readonly NavGroupLink[] = MATTRESS_SIZES.map(
-  (size) => ({label: size, to: `/collections/mattresses-${slug(size)}`}),
+  (size) => ({label: size, to: `${MATTRESSES_PATH}?size=${slug(size)}`}),
 );

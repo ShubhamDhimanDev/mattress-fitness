@@ -8,6 +8,10 @@ import {
 import type {Route} from './+types/account.orders._index';
 import {useRef} from 'react';
 import {Money} from '~/components/Money';
+import {OrderStatusChip} from '~/components/orders/OrderStatusChip';
+import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
+import {Input} from '~/components/ui/Input';
 import {flattenConnection} from '@shopify/hydrogen';
 import {
   buildOrderSearchQuery,
@@ -92,7 +96,8 @@ export default function Orders() {
   const {orders} = customer;
 
   return (
-    <div className="orders">
+    <div className="orders flex flex-col gap-6">
+      <h2 className="type-display text-2xl md:text-3xl">Orders</h2>
       <OrderSearchForm currentFilters={filters} />
       <OrdersTable orders={orders} filters={filters} />
     </div>
@@ -111,7 +116,10 @@ function OrdersTable({
   return (
     <div className="acccount-orders" aria-live="polite">
       {orders?.nodes.length ? (
-        <PaginatedResourceSection connection={orders}>
+        <PaginatedResourceSection
+          connection={orders}
+          resourcesClassName="flex flex-col gap-4 py-4"
+        >
           {({node: order}) => <OrderItem key={order.id} order={order} />}
         </PaginatedResourceSection>
       ) : (
@@ -123,25 +131,21 @@ function OrdersTable({
 
 function EmptyOrders({hasFilters = false}: {hasFilters?: boolean}) {
   return (
-    <div>
+    <Card variant="tinted" className="flex flex-col items-start gap-4">
       {hasFilters ? (
         <>
-          <p>No orders found matching your search.</p>
-          <br />
-          <p>
-            <Link to="/account/orders">Clear filters →</Link>
-          </p>
+          <p className="text-lead">No orders found matching your search.</p>
+          <Button to="/account/orders" variant="outline">
+            Clear filters
+          </Button>
         </>
       ) : (
         <>
-          <p>You haven&apos;t placed any orders yet.</p>
-          <br />
-          <p>
-            <Link to="/collections">Start Shopping →</Link>
-          </p>
+          <p className="text-lead">You haven&apos;t placed any orders yet.</p>
+          <Button to="/collections">Start shopping</Button>
         </>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -184,68 +188,87 @@ function OrderSearchForm({
       className="order-search-form"
       aria-label="Search orders"
     >
-      <fieldset className="order-search-fieldset">
-        <legend className="order-search-legend">Filter Orders</legend>
+      <Card variant="tinted">
+        <fieldset className="flex flex-col gap-4">
+          <legend className="mb-3 text-lg font-extrabold">Filter orders</legend>
 
-        <div className="order-search-inputs">
-          <input
-            type="search"
-            name={ORDER_FILTER_FIELDS.NAME}
-            placeholder="Order #"
-            aria-label="Order number"
-            defaultValue={currentFilters.name || ''}
-            className="order-search-input"
-          />
-          <input
-            type="search"
-            name={ORDER_FILTER_FIELDS.CONFIRMATION_NUMBER}
-            placeholder="Confirmation #"
-            aria-label="Confirmation number"
-            defaultValue={currentFilters.confirmationNumber || ''}
-            className="order-search-input"
-          />
-        </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input
+              type="search"
+              name={ORDER_FILTER_FIELDS.NAME}
+              label="Order number"
+              placeholder="Order #"
+              defaultValue={currentFilters.name || ''}
+            />
+            <Input
+              type="search"
+              name={ORDER_FILTER_FIELDS.CONFIRMATION_NUMBER}
+              label="Confirmation number"
+              placeholder="Confirmation #"
+              defaultValue={currentFilters.confirmationNumber || ''}
+            />
+          </div>
 
-        <div className="order-search-buttons">
-          <button type="submit" disabled={isSearching}>
-            {isSearching ? 'Searching' : 'Search'}
-          </button>
-          {hasFilters && (
-            <button
-              type="button"
-              disabled={isSearching}
-              onClick={() => {
-                setSearchParams(new URLSearchParams());
-                formRef.current?.reset();
-              }}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </fieldset>
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" disabled={isSearching}>
+              {isSearching ? 'Searching' : 'Search'}
+            </Button>
+            {hasFilters && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSearching}
+                onClick={() => {
+                  setSearchParams(new URLSearchParams());
+                  formRef.current?.reset();
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </fieldset>
+      </Card>
     </form>
   );
 }
 
 function OrderItem({order}: {order: OrderItemFragment}) {
   const fulfillmentStatus = flattenConnection(order.fulfillments)[0]?.status;
+  const href = `/account/orders/${btoa(order.id)}`;
   return (
-    <>
-      <fieldset>
-        <Link to={`/account/orders/${btoa(order.id)}`}>
-          <strong>#{order.number}</strong>
+    <Card
+      as="article"
+      aria-label={`Order ${order.number}`}
+      className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+    >
+      <div className="flex flex-col gap-1">
+        <Link to={href} className="type-display text-title hover:underline">
+          #{order.number}
         </Link>
-        <p>{new Date(order.processedAt).toDateString()}</p>
+        <p className="text-sm text-fg-muted">
+          {new Date(order.processedAt).toDateString()}
+        </p>
         {order.confirmationNumber && (
-          <p>Confirmation: {order.confirmationNumber}</p>
+          <p className="text-sm text-fg-muted">
+            Confirmation: {order.confirmationNumber}
+          </p>
         )}
-        <p>{order.financialStatus}</p>
-        {fulfillmentStatus && <p>{fulfillmentStatus}</p>}
-        <Money data={order.totalPrice} />
-        <Link to={`/account/orders/${btoa(order.id)}`}>View Order →</Link>
-      </fieldset>
-      <br />
-    </>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {order.financialStatus && (
+            <OrderStatusChip status={order.financialStatus} />
+          )}
+          {fulfillmentStatus && <OrderStatusChip status={fulfillmentStatus} />}
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 md:flex-col md:items-end">
+        <p className="text-xl font-extrabold">
+          <Money data={order.totalPrice} />
+        </p>
+        <Button to={href} variant="outline" size="sm">
+          View order
+        </Button>
+      </div>
+    </Card>
   );
 }

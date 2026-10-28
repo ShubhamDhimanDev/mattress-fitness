@@ -18,6 +18,7 @@ import {canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {contentCache, rememberFound} from '~/lib/shopify/content-pages-cache';
 import {isValidHandle} from '~/lib/shopify/collection-data';
+import {RouteErrorPage} from '~/components/pages/ErrorPageView';
 
 // The loader prepares the head tags and structured data (`buildArticleDocument`); this only reads them.
 export const meta: Route.MetaFunction = ({data}) => {
@@ -104,10 +105,15 @@ export default function Article() {
   const published = formatLongDate(article.publishedAt);
 
   return (
-    <article className="py-4">
+    <article className="mx-auto max-w-prose py-6 md:py-10">
       <Breadcrumb items={view.breadcrumb} className="print:hidden" />
-      <header className="mt-2 border-b border-line pb-4">
-        <h1 className={cn(displayHeadingClass(article.title), 'text-3xl')}>
+      <header className="mt-4 border-b border-line pb-6">
+        <h1
+          className={cn(
+            displayHeadingClass(article.title),
+            'text-4xl md:text-5xl',
+          )}
+        >
           {article.title}
         </h1>
         <p className="mt-2 text-sm text-fg-muted">
@@ -120,7 +126,7 @@ export default function Article() {
       </header>
 
       {article.image ? (
-        <div className="mt-4 max-w-prose overflow-hidden rounded-card">
+        <div className="mt-6 max-w-prose overflow-hidden rounded-hero">
           <Image
             alt={article.image.altText || ''}
             aspectRatio="3/2"
@@ -130,14 +136,14 @@ export default function Article() {
           />
         </div>
       ) : null}
-      <SafeHtml html={article.contentHtml} className="mt-4" />
+      <SafeHtml html={article.contentHtml} className="mt-6" />
 
       {view.topics.length > 0 ? (
         <ul aria-label="Tags" className="mt-4 flex flex-wrap gap-2">
           {view.topics.map((topic) => (
             <li
               key={topic}
-              className="rounded-pill border border-line px-3 py-1 text-sm text-fg-muted"
+              className="rounded-pill bg-paper px-3 py-1 text-caption font-semibold text-ink-700"
             >
               {topic}
             </li>
@@ -223,3 +229,8 @@ const ARTICLE_QUERY = `#graphql
     }
   }
 ` as const;
+
+/** A missing or failed page keeps the site header and footer (the 404 status is set by the loader). */
+export function ErrorBoundary() {
+  return <RouteErrorPage />;
+}

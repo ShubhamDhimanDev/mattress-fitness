@@ -6,9 +6,21 @@ import {DEFAULT_SORT, hasActiveFilters, type FilterState} from '~/lib/filters';
 import type {AdminLink} from '~/lib/shopify/admin-link';
 import type {ImageView} from '~/lib/shopify/types';
 
+/** The colours a tile can have; the same list is the `choices` validation of `promo_tile.tone` (CR31-13). */
+export const PROMO_TONES = ['red', 'dark', 'light'] as const;
+export type PromoTone = (typeof PROMO_TONES)[number];
+export const DEFAULT_PROMO_TONE: PromoTone = 'red';
+
+/** Admin text to a known tone; empty, unknown or hostile text falls back to red, so it never reaches a class name. */
+export function parsePromoTone(value: string | null | undefined): PromoTone {
+  const key = (value ?? '').trim().toLowerCase();
+  return PROMO_TONES.find((tone) => tone === key) ?? DEFAULT_PROMO_TONE;
+}
+
 export type PromoTileView = {
   readonly id: string;
   readonly heading: string;
+  readonly tone: PromoTone;
   readonly image: ImageView | null;
   /** Null when the tile has no (valid) link; it is then shown as plain, non-interactive content. */
   readonly link: AdminLink | null;

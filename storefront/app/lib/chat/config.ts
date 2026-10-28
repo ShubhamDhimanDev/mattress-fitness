@@ -1,14 +1,14 @@
 // Live-chat configuration read from the public environment (P7-03, REQ-ANL-004, NFR-011, NFR-013).
 //
 // Fail closed: with PUBLIC_CHAT_PROVIDER unset (the default) there is no chat at all: no code is requested, no script or
-// host exists, and "Chat with us" is shown nowhere. No provider is chosen or approved (Q-011, CLR-005), so the only
-// id this build can run is `fake`, and only in development. Shopify Inbox, the default named in REQ-ANL-004, has no
-// verified way to run on this storefront (docs/integrations/CHAT.md), so it is named here as BLOCKED and refused, never
+// host exists, and "Chat with us" is shown nowhere. The ids this build can run are `tawk` (tawk.to, chosen by the owner
+// 2026-10-28, needs its two public ids) and `fake`, which runs only in development. Shopify Inbox, the default named
+// in REQ-ANL-004, has no verified way to run on this storefront (docs/integrations/CHAT.md), so it is named here as BLOCKED and refused, never
 // half-implemented.
 //
 // Pure: the caller passes the environment in.
 
-export const CHAT_PROVIDER_IDS = ['fake'] as const;
+export const CHAT_PROVIDER_IDS = ['tawk', 'fake'] as const;
 export type ChatProviderId = (typeof CHAT_PROVIDER_IDS)[number];
 
 /**
@@ -20,6 +20,14 @@ export const BLOCKED_CHAT_PROVIDER_IDS: readonly string[] = ['shopify-inbox'];
 export type ChatEnv = {
   readonly PUBLIC_CHAT_PROVIDER?: string | undefined;
   readonly PUBLIC_CHAT_REQUIRES_CONSENT?: string | undefined;
+  readonly PUBLIC_TAWK_PROPERTY_ID?: string | undefined;
+  readonly PUBLIC_TAWK_WIDGET_ID?: string | undefined;
+};
+
+/** The two ids in the widget address `embed.tawk.to/<propertyId>/<widgetId>`. Public by design: the page source shows them. */
+export type TawkIds = {
+  readonly propertyId: string;
+  readonly widgetId: string;
 };
 
 /** What the browser is told. Public by design; carries no key. */
@@ -27,12 +35,15 @@ export type PublicChatConfig = {
   readonly providerId: ChatProviderId;
   /** True: the widget waits for the shopper's `analytics` consent. Only the exact text `false` turns this off. */
   readonly requiresConsent: boolean;
+  /** Present only for `tawk`. */
+  readonly tawk?: TawkIds;
 };
 
 export type ChatOffReason =
   | 'unset'
   | 'provider_blocked'
   | 'provider_unknown'
+  | 'provider_misconfigured'
   | 'fake_outside_development'
   | 'needs_consent_category';
 
@@ -54,6 +65,18 @@ function isRunnable(value: string): value is ChatProviderId {
   return (CHAT_PROVIDER_IDS as readonly string[]).includes(value);
 }
 
+// The ids become part of a script address, so only plain letters and digits pass: no slash, dot, quote or whitespace can
+// change which host or path is requested.
+const TAWK_ID = /^[A-Za-z0-9]{1,40}$/;
+
+export function parseTawkIds(env: ChatEnv): TawkIds | null {
+  const propertyId = (env.PUBLIC_TAWK_PROPERTY_ID ?? '').trim();
+  const widgetId = (env.PUBLIC_TAWK_WIDGET_ID ?? '').trim();
+  return TAWK_ID.test(propertyId) && TAWK_ID.test(widgetId)
+    ? {propertyId, widgetId}
+    : null;
+}
+
 /** Exact match on purpose, like `PUBLIC_CONSENT_MODE`: only the text `false` loosens the stricter default. */
 export function parseChatRequiresConsent(value: string | undefined): boolean {
   return value !== 'false';
@@ -72,11 +95,18 @@ export function parseChatConfig(
   if (raw === 'fake' && !options.development) {
     return {status: 'off', reason: 'fake_outside_development'};
   }
+  const tawk = raw === 'tawk' ? parseTawkIds(env) : null;
+  if (raw === 'tawk' && tawk === null) {
+    return {status: 'off', reason: 'provider_misconfigured'};
+  }
   const requiresConsent = parseChatRequiresConsent(
     env.PUBLIC_CHAT_REQUIRES_CONSENT,
   );
   if (requiresConsent && !options.analyticsCategoryConfigured) {
     return {status: 'off', reason: 'needs_consent_category'};
+  }
+  if (tawk !== null) {
+    return {status: 'on', config: {providerId: raw, requiresConsent, tawk}};
   }
   return {status: 'on', config: {providerId: raw, requiresConsent}};
 }

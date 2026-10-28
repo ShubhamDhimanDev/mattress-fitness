@@ -128,7 +128,9 @@ export default function DeliveryPage() {
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-8">
-      <h1 className="text-3xl font-bold">Delivery to your ZIP code</h1>
+      <h1 className="type-display text-3xl md:text-4xl">
+        Delivery to your ZIP code
+      </h1>
       <DeliveryCheck
         initial={response}
         title="Check your ZIP code"

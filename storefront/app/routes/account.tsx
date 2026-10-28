@@ -1,6 +1,7 @@
 import {data, Form, NavLink, Outlet, useLoaderData} from 'react-router';
 import type {Route} from './+types/account';
 import {AccountErrorBoundary} from '~/components/account/AccountErrorBoundary';
+import {Button} from '~/components/ui/Button';
 import {CUSTOMER_DETAILS_QUERY} from '~/graphql/customer-account/CustomerDetailsQuery';
 import {
   accountFailure,
@@ -72,50 +73,61 @@ export default function AccountLayout() {
     : 'Account Details';
 
   return (
-    <div className="account">
-      <h1>{heading}</h1>
-      <br />
+    <div className="account mx-auto flex max-w-page flex-col gap-6 py-8">
+      <h1 className="type-display text-4xl md:text-5xl">{heading}</h1>
       <AccountMenu />
-      <br />
-      <br />
       <Outlet context={{customer}} />
     </div>
   );
 }
 
-function AccountMenu() {
-  function isActiveStyle({
-    isActive,
-    isPending,
-  }: {
-    isActive: boolean;
-    isPending: boolean;
-  }) {
-    return {
-      fontWeight: isActive ? 'bold' : undefined,
-      color: isPending ? 'grey' : 'black',
-    };
-  }
+const TAB_BASE =
+  'inline-flex min-h-touch items-center rounded-pill border-2 px-4 text-base font-bold motion-safe:transition-colors';
 
+function tabClassName({
+  isActive,
+  isPending,
+}: {
+  isActive: boolean;
+  isPending: boolean;
+}) {
+  return [
+    TAB_BASE,
+    isActive
+      ? 'border-ink-900 bg-ink-900 text-white'
+      : 'border-line-strong bg-surface text-fg hover:border-ink-600 hover:bg-paper',
+    isPending ? 'opacity-70' : '',
+  ].join(' ');
+}
+
+function AccountMenu() {
   return (
-    <nav role="navigation">
-      <NavLink to="/account/orders" style={isActiveStyle}>
-        Orders &nbsp;
-      </NavLink>
-      &nbsp;|&nbsp;
-      <NavLink to="/account/profile" style={isActiveStyle}>
-        &nbsp; Profile &nbsp;
-      </NavLink>
-      &nbsp;|&nbsp;
-      <NavLink to="/account/addresses" style={isActiveStyle}>
-        &nbsp; Addresses &nbsp;
-      </NavLink>
-      &nbsp;|&nbsp;
-      <NavLink to="/account/quiz" style={isActiveStyle}>
-        &nbsp; Sleep quiz &nbsp;
-      </NavLink>
-      &nbsp;|&nbsp;
-      <Logout />
+    <nav aria-label="Account">
+      <ul className="flex flex-wrap items-center gap-2">
+        <li>
+          <NavLink to="/account/orders" className={tabClassName}>
+            Orders
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/account/profile" className={tabClassName}>
+            Profile
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/account/addresses" className={tabClassName}>
+            Addresses
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/account/quiz" className={tabClassName}>
+            Sleep quiz
+          </NavLink>
+        </li>
+        <li>
+          <Logout />
+        </li>
+      </ul>
     </nav>
   );
 }
@@ -123,7 +135,9 @@ function AccountMenu() {
 function Logout() {
   return (
     <Form className="account-logout" method="POST" action="/account/logout">
-      &nbsp;<button type="submit">Sign out</button>
+      <Button type="submit" variant="outline" size="sm" shape="pill">
+        Sign out
+      </Button>
     </Form>
   );
 }

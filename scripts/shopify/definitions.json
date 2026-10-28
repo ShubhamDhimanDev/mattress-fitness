@@ -13,7 +13,8 @@
         { "key": "slug", "name": "Slug", "type": "single_line_text_field", "required": true, "description": "Lowercase, hyphenated; must equal the metaobject handle so the product importer can find the brand." },
         { "key": "logo", "name": "Logo", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "about", "name": "About", "type": "rich_text_field" },
-        { "key": "warranty_terms", "name": "Warranty terms", "type": "rich_text_field" }
+        { "key": "warranty_terms", "name": "Warranty terms", "type": "rich_text_field" },
+        { "key": "hero_image", "name": "Hero image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }], "description": "Optional. A wide picture shown beside the brand name at the top of the brand page. Leave empty for the plain header." }
       ]
     },
     {
@@ -46,10 +47,10 @@
         { "key": "longitude", "name": "Longitude", "type": "number_decimal" },
         { "key": "phone", "name": "Phone", "type": "single_line_text_field" },
         { "key": "hours", "name": "Opening hours", "type": "json", "description": "Opening hours per weekday; the JSON shape is fixed in P3B with the locator." },
-        { "key": "time_zone", "name": "Time zone", "type": "single_line_text_field", "description": "Optional. IANA name of the store's own time zone, for example America/New_York or America/Chicago (not EST or Central). With it the site can say 'Open now' and show today's hours in the store's own time; without it the hours are listed but 'open now' is not shown (P3B-16)." },
+        { "key": "time_zone", "name": "Time zone", "type": "single_line_text_field", "description": "Optional. IANA time zone name, for example America/New_York (not EST or Central). With it the site shows 'Open now' in the store's own time; without it the hours are listed but 'open now' is not shown (P3B-16)." },
         { "key": "photo", "name": "Photo", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "pickup_enabled", "name": "Pickup enabled", "type": "boolean" },
-        { "key": "location_handle", "name": "Shopify location", "type": "single_line_text_field", "description": "The matching Shopify location, used for pickup availability. Enter the location's name exactly as it appears in Settings > Locations (capitalisation and spaces versus hyphens do not matter), or its numeric location id. The Storefront API exposes only a location's id and name, so there is no other handle to match." }
+        { "key": "location_handle", "name": "Shopify location", "type": "single_line_text_field", "description": "The matching Shopify location, for pickup availability. Enter its name as in Settings > Locations (capitalisation and spaces versus hyphens do not matter) or its numeric id. The Storefront API exposes only id and name." }
       ]
     },
     {
@@ -94,20 +95,35 @@
       ]
     },
     {
+      "type": "homepage_card",
+      "name": "Homepage card",
+      "description": "One card or step inside a homepage block: the cards of 'setup-cards' and the steps of 'how-it-works' (CR-31, REQ-HOME-001).",
+      "displayNameKey": "title",
+      "storefrontAccess": "PUBLIC_READ",
+      "fieldDefinitions": [
+        { "key": "title", "name": "Title", "type": "single_line_text_field", "required": true, "validations": [{ "name": "max", "value": 80 }], "description": "Heading of the card or step. A card without a title is not shown." },
+        { "key": "text", "name": "Text", "type": "multi_line_text_field", "description": "One or two short paragraphs. Plain text; a blank line starts a new paragraph." },
+        { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }], "description": "Optional picture for the card (used by 'setup-cards')." },
+        { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL. Plain text on purpose: Shopify's url type rejects relative paths. The storefront validates it against an allow-list (T-08)." },
+        { "key": "link_label", "name": "Link label", "type": "single_line_text_field", "validations": [{ "name": "max", "value": 40 }], "description": "Text of the card's button. Leave empty to make the title itself the link." }
+      ]
+    },
+    {
       "type": "homepage_section",
       "name": "Homepage section",
       "description": "An editable, orderable block on the homepage (REQ-HOME-001).",
       "displayNameKey": "heading",
       "storefrontAccess": "PUBLIC_READ",
       "fieldDefinitions": [
-        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup"] }], "description": "Section kind. hero, promo-banner and financing show the heading, body, image and link below; shop-by-size, featured, brands and categories fill themselves from the catalog and only take the heading, order and enabled switch; signup is reserved for the email and text-message signup (P7-02) and shows nothing until it exists. The storefront code lists the same values (HOMEPAGE_SECTION_TYPES); a test keeps the two in step." },
-        { "key": "heading", "name": "Heading", "type": "single_line_text_field" },
+        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup", "quiz-band", "setup-cards", "how-it-works", "store-finder", "faq"] }], "description": "Section kind. hero, promo-banner, financing, quiz-band, store-finder and faq use heading, body, image and link; setup-cards and how-it-works use Cards; shop-by-size, featured, brands, categories and signup need only heading, order, enabled." },
+        { "key": "heading", "name": "Heading", "type": "single_line_text_field", "description": "In hero, quiz-band, setup-cards, how-it-works, store-finder and faq, write [[a phrase]] in double square brackets to highlight it in red. Other types show the plain text." },
         { "key": "body", "name": "Body", "type": "multi_line_text_field" },
         { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL. Plain text on purpose: Shopify's url type rejects relative paths. The storefront validates it against an allow-list (T-08)." },
         { "key": "link_label", "name": "Link label", "type": "single_line_text_field", "description": "Text of the button for the link. Leave empty to make the heading itself the link. Added in P3B-13 so a link never needs generic wording like 'Learn more'." },
         { "key": "order", "name": "Order", "type": "number_integer", "required": true, "description": "Smaller numbers appear first. Entries without a whole number go last." },
-        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A section shows only when this is on." }
+        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A section shows only when this is on." },
+        { "key": "cards", "name": "Cards", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "homepage_card" }], "description": "For setup-cards (first 3 are shown) and how-it-works (first 6, numbered in this order). Add Homepage card entries here." }
       ]
     },
     {
@@ -122,7 +138,8 @@
         { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "heading", "name": "Heading", "type": "single_line_text_field", "required": true, "description": "Shown on the tile and used as the link text." },
         { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL; validated by the storefront (T-08). Without a valid link the tile is shown but is not clickable." },
-        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A tile shows only when this is on." }
+        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A tile shows only when this is on." },
+        { "key": "tone", "name": "Colour", "type": "single_line_text_field", "validations": [{ "name": "choices", "value": ["red", "dark", "light"] }], "description": "Optional. The tile's colour: red (the default), dark (black) or light (cream with dark text). Empty or anything else shows red." }
       ]
     },
     {
@@ -191,7 +208,7 @@
     { "ownerType": "PRODUCT", "namespace": "custom", "key": "extend_category", "name": "Extend category", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Extend protection category (REQ-EXT-005). Shape confirmed by Q-005." },
     { "ownerType": "PRODUCT", "namespace": "custom", "key": "faqs", "name": "FAQs", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "faq" }], "storefrontAccess": "PUBLIC_READ", "description": "Product page FAQs." },
     { "ownerType": "COLLECTION", "namespace": "custom", "key": "faqs", "name": "FAQs", "type": "list.metaobject_reference", "validations": [{ "name": "metaobject_definition_type", "value": "faq" }], "storefrontAccess": "PUBLIC_READ", "description": "Collection page FAQs (REQ-COL-004). Same shape as the product metafield; the collection page shows them and emits FAQ structured data from the same entries." },
-    { "ownerType": "CUSTOMER", "namespace": "custom", "key": "quiz_result", "name": "Sleep quiz result", "type": "json", "storefrontAccess": "NONE", "customerAccountAccess": "READ_WRITE", "description": "The signed-in customer's saved sleep quiz result: { v, savedAt, configFingerprint, answers, handles }, answers as option ids and at most 3 product handles, under 4 KB. Written and read through the Customer Account API (P6-04, REQ-QZ-005); not readable from the Storefront API. UNVERIFIED(V-08): whether a definition in namespace custom accepts customer-account READ_WRITE; if not, the namespace constant in app/lib/quiz/storage.ts changes to an app-reserved one." },
+    { "ownerType": "CUSTOMER", "namespace": "custom", "key": "quiz_result", "name": "Sleep quiz result", "type": "json", "storefrontAccess": "NONE", "customerAccountAccess": "READ_WRITE", "description": "Saved sleep quiz result: { v, savedAt, configFingerprint, answers, handles }, under 4 KB. Read and written through the Customer Account API (P6-04, REQ-QZ-005), not the Storefront API. UNVERIFIED(V-08): customer-account READ_WRITE in namespace custom." },
     { "ownerType": "PRODUCTVARIANT", "namespace": "custom", "key": "dimensions", "name": "Dimensions", "type": "single_line_text_field", "storefrontAccess": "PUBLIC_READ", "description": "Size selector and comparison." }
   ]
 }

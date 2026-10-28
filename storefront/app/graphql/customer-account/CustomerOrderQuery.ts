@@ -30,7 +30,7 @@ export const CUSTOMER_ORDER_QUERY = `#graphql
         ...DiscountApplication
       }
     }
-    totalDiscount {
+    totalPriceWithDiscounts {
       ...OrderMoney
     }
     image {

@@ -5,12 +5,14 @@ import {
   appendUnique,
   buildFilterGroups,
   centsToDollarsInput,
+  countLabel,
   dollarsInputToCents,
   hrefForPrice,
   hrefForReset,
   hrefForSort,
   hrefForToggle,
   nextPageState,
+  readListingPage,
 } from '~/lib/shopify/listing';
 
 // REQ-COL-002 / REQ-SRCH-002: the panel is built from Shopify's own filter response; the URL is the state.
@@ -145,5 +147,30 @@ describe('appendUnique (Load more)', () => {
   it('appends new products and skips repeats', () => {
     const merged = appendUnique([{id: 'a'}, {id: 'b'}], [{id: 'b'}, {id: 'c'}]);
     expect(merged.map((item) => item.id)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('countLabel and the total in the page info', () => {
+  it.each([
+    [12, 37, true, '12 of 37 products'],
+    [37, 37, false, '37 products'],
+    [1, 1, false, '1 product'],
+    [12, null, true, '12 products shown'],
+    [5, null, false, '5 products'],
+    [12, 12, true, '12 products shown'],
+  ])('%s loaded, total %s, more %s reads "%s"', (loaded, total, more, text) => {
+    expect(countLabel(loaded, total, more)).toBe(text);
+  });
+
+  it('reads a total from a Load more response and ignores a bad one', () => {
+    const page = (totalCount: unknown) =>
+      readListingPage({
+        products: [],
+        pageInfo: {hasNextPage: true, endCursor: 'local:12', totalCount},
+      })?.pageInfo.totalCount;
+    expect(page(37)).toBe(37);
+    expect(page(-1)).toBeNull();
+    expect(page('37')).toBeNull();
+    expect(page(undefined)).toBeNull();
   });
 });

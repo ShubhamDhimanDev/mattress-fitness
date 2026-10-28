@@ -10,15 +10,32 @@ import {
 // REQ-ANL-004: the registry only knows adapters that exist; the development fake behaves like a widget (loads, opens,
 // returns focus, unloads) so the call-outs can be proved without an account.
 
+const FAKE_CONFIG = {providerId: 'fake', requiresConsent: true} as const;
+
 describe('REQ-ANL-004 registry', () => {
-  it('knows no production adapter: an empty table gives null, never a throw', async () => {
-    await expect(createChatProvider('fake', {})).resolves.toBeNull();
+  it('an empty table gives null, never a throw', async () => {
+    await expect(createChatProvider(FAKE_CONFIG, {})).resolves.toBeNull();
   });
 
   it('builds the fake in a development build (import.meta.env.DEV is true under Vitest)', async () => {
-    expect(Object.keys(CHAT_PROVIDER_FACTORIES)).toEqual(['fake']);
-    const provider = await createChatProvider('fake');
+    expect(Object.keys(CHAT_PROVIDER_FACTORIES)).toEqual(['tawk', 'fake']);
+    const provider = await createChatProvider(FAKE_CONFIG);
     expect(provider?.id).toBe('fake');
+  });
+
+  it('builds the tawk.to adapter from the ids in the config', async () => {
+    const provider = await createChatProvider({
+      providerId: 'tawk',
+      requiresConsent: true,
+      tawk: {propertyId: 'prop123', widgetId: 'wid456'},
+    });
+    expect(provider?.id).toBe('tawk');
+  });
+
+  it('refuses a tawk config without ids instead of loading a script with none', async () => {
+    await expect(
+      createChatProvider({providerId: 'tawk', requiresConsent: true}),
+    ).rejects.toThrow('tawk ids missing');
   });
 });
 

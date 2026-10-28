@@ -2,6 +2,8 @@
 
 Task P2-01 / P2-02. Owner: `ui-ux-designer`. Single source of the values: [`storefront/app/styles/tailwind.css`](../../storefront/app/styles/tailwind.css) (`@theme` blocks). This page describes that file; if the two disagree, the file wins and this page is wrong. Rules for using the tokens: [ui-implementation](../../.claude/rules/ui-implementation.md). Why the token set is closed: [ADR-0010](../decisions/ADR-0010-ui-primitives-and-design-tokens.md).
 
+> **Redesign foundation built (2026-10-27, change request CR-31, owner-approved, DEC-134; not yet acknowledged by the client):** one new warm neutral (`paper`, `paper-line`), a self-hosted Plus Jakarta Sans, a 1400 px page width, larger radii, a lift shadow and new type steps. This page now describes the code after that step (R1 and R2 of [REDESIGN_PLAN](REDESIGN_PLAN.md)); the exact token and primitive reference for developers is [REDESIGN_PRIMITIVES](REDESIGN_PRIMITIVES.md). Pages and components outside `components/ui/` have not been restyled yet; they pick up the new tokens automatically but still use the old layouts.
+
 ## Status
 
 **Update 2026-10-22: the client supplied its logo** (a red disc with a white blocky all-caps wordmark and a small tagline; files in `storefront/public/brand/` for the served sizes and `storefront/brand-source/` for the 1254 px master, provenance below). The red and the white are now **taken from the client's logo**. The rest of the full brand kit (CLR-013: greys, black, secondary colours, fonts, clear-space rules) has still not arrived, so everything **not derived from the logo stays PLACEHOLDER**. The new palette is **built** (commit 8b31bbe, task BA-01, spec in [BRAND_APPLICATION_SPEC](BRAND_APPLICATION_SPEC.md)); this page was re-checked against `storefront/app/styles/tailwind.css`, the components and the routes on 2026-10-22 and the file wins if it disagrees with this page. The teal placeholder is gone from the code. No Figma file has been supplied (Q-004: the owner wants the site to look and function like the reference site in the client's own brand), so none was opened and no node IDs or variables were mapped; nothing here comes from Figma. The client has not approved the visual direction, which the phase 2 plan requires before its gate. Whether the target is WCAG 2.2 AA is itself pending approval (Q-012); AA is the working standard.
@@ -13,8 +15,9 @@ What is a placeholder and what is structural:
 | Brand red `primary-500` and white          | **From the client's logo** (2026-10-22) | `#DE0510` sampled from the supplied artwork; white is the wordmark. The other `primary-*` steps are lightness steps made by this project from that hue. |
 | Greys and near-black (`ink-*`), amber accent, sale, status colours, focus ring | PLACEHOLDER | Not in the logo. Chosen to be neutral and accessible; replace with the brand kit values (CLR-013). |
 | Semantic status colours, focus ring colours | PLACEHOLDER      | Unchanged from phase 2 (success, warning, error, `focus`, `focus-inverse`); not in the logo.                                                                                  |
-| Font family                                | PLACEHOLDER      | System stack until the brand fonts and their web licence arrive. `font-display` is the same stack; `type-display` (weight 800, uppercase, 0.02 em) approximates the logo's blocky wordmark. |
-| Radius (`choice`, `card`, `panel`, `pill`) | Project decision | As built: `choice` 0.5 rem (8 px, was 4 px), `card` 0.5 rem, `panel` 0.75 rem, `pill` full (chips, count bubble, carousel arrows, the Sale nav pill, `shape="pill"` buttons). Home and size buttons are rounded rectangles. Pattern from own measurements of the reference. Retune to the brand if the kit says otherwise. |
+| Font family                                | Owner decision (D1, 2026-10-27), client approval pending | **Plus Jakarta Sans**, self-hosted variable WOFF2 (provenance below). A font the client supplies wins (CLR-013). `type-display` is now the sentence-case heading look (weight 800, -0.03 em). |
+| Warm neutral `paper`, hairline `paper-line` | Project decision (CR-31) | Not in the logo; chosen by this project for the redesign (ratios in the file header). |
+| Radius (`sm`, `choice`, `card`, `panel`, `hero`, `pill`) | Project decision | As built (CR-31): `sm` 0.5 rem (8 px), `choice` 0.75 rem (12 px), `card` 1.125 rem (18 px), `panel` 1.5 rem (24 px), `hero` 1.75 rem (28 px), `pill` full (chips, count bubble, round icon buttons, `shape="pill"` buttons). `mark` 0.625 rem (10 px) is the hero highlight. Retune to the brand if the kit says otherwise. |
 | Type scale, spacing rhythm, elevation      | Project decision | Retune only if the brand kit has its own scale.                                                                                                                              |
 | Breakpoints, `touch` size (44 px)          | Structural       | Come from NFR-001 (360, 768, 1280, 1536 px checked; 1024 px is the desktop navigation switch). Do not change with the brand.                                                 |
 
@@ -54,7 +57,9 @@ Pairs the target relies on (ratio : needed): white on `primary-500` 5.08 : 4.5; 
 
 Amber accent scale as built (PLACEHOLDER): `accent-50` `#fff7e0`, `-100` `#ffecb3`, `-200` `#ffdd80`, `-300` `#ffcb47`, `-400` `#f6b414`, `-500` `#e09a00`, `-600` `#b87800`, `-700` `#8a5a00`.
 
-Semantic roles as built: `surface-muted` (`ink-100`) is the utility bar, panels and the footer surface; `surface-inverse` (`ink-900`) is the black promo band and tooltips, no longer the footer; `sale-fg` and `sale-bg` are new. Type: `font-display` (same system stack) and the `type-display` utility approximate the logo's blocky wordmark (the 40 character guard also covers the promo bar, nav labels, group headings and accordion menu rows); no font is loaded (owner decision pending, candidates in BRAND_APPLICATION_SPEC 2.7). Shadows are tinted `rgb(20 20 20)`.
+**Warm neutrals (CR-31, new):** `paper` `#f7f4ef` (bands, panels, cart page background, tinted cards, chips) and `paper-line` `#e6e2dc` (warm hairline). Ratios, recomputed by `tests/unit/ui/contrast.test.ts`: ink-900 on paper 16.79; ink-700 9.90; ink-600 (muted) 6.90; ink-500 (placeholder) 4.65; **primary-500 on paper 4.63, so red text on paper is 16 px and larger, otherwise `primary-700` (7.13)**; sale-fg 5.89; success-fg 7.39; ink-400 control border on paper 3.07 (needs 3.0; fields are white); focus ring on paper 6.04; `paper-line` on white 1.29 (decorative only, never the only edge of a control; the free-gift card's dashed amber border is likewise decorative, its FREE GIFT badge and text carry the meaning).
+
+Semantic roles as built: `surface-muted` is now `paper` (was `ink-100`): utility bar, panels, the footer surface, hover and disabled fills; `line` is now `paper-line` (was `ink-200`); `surface-inverse` (`ink-900`) is the black promo band and tooltips, no longer the footer; `sale-fg` and `sale-bg` are new. Type: `font-display` and `font-sans` are Plus Jakarta Sans with a metric-adjusted Arial fallback; `type-display` (sentence case) is the heading look, `type-eyebrow` and `type-mark` are new (see Type). The 40 character guard (`lib/display-type.ts`) is kept but no longer has a capitals reason. Shadows are tinted `rgb(20 20 20)`.
 
 Status colours (each has a background, a text and a solid variant so a message is never colour alone: components pair them with an icon and text):
 
@@ -71,12 +76,12 @@ Semantic roles (what components use; the brand file decides which ink each one i
 | Role              | Resolves to | Used for                             |
 | ----------------- | ----------- | ------------------------------------ |
 | `surface`         | `white`     | page and card background             |
-| `surface-muted`   | `ink-100`   | quiet panels, hover, disabled fields |
+| `surface-muted`   | `paper`     | quiet panels, hover, disabled fields, bands (CR-31, was `ink-100`) |
 | `surface-inverse` | `ink-900`   | black promo band, tooltips (not the footer) |
 | `fg`              | `ink-900`   | body text                            |
 | `fg-muted`        | `ink-600`   | secondary text                       |
 | `fg-inverse`      | `ink-100`   | text on `surface-inverse`            |
-| `line`            | `ink-200`   | dividers                             |
+| `line`            | `paper-line` | dividers and card borders (CR-31, was `ink-200`) |
 | `line-strong`     | `ink-400`   | control borders (non-text contrast)  |
 
 Contrast pairs checked: the list with ratios is the comment at the top of `tailwind.css` (white on `primary-500` 5.08, `ink-500` placeholder text on white 5.10, `ink-400` control border on white 3.36 against 3.0, focus ring on white 6.63). The ratios on this page were computed by script on 2026-10-22; axe runs on the gallery and the shell in `tests/e2e/gallery.spec.ts` and `tests/e2e/shell.spec.ts` (not run for this page). After any colour change redo the table and rerun both.
@@ -85,34 +90,41 @@ Contrast pairs checked: the list with ratios is the comment at the top of `tailw
 
 | Token       | Value                                                                                             |
 | ----------- | ------------------------------------------------------------------------------------------------- |
-| `font-sans` | `system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif` (PLACEHOLDER) |
-| `font-display` | the same system stack (PLACEHOLDER); the one place a brand font would be swapped in           |
+| `font-sans` | `'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif` (CR-31) |
+| `font-display` | the same stack; the one place a different brand font would be swapped in                     |
 | `font-mono` | `ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace`                                      |
 
-`type-display` (utility in `tailwind.css`): weight 800, uppercase, 0.02 em tracking, line height 1.05. For short labels only: headings, nav, strips, button labels. Admin-supplied headings longer than 40 characters keep weight 800 but go back to sentence case with no tracking (`app/lib/display-type.ts`, `DISPLAY_TYPE_MAX_LENGTH` 40; entry UXD-22). Never used for product names, body copy, prices, form labels or messages.
+**Font loading:** one variable WOFF2 (`public/fonts/PlusJakartaSans-Variable.woff2`, weights 200 to 800, latin subset), declared in `tailwind.css` with `font-display: swap` and preloaded once in `root.tsx` `links`. `Plus Jakarta Sans Fallback` is Arial scaled (`size-adjust` 106.04%, `ascent-override` 97.88%, `descent-override` 20.93%, `line-gap-override` 0%, measured from the font file with weighted English letter widths) so the swap moves the layout as little as possible. No third-party font request (`font-src 'self'`).
+
+**Utilities** (`tailwind.css`): `type-display` is the heading look: weight 800, -0.03 em tracking, line height 1.05, **sentence case** (it was heavy uppercase until CR-31; the name is kept so existing components restyle). `type-eyebrow` is the small red label above a heading: 13 px, weight 700, +0.14 em, uppercase, `primary-700`. `type-mark` is the hero highlight on an inline element: brand-red background, white text, 0.16 em side padding, 10 px radius, `box-decoration-break: clone`. Admin-supplied headings longer than 40 characters still get `font-extrabold` without `type-display` through `app/lib/display-type.ts` (`DISPLAY_TYPE_MAX_LENGTH` 40; entry UXD-22), which now only drops the tight tracking. Never used for body copy, prices or form labels.
 
 | Utility        | Size              | Line height |
 | -------------- | ----------------- | ----------- |
 | `text-xs`      | 0.75 rem (12 px)  | 1 rem       |
+| `text-caption` | 0.8125 rem (13 px) | 1.25 rem   |
 | `text-sm`      | 0.875 rem (14 px) | 1.25 rem    |
 | `text-base`    | 1 rem (16 px)     | 1.5 rem     |
+| `text-lead`    | 1.0625 rem (17 px) | 1.625 rem  |
 | `text-lg`      | 1.125 rem         | 1.75 rem    |
 | `text-xl`      | 1.25 rem          | 1.75 rem    |
+| `text-title`   | 1.375 rem (22 px) | 1.75 rem    |
 | `text-2xl`     | 1.5 rem           | 2 rem       |
 | `text-3xl`     | 1.875 rem         | 2.25 rem    |
 | `text-4xl`     | 2.25 rem          | 2.5 rem     |
+| `text-heading` | 2.5 rem (40 px)   | 1.1         |
 | `text-5xl`     | 3 rem             | 3.25 rem    |
-| `text-display` | 3.75 rem          | 1           |
+| `text-hero`    | 2.875 rem (46 px) | 1.05        |
+| `text-display` | 4.25 rem (68 px)  | 1.05        |
 
-Bare `h1` to `h3` get `text-3xl`, `text-2xl` and `text-xl` bold in the base layer for the template routes not rebuilt yet.
+Bare `h1` to `h3` get `text-3xl`, `text-2xl` and `text-xl` at weight 800 and -0.02 em tracking in the base layer for the template routes not rebuilt yet.
 
 ## Space, shape, layout
 
 - **Spacing**: Tailwind's 4 px unit is kept; the project rhythm is 8 px, so use the even steps (2 = 8 px, 4 = 16 px, 6 = 24 px, 8 = 32 px, 12 = 48 px, 16 = 64 px).
 - **`touch`** (`min-h-touch`, `size-touch`): 2.75 rem = 44 px, the minimum height of anything a shopper taps. Text links are 44 px high but only as wide as their words (entry UXD-09 in [DEVIATIONS](DEVIATIONS.md)).
-- **Radius**: `rounded-choice` 0.5 rem (8 px), `rounded-card` 0.5 rem, `rounded-panel` 0.75 rem, `rounded-pill` full.
-- **Elevation**: `shadow-sm`, `shadow-md`, `shadow-lg`, `shadow-drawer` (all tinted with `ink-900`).
-- **Widths**: `max-w-page` 1300 px, `max-w-prose` 42 rem, `max-w-drawer` 400 px, `max-w-dialog` 480 px.
+- **Radius** (CR-31): `rounded-sm` 0.5 rem (8 px, tiny controls, badges), `rounded-choice` 0.75 rem (12 px, buttons and fields), `rounded-card` 1.125 rem (18 px), `rounded-panel` 1.5 rem (24 px), `rounded-hero` 1.75 rem (28 px), `rounded-mark` 0.625 rem (10 px, the highlight), `rounded-pill` full.
+- **Elevation**: `shadow-sm`, `shadow-md`, `shadow-lg`, `shadow-lift` (soft raise: finder, cart summary, hovered card), `shadow-drawer` (deep: drawers and dialogs only), all tinted with `ink-900`.
+- **Widths**: `max-w-page` 1400 px (was 1300), `max-w-prose` 42 rem, `max-w-drawer` 440 px (was 400; the legacy `--aside-width` in `app.css` matches), `max-w-dialog` 480 px.
 - **Breakpoints** (mobile first, base styles are for 360 px): `sm` 360, `md` 768, `lg` 1024, `xl` 1280, `2xl` 1536 px.
 - **Layers** (numeric `z-` utilities): 30 header, 40 menus and dropdowns, 50 overlays (drawer, dialog), 60 toasts and the focused skip link.
 
@@ -131,7 +143,7 @@ Components use these (and `animate-pulse`, `animate-spin`, `transition-*`) only 
 | Asset          | Where it comes from                                                                                                                               | Licence or risk                                                                                                                                                                |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Colour values (as built, since 8b31bbe) | Brand red `#DE0510` (`primary-500`) and white **taken from the client's logo supplied 2026-10-22** (sampled from the 1254 px original with a canvas read: dominant pixel `rgb(222,5,16)`; the artwork is dithered, neighbours 216 to 224 / 0 to 8 / 8 to 16). The other `primary-*` steps are lightness steps made by this project. Greys (`ink-*`), amber (`accent-*`), sale (`sale-*`), status and focus colours are made up by this project and are **PLACEHOLDER pending CLR-013**. Nothing is sampled from the reference site. The earlier teal placeholder palette no longer exists in the code. | Red and white: the client's own artwork. Placeholders: none; replaced when CLR-013 arrives. |
-| Fonts          | No font is loaded. The stack is the user's system fonts.                                                                                          | None. Brand fonts: self-host WOFF2 from the project, `font-display: swap`, preload only the critical weight, record the licence here (no third-party font CDN, security rule). |
+| Fonts          | **Plus Jakarta Sans** (owner decision D1, 2026-10-27; the client has not yet approved it, and a font the client supplies wins, CLR-013). `storefront/public/fonts/PlusJakartaSans-Variable.woff2`: the `latin` subset of the variable font (weights 200 to 800), **27,348 bytes**, downloaded once on **2026-10-27** from `https://fonts.gstatic.com/s/plusjakartasans/v12/LDIoaomQNQcsA88c7O9yZ4KMCoOg4Ko20yw.woff2` (the URL Google Fonts' CSS API lists for the `latin` face; the Google Fonts CSS was requested once to read it). Upstream: <https://github.com/tokotype/PlusJakartaSans> (Tokotype). Licence text and copyright: `storefront/public/fonts/LICENSE-PlusJakartaSans.txt`. The fallback face `Plus Jakarta Sans Fallback` is made by this project from local Arial (no file). | **SIL Open Font License 1.1**, "Copyright 2020 The Plus Jakarta Sans Project Authors": free to use, embed and redistribute commercially if the notice travels with it and the font is not sold alone. Hand the licence file over with the repository. Previously no font was loaded. |
 | Icons          | Drawn for this project in `storefront/app/components/ui/Icons.tsx` (24 px stroke, decorative, hidden from assistive technology). No icon library. | Project-owned.                                                                                                                                                                 |
 | Logo (earlier placeholder) | A text wordmark with a moon icon in `SiteHeader.tsx`. | Removed: `SiteHeader.tsx` now renders `HeaderLogo` (`app/components/layout/BrandLogo.tsx`, commit 12da964). |
 | Logo files     | **Origin: supplied by the client's owner in the project chat on 2026-10-22.** Artwork: a red disc, a bold white blocky all-caps wordmark "MATTRESS FITNESS" in two lines, a small letter-spaced tagline. Files: `mattress-fitness-logo-original.png` (1254 x 1254), `-512.png`, `-256.png`, `-180.png`, `-96.png`, `-48.png`. The resized copies were made with System.Drawing from the original; the artwork is unchanged (no recolouring, redrawing or cropping). **Location:** the five resized copies (`-512`, `-256`, `-180`, `-96`, `-48`) are in `storefront/public/brand/` (served). The 1254 px original is the master in `storefront/brand-source/mattress-fitness-logo-original.png` (with a README there), outside `public/`, so it is not part of the build and never served; the comment in `app/lib/brand.ts` says the same (verified 2026-10-22 after the review-fix commit). Observed 2026-10-22: the original PNG has **no transparent pixels** (all sampled pixels, one in seven, have alpha 255, and the corners are opaque `rgb(254,254,254)`; the smaller copies were not checked), so on a non-white surface it must be clipped round with CSS; a transparent PNG or SVG is requested (BRAND_APPLICATION_SPEC Q1). | **Rights: the client's own artwork** (supplied by the owner; no separate licence document has been seen, confirm in the handover pack, ASM-04). No third-party material. Not to be recoloured, redrawn or shown on a red surface. Provenance was until now only in a code comment in `app/lib/brand.ts`; this row is the record. |

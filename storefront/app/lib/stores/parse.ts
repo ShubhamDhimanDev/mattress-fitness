@@ -210,7 +210,7 @@ function parseRecord(record: Record<string, unknown>): StoreParseResult {
   const locationRaw = pick(record, ['location_handle', 'locationHandle']);
   const locationHandle =
     typeof locationRaw === 'string' &&
-    /^[a-z0-9][a-z0-9_-]{0,127}$/i.test(locationRaw.trim())
+    /^[a-z0-9][a-z0-9 _&'.-]{0,127}$/i.test(locationRaw.trim())
       ? locationRaw.trim()
       : null;
   if (locationRaw !== undefined && !locationHandle) {

@@ -181,7 +181,7 @@ export function ConsentBanner({
       data-compact={compact ? '' : undefined}
       style={{maxHeight: BANNER_MAX_HEIGHT}}
       className={cn(
-        'fixed inset-x-0 bottom-0 z-40 flex flex-col border-t border-line bg-surface shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:max-w-dialog md:rounded-panel md:border',
+        'fixed inset-x-0 bottom-0 z-40 flex flex-col border-t border-line bg-surface shadow-lift md:inset-x-auto md:right-4 md:bottom-4 md:max-w-dialog md:rounded-panel md:border',
         compact ? 'gap-2 p-2' : 'gap-3 p-4',
       )}
     >
@@ -223,7 +223,7 @@ export function ConsentBanner({
           {compact ? <span className="text-xs">Accept</span> : 'Accept all'}
         </Button>
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           fullWidth
           className="min-w-0"

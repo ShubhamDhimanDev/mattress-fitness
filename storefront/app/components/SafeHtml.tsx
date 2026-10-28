@@ -4,13 +4,13 @@ import {sanitizeHtml} from '~/lib/shopify/sanitize-html';
 
 // Spacing and type for the elements the sanitiser allows. Theme classes only; there is no typography plugin.
 const CONTENT_CLASSES = [
-  'max-w-prose text-base text-fg',
+  'max-w-prose text-lead text-fg',
   '[&_p]:my-4 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6',
-  '[&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-2xl [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-xl [&_h4]:mt-4 [&_h4]:font-bold',
+  '[&_h2]:mt-10 [&_h2]:mb-3 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-xl [&_h3]:font-extrabold [&_h4]:mt-4 [&_h4]:font-bold',
   '[&_a]:text-primary-700 [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-primary-800',
-  '[&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-line [&_blockquote]:pl-4',
-  '[&_table]:my-4 [&_table]:w-full [&_td]:border [&_td]:border-line [&_td]:p-2 [&_th]:border [&_th]:border-line [&_th]:p-2 [&_th]:text-left',
-  '[&_img]:h-auto [&_img]:max-w-full',
+  '[&_blockquote]:my-6 [&_blockquote]:rounded-card [&_blockquote]:bg-paper [&_blockquote]:p-4 [&_blockquote]:border-l-4 [&_blockquote]:border-primary-500',
+  '[&_table]:my-4 [&_table]:w-full [&_td]:border [&_td]:border-line [&_td]:p-3 [&_th]:border [&_th]:border-line [&_th]:bg-paper [&_th]:p-3 [&_th]:text-left',
+  '[&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-card',
 ].join(' ');
 
 const HEADING_OPEN = /<h([23])>/g;

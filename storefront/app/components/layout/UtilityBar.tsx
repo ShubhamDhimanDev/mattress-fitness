@@ -2,16 +2,17 @@ import type {ReactNode} from 'react';
 import {Link} from 'react-router';
 import {LazyBoundary} from '~/components/layout/LazyPanel';
 import {chatPanel} from '~/components/layout/lazyPanels';
-import {PhoneIcon} from '~/components/ui/Icons';
+import {MapPinIcon, PhoneIcon} from '~/components/ui/Icons';
 import {consentHandle} from '~/lib/analytics/gate';
 import {
+  STORE_LOCATOR_PATH,
   UTILITY_LINKS,
   type SupportPhone,
   type UtilityLink,
 } from '~/lib/navigation';
 
 type UtilityBarProps = {
-  /** Left side: the delivery ZIP control and the my-store link. */
+  /** Left side: the shopper's store link. */
   children: ReactNode;
   /** The client's number; without one no phone link is rendered. */
   supportPhone?: SupportPhone | null;
@@ -21,13 +22,16 @@ type UtilityBarProps = {
 
 const ChatPanel = chatPanel.Panel;
 
+// Small bold labels use plain weights, not `type-display`: its tight tracking is too cramped at 13 px (REDESIGN_PRIMITIVES).
+// 44 px high like every other target; the bar is therefore a little taller than the 38 px in the mock-up.
 const LINK_CLASSES =
-  'inline-flex min-h-touch items-center gap-1 hover:underline';
+  'inline-flex min-h-touch items-center gap-1.5 font-semibold hover:underline';
 
 /**
- * Grey bar above the main row. The right-hand links need about 870 px beside the ZIP and store controls, so they show
- * from 1024 px (where the menu button gives way to the full navigation); below that they are in the mobile menu, which
- * always lists them, and the bar stays one line at 768 px (BV-006).
+ * Thin ink bar above the main row (CR-31). Left: the store link. Right (from 1024 px): find a store, the other
+ * utility links (track order, contact, chat) and the phone number, which renders only when it is configured (B-15).
+ * The right-hand group needs about 870 px, so below 1024 px it lives in the mobile menu, which always lists it, and
+ * the bar stays one line at 768 px (BV-006). The bar carries `on-dark` so the focus ring is yellow on ink.
  */
 export function UtilityBar({
   children,
@@ -35,13 +39,17 @@ export function UtilityBar({
   links = UTILITY_LINKS,
 }: UtilityBarProps) {
   return (
-    <div className="bg-surface-muted text-sm text-ink-700">
-      <div className="mx-auto flex max-w-page items-center justify-between gap-4 px-4 md:px-6">
-        {/* Below lg the group may wrap to a second row; from lg it stays on one row and the store name truncates (BV-013). */}
-        <div className="flex min-w-0 flex-wrap items-center gap-x-4 lg:flex-nowrap">
-          {children}
-        </div>
-        <ul className="hidden shrink-0 items-center gap-x-4 lg:flex">
+    <div className="on-dark bg-surface-inverse text-caption font-semibold text-white">
+      <div className="mx-auto flex max-w-page items-center justify-center gap-4 px-4 md:px-10 lg:justify-between">
+        {/* The store name truncates when the bar is full (BV-013). */}
+        <div className="flex min-w-0 items-center">{children}</div>
+        <ul className="hidden shrink-0 items-center gap-x-6 lg:flex">
+          <li>
+            <Link to={STORE_LOCATOR_PATH} className={LINK_CLASSES}>
+              <MapPinIcon className="size-4" />
+              Find a store
+            </Link>
+          </li>
           {links.map((link) =>
             link.id === 'chat' ? (
               link.chat && (

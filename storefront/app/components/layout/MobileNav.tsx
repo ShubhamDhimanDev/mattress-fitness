@@ -53,7 +53,7 @@ function MenuSection({
               <p
                 id={headingId}
                 className={cn(
-                  'text-xs font-extrabold text-fg',
+                  'text-caption font-extrabold text-primary-700',
                   fitsDisplayType(group.heading) && 'tracking-wide uppercase',
                 )}
               >
@@ -129,7 +129,7 @@ export function MobileNav({
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <nav aria-label="Mobile">
         <Accordion
           items={accordionItems}
@@ -138,7 +138,11 @@ export function MobileNav({
           variant="menu"
         />
       </nav>
-      <nav aria-label="Help and contact">
+      {/* The help links sit on a paper card, like the trust strip: quiet, but 44 px targets. */}
+      <nav
+        aria-label="Help and contact"
+        className="rounded-card bg-paper px-4 py-2"
+      >
         <ul>
           {utilityLinks.map((link) =>
             link.id === 'chat' ? (

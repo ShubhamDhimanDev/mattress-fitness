@@ -1,6 +1,7 @@
 import {Link} from 'react-router';
 import {MyStoreControl} from '~/components/stores/MyStoreControl';
 import {buttonStyles} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
 import {MapPinIcon, PhoneIcon} from '~/components/ui/Icons';
 import {cn} from '~/components/ui/cn';
 import type {StoreCardView} from '~/lib/pages/stores-view';
@@ -16,15 +17,15 @@ type StoreCardProps = {
 
 const STATUS_STYLE = {
   open: 'bg-success-bg text-success-fg',
-  closed: 'bg-surface-muted text-fg',
-  unknown: 'bg-surface-muted text-fg-muted',
+  closed: 'bg-paper text-fg',
+  unknown: 'bg-paper text-fg-muted',
 } as const;
 
 export function StatusLine({status}: {status: StoreCardView['status']}) {
   return (
     <p
       className={cn(
-        'inline-flex w-fit items-center gap-2 rounded-choice px-2 py-1 text-sm font-bold',
+        'inline-flex w-fit items-center gap-2 rounded-pill px-3 py-1 text-caption font-bold',
         STATUS_STYLE[status.kind],
       )}
     >
@@ -49,17 +50,18 @@ export function StoreCard({
 }: StoreCardProps) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
   return (
-    <article
+    <Card
+      as="article"
       aria-label={view.name}
-      className="flex h-full flex-col gap-3 rounded-card border-2 border-line bg-surface p-4"
+      className="flex h-full flex-col gap-3"
     >
-      <Heading className="text-xl font-bold">
+      <Heading className="type-display text-title">
         <Link to={view.path} className="underline-offset-2 hover:underline">
           {view.name}
         </Link>
       </Heading>
       {isMine ? (
-        <p className="w-fit rounded-choice bg-primary-50 px-2 py-1 text-sm font-bold text-primary-800">
+        <p className="w-fit rounded-pill bg-primary-50 px-3 py-1 text-caption font-bold text-primary-800">
           My store
         </p>
       ) : null}
@@ -73,18 +75,6 @@ export function StoreCard({
           ))}
         </span>
       </address>
-      {view.phone ? (
-        <a
-          href={view.phone.href}
-          className="inline-flex min-h-touch w-fit items-center gap-2 font-bold text-primary-700 underline underline-offset-2"
-        >
-          <PhoneIcon className="size-5" />
-          <span>
-            <span className="sr-only">Call </span>
-            {view.phone.display}
-          </span>
-        </a>
-      ) : null}
       <StatusLine status={view.status} />
       <p className="text-sm text-fg-muted">{view.todayText}</p>
       {view.pickupEnabled ? (
@@ -95,11 +85,24 @@ export function StoreCard({
           href={view.directionsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className={buttonStyles({variant: 'secondary', size: 'sm'})}
+          className={buttonStyles({variant: 'outline', size: 'sm'})}
         >
+          <MapPinIcon className="size-5" />
           Directions
           <span className="sr-only"> to {view.name} (opens in a new tab)</span>
         </a>
+        {view.phone ? (
+          <a
+            href={view.phone.href}
+            className={buttonStyles({variant: 'outline', size: 'sm'})}
+          >
+            <PhoneIcon className="size-5" />
+            <span>
+              <span className="sr-only">Call </span>
+              {view.phone.display}
+            </span>
+          </a>
+        ) : null}
         <MyStoreControl
           storeKey={storeKey}
           storeName={view.name}
@@ -107,6 +110,6 @@ export function StoreCard({
           compact
         />
       </div>
-    </article>
+    </Card>
   );
 }

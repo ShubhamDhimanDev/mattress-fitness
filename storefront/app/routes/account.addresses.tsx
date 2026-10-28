@@ -5,6 +5,11 @@ import type {
   CustomerFragment,
 } from 'customer-accountapi.generated';
 import {useId} from 'react';
+import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
+import {Checkbox} from '~/components/ui/Checkbox';
+import {AlertIcon} from '~/components/ui/Icons';
+import {Input} from '~/components/ui/Input';
 import {
   data,
   Form,
@@ -303,25 +308,15 @@ export default function Addresses() {
       : null;
 
   return (
-    <div className="account-addresses">
-      <h2>Addresses</h2>
-      {pageError ? (
-        <p role="alert">
-          <mark>
-            <small>{pageError}</small>
-          </mark>
-        </p>
-      ) : null}
-      <br />
-      <div>
-        <div>
-          <NewAddressForm key={addresses.nodes.length} />
-        </div>
-        <br />
-        <hr />
-        <br />
+    <div className="account-addresses flex flex-col gap-6">
+      <h2 className="type-display text-2xl md:text-3xl">Addresses</h2>
+      {pageError ? <FormAlert>{pageError}</FormAlert> : null}
+      <div className="flex flex-col gap-8">
+        <NewAddressForm key={addresses.nodes.length} />
         {!addresses.nodes.length ? (
-          <p>You have no addresses saved.</p>
+          <p className="text-lead text-fg-muted">
+            You have no addresses saved.
+          </p>
         ) : (
           <ExistingAddresses
             addresses={addresses}
@@ -330,6 +325,19 @@ export default function Addresses() {
         )}
       </div>
     </div>
+  );
+}
+
+/** An error in an alert box: icon, bold text and an error border, never colour alone. */
+function FormAlert({children}: {children: React.ReactNode}) {
+  return (
+    <p
+      role="alert"
+      className="flex items-start gap-2 rounded-choice border-2 border-error-solid bg-error-bg p-3 text-sm font-bold text-error-fg"
+    >
+      <AlertIcon className="mt-0.5 size-5" />
+      <span>{children}</span>
+    </p>
   );
 }
 
@@ -357,13 +365,14 @@ function NewAddressForm() {
     >
       {({stateForMethod}) => (
         <div>
-          <button
+          <Button
             disabled={stateForMethod('POST') !== 'idle'}
             formMethod="POST"
             type="submit"
+            size="lg"
           >
             {stateForMethod('POST') !== 'idle' ? 'Creating' : 'Create'}
-          </button>
+          </Button>
         </div>
       )}
     </AddressForm>
@@ -375,8 +384,8 @@ function ExistingAddresses({
   defaultAddress,
 }: Pick<CustomerFragment, 'addresses' | 'defaultAddress'>) {
   return (
-    <div>
-      <h3>Existing addresses</h3>
+    <div className="flex flex-col gap-6">
+      <h3 className="type-display text-2xl">Existing addresses</h3>
       {addresses.nodes.map((address, index) => (
         <AddressForm
           key={address.id}
@@ -386,21 +395,22 @@ function ExistingAddresses({
           defaultAddress={defaultAddress}
         >
           {({stateForMethod}) => (
-            <div>
-              <button
+            <div className="flex flex-wrap gap-3">
+              <Button
                 disabled={stateForMethod('PUT') !== 'idle'}
                 formMethod="PUT"
                 type="submit"
               >
                 {stateForMethod('PUT') !== 'idle' ? 'Saving' : 'Save'}
-              </button>
-              <button
+              </Button>
+              <Button
                 disabled={stateForMethod('DELETE') !== 'idle'}
                 formMethod="DELETE"
                 type="submit"
+                variant="outline"
               >
                 {stateForMethod('DELETE') !== 'idle' ? 'Deleting' : 'Delete'}
-              </button>
+              </Button>
             </div>
           )}
         </AddressForm>
@@ -440,130 +450,116 @@ export function AddressForm({
   const idOf = (field: string) => `${formKey}-${field}`;
   return (
     <Form>
-      <fieldset>
-        <legend>{legend}</legend>
-        <input type="hidden" name="addressId" defaultValue={addressId} />
-        <label htmlFor={idOf('firstName')}>First name*</label>
-        <input
-          autoComplete="given-name"
-          defaultValue={address?.firstName ?? ''}
-          id={idOf('firstName')}
-          name="firstName"
-          placeholder="First name"
-          required
-          type="text"
-        />
-        <label htmlFor={idOf('lastName')}>Last name*</label>
-        <input
-          autoComplete="family-name"
-          defaultValue={address?.lastName ?? ''}
-          id={idOf('lastName')}
-          name="lastName"
-          placeholder="Last name"
-          required
-          type="text"
-        />
-        <label htmlFor={idOf('company')}>Company</label>
-        <input
-          autoComplete="organization"
-          defaultValue={address?.company ?? ''}
-          id={idOf('company')}
-          name="company"
-          placeholder="Company"
-          type="text"
-        />
-        <label htmlFor={idOf('address1')}>Address line*</label>
-        <input
-          autoComplete="address-line1"
-          defaultValue={address?.address1 ?? ''}
-          id={idOf('address1')}
-          name="address1"
-          placeholder="Address line 1*"
-          required
-          type="text"
-        />
-        <label htmlFor={idOf('address2')}>Address line 2</label>
-        <input
-          autoComplete="address-line2"
-          defaultValue={address?.address2 ?? ''}
-          id={idOf('address2')}
-          name="address2"
-          placeholder="Address line 2"
-          type="text"
-        />
-        <label htmlFor={idOf('city')}>City*</label>
-        <input
-          autoComplete="address-level2"
-          defaultValue={address?.city ?? ''}
-          id={idOf('city')}
-          name="city"
-          placeholder="City"
-          required
-          type="text"
-        />
-        <label htmlFor={idOf('zoneCode')}>State / Province*</label>
-        <input
-          autoComplete="address-level1"
-          defaultValue={address?.zoneCode ?? ''}
-          id={idOf('zoneCode')}
-          name="zoneCode"
-          placeholder="State / Province"
-          required
-          type="text"
-        />
-        <label htmlFor={idOf('zip')}>Zip / Postal Code*</label>
-        <input
-          autoComplete="postal-code"
-          defaultValue={address?.zip ?? ''}
-          id={idOf('zip')}
-          name="zip"
-          placeholder="Zip / Postal Code"
-          required
-          type="text"
-        />
-        <label htmlFor={idOf('territoryCode')}>Country Code*</label>
-        <input
-          autoComplete="country"
-          defaultValue={address?.countryCode ?? ''}
-          id={idOf('territoryCode')}
-          name="territoryCode"
-          placeholder="Country"
-          required
-          type="text"
-          maxLength={2}
-        />
-        <label htmlFor={idOf('phoneNumber')}>Phone</label>
-        <input
-          autoComplete="tel"
-          defaultValue={address?.phoneNumber ?? ''}
-          id={idOf('phoneNumber')}
-          name="phoneNumber"
-          placeholder="+16135551111"
-          pattern="^\+?[1-9]\d{3,14}$"
-          type="tel"
-        />
-        <div>
-          <input
+      <Card as="div" className="max-w-2xl">
+        <fieldset className="flex flex-col gap-4">
+          <legend className="type-display mb-4 text-title">{legend}</legend>
+          <input type="hidden" name="addressId" defaultValue={addressId} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input
+              autoComplete="given-name"
+              defaultValue={address?.firstName ?? ''}
+              id={idOf('firstName')}
+              name="firstName"
+              label="First name"
+              required
+              type="text"
+            />
+            <Input
+              autoComplete="family-name"
+              defaultValue={address?.lastName ?? ''}
+              id={idOf('lastName')}
+              name="lastName"
+              label="Last name"
+              required
+              type="text"
+            />
+            <Input
+              autoComplete="organization"
+              defaultValue={address?.company ?? ''}
+              id={idOf('company')}
+              name="company"
+              label="Company"
+              type="text"
+            />
+            <Input
+              autoComplete="address-line1"
+              defaultValue={address?.address1 ?? ''}
+              id={idOf('address1')}
+              name="address1"
+              label="Address line"
+              required
+              type="text"
+            />
+            <Input
+              autoComplete="address-line2"
+              defaultValue={address?.address2 ?? ''}
+              id={idOf('address2')}
+              name="address2"
+              label="Address line 2"
+              type="text"
+            />
+            <Input
+              autoComplete="address-level2"
+              defaultValue={address?.city ?? ''}
+              id={idOf('city')}
+              name="city"
+              label="City"
+              required
+              type="text"
+            />
+            <Input
+              autoComplete="address-level1"
+              defaultValue={address?.zoneCode ?? ''}
+              id={idOf('zoneCode')}
+              name="zoneCode"
+              label="State / Province"
+              required
+              type="text"
+            />
+            <Input
+              autoComplete="postal-code"
+              defaultValue={address?.zip ?? ''}
+              id={idOf('zip')}
+              name="zip"
+              label="Zip / Postal Code"
+              required
+              type="text"
+            />
+            <Input
+              autoComplete="country"
+              defaultValue={address?.countryCode ?? ''}
+              id={idOf('territoryCode')}
+              name="territoryCode"
+              label="Country code"
+              hint="Two letters, for example US."
+              required
+              type="text"
+              maxLength={2}
+            />
+            <Input
+              autoComplete="tel"
+              defaultValue={address?.phoneNumber ?? ''}
+              id={idOf('phoneNumber')}
+              name="phoneNumber"
+              label="Phone"
+              placeholder="+16135551111"
+              pattern="^\+?[1-9]\d{3,14}$"
+              type="tel"
+            />
+          </div>
+          <Checkbox
             defaultChecked={isDefaultAddress}
             id={idOf('defaultAddress')}
             name="defaultAddress"
-            type="checkbox"
+            label="Set as default address"
           />
-          <label htmlFor={idOf('defaultAddress')}>Set as default address</label>
-        </div>
-        {error ? (
-          <p role="alert">
-            <mark>
-              <small>{error}</small>
-            </mark>
-          </p>
-        ) : (
-          <br />
-        )}
-        {children({
-          stateForMethod: (method) => (formMethod === method ? state : 'idle'),
-        })}
-      </fieldset>
+          {error ? <FormAlert>{error}</FormAlert> : null}
+          {children({
+            stateForMethod: (method) =>
+              formMethod === method ? state : 'idle',
+          })}
+        </fieldset>
+      </Card>
     </Form>
   );
 }

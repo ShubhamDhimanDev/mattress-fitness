@@ -2,8 +2,10 @@ import {Image} from '~/lib/hydrogen/image';
 import {Link} from 'react-router';
 import {CompareToggle} from '~/components/compare/CompareToggle';
 import {Badge} from '~/components/ui/Badge';
+import {cardStyles} from '~/components/ui/Card';
+import {Chip} from '~/components/ui/Chip';
 import {cn} from '~/components/ui/cn';
-import {getPriceView, Price} from '~/components/ui/Price';
+import {getPriceView} from '~/components/ui/Price';
 import {Rating} from '~/components/ui/Rating';
 import {cardSelectItemAttributes} from '~/lib/listing-analytics';
 import type {ProductCardView} from '~/lib/shopify/types';
@@ -20,100 +22,83 @@ type ProductItemProps = {
   /** The list the card belongs to, for the select_item event (a collection handle, `search`, `all`, `brand-<handle>`). */
   listId?: string;
   /**
-   * `stack` puts the image above the text. `row` puts them side by side below 768 px and stacks from there
-   * (listings and search). The DOM order is the same either way, so reading and focus order never change.
+   * Kept so existing callers still compile. The redesigned card always stacks the picture above the text (two columns
+   * on a phone), so both values now look the same.
    */
   layout?: 'stack' | 'row';
 };
 
-// The `sizes` hint follows the layout: a row card's image is about two fifths of a phone, a stacked card's about
-// half of it (two columns).
-const IMAGE_SIZES: Record<NonNullable<ProductItemProps['layout']>, string> = {
-  stack: '(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 46vw',
-  row: '(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 40vw',
-};
+// The `sizes` hint follows the listing grid: four columns from 1280 px, three from 1024 px, two below.
+const IMAGE_SIZES = '(min-width: 1280px) 22vw, (min-width: 1024px) 30vw, 46vw';
+
+// At most two chips (feel, then type or the first benefit) so a card stays compact in a two-column phone grid.
+const MAX_CHIPS = 2;
 
 /**
  * A product card (REQ-COL-001). The whole card is one link, named by the product title through the
  * heading, so a screen reader hears "Queen mattress, link" once. Everything optional is shown only when
- * the data exists: the sale tag needs compare-at above price, the rating needs a reviews source, the
- * attribute badges need the metafields. The sale tag sits under the image, not on it, so a long offer line stays
- * readable (BRAND_APPLICATION_SPEC 5.5).
+ * the data exists: the sale badge needs compare-at above price, the rating needs a reviews source, the
+ * chips need the metafields. The amber badge sits on the image's top right (CR-31); availability stays top left.
  */
 export function ProductItem({
   product,
   loading,
   index,
-  layout = 'stack',
   listId,
 }: ProductItemProps) {
-  const saleView =
-    product.price && product.compareAt
-      ? getPriceView(product.price, product.compareAt)
-      : null;
-  const sale = saleView?.kind === 'sale' ? saleView : null;
-  const attributes = [
+  const view = product.price
+    ? getPriceView(product.price, product.compareAt)
+    : null;
+  const sale = view?.kind === 'sale' ? view : null;
+  const chips = [
     product.comfortLevel,
     product.mattressType,
     ...product.benefits.slice(0, 1),
-  ].flatMap((value) => (value ? [value] : []));
+  ]
+    .flatMap((value) => (value ? [value] : []))
+    .slice(0, MAX_CHIPS);
 
   return (
     <article
       data-product-index={index}
       className={cn(
-        'group relative flex h-full flex-col gap-2 rounded-card border border-line bg-surface p-2.5 md:p-3 motion-safe:transition-shadow hover:shadow-md',
-        layout === 'row' &&
-          'max-md:grid max-md:grid-cols-5 max-md:items-start max-md:gap-3',
+        cardStyles({padding: 'none', interactive: true}),
+        'group relative flex h-full flex-col overflow-hidden',
       )}
     >
-      <div
-        className={cn(
-          'flex flex-col gap-2',
-          layout === 'row' && 'max-md:col-span-2',
-        )}
-      >
-        <div className="relative aspect-square overflow-hidden rounded-choice bg-surface-muted">
-          {product.image ? (
-            <Image
-              alt=""
-              aspectRatio="1/1"
-              data={product.image}
-              loading={loading}
-              sizes={IMAGE_SIZES[layout]}
-              className="size-full object-cover motion-safe:transition-transform motion-safe:group-hover:scale-105"
-            />
-          ) : null}
-          {/* Availability stays on the image: it is not a promotion. */}
-          {product.soldOut ? (
-            <div className="absolute top-2 left-2">
-              <Badge variant="neutral">Sold out</Badge>
-            </div>
-          ) : null}
-        </div>
+      <div className="relative aspect-square overflow-hidden bg-surface-muted">
+        {product.image ? (
+          <Image
+            alt=""
+            aspectRatio="1/1"
+            data={product.image}
+            loading={loading}
+            sizes={IMAGE_SIZES}
+            className="size-full object-cover motion-safe:transition-transform motion-safe:group-hover:scale-105"
+          />
+        ) : null}
+        {/* Availability is not a promotion: it stays on the left, the offer on the right. */}
+        {product.soldOut ? (
+          <div className="absolute top-3 left-3">
+            <Badge variant="neutral">Sold out</Badge>
+          </div>
+        ) : null}
         {sale ? (
-          <div className="flex flex-wrap gap-1">
-            <Badge variant="sale" size="tag">
-              Save {sale.percentOff}%
-            </Badge>
+          <div className="absolute top-3 right-3">
+            <Badge variant="sale">Save {sale.percentOff}%</Badge>
           </div>
         ) : null}
       </div>
 
-      <div
-        className={cn(
-          'flex flex-1 flex-col gap-1',
-          layout === 'row' && 'max-md:col-span-3 max-md:self-stretch',
-        )}
-      >
+      <div className="flex flex-1 flex-col gap-1.5 p-4 md:p-5">
         {/* break-words: a single long vendor name wraps inside the card instead of crossing its border (BV-005). */}
         {product.vendor ? (
-          <p className="text-xs font-extrabold tracking-wide break-words text-fg-muted uppercase">
+          <p className="text-caption font-bold tracking-wide break-words text-fg-muted uppercase">
             {product.vendor}
           </p>
         ) : null}
-        <h3 className="text-base font-bold text-fg md:text-lg">
-          {/* The link's ::after covers the card, so the full card is the target without nesting links. The focus ring is the global one on this link (the e2e tab-walk checks the focused element paints it). The four-line clamp sits on the span INSIDE the link, not on the heading: an `overflow: hidden` ancestor would cut the 3 px ring off (BV-001). The link is a block so the ring surrounds the whole title box. */}
+        <h3 className="text-lg font-extrabold text-fg">
+          {/* The link's ::after covers the card, so the full card is the target without nesting links. The focus ring is the global one on this link (the e2e tab-walk checks the focused element paints it). The four-line clamp sits on the span INSIDE the link, not on the heading: an `overflow: hidden` ancestor would cut the 3 px ring off (BV-001). The link is a block so the ring surrounds the whole title box. The card itself clips its image corners, so the text block keeps 16 px of padding around the ring. */}
           {/* On the link, not the article: the compare toggle sits inside the article and must not count as opening the product. */}
           <Link
             to={`/products/${product.handle}`}
@@ -129,32 +114,70 @@ export function ProductItem({
         {product.rating ? (
           <Rating value={product.rating.average} count={product.rating.count} />
         ) : null}
-        {attributes.length > 0 ? (
-          <ul className="flex flex-wrap gap-1">
-            {attributes.map((attribute) => (
-              <li key={attribute}>
-                <Badge variant="neutral">{attribute}</Badge>
+        {chips.length > 0 ? (
+          <ul className="flex flex-wrap gap-1.5">
+            {chips.map((chip) => (
+              <li key={chip}>
+                <Chip>{chip}</Chip>
               </li>
             ))}
           </ul>
         ) : null}
-        {product.price ? (
-          <Price
-            price={product.price}
-            compareAt={product.compareAt}
-            prefix={product.priceIsFrom ? 'From' : undefined}
-            size="md"
-            // The price block sits at the bottom of equal-height cards; its parts wrap as a row (BV-008).
-            className="mt-auto pt-1"
+
+        {/* Always stacked: beside the price, "Add to compare" did not fit a three or four column card and ran over the amount. */}
+        <div className="mt-auto flex flex-col items-start gap-1 pt-3">
+          {view ? (
+            <CardPrice view={view} from={product.priceIsFrom} />
+          ) : (
+            <span />
+          )}
+          {/* Above the cover link (z-10) so it can be pressed; it is not part of the card link (REQ-CMP-001). */}
+          <CompareToggle
+            handle={product.handle}
+            title={product.title}
+            className="relative z-10"
           />
-        ) : null}
-        {/* Above the cover link (z-10) so it can be pressed; it is not part of the card link (REQ-CMP-001). */}
-        <CompareToggle
-          handle={product.handle}
-          title={product.title}
-          className="relative z-10"
-        />
+        </div>
       </div>
     </article>
+  );
+}
+
+type PriceViewOf = NonNullable<ReturnType<typeof getPriceView>>;
+
+/**
+ * The card's price block: a muted "From", the amount large, and for a sale the struck-through compare-at and the saving in
+ * the sale colour (never brand red). Every figure is formatted by `getPriceView` from Shopify's own amounts; nothing is
+ * computed here (BV-008: the parts wrap as a row).
+ */
+function CardPrice({view, from}: {view: PriceViewOf; from: boolean}) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      <span className="flex flex-wrap items-baseline gap-x-2">
+        {from ? (
+          <span className="text-sm font-semibold text-fg-muted">From</span>
+        ) : null}
+        <span
+          className={cn(
+            'text-xl font-extrabold md:text-2xl',
+            view.kind === 'sale' ? 'text-sale-fg' : 'text-fg',
+          )}
+        >
+          {view.kind === 'sale' ? (
+            <span className="sr-only">Sale price: </span>
+          ) : null}
+          {view.price}
+        </span>
+      </span>
+      {view.kind === 'sale' ? (
+        <span className="flex flex-wrap items-baseline gap-x-2 text-sm">
+          <s className="text-fg-muted">
+            <span className="sr-only">Original price: </span>
+            {view.compareAt}
+          </s>
+          <span className="font-bold text-sale-fg">Save {view.savings}</span>
+        </span>
+      ) : null}
+    </div>
   );
 }

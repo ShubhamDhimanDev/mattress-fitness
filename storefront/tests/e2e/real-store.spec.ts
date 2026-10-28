@@ -125,7 +125,7 @@ function cents(text: string): number {
 async function subtotalText(scope: Page | ReturnType<Page['locator']>) {
   return scope
     .locator('dl')
-    .filter({hasText: 'Subtotal'})
+    .filter({hasText: /Subtotal|Estimated total/})
     .locator('dd')
     .first()
     .innerText();
@@ -474,7 +474,7 @@ test.describe('real development store: cart on real Shopify carts (REQ-CART-001)
     const console_ = watchConsole(page);
     const drawer = await addTestingProduct(page);
     await expect(drawer.getByRole('listitem').first()).toBeVisible();
-    await expect(drawer.getByText('Subtotal')).toBeVisible();
+    await expect(drawer.getByText('Estimated total')).toBeVisible();
     const first = await subtotalText(drawer);
     const {text: subtotal, dashMs} = await subtotalWhenReady(drawer);
     observe(info, 'drawer subtotal when the list first showed', first);

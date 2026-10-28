@@ -169,6 +169,15 @@ export function PlusIcon(props: IconProps) {
   );
 }
 
+export function TrashIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 7h16M10 11v6M14 11v6" />
+      <path d="M6 7l1 13h10l1-13M9 7V4h6v3" />
+    </Svg>
+  );
+}
+
 export function MinusIcon(props: IconProps) {
   return (
     <Svg {...props}>

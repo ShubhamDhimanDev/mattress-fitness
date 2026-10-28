@@ -1,13 +1,14 @@
 import {Link, data as withHeaders, useLoaderData} from 'react-router';
 import type {Route} from './+types/stores.$state.$city.$slug';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {MyStoreControl} from '~/components/stores/MyStoreControl';
 import {StatusLine} from '~/components/stores/StoreCard';
 import {StoreHoursTable} from '~/components/stores/StoreHoursTable';
 import {StoreMapBlock} from '~/components/stores/StoreMapBlock';
 import {ProductTile} from '~/components/pages/ProductTile';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {buttonStyles} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
 import {PhoneIcon} from '~/components/ui/Icons';
 import {previewRobotsMeta} from '~/lib/pages/head';
 import {myStoreKey, readMyStore} from '~/lib/pages/my-store';
@@ -26,6 +27,7 @@ import {
 } from '~/lib/stores/grouping';
 import {buildStoreJsonLd, serializeJsonLd} from '~/lib/stores/jsonld';
 import {productPathFromParam} from '~/lib/stores/pickup';
+import {RouteErrorPage} from '~/components/pages/ErrorPageView';
 
 // P6-06: one store (REQ-LOC-001): address, tap-to-call, today's hours and open status, the full week,
 // directions, LocalBusiness JSON-LD, and "Set as my store" (REQ-LOC-003).
@@ -105,13 +107,12 @@ export default function StorePage() {
         ]}
       />
       <header className="flex flex-col gap-3">
-        <h1 className="text-3xl font-bold">{data.name}</h1>
+        <h1 className="type-display text-4xl md:text-5xl">{data.name}</h1>
         <StatusLine status={view.status} />
         <p role="status" className="text-sm font-bold text-primary-800">
           {data.isMine ? 'This is your store.' : ''}
         </p>
       </header>
-      {data.source === 'fixtures' ? <PreviewNotice subject="stores" /> : null}
       {data.backToProduct ? (
         <Link
           to={data.backToProduct}
@@ -128,17 +129,20 @@ export default function StorePage() {
             addressLines={view.addressLines}
             directionsUrl={view.directionsUrl}
           />
-          <section
+          <Card
+            as="section"
             aria-labelledby="store-contact-heading"
             className="flex flex-col gap-3"
           >
-            <h2 id="store-contact-heading" className="text-xl font-bold">
+            <h2 id="store-contact-heading" className="type-display text-title">
               Contact and pickup
             </h2>
             {view.phone ? (
               <a
                 href={view.phone.href}
-                className="inline-flex min-h-touch w-fit items-center gap-2 text-lg font-bold text-primary-700 underline underline-offset-2"
+                className={
+                  buttonStyles({variant: 'outline', size: 'md'}) + ' w-fit'
+                }
               >
                 <PhoneIcon className="size-5" />
                 <span>
@@ -159,7 +163,7 @@ export default function StorePage() {
               storeName={data.name}
               isMine={data.isMine}
             />
-          </section>
+          </Card>
         </div>
 
         <div className="flex flex-col gap-8">
@@ -177,7 +181,7 @@ export default function StorePage() {
             aria-labelledby="store-hours-heading"
             className="flex flex-col gap-3"
           >
-            <h2 id="store-hours-heading" className="text-xl font-bold">
+            <h2 id="store-hours-heading" className="type-display text-title">
               Opening hours
             </h2>
             <p className="text-base">{view.todayText}</p>
@@ -194,4 +198,9 @@ export default function StorePage() {
       </div>
     </div>
   );
+}
+
+/** A missing or failed page keeps the site header and footer (the 404 status is set by the loader). */
+export function ErrorBoundary() {
+  return <RouteErrorPage />;
 }

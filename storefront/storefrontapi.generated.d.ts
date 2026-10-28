@@ -669,6 +669,15 @@ export type CatalogBrandPageQuery = {
   anyBrand: {nodes: Array<Pick<StorefrontAPI.Metaobject, 'id'>>};
 };
 
+export type CollectionHandlesQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type CollectionHandlesQuery = {
+  collections: {nodes: Array<Pick<StorefrontAPI.Collection, 'handle'>>};
+};
+
 export type ContentPagesQueryVariables = StorefrontAPI.Exact<{
   country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
   language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
@@ -720,8 +729,41 @@ export type CatalogHomeSectionsQuery = {
                 >
               >;
             }>;
+            references?: StorefrontAPI.Maybe<{
+              nodes: Array<
+                Pick<StorefrontAPI.Metaobject, 'id'> & {
+                  fields: Array<
+                    Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'> & {
+                      reference?: StorefrontAPI.Maybe<{
+                        image?: StorefrontAPI.Maybe<
+                          Pick<
+                            StorefrontAPI.Image,
+                            'url' | 'altText' | 'width' | 'height'
+                          >
+                        >;
+                      }>;
+                    }
+                  >;
+                }
+              >;
+            }>;
           }
         >;
+      }
+    >;
+  };
+};
+
+export type CatalogHomeFaqsQueryVariables = StorefrontAPI.Exact<{
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type CatalogHomeFaqsQuery = {
+  faqs: {
+    nodes: Array<
+      Pick<StorefrontAPI.Metaobject, 'id'> & {
+        fields: Array<Pick<StorefrontAPI.MetaobjectField, 'key' | 'value'>>;
       }
     >;
   };
@@ -1357,6 +1399,56 @@ export type QuizQuestionsQuery = {
   };
 };
 
+export type QuizProductsQueryVariables = StorefrontAPI.Exact<{
+  handle: StorefrontAPI.Scalars['String']['input'];
+  first: StorefrontAPI.Scalars['Int']['input'];
+  country?: StorefrontAPI.InputMaybe<StorefrontAPI.CountryCode>;
+  language?: StorefrontAPI.InputMaybe<StorefrontAPI.LanguageCode>;
+}>;
+
+export type QuizProductsQuery = {
+  collection?: StorefrontAPI.Maybe<{
+    products: {
+      nodes: Array<
+        Pick<
+          StorefrontAPI.Product,
+          'id' | 'handle' | 'title' | 'vendor' | 'productType'
+        > & {
+          featuredImage?: StorefrontAPI.Maybe<
+            Pick<
+              StorefrontAPI.Image,
+              'id' | 'url' | 'altText' | 'width' | 'height'
+            >
+          >;
+          variants: {
+            nodes: Array<
+              Pick<
+                StorefrontAPI.ProductVariant,
+                'id' | 'sku' | 'availableForSale'
+              > & {
+                price: Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>;
+                compareAtPrice?: StorefrontAPI.Maybe<
+                  Pick<StorefrontAPI.MoneyV2, 'amount' | 'currencyCode'>
+                >;
+                selectedOptions: Array<
+                  Pick<StorefrontAPI.SelectedOption, 'name' | 'value'>
+                >;
+                dimensions?: StorefrontAPI.Maybe<
+                  Pick<StorefrontAPI.Metafield, 'value'>
+                >;
+              }
+            >;
+          };
+          metafields: Array<
+            StorefrontAPI.Maybe<Pick<StorefrontAPI.Metafield, 'key' | 'value'>>
+          >;
+        }
+      >;
+      pageInfo: Pick<StorefrontAPI.PageInfo, 'hasNextPage'>;
+    };
+  }>;
+};
+
 export type ShopPolicyHandlesQueryVariables = StorefrontAPI.Exact<{
   [key: string]: never;
 }>;
@@ -1802,13 +1894,21 @@ interface GeneratedQueryTypes {
     return: CatalogBrandPageQuery;
     variables: CatalogBrandPageQueryVariables;
   };
+  '#graphql\n  query CollectionHandles($country: CountryCode, $language: LanguageCode)\n    @inContext(country: $country, language: $language) {\n    collections(first: 250) {\n      nodes {\n        handle\n      }\n    }\n  }\n': {
+    return: CollectionHandlesQuery;
+    variables: CollectionHandlesQueryVariables;
+  };
   '#graphql\n  query ContentPages($country: CountryCode, $language: LanguageCode)\n    @inContext(country: $country, language: $language) {\n    page0: page(handle: "contact") { body }\n    page1: page(handle: "delivery-and-shipping") { body }\n    page2: page(handle: "financing") { body }\n    page3: page(handle: "warranty-and-returns") { body }\n    page4: page(handle: "faq") { body }\n    page5: page(handle: "size-guide") { body }\n    page6: page(handle: "comfort-guide") { body }\n    page7: page(handle: "mattress-types-guide") { body }\n    page8: page(handle: "adjustable-base-guide") { body }\n    page9: page(handle: "about") { body }\n    page10: page(handle: "comfort-guarantee") { body }\n    page11: page(handle: "price-guarantee") { body }\n    page12: page(handle: "privacy-policy") { body }\n    page13: page(handle: "terms") { body }\n    page14: page(handle: "accessibility") { body }\n    blog0: blog(handle: "journal") { handle articles(first: 1) { nodes { id } } }\n    shop {\n      privacyPolicy { id }\n      termsOfService { id }\n    }\n  }\n': {
     return: ContentPagesQuery;
     variables: ContentPagesQueryVariables;
   };
-  '#graphql\n  query CatalogHomeSections($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    sections: metaobjects(type: "homepage_section", first: 30) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
+  '#graphql\n  query CatalogHomeSections($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    sections: metaobjects(type: "homepage_section", first: 30) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n          }\n          references(first: 6) {\n            nodes {\n              ... on Metaobject {\n                id\n                fields {\n                  key\n                  value\n                  reference {\n                    ... on MediaImage {\n                      image {\n                        url\n                        altText\n                        width\n                        height\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
     return: CatalogHomeSectionsQuery;
     variables: CatalogHomeSectionsQueryVariables;
+  };
+  '#graphql\n  query CatalogHomeFaqs($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    faqs: metaobjects(type: "faq", first: 50) {\n      nodes {\n        id\n        fields {\n          key\n          value\n        }\n      }\n    }\n  }\n': {
+    return: CatalogHomeFaqsQuery;
+    variables: CatalogHomeFaqsQueryVariables;
   };
   '#graphql\n  query MainMenu(\n    $handle: String!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    menu(handle: $handle) {\n      items {\n        title\n        type\n        url\n        items {\n          title\n          type\n          url\n          items {\n            title\n            type\n            url\n          }\n        }\n      }\n    }\n  }\n': {
     return: MainMenuQuery;
@@ -1830,11 +1930,11 @@ interface GeneratedQueryTypes {
     return: ExtendProductCategoryByHandleQuery;
     variables: ExtendProductCategoryByHandleQueryVariables;
   };
-  '#graphql\n  query CatalogCollection(\n    $handle: String!\n    $first: Int!\n    $after: String\n    $sortKey: ProductCollectionSortKeys\n    $reverse: Boolean\n    $filters: [ProductFilter!]\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    collection(handle: $handle) {\n      id\n      handle\n      title\n      description\n      seo {\n        title\n        description\n      }\n      faqs: metafield(namespace: "custom", key: "faqs") {\n        references(first: 20) {\n          nodes {\n            ... on Metaobject {\n              id\n              fields {\n                key\n                value\n              }\n            }\n          }\n        }\n      }\n      products(\n        first: $first\n        after: $after\n        sortKey: $sortKey\n        reverse: $reverse\n        filters: $filters\n      ) {\n        nodes {\n          ...CatalogProductCard\n        }\n        filters {\n          id\n          label\n          type\n          values {\n            id\n            label\n            count\n            input\n          }\n        }\n        pageInfo {\n          hasNextPage\n          endCursor\n        }\n      }\n    }\n  }\n  #graphql\n  fragment CatalogProductCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify\'s per-product limit): the "From $" price and\n    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong\n    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.\n    variants(first: 100) {\n      nodes {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        compareAtPrice {\n          amount\n          currencyCode\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n    metafields(\n      identifiers: [\n        {namespace: "custom", key: "comfort_level"}\n        {namespace: "custom", key: "mattress_type"}\n        {namespace: "custom", key: "benefits"}\n        {namespace: "custom", key: "product_line"}\n      ]\n    ) {\n      key\n      value\n    }\n  }\n\n': {
+  '#graphql\n  query CatalogCollection(\n    $handle: String!\n    $first: Int!\n    $after: String\n    $sortKey: ProductCollectionSortKeys\n    $reverse: Boolean\n    $filters: [ProductFilter!]\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    collection(handle: $handle) {\n      id\n      handle\n      title\n      description\n      seo {\n        title\n        description\n      }\n      faqs: metafield(namespace: "custom", key: "faqs") {\n        references(first: 20) {\n          nodes {\n            ... on Metaobject {\n              id\n              fields {\n                key\n                value\n              }\n            }\n          }\n        }\n      }\n      products(\n        first: $first\n        after: $after\n        sortKey: $sortKey\n        reverse: $reverse\n        filters: $filters\n      ) {\n        nodes {\n          ...CatalogProductCard\n        }\n        filters {\n          id\n          label\n          type\n          values {\n            id\n            label\n            count\n            input\n          }\n        }\n        pageInfo {\n          hasNextPage\n          endCursor\n        }\n      }\n    }\n  }\n  #graphql\n  fragment CatalogProductCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify\'s per-product limit): the "From $" price and\n    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong\n    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.\n    variants(first: 100) {\n      nodes {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        compareAtPrice {\n          amount\n          currencyCode\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n    metafields(\n      identifiers: [\n        {namespace: "custom", key: "comfort_level"}\n        {namespace: "custom", key: "mattress_type"}\n        {namespace: "custom", key: "benefits"}\n        {namespace: "custom", key: "sleep_positions"}\n        {namespace: "custom", key: "product_line"}\n      ]\n    ) {\n      key\n      value\n    }\n  }\n\n': {
     return: CatalogCollectionQuery;
     variables: CatalogCollectionQueryVariables;
   };
-  '#graphql\n  query CatalogAllProducts(\n    $first: Int!\n    $after: String\n    $sortKey: ProductSortKeys\n    $reverse: Boolean\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {\n      nodes {\n        ...CatalogProductCard\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n  #graphql\n  fragment CatalogProductCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify\'s per-product limit): the "From $" price and\n    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong\n    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.\n    variants(first: 100) {\n      nodes {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        compareAtPrice {\n          amount\n          currencyCode\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n    metafields(\n      identifiers: [\n        {namespace: "custom", key: "comfort_level"}\n        {namespace: "custom", key: "mattress_type"}\n        {namespace: "custom", key: "benefits"}\n        {namespace: "custom", key: "product_line"}\n      ]\n    ) {\n      key\n      value\n    }\n  }\n\n': {
+  '#graphql\n  query CatalogAllProducts(\n    $first: Int!\n    $after: String\n    $sortKey: ProductSortKeys\n    $reverse: Boolean\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {\n      nodes {\n        ...CatalogProductCard\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n  #graphql\n  fragment CatalogProductCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify\'s per-product limit): the "From $" price and\n    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong\n    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.\n    variants(first: 100) {\n      nodes {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        compareAtPrice {\n          amount\n          currencyCode\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n    metafields(\n      identifiers: [\n        {namespace: "custom", key: "comfort_level"}\n        {namespace: "custom", key: "mattress_type"}\n        {namespace: "custom", key: "benefits"}\n        {namespace: "custom", key: "sleep_positions"}\n        {namespace: "custom", key: "product_line"}\n      ]\n    ) {\n      key\n      value\n    }\n  }\n\n': {
     return: CatalogAllProductsQuery;
     variables: CatalogAllProductsQueryVariables;
   };
@@ -1842,7 +1942,7 @@ interface GeneratedQueryTypes {
     return: CatalogCollectionsListQuery;
     variables: CatalogCollectionsListQueryVariables;
   };
-  '#graphql\n  query CatalogHome(\n    $primaryHandle: String!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    collections(first: 12) {\n      nodes {\n        id\n        handle\n        title\n        image {\n          id\n          url\n          altText\n          width\n          height\n        }\n      }\n    }\n    primary: collection(handle: $primaryHandle) {\n      id\n      handle\n      title\n      products(first: 8) {\n        nodes {\n          ...CatalogProductCard\n        }\n      }\n    }\n    fallbackProducts: products(first: 8, sortKey: BEST_SELLING) {\n      nodes {\n        ...CatalogProductCard\n      }\n    }\n    brands: metaobjects(type: "brand", first: 24) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n  #graphql\n  fragment CatalogProductCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify\'s per-product limit): the "From $" price and\n    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong\n    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.\n    variants(first: 100) {\n      nodes {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        compareAtPrice {\n          amount\n          currencyCode\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n    metafields(\n      identifiers: [\n        {namespace: "custom", key: "comfort_level"}\n        {namespace: "custom", key: "mattress_type"}\n        {namespace: "custom", key: "benefits"}\n        {namespace: "custom", key: "product_line"}\n      ]\n    ) {\n      key\n      value\n    }\n  }\n\n': {
+  '#graphql\n  query CatalogHome(\n    $primaryHandle: String!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    collections(first: 12) {\n      nodes {\n        id\n        handle\n        title\n        image {\n          id\n          url\n          altText\n          width\n          height\n        }\n      }\n    }\n    primary: collection(handle: $primaryHandle) {\n      id\n      handle\n      title\n      products(first: 8) {\n        nodes {\n          ...CatalogProductCard\n        }\n      }\n    }\n    fallbackProducts: products(first: 8, sortKey: BEST_SELLING) {\n      nodes {\n        ...CatalogProductCard\n      }\n    }\n    brands: metaobjects(type: "brand", first: 24) {\n      nodes {\n        id\n        fields {\n          key\n          value\n          reference {\n            ... on MediaImage {\n              image {\n                url\n                altText\n                width\n                height\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n  #graphql\n  fragment CatalogProductCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify\'s per-product limit): the "From $" price and\n    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong\n    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.\n    variants(first: 100) {\n      nodes {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        compareAtPrice {\n          amount\n          currencyCode\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n    metafields(\n      identifiers: [\n        {namespace: "custom", key: "comfort_level"}\n        {namespace: "custom", key: "mattress_type"}\n        {namespace: "custom", key: "benefits"}\n        {namespace: "custom", key: "sleep_positions"}\n        {namespace: "custom", key: "product_line"}\n      ]\n    ) {\n      key\n      value\n    }\n  }\n\n': {
     return: CatalogHomeQuery;
     variables: CatalogHomeQueryVariables;
   };
@@ -1854,7 +1954,7 @@ interface GeneratedQueryTypes {
     return: CatalogProductAvailabilityQuery;
     variables: CatalogProductAvailabilityQueryVariables;
   };
-  '#graphql\n  query CatalogSearch(\n    $term: String!\n    $first: Int!\n    $after: String\n    $sortKey: SearchSortKeys\n    $reverse: Boolean\n    $productFilters: [ProductFilter!]\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    products: search(\n      query: $term\n      types: [PRODUCT]\n      first: $first\n      after: $after\n      sortKey: $sortKey\n      reverse: $reverse\n      productFilters: $productFilters\n      unavailableProducts: HIDE\n    ) {\n      totalCount\n      nodes {\n        ... on Product {\n          ...CatalogProductCard\n        }\n      }\n      productFilters {\n        id\n          label\n          type\n          values {\n            id\n            label\n            count\n            input\n          }\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n  #graphql\n  fragment CatalogProductCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify\'s per-product limit): the "From $" price and\n    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong\n    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.\n    variants(first: 100) {\n      nodes {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        compareAtPrice {\n          amount\n          currencyCode\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n    metafields(\n      identifiers: [\n        {namespace: "custom", key: "comfort_level"}\n        {namespace: "custom", key: "mattress_type"}\n        {namespace: "custom", key: "benefits"}\n        {namespace: "custom", key: "product_line"}\n      ]\n    ) {\n      key\n      value\n    }\n  }\n\n': {
+  '#graphql\n  query CatalogSearch(\n    $term: String!\n    $first: Int!\n    $after: String\n    $sortKey: SearchSortKeys\n    $reverse: Boolean\n    $productFilters: [ProductFilter!]\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    products: search(\n      query: $term\n      types: [PRODUCT]\n      first: $first\n      after: $after\n      sortKey: $sortKey\n      reverse: $reverse\n      productFilters: $productFilters\n      unavailableProducts: HIDE\n    ) {\n      totalCount\n      nodes {\n        ... on Product {\n          ...CatalogProductCard\n        }\n      }\n      productFilters {\n        id\n          label\n          type\n          values {\n            id\n            label\n            count\n            input\n          }\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n  #graphql\n  fragment CatalogProductCard on Product {\n    id\n    handle\n    title\n    vendor\n    productType\n    availableForSale\n    featuredImage {\n      id\n      url\n      altText\n      width\n      height\n    }\n    # The literal must equal MAX_PRODUCT_VARIANTS (100, Shopify\'s per-product limit): the "From $" price and\n    # the sizes shown on a card come from every variant, so a cap below the real count would show a wrong\n    # price. Codegen cannot read an interpolated number; queries.test.ts keeps the two in step.\n    variants(first: 100) {\n      nodes {\n        id\n        availableForSale\n        price {\n          amount\n          currencyCode\n        }\n        compareAtPrice {\n          amount\n          currencyCode\n        }\n        selectedOptions {\n          name\n          value\n        }\n      }\n    }\n    metafields(\n      identifiers: [\n        {namespace: "custom", key: "comfort_level"}\n        {namespace: "custom", key: "mattress_type"}\n        {namespace: "custom", key: "benefits"}\n        {namespace: "custom", key: "sleep_positions"}\n        {namespace: "custom", key: "product_line"}\n      ]\n    ) {\n      key\n      value\n    }\n  }\n\n': {
     return: CatalogSearchQuery;
     variables: CatalogSearchQueryVariables;
   };
@@ -1865,6 +1965,10 @@ interface GeneratedQueryTypes {
   '#graphql\n  query QuizQuestions($country: CountryCode, $language: LanguageCode)\n  @inContext(country: $country, language: $language) {\n    questions: metaobjects(type: "quiz_question", first: 12) {\n      nodes {\n        id\n        handle\n        fields {\n          key\n          value\n          references(first: 8) {\n            nodes {\n              ... on Metaobject {\n                id\n                handle\n                fields {\n                  key\n                  value\n                  references(first: 12) {\n                    nodes {\n                      ... on Metaobject {\n                        id\n                        handle\n                        fields {\n                          key\n                          value\n                        }\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
     return: QuizQuestionsQuery;
     variables: QuizQuestionsQueryVariables;
+  };
+  '#graphql\n  query QuizProducts(\n    $handle: String!\n    $first: Int!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    collection(handle: $handle) {\n      products(first: $first) {\n        nodes {\n          id\n          handle\n          title\n          vendor\n          productType\n          featuredImage {\n            id\n            url\n            altText\n            width\n            height\n          }\n          # A mattress has at most seven sizes (SIZES); 20 leaves room for an extra option without the cost of 100.\n          variants(first: 20) {\n            nodes {\n              id\n              sku\n              availableForSale\n              price {\n                amount\n                currencyCode\n              }\n              compareAtPrice {\n                amount\n                currencyCode\n              }\n              selectedOptions {\n                name\n                value\n              }\n              dimensions: metafield(namespace: "custom", key: "dimensions") {\n                value\n              }\n            }\n          }\n          metafields(\n            identifiers: [\n              {namespace: "custom", key: "comfort_level"}\n              {namespace: "custom", key: "mattress_type"}\n              {namespace: "custom", key: "sleep_positions"}\n              {namespace: "custom", key: "benefits"}\n              {namespace: "custom", key: "product_line"}\n              {namespace: "custom", key: "height_inches"}\n              {namespace: "custom", key: "compare_group"}\n            ]\n          ) {\n            key\n            value\n          }\n        }\n        pageInfo {\n          hasNextPage\n        }\n      }\n    }\n  }\n': {
+    return: QuizProductsQuery;
+    variables: QuizProductsQueryVariables;
   };
   '#graphql\n  query ShopPolicyHandles {\n    shop {\n      privacyPolicy {\n        handle\n      }\n      shippingPolicy {\n        handle\n      }\n      termsOfService {\n        handle\n      }\n      refundPolicy {\n        handle\n      }\n    }\n  }\n': {
     return: ShopPolicyHandlesQuery;

@@ -5,11 +5,21 @@ import {cn} from '~/components/ui/cn';
 import type {ImageView} from '~/lib/shopify/types';
 
 const SWIPE_DISTANCE = 40;
+/** Pointer movement below this is a click, not a drag, so the slides do not twitch under a press on a button. */
+const DRAG_THRESHOLD = 4;
+/** At the first and last image a drag past the end only follows the finger this much. */
+const END_RESISTANCE = 0.3;
 
 /**
  * Product image gallery (REQ-PDP-001): previous and next buttons, thumbnails, arrow keys and swipe. The
  * large image sits in a square box so nothing shifts while it loads; alt text is the catalog's, falling
  * back to the product title. The parent gives it a `key` per selected variant image to jump to that image.
+ *
+ * The images are slides in one strip that slides sideways to the chosen one, and follows the finger while it
+ * drags. The slide is a transform transition inside `motion-safe:`, so with reduced motion the image just
+ * changes. Every slide is in the page from the start, so a click never waits for a download: the selected image
+ * loads first (high priority) and the rest at low priority behind it. Only the selected slide is exposed to
+ * assistive technology.
  */
 export function ProductGallery({
   images,
@@ -24,6 +34,8 @@ export function ProductGallery({
     Math.min(Math.max(initialIndex, 0), Math.max(images.length - 1, 0)),
   );
   const swipeStart = useRef<number | null>(null);
+  // Horizontal offset of the strip while a finger or mouse drags it; null when nothing is dragging.
+  const [drag, setDrag] = useState<number | null>(null);
   const count = images.length;
   const current = images[index];
 
@@ -32,12 +44,13 @@ export function ProductGallery({
       <div
         role="img"
         aria-label={`No image available for ${title}`}
-        className="aspect-square w-full rounded-card bg-surface-muted"
+        className="aspect-square w-full rounded-hero bg-surface-muted"
       />
     );
   }
 
   const go = (next: number) => setIndex((next + count) % count);
+  const firstIndex = Math.min(Math.max(initialIndex, 0), count - 1);
 
   function onKeyDown(event: KeyboardEvent) {
     if (count < 2) return;
@@ -50,9 +63,20 @@ export function ProductGallery({
     }
   }
 
-  function onPointerUp(event: PointerEvent) {
+  function onPointerMove(event: PointerEvent) {
+    const start = swipeStart.current;
+    if (start === null || count < 2) return;
+    const delta = event.clientX - start;
+    if (Math.abs(delta) < DRAG_THRESHOLD && drag === null) return;
+    const pastEnd =
+      (index === 0 && delta > 0) || (index === count - 1 && delta < 0);
+    setDrag(pastEnd ? delta * END_RESISTANCE : delta);
+  }
+
+  function finishDrag(event: PointerEvent) {
     const start = swipeStart.current;
     swipeStart.current = null;
+    setDrag(null);
     if (start === null || count < 2) return;
     const delta = event.clientX - start;
     if (Math.abs(delta) >= SWIPE_DISTANCE)
@@ -72,31 +96,58 @@ export function ProductGallery({
       className="flex min-w-0 flex-col gap-3"
     >
       <div
-        className="relative aspect-square touch-pan-y overflow-hidden rounded-card bg-surface-muted"
+        className="relative aspect-square touch-pan-y overflow-hidden rounded-hero border border-line bg-surface-muted"
         onPointerDown={(event) => {
           swipeStart.current = event.clientX;
         }}
-        onPointerUp={onPointerUp}
+        onPointerMove={onPointerMove}
+        onPointerUp={finishDrag}
+        onPointerLeave={(event) => {
+          if (swipeStart.current !== null) finishDrag(event);
+        }}
         onPointerCancel={() => {
           swipeStart.current = null;
+          setDrag(null);
         }}
       >
-        <Image
-          key={current.url}
-          data={current}
-          alt={current.altText ?? title}
-          aspectRatio="1/1"
-          sizes="(min-width: 1024px) 50vw, 100vw"
-          loading="eager"
-          className="size-full object-cover"
-        />
+        <div
+          className={cn(
+            'flex size-full',
+            // No transition while the strip follows the pointer, or it would lag behind it.
+            drag === null &&
+              'motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out',
+          )}
+          style={{
+            transform: `translateX(calc(${-index * 100}% + ${drag ?? 0}px))`,
+          }}
+        >
+          {images.map((image, position) => (
+            <div
+              key={image.url}
+              aria-hidden={position === index ? undefined : true}
+              className="size-full shrink-0"
+            >
+              <Image
+                data={image}
+                alt={image.altText ?? title}
+                aspectRatio="1/1"
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                // Eager for all: an offscreen slide that is lazy would only start downloading when it is already sliding in.
+                loading="eager"
+                fetchPriority={position === firstIndex ? 'high' : 'low'}
+                draggable={false}
+                className="size-full object-cover select-none"
+              />
+            </div>
+          ))}
+        </div>
         {count > 1 ? (
           <>
             <button
               type="button"
               aria-label="Previous image"
               onClick={() => go(index - 1)}
-              className="absolute top-1/2 left-2 inline-flex size-touch -translate-y-1/2 items-center justify-center rounded-pill bg-surface text-fg shadow-md hover:bg-surface-muted"
+              className="absolute top-1/2 left-3 inline-flex size-touch -translate-y-1/2 items-center justify-center rounded-pill bg-surface text-fg shadow-md hover:bg-surface-muted"
             >
               <ChevronRightIcon className="size-5 rotate-180" />
             </button>
@@ -104,11 +155,11 @@ export function ProductGallery({
               type="button"
               aria-label="Next image"
               onClick={() => go(index + 1)}
-              className="absolute top-1/2 right-2 inline-flex size-touch -translate-y-1/2 items-center justify-center rounded-pill bg-surface text-fg shadow-md hover:bg-surface-muted"
+              className="absolute top-1/2 right-3 inline-flex size-touch -translate-y-1/2 items-center justify-center rounded-pill bg-surface text-fg shadow-md hover:bg-surface-muted"
             >
               <ChevronRightIcon className="size-5" />
             </button>
-            <p className="absolute right-2 bottom-2 rounded-choice bg-ink-900 px-2 py-1 text-xs font-bold text-white">
+            <p className="absolute right-3 bottom-3 rounded-pill bg-ink-900 px-3 py-1 text-caption font-bold text-white">
               {index + 1} / {count}
             </p>
           </>
@@ -132,7 +183,7 @@ export function ProductGallery({
                 aria-current={position === index ? 'true' : undefined}
                 onClick={() => setIndex(position)}
                 className={cn(
-                  'size-16 overflow-hidden rounded-choice border-2 bg-surface-muted',
+                  'size-18 overflow-hidden rounded-choice border-2 bg-surface-muted',
                   position === index
                     ? 'border-primary-500'
                     : 'border-line hover:border-line-strong',
@@ -142,8 +193,9 @@ export function ProductGallery({
                   data={image}
                   alt=""
                   aspectRatio="1/1"
-                  sizes="64px"
-                  loading="lazy"
+                  sizes="72px"
+                  loading="eager"
+                  fetchPriority="low"
                   className="size-full object-cover"
                 />
               </button>

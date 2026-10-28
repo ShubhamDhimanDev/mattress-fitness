@@ -7,7 +7,7 @@ import path from 'node:path';
 import { FAKE_STORE, FAKE_TOKEN, createFakeShopify } from '../lib/testing/fake-shopify.mjs';
 import { toDesiredProduct } from '../catalog/map.mjs';
 import { BENEFITS, COMFORT_LEVELS, DELIVERY_TYPES, MATTRESS_TYPES, SLEEP_POSITIONS } from '../catalog/schema.mjs';
-import { DEFAULT_SPEC_PATH, diffMetafieldDefinition, diffMetaobjectDefinition, encodeValidations, main, planDefinitions, toMetafieldDefinitionInput, toMetaobjectDefinitionInput, validateSpec } from './apply-definitions.mjs';
+import { DEFAULT_SPEC_PATH, diffMetafieldDefinition, diffMetaobjectDefinition, encodeValidations, main, planDefinitions, resolveReferences, toMetafieldDefinitionInput, toMetaobjectDefinitionInput, validateSpec } from './apply-definitions.mjs';
 import { createAdminClient } from '../lib/shopify-admin.mjs';
 
 const spec = JSON.parse(readFileSync(DEFAULT_SPEC_PATH, 'utf8'));
@@ -29,12 +29,12 @@ const TOTAL = spec.metaobjectDefinitions.length + spec.metafieldDefinitions.leng
 
 // ---- the shipped spec ------------------------------------------------------------------------------------
 
-test('definitions.json is valid and declares the eleven metaobject types of the data model', () => {
+test('definitions.json is valid and declares the twelve metaobject types of the data model', () => {
   const checked = validateSpec(spec);
   assert.deepEqual(checked.ok ? [] : checked.errors, []);
-  assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'quiz_scoring_rule', 'site_settings', 'store']);
+  assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_card', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'quiz_scoring_rule', 'site_settings', 'store']);
   assert.equal(spec.metafieldDefinitions.length, 19, '16 product metafields, the variant dimensions field, the collection FAQs and the customer quiz result');
-  assert.equal(TOTAL, 30);
+  assert.equal(TOTAL, 31);
 });
 
 test('custom.faqs is defined for products and for collections with the same shape (REQ-COL-004)', () => {
@@ -61,6 +61,7 @@ test('every definition the storefront reads has Storefront API access enabled (P
 test('definitions are ordered so a metaobject is declared before anything that references it', () => {
   const types = spec.metaobjectDefinitions.map((definition) => definition.type);
   assert.ok(types.indexOf('quiz_option') < types.indexOf('quiz_question'));
+  assert.ok(types.indexOf('homepage_card') < types.indexOf('homepage_section'));
   assert.ok(spec.metafieldDefinitions.length > 0);
 });
 
@@ -103,7 +104,7 @@ test('every metafield the importer can write has a matching definition with the 
 
 test('the data model fields that other work packages depend on are present', () => {
   const fields = (/** @type {string} */ type) => spec.metaobjectDefinitions.find((definition) => definition.type === type).fieldDefinitions.map((field) => field.key);
-  assert.deepEqual(fields('brand'), ['name', 'slug', 'logo', 'about', 'warranty_terms']);
+  assert.deepEqual(fields('brand'), ['name', 'slug', 'logo', 'about', 'warranty_terms', 'hero_image']);
   assert.ok(['pickup_enabled', 'location_handle', 'latitude', 'longitude', 'hours', 'photo'].every((key) => fields('store').includes(key)));
   assert.ok(['postal_codes', 'free_over', 'fee_text'].every((key) => fields('delivery_zone').includes(key)));
   assert.ok(['haul_away_max', 'extend_enabled', 'promo_bar_text', 'promo_bar_link', 'support_phone'].every((key) => fields('site_settings').includes(key)));
@@ -124,12 +125,25 @@ test('homepage_section fixes its section types and promo_tile its grid position 
   const definition = (/** @type {string} */ type) => spec.metaobjectDefinitions.find((candidate) => candidate.type === type);
   const field = (/** @type {string} */ type, /** @type {string} */ key) => definition(type).fieldDefinitions.find((candidate) => candidate.key === key);
   // The storefront lists the same values in HOMEPAGE_SECTION_TYPES (tests/unit/catalog/home-sections.test.ts).
-  assert.deepEqual(field('homepage_section', 'type').validations, [{ name: 'choices', value: ['hero', 'promo-banner', 'shop-by-size', 'featured', 'brands', 'categories', 'financing', 'signup'] }]);
-  assert.deepEqual(definition('homepage_section').fieldDefinitions.map((candidate) => candidate.key), ['type', 'heading', 'body', 'image', 'link', 'link_label', 'order', 'enabled']);
+  assert.deepEqual(field('homepage_section', 'type').validations, [{ name: 'choices', value: ['hero', 'promo-banner', 'shop-by-size', 'featured', 'brands', 'categories', 'financing', 'signup', 'quiz-band', 'setup-cards', 'how-it-works', 'store-finder', 'faq'] }]);
+  assert.deepEqual(definition('homepage_section').fieldDefinitions.map((candidate) => candidate.key), ['type', 'heading', 'body', 'image', 'link', 'link_label', 'order', 'enabled', 'cards']);
   assert.equal(field('homepage_section', 'link_label').required, undefined, 'the label is optional: without it the heading is the link');
+  // The cards of the setup and how-it-works blocks (CR-31): a list of homepage_card entries, declared before the section.
+  assert.equal(field('homepage_section', 'cards').type, 'list.metaobject_reference');
+  assert.deepEqual(field('homepage_section', 'cards').validations, [{ name: 'metaobject_definition_type', value: 'homepage_card' }]);
+  assert.deepEqual(definition('homepage_card').fieldDefinitions.map((candidate) => candidate.key), ['title', 'text', 'image', 'link', 'link_label']);
+  assert.equal(field('homepage_card', 'title').required, true, 'a card without a title is not shown');
+  assert.equal(definition('homepage_card').storefrontAccess, 'PUBLIC_READ');
   assert.deepEqual(field('promo_tile', 'position').validations, [{ name: 'min', value: 1 }]);
   assert.equal(field('promo_tile', 'collection').type, 'collection_reference');
   assert.equal(field('promo_tile', 'collection').required, true);
+  // CR31-13 / CR31-11: optional fields added later; the storefront lists the same tones in PROMO_TONES (promo-data.ts).
+  assert.deepEqual(field('promo_tile', 'tone').validations, [{ name: 'choices', value: ['red', 'dark', 'light'] }]);
+  assert.equal(field('promo_tile', 'tone').required, undefined, 'the tone is optional: empty shows red');
+  const hero = field('brand', 'hero_image');
+  assert.equal(hero.type, 'file_reference');
+  assert.equal(hero.required, undefined, 'the hero image is optional: empty keeps the plain header');
+  assert.deepEqual(hero.validations, [{ name: 'file_type_options', value: ['Image'] }]);
 });
 
 // ---- spec validation ------------------------------------------------------------------------------------
@@ -187,7 +201,7 @@ test('metaobject definition input lists fields with required flags and storefron
   assert.equal(input.type, 'brand');
   assert.deepEqual(input.access, { storefront: 'PUBLIC_READ' });
   assert.equal(input.displayNameKey, 'name');
-  assert.deepEqual(input.fieldDefinitions.map((field) => [field.key, field.required]), [['name', true], ['slug', true], ['logo', false], ['about', false], ['warranty_terms', false]]);
+  assert.deepEqual(input.fieldDefinitions.map((field) => [field.key, field.required]), [['name', true], ['slug', true], ['logo', false], ['about', false], ['warranty_terms', false], ['hero_image', false]]);
   assert.equal(input.fieldDefinitions[2].validations[0].value, '["Image"]');
 });
 
@@ -437,13 +451,15 @@ test('one definition failing does not stop the rest, and the failure is listed; 
   });
   const first = await run(['--live'], { fake });
   assert.equal(first.code, 1);
-  assert.match(first.out, new RegExp(`Created ${TOTAL - 1} definition`));
+  assert.match(first.out, new RegExp(`Created ${TOTAL - 3} definition`));
   assert.match(first.err, /FAILED faq: metaobjectDefinitionCreate rejected: definition\.type: Type has already been taken \[TAKEN\]/);
+  // The two FAQ metafields point at faq, so they are held back (not sent with a broken reference) until it exists.
+  assert.match(first.err, /FAILED product custom.faqs: references metaobject type "faq"/);
   broken = false;
   fake.reset();
   const second = await run(['--live'], { fake });
   assert.equal(second.code, 0, second.err);
-  assert.equal(fake.mutations().length, 1);
+  assert.equal(fake.mutations().length, 3);
 });
 
 test('an authentication failure stops the run at the first write', async () => {
@@ -490,4 +506,28 @@ test('planDefinitions with a read-only client cannot write even if asked to', as
   const refused = await client.request('mutation M { x }', {}, { operationName: 'M' });
   assert.equal(refused.ok === false && refused.error.kind, 'read_only');
   assert.equal(fake.mutations().length, 0);
+});
+
+// ---- references and description length (found by the first live run, V-05) --------------------------------
+
+test('a type reference becomes the definition id Shopify requires, in a metafield and in a metaobject field', () => {
+  const ids = new Map([['faq', 'gid://shopify/MetaobjectDefinition/5']]);
+  const metafield = resolveReferences({ name: 'FAQs', validations: [{ name: 'metaobject_definition_type', value: 'faq' }] }, ids);
+  assert.deepEqual(metafield.ok && metafield.input.validations, [{ name: 'metaobject_definition_id', value: 'gid://shopify/MetaobjectDefinition/5' }]);
+  const metaobject = resolveReferences({ type: 'x', fieldDefinitions: [{ key: 'a', validations: [{ name: 'metaobject_definition_type', value: 'faq' }] }, { key: 'b' }] }, ids);
+  assert.deepEqual(metaobject.ok && metaobject.input.fieldDefinitions, [{ key: 'a', validations: [{ name: 'metaobject_definition_id', value: 'gid://shopify/MetaobjectDefinition/5' }] }, { key: 'b' }]);
+});
+
+test('a reference to a type that does not exist yet is reported, not sent', () => {
+  const result = resolveReferences({ validations: [{ name: 'metaobject_definition_type', value: 'brand' }] }, new Map());
+  assert.equal(result.ok, false);
+  assert.match(result.ok ? '' : result.message, /brand/);
+});
+
+test('validateSpec rejects a description longer than Shopify allows', () => {
+  const bad = clone();
+  bad.metaobjectDefinitions[0].fieldDefinitions[0].description = 'x'.repeat(256);
+  const checked = validateSpec(bad);
+  assert.equal(checked.ok, false);
+  assert.match(checked.ok ? '' : checked.errors.join(' '), /255/);
 });

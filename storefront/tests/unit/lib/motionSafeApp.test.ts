@@ -120,7 +120,7 @@ describe('every app source keeps motion behind motion-safe (NFR-003)', () => {
       'components/layout/SiteFooter.tsx',
       'components/layout/MainNav.tsx',
       'components/quiz/QuizQuestion.tsx',
-      'components/quiz/QuizProgress.tsx',
+      'components/ui/ProgressBar.tsx',
       'components/ProductItem.tsx',
       'components/collection/PromoTileCard.tsx',
       'components/product/ProductGallery.tsx',
@@ -150,7 +150,7 @@ describe('every app source keeps motion behind motion-safe (NFR-003)', () => {
         'components/layout/SiteFooter.tsx',
         'components/layout/MainNav.tsx',
         'components/quiz/QuizQuestion.tsx',
-        'components/quiz/QuizProgress.tsx',
+        'components/ui/ProgressBar.tsx',
       ]),
     );
     for (const {file, text} of users) {

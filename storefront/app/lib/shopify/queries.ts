@@ -46,6 +46,7 @@ export const PRODUCT_CARD_FRAGMENT = `#graphql
         {namespace: "custom", key: "comfort_level"}
         {namespace: "custom", key: "mattress_type"}
         {namespace: "custom", key: "benefits"}
+        {namespace: "custom", key: "sleep_positions"}
         {namespace: "custom", key: "product_line"}
       ]
     ) {

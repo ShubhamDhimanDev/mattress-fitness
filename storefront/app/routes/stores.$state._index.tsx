@@ -1,7 +1,6 @@
 import {Link, data, useLoaderData} from 'react-router';
 import type {Route} from './+types/stores.$state._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {StoreCard} from '~/components/stores/StoreCard';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
 import {previewRobotsMeta} from '~/lib/pages/head';
@@ -13,6 +12,7 @@ import {
 import {loadStoreIndex, notFound} from '~/lib/pages/stores-data';
 import {storeCountText, storeEntry} from '~/lib/pages/stores-view';
 import {STORES_ROOT_PATH, cityPath, findState} from '~/lib/stores/grouping';
+import {RouteErrorPage} from '~/components/pages/ErrorPageView';
 
 // P6-06: stores in one state (REQ-LOC-001). An unknown or malformed state is a 404 inside the shell.
 
@@ -61,7 +61,7 @@ export async function loader({params, request, context}: Route.LoaderArgs) {
 export const headers = forwardLoaderHeaders;
 
 export default function StoresStatePage() {
-  const {source, name, storeCount, cities} = useLoaderData<typeof loader>();
+  const {name, storeCount, cities} = useLoaderData<typeof loader>();
   return (
     <div className="mx-auto flex max-w-page flex-col gap-8 py-8">
       <Breadcrumb
@@ -72,17 +72,19 @@ export default function StoresStatePage() {
         ]}
       />
       <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Stores in {name}</h1>
+        <h1 className="type-display text-4xl md:text-5xl">Stores in {name}</h1>
         <p className="text-base text-fg-muted">{storeCountText(storeCount)}</p>
       </header>
-      {source === 'fixtures' ? <PreviewNotice subject="stores" /> : null}
       {cities.map((city) => (
         <section
           key={city.path}
           aria-labelledby={`city-${city.path}`}
           className="flex flex-col gap-3"
         >
-          <h2 id={`city-${city.path}`} className="text-2xl font-bold">
+          <h2
+            id={`city-${city.path}`}
+            className="type-display text-2xl md:text-3xl"
+          >
             <Link to={city.path} className="underline-offset-2 hover:underline">
               {city.name}
             </Link>
@@ -102,4 +104,9 @@ export default function StoresStatePage() {
       ))}
     </div>
   );
+}
+
+/** A missing or failed page keeps the site header and footer (the 404 status is set by the loader). */
+export function ErrorBoundary() {
+  return <RouteErrorPage />;
 }

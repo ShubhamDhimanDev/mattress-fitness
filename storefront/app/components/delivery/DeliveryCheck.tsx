@@ -1,6 +1,8 @@
 import {useEffect, useId, useRef, useState, type FormEvent} from 'react';
 import {useDeliveryZip} from '~/components/delivery/useDeliveryZip';
 import {Button} from '~/components/ui/Button';
+import {cardStyles} from '~/components/ui/Card';
+import {Chip} from '~/components/ui/Chip';
 import {cn} from '~/components/ui/cn';
 import {TruckIcon} from '~/components/ui/Icons';
 import {Skeleton} from '~/components/ui/Skeleton';
@@ -70,19 +72,10 @@ export function DeliveryCheck({
     return (
       <section
         aria-labelledby={headingId}
-        className={cn(
-          'flex flex-col gap-3 rounded-card border border-line p-4',
-          className,
-        )}
+        className={cn(cardStyles(), 'flex flex-col gap-3', className)}
       >
-        <h2
-          id={headingId}
-          className="flex items-center gap-2 text-base font-bold"
-        >
-          <TruckIcon className="size-5" />
-          {title}
-        </h2>
-        <div role="status" className="flex flex-col gap-1 text-sm">
+        <DeliveryHeading id={headingId} title={title} />
+        <div role="status" className="flex flex-col gap-1 text-base">
           <DeliveryAnswer delivery={delivery} />
         </div>
       </section>
@@ -96,18 +89,9 @@ export function DeliveryCheck({
       <section
         aria-labelledby={headingId}
         aria-busy="true"
-        className={cn(
-          'flex min-h-60 flex-col gap-3 rounded-card border border-line p-4',
-          className,
-        )}
+        className={cn(cardStyles(), 'flex min-h-60 flex-col gap-3', className)}
       >
-        <h2
-          id={headingId}
-          className="flex items-center gap-2 text-base font-bold"
-        >
-          <TruckIcon className="size-5" />
-          {title}
-        </h2>
+        <DeliveryHeading id={headingId} title={title} />
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-11 w-full" />
         <Skeleton className="h-11 w-40" />
@@ -140,18 +124,18 @@ export function DeliveryCheck({
     <section
       aria-labelledby={headingId}
       className={cn(
-        'flex flex-col gap-3 rounded-card border border-line p-4',
+        cardStyles(),
+        'flex flex-col gap-3',
         showForm && 'min-h-60',
         className,
       )}
     >
-      <h2
+      {/* The chip sits beside the heading, not inside it, so the region keeps its plain name "Delivery". */}
+      <DeliveryHeading
         id={headingId}
-        className="flex items-center gap-2 text-base font-bold"
-      >
-        <TruckIcon className="size-5" />
-        {title}
-      </h2>
+        title={title}
+        inZone={delivery.status === 'in-zone'}
+      />
 
       {/* Always rendered so a screen reader is already watching when the answer replaces the form. */}
       <div
@@ -159,7 +143,7 @@ export function DeliveryCheck({
         tabIndex={-1}
         role="status"
         aria-live="polite"
-        className="flex flex-col gap-1 text-sm outline-none"
+        className="flex flex-col gap-1 text-base outline-none"
       >
         <DeliveryAnswer delivery={delivery} />
       </div>
@@ -192,7 +176,7 @@ export function DeliveryCheck({
           <div className="flex flex-wrap gap-2">
             <Button
               type="submit"
-              variant="secondary"
+              variant="outline"
               loading={pending}
               loadingLabel="Checking"
             >
@@ -201,7 +185,7 @@ export function DeliveryCheck({
             {editing ? (
               <Button
                 type="button"
-                variant="ghost"
+                variant="link"
                 onClick={() => {
                   setEditing(false);
                   setLocalError(undefined);
@@ -216,7 +200,7 @@ export function DeliveryCheck({
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
-            variant="ghost"
+            variant="link"
             size="sm"
             onClick={() => setEditing(true)}
           >
@@ -224,7 +208,7 @@ export function DeliveryCheck({
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant="link"
             size="sm"
             loading={pending}
             loadingLabel="Clearing"
@@ -235,6 +219,28 @@ export function DeliveryCheck({
         </div>
       )}
     </section>
+  );
+}
+
+function DeliveryHeading({
+  id,
+  title,
+  inZone = false,
+}: {
+  id: string;
+  title: string;
+  inZone?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-choice bg-paper text-fg">
+        <TruckIcon className="size-6" />
+      </span>
+      <h2 id={id} className="type-display text-lg md:text-title">
+        {title}
+      </h2>
+      {inZone ? <Chip tone="success">In our delivery zone</Chip> : null}
+    </div>
   );
 }
 

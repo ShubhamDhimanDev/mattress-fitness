@@ -3,6 +3,7 @@ import {cn} from '~/components/ui/cn';
 import {
   FieldError,
   FieldHint,
+  FieldLabel,
   describedBy,
   useFieldIds,
 } from '~/components/ui/Field';
@@ -44,15 +45,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
     return (
       <div className={cn('flex flex-col gap-1', className)}>
-        <label htmlFor={ids.id} className="text-sm font-bold text-fg">
+        <FieldLabel htmlFor={ids.id} required={required}>
           {label}
-          {required ? (
-            <span aria-hidden="true" className="text-error-fg">
-              {' '}
-              *
-            </span>
-          ) : null}
-        </label>
+        </FieldLabel>
         <div className="relative">
           <select
             {...rest}
@@ -61,7 +56,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             required={required}
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy(ids, {hint, error})}
-            className={cn(CONTROL_CLASSES, 'appearance-none pr-10')}
+            className={cn(CONTROL_CLASSES, 'appearance-none pr-12')}
           >
             {placeholder ? <option value="">{placeholder}</option> : null}
             {options.map((option) => (
@@ -74,7 +69,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-3 size-5 -translate-y-1/2 text-fg-muted" />
+          <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2 text-fg-muted" />
         </div>
         <FieldHint id={ids.hintId}>{hint}</FieldHint>
         <FieldError id={ids.errorId}>{error}</FieldError>

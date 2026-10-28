@@ -2,6 +2,8 @@
 
 Requirement: REQ-ANL-004 (chat provider embedded behind an adapter, call-outs open it, consent and CSP handled). Also NFR-011 (consent), NFR-013 (a failing provider never blocks), NFR-003 (accessibility). Threats: T-10 (third-party scripts), T-05 (PII), T-16 (consent, legal). Open: Q-011 and CLR-005 (no provider is chosen or approved), V-24.
 
+Update 2026-10-28: **tawk.to is the chosen provider and its adapter is built** (`PUBLIC_CHAT_PROVIDER=tawk`, `PUBLIC_TAWK_PROPERTY_ID`, `PUBLIC_TAWK_WIDGET_ID`; section "tawk.to" below). Unit-tested only; not yet seen in a browser. The paragraph that follows is the 2026-10-25 state.
+
 Status 2026-10-25: **the adapter, the registry, the consent gate, the call-outs and a development-only fake provider are built and unit-tested (see "Verified"). NO real provider can run: Shopify Inbox, the default named in REQ-ANL-004, is BLOCKED / UNVERIFIED on this storefront (next section), and no other provider is approved.** With `PUBLIC_CHAT_PROVIDER` unset (the default) chat does not exist: no code is requested, no script, no CSP host, no "Chat with us". Nothing here has been seen in a browser (`tests/e2e/chat.spec.ts` is written, not run).
 
 ## Shopify Inbox on this storefront: BLOCKED
@@ -22,6 +24,15 @@ What follows, and what is **not** done:
 - Not implemented: no Shopify Inbox adapter, no script URL, no query string, no host in any policy. The URL above is from an unofficial source and its parameters are not documented; using it would be inventing an integration. `shopify-inbox` is refused at startup as `provider_blocked` (`chat.config_refused`, once per process, reason only).
 - The REQ-ANL-004 criterion "call-outs open it" cannot be met for Inbox even in principle until Shopify documents a way to open the widget programmatically (`ChatProvider.open()` has nothing to call).
 - Unblocking, in order of likelihood: (1) the client picks a provider that documents a browser API (`open`, hosts, CSP, consent behaviour) and gives sandbox access (CLR-005, Q-011, IR-17); (2) the project adopts the Hydrogen `@preview` line, a framework decision for the architect and the owner, not an integration change; (3) Shopify documents Inbox for headless storefronts on the stable line (V-24: re-check the Hydrogen docs). Escalated to the orchestrator.
+
+## tawk.to (chosen by the owner 2026-10-28)
+
+- **Setup:** in the tawk.to dashboard open Administration > Chat Widget, copy the Widget Code, and take the two ids from its address `https://embed.tawk.to/<propertyId>/<widgetId>`. Set `PUBLIC_CHAT_PROVIDER=tawk`, `PUBLIC_TAWK_PROPERTY_ID`, `PUBLIC_TAWK_WIDGET_ID`. Local: add the three lines to `.env.demo` and set `PUBLIC_CHAT_REQUIRES_CONSENT=false` (consent needs a GA4 id for the banner to offer `analytics`; see the consent section).
+- **Adapter:** `app/lib/chat/providers/tawk.ts`. Loads the script once after consent, hides tawk.to's own bubble (`hideWidget` on `onLoad`), and our "Chat with us" button calls `showWidget` then `maximize`; minimising hides it again so our button stays the one entry point. Ids are validated (letters and digits only) before they reach a script address.
+- **Withdrawal:** tawk.to documents no way to remove the widget or script. `unload` hides it and calls `shutdown` (closes the connection); the script and cookies already set stay until the page is left. A later grant calls `start` on the same script, so it is never added twice. Counsel should know this (Q-012).
+- **tawk.to's own consent form** (dashboard, Consent Form) is a separate switch: with it on, tawk.to sets no cookies until the visitor accepts. It is not a CMP; our consent gate is what keeps the script from loading.
+- **Sources** (read 2026-10-28): https://developer.tawk.to/jsapi/ (methods and callbacks), https://help.tawk.to/article/what-are-tawkto-cookies-and-what-do-they-do, https://help.tawk.to/article/enabling-and-managing-your-consent-form, CSP: see SECURITY_HEADERS.
+- **UNVERIFIED:** everything in a browser: `onLoad` firing under the enforced CSP, `maximize` right after `showWidget`, focus and axe with the widget open, the embed address shape beyond what the dashboard snippet shows.
 
 ## What is built
 

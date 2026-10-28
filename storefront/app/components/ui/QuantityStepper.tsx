@@ -16,6 +16,8 @@ type QuantityStepperProps = {
   /** Names the item in the button labels: "Decrease quantity of Queen mattress". */
   itemName?: string;
   disabled?: boolean;
+  /** `sm` is the cart drawer's pill: 36 px buttons in a 1 px border, a smaller number. */
+  size?: 'md' | 'sm';
   className?: string;
 };
 
@@ -23,8 +25,12 @@ export function clampQuantity(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.trunc(value)));
 }
 
-const STEP_BUTTON =
-  'inline-flex size-touch shrink-0 items-center justify-center text-fg hover:bg-surface-muted aria-disabled:cursor-not-allowed aria-disabled:text-fg-muted aria-disabled:hover:bg-transparent';
+// 46 px buttons inside a 2 px bordered group (CR-31); both are above the 44 px touch target. The `sm` pill (cart drawer)
+// has 36 px round buttons inside a 1 px border (owner request, still above WCAG 2.2 AA's 24 px minimum). There is no class merging, so the two sizes are separate strings.
+const STEP_BUTTON_BASE =
+  'inline-flex shrink-0 items-center justify-center text-fg motion-safe:transition-colors hover:bg-paper active:bg-ink-100 aria-disabled:cursor-not-allowed aria-disabled:text-fg-muted aria-disabled:hover:bg-transparent';
+const STEP_BUTTON = `${STEP_BUTTON_BASE} size-11.5 rounded-sm`;
+const STEP_BUTTON_SMALL = `${STEP_BUTTON_BASE} size-9 rounded-pill`;
 
 export function QuantityStepper({
   value,
@@ -34,8 +40,10 @@ export function QuantityStepper({
   label = 'Quantity',
   itemName,
   disabled = false,
+  size = 'md',
   className,
 }: QuantityStepperProps) {
+  const small = size === 'sm';
   // While typing, the field shows the draft text; it is committed (and clamped) on blur or Enter.
   const [draft, setDraft] = useState<string | null>(null);
   const atMin = value <= min;
@@ -75,7 +83,10 @@ export function QuantityStepper({
       role="group"
       aria-label={label}
       className={cn(
-        'inline-flex items-center rounded-choice border-2 border-line-strong bg-surface',
+        'inline-flex items-center bg-surface hover:border-ink-600',
+        small
+          ? 'rounded-pill border border-line-strong'
+          : 'rounded-choice border-2 border-line-strong',
         className,
       )}
     >
@@ -84,9 +95,9 @@ export function QuantityStepper({
         aria-label={`Decrease quantity${suffix}`}
         aria-disabled={disabled || atMin ? true : undefined}
         onClick={() => step(-1)}
-        className={STEP_BUTTON}
+        className={small ? STEP_BUTTON_SMALL : STEP_BUTTON}
       >
-        <MinusIcon className="size-5" />
+        <MinusIcon className={small ? 'size-4' : 'size-5'} />
       </button>
       <input
         type="text"
@@ -101,16 +112,21 @@ export function QuantityStepper({
           if (draft !== null) commit(event.target.value);
         }}
         onKeyDown={onInputKeyDown}
-        className="h-touch w-12 border-x-2 border-line bg-transparent text-center text-base font-bold text-fg disabled:text-fg-muted"
+        className={cn(
+          'bg-transparent text-center font-extrabold text-fg disabled:text-fg-muted',
+          small
+            ? 'h-9 w-7 text-sm'
+            : 'h-11.5 w-12 border-x-2 border-line text-base',
+        )}
       />
       <button
         type="button"
         aria-label={`Increase quantity${suffix}`}
         aria-disabled={disabled || atMax ? true : undefined}
         onClick={() => step(1)}
-        className={STEP_BUTTON}
+        className={small ? STEP_BUTTON_SMALL : STEP_BUTTON}
       >
-        <PlusIcon className="size-5" />
+        <PlusIcon className={small ? 'size-4' : 'size-5'} />
       </button>
       <span className="sr-only" role="status">
         {`${label} ${value}`}

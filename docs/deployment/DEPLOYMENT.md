@@ -63,6 +63,7 @@ Names only; values stay in the hosting platform's secret store and in git-ignore
 | `PUBLIC_CONSENT_MODE` | public | No | `opt-in` | `lib/analytics/config.ts` | Specific features; ANALYTICS |
 | `PUBLIC_CHAT_PROVIDER` | public | No | unset: no chat | `lib/chat/config.ts`, `root.tsx`, `lib/navigation.ts`, `components/chat/ChatRuntime.tsx` | Third-party features; [CHAT](../integrations/CHAT.md) |
 | `PUBLIC_CHAT_REQUIRES_CONSENT` | public | No | consent required (only the text `false` drops it) | `lib/chat/config.ts` | same |
+| `PUBLIC_TAWK_PROPERTY_ID`, `PUBLIC_TAWK_WIDGET_ID` | public | Only with `PUBLIC_CHAT_PROVIDER=tawk` | unset: `tawk` is refused (`provider_misconfigured`) | `lib/chat/config.ts`, `lib/chat/providers/tawk.ts` | letters and digits only; copy them from the tawk.to dashboard Widget Code; [CHAT](../integrations/CHAT.md) |
 | `PUBLIC_FINANCING_PROVIDER` | public | No | unset: no financing message | `lib/financing/config.ts`, `root.tsx`, `components/cart/FinancingMessage.tsx`, `components/cart/AffirmPromo.tsx` | Third-party features; [FINANCING](../integrations/FINANCING.md) |
 | `PUBLIC_AFFIRM_PUBLIC_KEY` | public | Only with `affirm` | none | `lib/financing/config.ts` | same |
 | `PUBLIC_AFFIRM_REQUIRES_CONSENT` | public | No | consent required (only the text `false` drops it) | `lib/financing/config.ts` | same |

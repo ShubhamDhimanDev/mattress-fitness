@@ -19,6 +19,7 @@ import {canonicalUrl} from '~/lib/seo/canonical';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {contentCache, rememberFound} from '~/lib/shopify/content-pages-cache';
 import {isValidHandle} from '~/lib/shopify/collection-data';
+import {RouteErrorPage} from '~/components/pages/ErrorPageView';
 
 // The loader prepares the head tags and structured data (`buildBlogDocument`); this only reads them.
 export const meta: Route.MetaFunction = ({data}) => {
@@ -98,10 +99,15 @@ export default function Blog() {
   const {blog, view} = useLoaderData<typeof loader>();
 
   return (
-    <div className="py-4">
+    <div className="py-6 md:py-10">
       <Breadcrumb items={view.breadcrumb} className="print:hidden" />
-      <header className="mt-2 border-b border-line pb-4">
-        <h1 className={cn(displayHeadingClass(blog.title), 'text-3xl')}>
+      <header className="mt-4 border-b border-line pb-6">
+        <h1
+          className={cn(
+            displayHeadingClass(blog.title),
+            'text-4xl md:text-5xl',
+          )}
+        >
           {blog.title}
         </h1>
       </header>
@@ -183,3 +189,8 @@ const BLOG_QUERY = `#graphql
     }
   }
 ` as const;
+
+/** A missing or failed page keeps the site header and footer (the 404 status is set by the loader). */
+export function ErrorBoundary() {
+  return <RouteErrorPage />;
+}

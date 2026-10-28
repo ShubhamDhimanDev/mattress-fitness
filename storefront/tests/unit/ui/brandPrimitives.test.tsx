@@ -17,7 +17,7 @@ afterEach(cleanup);
 const usd = (amount: string) => ({amount, currencyCode: 'USD'});
 
 describe('Button variants (BA-03)', () => {
-  it('primary is brand red with a heavier hover and pressed shade and a heavy uppercase label', () => {
+  it('primary is brand red with a heavier hover and pressed shade and a bold sentence-case label', () => {
     const classes = buttonStyles({variant: 'primary'}).split(' ');
     expect(classes).toEqual(
       expect.arrayContaining([
@@ -26,9 +26,10 @@ describe('Button variants (BA-03)', () => {
         'hover:bg-primary-600',
         'active:bg-primary-700',
         'rounded-choice',
-        'type-display',
+        'font-bold',
       ]),
     );
+    expect(classes).not.toContain('uppercase');
   });
 
   it('inverse is white with red text and inverse-outline is a white outline, both for the red band', () => {
@@ -41,18 +42,49 @@ describe('Button variants (BA-03)', () => {
     expect(outline).toContain('hover:text-primary-700');
   });
 
-  it('ghost stays sentence case; every other variant uses display type', () => {
-    expect(buttonStyles({variant: 'ghost'})).not.toContain('type-display');
+  // CR-31: labels are bold sentence case in every variant (the heavy uppercase of UXD-13 is retired).
+  it('every variant has a bold sentence-case label', () => {
     for (const variant of [
       'primary',
       'secondary',
+      'outline',
+      'dark',
+      'amber',
       'accent',
+      'white',
+      'ghost',
+      'link',
       'pill',
       'inverse',
       'inverse-outline',
     ] as const) {
-      expect(buttonStyles({variant}), variant).toContain('type-display');
+      const classes = buttonStyles({variant}).split(' ');
+      expect(classes, variant).toContain('font-bold');
+      expect(classes, variant).not.toContain('uppercase');
+      expect(classes, variant).not.toContain('type-display');
     }
+  });
+
+  it('md is 48 px and lg is 56 px high, both with the 12 px radius token', () => {
+    expect(buttonStyles({size: 'md'})).toContain('min-h-12');
+    expect(buttonStyles({size: 'lg'})).toContain('min-h-14');
+    expect(buttonStyles({size: 'sm'})).toContain('min-h-touch');
+    expect(buttonStyles({size: 'lg'})).toContain('rounded-choice');
+  });
+
+  it('the new variants: outline is ink, dark is ink-filled, amber is the accent look, white is for bands, link is text', () => {
+    expect(buttonStyles({variant: 'outline'})).toContain('border-ink-900');
+    expect(buttonStyles({variant: 'dark'})).toContain('bg-ink-900');
+    expect(buttonStyles({variant: 'amber'})).toBe(
+      buttonStyles({variant: 'accent'}),
+    );
+    expect(buttonStyles({variant: 'white'})).toContain('bg-white');
+    expect(buttonStyles({variant: 'white'})).toContain('text-ink-900');
+    const link = buttonStyles({variant: 'link'});
+    expect(link).toContain('underline');
+    expect(link).toContain('bg-transparent');
+    expect(link).not.toContain('px-6');
+    expect(link).toContain('min-h-12'); // still a 48 px target
   });
 
   it('pill is a shape: only the pill variant and shape="pill" lose the 8 px radius', () => {
@@ -109,19 +141,24 @@ describe('Badge (BA-03)', () => {
     expect(badge.className).not.toMatch(/primary|error/);
   });
 
-  it('gift is outlined in red, new is black, neutral is grey', () => {
-    render(
+  it('gift is amber like sale (CR-31), success is green with a check, new is black, neutral is grey', () => {
+    const {container} = render(
       <>
         <Badge variant="gift">Free gift</Badge>
+        <Badge variant="success">Delivered free</Badge>
         <Badge variant="new">New</Badge>
         <Badge>Firm</Badge>
       </>,
     );
-    expect(screen.getByText('Free gift')).toHaveClass(
-      'border-primary-500',
-      'bg-surface',
-      'text-primary-700',
+    const gift = screen.getByText('Free gift');
+    expect(gift).toHaveClass('bg-accent-400', 'text-ink-900');
+    expect(gift.className).not.toMatch(/primary|error/);
+    expect(gift.querySelector('svg')).not.toBeNull(); // the gift icon: meaning is not colour alone
+    expect(screen.getByText('Delivered free')).toHaveClass(
+      'bg-success-bg',
+      'text-success-fg',
     );
+    expect(container.querySelectorAll('svg').length).toBe(2); // gift and check only
     expect(screen.getByText('New')).toHaveClass('bg-ink-900', 'text-white');
     expect(screen.getByText('Firm')).toHaveClass('bg-ink-100', 'text-ink-700');
   });

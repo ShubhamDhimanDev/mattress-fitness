@@ -1,5 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {Button} from '~/components/ui/Button';
+import {cardStyles} from '~/components/ui/Card';
+import {cn} from '~/components/ui/cn';
 import {Rating} from '~/components/ui/Rating';
 import {
   parseReviewsApiResponse,
@@ -129,16 +131,21 @@ export function ReviewsList({handle}: ReviewsListProps) {
           count={aggregate.exact ? aggregate.count : undefined}
         />
       ) : null}
-      <ul className="flex flex-col divide-y divide-line">
+      <ul className="flex flex-col gap-3">
         {reviews.map((review, index) => (
           <li
             key={review.id}
             ref={index === state.appendedFrom ? firstNew : null}
             tabIndex={-1}
-            className="flex flex-col gap-1 py-4 outline-none first:pt-0"
+            className={cn(
+              cardStyles({padding: 'sm'}),
+              'flex flex-col gap-1 outline-none md:p-5',
+            )}
           >
             <Rating value={review.rating} />
-            {review.title ? <p className="font-bold">{review.title}</p> : null}
+            {review.title ? (
+              <p className="text-lg font-extrabold">{review.title}</p>
+            ) : null}
             <p className="max-w-prose whitespace-pre-line">{review.body}</p>
             <p className="text-sm text-fg-muted">
               {review.author}
@@ -153,7 +160,7 @@ export function ReviewsList({handle}: ReviewsListProps) {
       {hasMore ? (
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           loading={loadingMore}
           loadingLabel="Loading more reviews"
           onClick={() => void loadMore()}

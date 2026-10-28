@@ -1,0 +1,16 @@
+Plus Jakarta Sans (PlusJakartaSans-Variable.woff2)
+
+Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+The full licence text and a FAQ are available at https://openfontlicense.org
+(also https://scripts.sil.org/OFL and, with the source, in the project's OFL.txt).
+
+In short, the licence allows the font to be used, studied, copied, embedded and
+redistributed, with or without modification, in any product including commercial
+ones, provided that this copyright notice and the licence travel with any
+redistribution, and that the font is not sold on its own.
+
+This file is a latin-subset variable WOFF2 (weights 200 to 800) as served by
+Google Fonts (https://fonts.google.com/specimen/Plus+Jakarta+Sans), downloaded once
+on 2026-10-27 and self-hosted so the storefront makes no third-party font request.

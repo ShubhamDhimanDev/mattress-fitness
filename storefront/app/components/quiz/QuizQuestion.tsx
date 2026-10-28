@@ -2,6 +2,7 @@ import type {RefObject} from 'react';
 import {Link} from 'react-router';
 import {QuizProgress} from '~/components/quiz/QuizProgress';
 import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
 import {CheckIcon} from '~/components/ui/Icons';
 import {cn} from '~/components/ui/cn';
 import type {QuizProgress as QuizProgressValue} from '~/lib/pages/quiz-flow';
@@ -40,19 +41,24 @@ export function QuizQuestion({
   const headingId = `quiz-question-${question.id}`;
   const helpId = `${headingId}-help`;
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-6">
+    <Card
+      as="section"
+      variant="raised"
+      aria-labelledby={headingId}
+      className="flex flex-col gap-6"
+    >
       <QuizProgress progress={progress} />
       <div className="flex flex-col gap-2">
         <h2
           id={headingId}
           ref={headingRef}
           tabIndex={-1}
-          className="text-2xl font-bold text-fg"
+          className="type-display text-3xl md:text-heading"
         >
           {question.text}
         </h2>
         {question.helpText ? (
-          <p id={helpId} className="text-base text-fg-muted">
+          <p id={helpId} className="text-lead text-fg-muted">
             {question.helpText}
           </p>
         ) : null}
@@ -75,16 +81,16 @@ export function QuizQuestion({
                   if (busy) event.preventDefault();
                 }}
                 className={cn(
-                  'flex min-h-14 w-full items-center justify-between gap-3 rounded-choice border-2 px-4 py-3 text-left text-base font-bold motion-safe:transition-colors',
+                  'flex min-h-16 w-full items-center justify-between gap-3 rounded-choice border-2 px-5 py-3 text-left text-lg font-bold text-fg motion-safe:transition-colors',
                   selected
-                    ? 'border-ink-900 bg-accent-400 text-ink-900'
-                    : 'border-line-strong bg-surface text-fg hover:border-ink-900',
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-line-strong bg-surface hover:border-ink-600 hover:bg-paper',
                 )}
               >
                 <span>{option.label}</span>
                 {selected ? (
                   <>
-                    <CheckIcon className="size-5" />
+                    <CheckIcon className="size-6 text-primary-700" />
                     <span className="sr-only">Selected</span>
                   </>
                 ) : null}
@@ -94,16 +100,16 @@ export function QuizQuestion({
         })}
       </ul>
       <div className="flex flex-wrap items-center gap-3">
-        <Button to={backHref} preventScrollReset variant="secondary" size="sm">
+        <Button to={backHref} preventScrollReset variant="outline" size="md">
           Back
         </Button>
         {question.multi ? (
           continueHref ? (
-            <Button to={continueHref} preventScrollReset size="sm">
+            <Button to={continueHref} preventScrollReset size="lg">
               Continue
             </Button>
           ) : (
-            <Button disabled size="sm">
+            <Button disabled size="lg">
               Continue
             </Button>
           )
@@ -112,6 +118,6 @@ export function QuizQuestion({
       <p role="status" className="min-h-6 text-sm text-fg-muted">
         {busy ? 'Finding your matches…' : ''}
       </p>
-    </section>
+    </Card>
   );
 }

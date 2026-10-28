@@ -40,7 +40,7 @@ export function ChatNotice({contactTo}: {readonly contactTo: string | null}) {
         <div
           ref={box}
           tabIndex={-1}
-          className="fixed inset-x-4 top-4 z-40 mx-auto flex max-w-dialog flex-col gap-2 rounded-panel border border-line bg-surface p-4 text-sm text-fg shadow-lg"
+          className="fixed inset-x-4 top-4 z-40 mx-auto flex max-w-dialog flex-col gap-2 rounded-panel border-2 border-warning-solid bg-surface p-4 text-sm text-fg shadow-lift"
         >
           <p>{view.message}</p>
           <div className="flex flex-wrap items-center gap-x-6">

@@ -54,7 +54,10 @@ export function ReviewsSlot({handle}: {handle: string}) {
 
   return (
     <section id="reviews" aria-labelledby="pdp-reviews-heading">
-      <h2 id="pdp-reviews-heading" className="mb-3 text-2xl font-extrabold">
+      <h2
+        id="pdp-reviews-heading"
+        className="type-display mb-4 text-3xl md:text-heading"
+      >
         Customer reviews
       </h2>
       <div ref={anchor} className="min-h-24">

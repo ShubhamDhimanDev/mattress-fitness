@@ -470,6 +470,7 @@ describe('building a save from a scoring outcome', () => {
         handle: 'larkmoor-cedar-plush-hybrid',
         title: 'T',
         brand: 'B',
+        image: null,
         score: 15,
         reasons: ['Plush', 'Cooling'],
         reasonLine: 'Plush · Cooling',
@@ -502,7 +503,12 @@ describe('building a save from a scoring outcome', () => {
   it('saves the answers alone when there were no matches', () => {
     const saved = savedQuizFromOutcome({
       answers: SAVED.answers,
-      outcome: {status: 'empty', size: 'Queen', reason: 'nothing_in_budget'},
+      outcome: {
+        status: 'empty',
+        size: 'Queen',
+        reason: 'nothing_in_budget',
+        similar: [],
+      },
       nowMs: NOW,
       configFingerprint: null,
     });

@@ -7,7 +7,6 @@ import {
 } from 'react-router';
 import type {Route} from './+types/quiz._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
 import {QuizIntro} from '~/components/quiz/QuizIntro';
 import {QuizQuestion} from '~/components/quiz/QuizQuestion';
 import {QuizResults, type ResultClick} from '~/components/quiz/QuizResults';
@@ -32,6 +31,7 @@ import {
   buildSavedQuiz,
   emptyOutcomeMessage,
   isResumable,
+  MATTRESS_COLLECTION_PATH,
   seeAllMatchesPath,
 } from '~/lib/pages/quiz-view';
 import {getQuizConfigRaw, getQuizProducts} from '~/lib/pages/data-source';
@@ -70,7 +70,7 @@ export async function loader({request, context}: Route.LoaderArgs) {
   const url = new URL(request.url);
   const [rawConfig, catalog] = await Promise.all([
     getQuizConfigRaw(context.storefront),
-    getQuizProducts(),
+    getQuizProducts(context.storefront),
   ]);
   const {config, warnings} = resolveQuizConfig(rawConfig);
   if (rawConfig !== undefined && warnings.length > 0) {
@@ -256,14 +256,13 @@ export default function QuizPage() {
     : null;
 
   return (
-    <div className="mx-auto flex max-w-prose flex-col gap-6 py-8 md:max-w-page">
+    <div className="mx-auto flex max-w-prose flex-col gap-6 py-8 md:max-w-page md:py-12">
       <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Sleep quiz</h1>
+        <p className="type-eyebrow">Not sure where to start?</p>
+        <h1 className="type-display text-4xl md:text-5xl">
+          Take the <span className="type-mark">sleep quiz.</span>
+        </h1>
       </header>
-      {data.source === 'fixtures' ? (
-        <PreviewNotice subject="mattresses" />
-      ) : null}
-
       <div className="max-w-prose md:max-w-none">
         {state.phase === 'intro' ? (
           <QuizIntro
@@ -320,7 +319,11 @@ export default function QuizPage() {
                 : null
             }
             answerSummary={answerSummary(state.answers, config)}
-            seeAllHref={seeAllMatchesPath(state.answers, config)}
+            seeAllHref={
+              data.outcome.status === 'empty'
+                ? MATTRESS_COLLECTION_PATH
+                : seeAllMatchesPath(state.answers, config)
+            }
             retakeHref={hrefFor({type: 'retake'})}
             canAddToCart={data.canAddToCart}
             headingRef={headingRef}

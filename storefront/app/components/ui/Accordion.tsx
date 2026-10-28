@@ -41,8 +41,8 @@ type AccordionProps = {
   /** Level of the heading around each trigger; pick the one that fits the page outline. */
   headingLevel?: HeadingLevel;
   /**
-   * `default` is a content row (heavy sentence case, 44 px). `menu` is a navigation row in the mobile menu:
-   * 56 px, heavy uppercase display type like the desktop navigation items.
+   * `default` is a content row (bold, 64 px, chevron). `menu` is a navigation row in the mobile menu:
+   * 56 px, heavy display type like the desktop navigation items.
    */
   variant?: 'default' | 'menu';
   /**
@@ -55,9 +55,9 @@ type AccordionProps = {
 };
 
 const ROW_BASE =
-  'flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-fg hover:bg-surface-muted';
+  'flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-fg motion-safe:transition-colors hover:bg-surface-muted';
 const ROW_VARIANT = {
-  default: 'min-h-touch text-base font-extrabold',
+  default: 'min-h-16 text-lg font-extrabold',
   menu: 'min-h-14 text-base',
 } as const;
 
@@ -119,7 +119,7 @@ function AccordionPanel({
       aria-labelledby={labelledBy}
       hidden={!open}
       // A panel that is hidden but findable still has a box; without this its padding would show as a blank gap.
-      className="px-4 pt-1 pb-4 [&[hidden]]:py-0"
+      className="px-4 pt-1 pb-5 [&[hidden]]:py-0"
     >
       {children}
     </div>
@@ -255,7 +255,7 @@ export function Accordion({
                 )}
               >
                 <span>{item.title}</span>
-                <ChevronDownIcon className="size-5 text-fg-muted motion-safe:transition-transform group-aria-expanded:rotate-180" />
+                <ChevronDownIcon className="size-6 text-fg motion-safe:transition-transform group-aria-expanded:rotate-180" />
               </button>
             </Heading>
             <AccordionPanel

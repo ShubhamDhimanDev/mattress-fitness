@@ -37,7 +37,7 @@ export function Dialog({
     >
       <div className="flex shrink-0 items-start justify-between gap-4 pt-4 pr-2 pl-4">
         <div className="pt-2">
-          <h2 id={titleId} className="text-xl leading-7 font-bold">
+          <h2 id={titleId} className="type-display text-title">
             {title}
           </h2>
           {description ? (
@@ -46,7 +46,13 @@ export function Dialog({
             </p>
           ) : null}
         </div>
-        <IconButton label={closeLabel} icon={<CloseIcon />} onClick={onClose} />
+        <IconButton
+          label={closeLabel}
+          icon={<CloseIcon />}
+          onClick={onClose}
+          variant="soft"
+          shape="round"
+        />
       </div>
       <div className="min-h-0 overflow-y-auto p-4">{children}</div>
     </Overlay>

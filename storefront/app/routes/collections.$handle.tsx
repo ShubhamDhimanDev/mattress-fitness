@@ -91,13 +91,18 @@ export default function Collection() {
           {label: collection.title},
         ]}
       />
-      {/* The rule under the title (and the description, when there is one) separates it from the listing. */}
-      <header className="mt-2 border-b border-line pb-4">
-        <h1 className={cn(displayHeadingClass(collection.title), 'text-3xl')}>
+      {/* A paper panel holds the title and the short intro, so the white product cards below stand out from it. */}
+      <header className="mt-2 rounded-panel bg-paper p-6 md:p-10">
+        <h1
+          className={cn(
+            displayHeadingClass(collection.title),
+            'text-hero md:text-heading',
+          )}
+        >
           {collection.title}
         </h1>
         {collection.description.length > 0 ? (
-          <div className="mt-2 max-w-prose text-base text-fg-muted">
+          <div className="mt-3 max-w-prose text-lead text-fg-muted">
             {keyedText(collection.description).map((paragraph) => (
               <p key={paragraph.key}>{paragraph.text}</p>
             ))}
@@ -117,7 +122,10 @@ export default function Collection() {
 
       {collection.faqs.length > 0 ? (
         <section aria-labelledby="collection-faq-heading" className="mt-12">
-          <h2 id="collection-faq-heading" className="mb-3 text-2xl font-bold">
+          <h2
+            id="collection-faq-heading"
+            className="type-display mb-3 text-3xl md:text-heading"
+          >
             Frequently asked questions
           </h2>
           <Accordion

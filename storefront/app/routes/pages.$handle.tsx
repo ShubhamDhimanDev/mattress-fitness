@@ -19,6 +19,7 @@ import {contentCache, rememberFound} from '~/lib/shopify/content-pages-cache';
 import {isValidHandle} from '~/lib/shopify/collection-data';
 import {pageHasContent} from '~/lib/pages/content-pages-html';
 import {loadContentAvailability} from '~/lib/shopify/content-pages-data';
+import {RouteErrorPage} from '~/components/pages/ErrorPageView';
 
 // Title, description, robots, canonical, social tags and structured data are all prepared by the loader
 // (`buildContentDocument`), so this function stays a plain read and the logic stays out of the browser bundle.
@@ -126,3 +127,8 @@ const PAGE_QUERY = `#graphql
     }
   }
 ` as const;
+
+/** A missing or failed page keeps the site header and footer (the 404 status is set by the loader). */
+export function ErrorBoundary() {
+  return <RouteErrorPage />;
+}

@@ -10,7 +10,9 @@ import type {Route} from './+types/compare';
 import {CompareTable} from '~/components/compare/CompareTable';
 import {ComparePicker} from '~/components/compare/ComparePicker';
 import {formatPageTitle} from '~/components/layout/documentTitle';
-import {PreviewNotice} from '~/components/pages/PreviewNotice';
+import {buttonStyles} from '~/components/ui/Button';
+import {cardStyles} from '~/components/ui/Card';
+import {cn} from '~/components/ui/cn';
 import {Select} from '~/components/ui/Select';
 import {isSize} from '~/lib/catalog/attributes';
 import {
@@ -187,17 +189,15 @@ export default function ComparePage() {
 
   return (
     <div className="mx-auto flex max-w-page flex-col gap-8 py-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Compare mattresses</h1>
-        <p className="max-w-prose text-base text-fg-muted">
+      <header className="flex flex-col gap-3 rounded-panel bg-paper p-6 md:p-10">
+        <h1 className="type-display text-hero md:text-heading">
+          Compare mattresses
+        </h1>
+        <p className="max-w-prose text-lead text-fg-muted">
           Pick up to {COMPARE_MAX_PRODUCTS} products to see their rating, price,
           comfort level, type, height and benefits side by side.
         </p>
       </header>
-
-      {data.source === 'fixtures' ? (
-        <PreviewNotice subject="mattresses" />
-      ) : null}
 
       <div role="status" aria-live="polite" className="min-h-6">
         {message ? (
@@ -224,7 +224,7 @@ export default function ComparePage() {
           id="compare-selection-heading"
           ref={headingRef}
           tabIndex={-1}
-          className="text-2xl font-bold"
+          className="type-display text-3xl"
         >
           Your comparison
         </h2>
@@ -290,19 +290,22 @@ export default function ComparePage() {
           aria-labelledby="compare-similar-heading"
           className="flex flex-col gap-3"
         >
-          <h2 id="compare-similar-heading" className="text-2xl font-bold">
+          <h2 id="compare-similar-heading" className="type-display text-3xl">
             Similar products
           </h2>
           <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {data.similar.map((product) => (
               <li
                 key={product.handle}
-                className="flex flex-col gap-2 rounded-card border-2 border-line p-4"
+                className={cn(
+                  cardStyles({padding: 'sm'}),
+                  'flex flex-col gap-2',
+                )}
               >
-                <span className="text-sm font-bold text-fg-muted">
+                <span className="text-caption font-bold tracking-wide text-fg-muted uppercase">
                   {product.brand}
                 </span>
-                <span className="font-bold">{product.title}</span>
+                <span className="text-lg font-extrabold">{product.title}</span>
                 {product.priceText ? (
                   <span className="text-sm text-fg-muted">
                     From {product.priceText}
@@ -322,7 +325,10 @@ export default function ComparePage() {
                     }
                   }}
                   aria-label={`Add ${product.title} to comparison`}
-                  className="mt-auto inline-flex min-h-touch items-center justify-center rounded-choice border-2 border-primary-700 px-4 text-sm font-bold text-primary-700 hover:bg-primary-50"
+                  className={cn(
+                    buttonStyles({variant: 'secondary', size: 'sm'}),
+                    'mt-auto',
+                  )}
                 >
                   Add to comparison
                 </Link>

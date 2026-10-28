@@ -113,4 +113,9 @@ export type ProductPageView = {
 export type PageInfoView = {
   readonly hasNextPage: boolean;
   readonly endCursor: string | null;
+  /**
+   * How many products the whole filtered list has, when the page knows it. Shopify's Storefront API does not report a
+   * total, so only a list filtered in our own code (local-filter.ts) has one; otherwise absent.
+   */
+  readonly totalCount?: number | null;
 };

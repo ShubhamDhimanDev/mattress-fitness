@@ -302,6 +302,32 @@ export function validateAddAddOn(raw: unknown): Validated<ValidAddAddOn> {
   };
 }
 
+export type ValidAddProductBundle = {
+  bundleId: string;
+  anchorVariantId: string;
+};
+
+/**
+ * "Add all" from the product page (P4-06): the bundle's id and the anchor variant being viewed. The lines, sizes and
+ * quantities are the server's; a quantity, price, discount or list of lines in the request is dropped.
+ */
+export function validateAddProductBundle(
+  raw: unknown,
+): Validated<ValidAddProductBundle> {
+  if (
+    !isRecord(raw) ||
+    !isOfferId(raw.bundleId) ||
+    typeof raw.anchorVariantId !== 'string' ||
+    !VARIANT_ID.test(raw.anchorVariantId)
+  ) {
+    return {status: 'invalid', reason: 'Invalid set.'};
+  }
+  return {
+    status: 'ok',
+    value: {bundleId: raw.bundleId, anchorVariantId: raw.anchorVariantId},
+  };
+}
+
 export type ValidAddBundle = {bundleId: string; anchorLineId: string};
 
 /** A bundle completion: the bundle's id and the cart line it anchors on. Which lines and how many is the server's. */

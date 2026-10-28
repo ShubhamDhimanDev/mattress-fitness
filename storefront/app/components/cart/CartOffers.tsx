@@ -1,21 +1,18 @@
 import {useEffect, useId, useRef, useState} from 'react';
 import {CartActionForm} from '~/components/cart/CartActionForm';
-import {useCartSubmit} from '~/components/cart/useCartSubmit';
-import {
-  PlanPrice,
-  PlanSummary,
-  PlanTermsLink,
-  PoweredByExtend,
-} from '~/components/extend/PlanParts';
+import {ProtectionPlanRow} from '~/components/cart/ProtectionStrip';
+import type {CartLayout} from '~/components/CartMain';
+import {PoweredByExtend} from '~/components/extend/PlanParts';
 import {Badge} from '~/components/ui/Badge';
 import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
+import {cn} from '~/components/ui/cn';
 import {Price} from '~/components/ui/Price';
 import {Radio} from '~/components/ui/Radio';
 import {
   ADD_ADDON_ACTION,
   ADD_BUNDLE_ACTION,
   ADD_GIFT_ACTION,
-  ADD_PROTECTION_ACTION,
 } from '~/lib/cart/custom-actions';
 import {readCartMessages, isCartActionResult} from '~/lib/cart/messages';
 import {formatMoney} from '~/lib/money';
@@ -26,8 +23,10 @@ import type {
   CartOffersView,
   GiftView,
   ProtectionLineView,
-  ProtectionPlanView,
 } from '~/lib/offers-runtime/view';
+
+/** Heading for the add-on block (CR-31). The accessible name of its list; the engine's category labels stay on each card. */
+const ADD_ONS_HEADING = 'Complete your sleep setup';
 
 /**
  * What the engine offers this cart: gifts (REQ-CART-002), size-matched add-ons (REQ-CART-003) and bundles
@@ -37,16 +36,27 @@ import type {
  * offer the shopper should not have simply disappears (REQ-PRE-006). No price is claimed here: a gift or bundle price is
  * Shopify's discount and is shown only as Shopify returns it on the cart line. Wording is placeholder copy until the
  * client approves it (CLR-010, CLR-011).
+ *
+ * Protection plans are drawn inside the card of the item they cover (ProtectionStrip). `protectionPlacedFor` names the cart
+ * lines whose card already shows their offer; any other offer still appears here, so none is lost.
  */
 export function CartOffers({
   view,
   onAdded,
+  layout = 'page',
+  protectionPlacedFor,
+  className,
 }: {
   view: CartOffersView;
   /** Called once an add succeeded: the picker that held focus is gone by then, so the cart moves focus somewhere that exists. */
   onAdded?: () => void;
+  layout?: CartLayout;
+  protectionPlacedFor?: ReadonlySet<string>;
+  className?: string;
 }) {
-  const protection = view.accidentProtection?.lines ?? [];
+  const protection = (view.accidentProtection?.lines ?? []).filter(
+    (line) => !protectionPlacedFor?.has(line.lineId),
+  );
   if (
     view.gifts.length === 0 &&
     view.addOns.length === 0 &&
@@ -59,7 +69,11 @@ export function CartOffers({
   return (
     <section
       aria-label={PICKER_COPY.region}
-      className="mt-6 flex flex-col gap-6 border-t border-line pt-6"
+      className={cn(
+        'flex flex-col gap-5',
+        layout === 'aside' && 'border-t border-line pt-5',
+        className,
+      )}
     >
       {view.gifts.map((gift) => (
         <GiftPicker key={gift.ruleId} gift={gift} onAdded={onAdded} />
@@ -72,7 +86,7 @@ export function CartOffers({
         />
       ))}
       {view.addOns.length > 0 ? (
-        <AddOnList addOns={view.addOns} onAdded={onAdded} />
+        <AddOnList addOns={view.addOns} onAdded={onAdded} layout={layout} />
       ) : null}
       {protection.length > 0 ? <ProtectionOffers lines={protection} /> : null}
     </section>
@@ -96,14 +110,16 @@ function GiftPicker({gift, onAdded}: {gift: GiftView; onAdded?: () => void}) {
     `${entry.variant.productTitle} (${entry.size})`;
 
   return (
-    <div
+    <Card
+      variant="dashed-amber"
+      padding="sm"
       role="group"
       aria-labelledby={headingId}
-      className="flex flex-col gap-3 rounded-card border border-line p-3"
+      className="flex flex-col gap-3"
     >
       <h3
         id={headingId}
-        className="flex flex-wrap items-center gap-2 text-base font-bold"
+        className="flex flex-wrap items-center gap-2 text-base font-extrabold"
       >
         <Badge variant="gift">{PICKER_COPY.gift.badge}</Badge>
         {gift.name}
@@ -140,7 +156,7 @@ function GiftPicker({gift, onAdded}: {gift: GiftView; onAdded?: () => void}) {
             )}
             <Button
               type="submit"
-              variant="secondary"
+              variant="outline"
               size="sm"
               className="self-start"
               loading={fetcher.state !== 'idle'}
@@ -152,29 +168,49 @@ function GiftPicker({gift, onAdded}: {gift: GiftView; onAdded?: () => void}) {
           </div>
         )}
       </CartActionForm>
-    </div>
+    </Card>
   );
 }
 
 function AddOnList({
   addOns,
   onAdded,
+  layout,
 }: {
   addOns: readonly AddOnView[];
   onAdded?: () => void;
+  layout: CartLayout;
 }) {
   const headingId = useId();
+  const aside = layout === 'aside';
+  const Heading = aside ? 'h3' : 'h2';
   return (
-    <div className="flex flex-col gap-3">
-      <h3 id={headingId} className="type-display text-base">
-        {PICKER_COPY.addOns.heading}
-      </h3>
-      <ul aria-labelledby={headingId} className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
+      <Heading
+        id={headingId}
+        className={
+          aside
+            ? 'text-base font-extrabold text-fg'
+            : 'type-display text-2xl md:text-3xl'
+        }
+      >
+        {ADD_ONS_HEADING}
+      </Heading>
+      {/* Phone: a row that scrolls sideways with snap points. From md: three columns. The drawer stacks them. */}
+      <ul
+        aria-labelledby={headingId}
+        className={cn(
+          aside
+            ? 'flex flex-col gap-3'
+            : 'flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:pb-0',
+        )}
+      >
         {addOns.map((addOn) => (
-          <AddOnRow
+          <AddOnCard
             key={`${addOn.category}:${addOn.variant.variantId}`}
             addOn={addOn}
             onAdded={onAdded}
+            aside={aside}
           />
         ))}
       </ul>
@@ -182,45 +218,101 @@ function AddOnList({
   );
 }
 
-function AddOnRow({addOn, onAdded}: {addOn: AddOnView; onAdded?: () => void}) {
+// No product photo: the offers view carries the variant's title and price but no image, and nothing is invented to fill the
+// space. When the view gains an image the card gets a 4:3 picture above the text.
+function AddOnCard({
+  addOn,
+  onAdded,
+  aside,
+}: {
+  addOn: AddOnView;
+  onAdded?: () => void;
+  aside: boolean;
+}) {
   const {variant} = addOn;
+  // Drawer: a plain row (name and price left, the Add button right) instead of a bordered card, one line per offer.
+  if (aside) {
+    return (
+      <li className="border-b border-line pb-3 last:border-b-0 last:pb-0">
+        <CartActionForm
+          route="/cart"
+          action={ADD_ADDON_ACTION}
+          inputs={{variantId: variant.variantId}}
+        >
+          {(fetcher) => (
+            <div className="flex items-center justify-between gap-3">
+              <AddedFocus data={fetcher.data} onAdded={onAdded} />
+              <div className="flex min-w-0 flex-col">
+                <span className="text-xs font-semibold text-fg-muted">
+                  {PICKER_COPY.addOns.categories[addOn.category]}
+                  {addOn.size ? ` for your ${addOn.size} mattress` : ''}
+                </span>
+                <span className="text-sm font-bold text-fg">
+                  {variant.productTitle}
+                  {variant.variantTitle ? `, ${variant.variantTitle}` : ''}
+                </span>
+                <Price price={variant.price} size="sm" />
+              </div>
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                loading={fetcher.state !== 'idle'}
+                loadingLabel={PICKER_COPY.addOns.adding}
+                aria-label={`Add ${variant.productTitle} to cart${fetcher.state !== 'idle' ? ', adding' : ''}`}
+              >
+                {PICKER_COPY.addOns.add}
+              </Button>
+            </div>
+          )}
+        </CartActionForm>
+      </li>
+    );
+  }
   return (
-    <li className="rounded-card border border-line p-3">
+    <Card
+      as="li"
+      padding="sm"
+      className="flex w-44 shrink-0 snap-start flex-col md:w-auto [&>form]:flex [&>form]:flex-1"
+    >
       <CartActionForm
         route="/cart"
         action={ADD_ADDON_ACTION}
         inputs={{variantId: variant.variantId}}
       >
         {(fetcher) => (
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-1 flex-col gap-2">
             <AddedFocus data={fetcher.data} onAdded={onAdded} />
-            <span className="flex min-w-0 flex-col">
-              <span className="text-xs font-bold uppercase text-fg-muted">
-                {PICKER_COPY.addOns.categories[addOn.category]}
-                {addOn.size ? ` for your ${addOn.size} mattress` : ''}
-              </span>
-              <span className="font-bold">{variant.productTitle}</span>
-              {variant.variantTitle ? (
-                <span className="text-sm text-fg-muted">
-                  {variant.variantTitle}
-                </span>
-              ) : null}
-              <Price price={variant.price} size="sm" />
+            <span className="text-caption font-bold text-fg-muted">
+              {PICKER_COPY.addOns.categories[addOn.category]}
+              {addOn.size ? ` for your ${addOn.size} mattress` : ''}
             </span>
-            <Button
-              type="submit"
-              variant="secondary"
-              size="sm"
-              loading={fetcher.state !== 'idle'}
-              loadingLabel={PICKER_COPY.addOns.adding}
-              aria-label={`Add ${variant.productTitle} to cart${fetcher.state !== 'idle' ? ', adding' : ''}`}
-            >
-              {PICKER_COPY.addOns.add}
-            </Button>
+            <span className="text-base font-extrabold text-fg">
+              {variant.productTitle}
+            </span>
+            {variant.variantTitle ? (
+              <span className="text-sm text-fg-muted">
+                {variant.variantTitle}
+              </span>
+            ) : null}
+            <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+              <Price price={variant.price} size="md" />
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                loading={fetcher.state !== 'idle'}
+                loadingLabel={PICKER_COPY.addOns.adding}
+                aria-label={`Add ${variant.productTitle} to cart${fetcher.state !== 'idle' ? ', adding' : ''}`}
+              >
+                {PICKER_COPY.addOns.add}
+              </Button>
+            </div>
           </div>
         )}
       </CartActionForm>
-    </li>
+    </Card>
   );
 }
 
@@ -238,19 +330,20 @@ function BundleOffer({
   const headingId = useId();
   const savings = bundle.savings;
   return (
-    <div
+    <Card
+      padding="sm"
       role="group"
       aria-labelledby={headingId}
-      className="flex flex-col gap-3 rounded-card border border-line p-3"
+      className="flex flex-col gap-3"
     >
-      <h3 id={headingId} className="text-base font-bold">
+      <h3 id={headingId} className="text-base font-extrabold">
         {bundle.status === 'complete'
           ? PICKER_COPY.bundle.completeHeading
           : PICKER_COPY.bundle.heading}
         : {bundle.name}
       </h3>
       {bundle.status === 'complete' && savings ? (
-        <p className="text-sm">
+        <p className="text-sm font-bold text-sale-fg">
           Savings on these items: {formatMoney(savings)}
         </p>
       ) : null}
@@ -290,7 +383,7 @@ function BundleOffer({
                 <AddedFocus data={fetcher.data} onAdded={onAdded} />
                 <Button
                   type="submit"
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   loading={fetcher.state !== 'idle'}
                   loadingLabel={PICKER_COPY.bundle.adding}
@@ -303,29 +396,31 @@ function BundleOffer({
           </CartActionForm>
         </>
       ) : null}
-    </div>
+    </Card>
   );
 }
 
 /**
- * Extend accident protection for each eligible item that has none yet (P5A-07, REQ-PRE-004, REQ-EXT-004). Plans, prices
- * and terms were read by the server (never the browser) and filtered to plans that match a real price-point variant.
- * Adding sends the line id and the plan key only; the server re-derives the plan, the coverage variant, the quantity (the
- * uncovered units) and the nested link, then the cart gate checks the result. Shown only with the Extend flag on and
- * only for items Extend quoted. Wording is placeholder copy until the client approves it (Q-005).
+ * Extend accident protection for each eligible item that has none yet and whose card does not show it (P5A-07, REQ-PRE-004,
+ * REQ-EXT-004). Plans, prices and terms were read by the server (never the browser) and filtered to plans that match a real
+ * price-point variant. Adding sends the line id and the plan key only; the server re-derives the plan, the coverage variant,
+ * the quantity (the uncovered units) and the nested link, then the cart gate checks the result. Shown only with the Extend
+ * flag on and only for items Extend quoted. Wording is placeholder copy until the client approves it (Q-005).
  */
 function ProtectionOffers({lines}: {lines: readonly ProtectionLineView[]}) {
   const headingId = useId();
   return (
     <div className="flex flex-col gap-3">
-      <h3 id={headingId} className="type-display text-base">
+      <h3 id={headingId} className="type-display text-lg">
         Protect your purchase
       </h3>
       <ul aria-labelledby={headingId} className="flex flex-col gap-4">
         {lines.map((line) => (
-          <li
+          <Card
+            as="li"
             key={line.lineId}
-            className="flex flex-col gap-2 rounded-card border border-line p-3"
+            padding="sm"
+            className="flex flex-col gap-2"
           >
             <span className="font-bold">
               {line.productTitle}
@@ -339,52 +434,11 @@ function ProtectionOffers({lines}: {lines: readonly ProtectionLineView[]}) {
                 <ProtectionPlanRow key={plan.planId} line={line} plan={plan} />
               ))}
             </ul>
-          </li>
+          </Card>
         ))}
       </ul>
       <PoweredByExtend />
     </div>
-  );
-}
-
-function ProtectionPlanRow({
-  line,
-  plan,
-}: {
-  line: ProtectionLineView;
-  plan: ProtectionPlanView;
-}) {
-  const {submit, pending} = useCartSubmit(
-    `cart-protection-${line.lineId}-${plan.planId}`,
-  );
-  return (
-    <li className="flex flex-wrap items-center justify-between gap-3">
-      <span className="flex min-w-0 flex-col">
-        <PlanSummary plan={plan} />
-        <PlanTermsLink plan={plan} />
-      </span>
-      <span className="flex items-center gap-3">
-        <PlanPrice plan={plan} />
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          // Flex item: shrink-0 keeps the label from squeezing below its longest word, where .type-display would break it.
-          className="shrink-0"
-          loading={pending}
-          loadingLabel="Adding"
-          aria-label={`Add ${plan.title} protection for ${line.productTitle}`}
-          onClick={() =>
-            submit(ADD_PROTECTION_ACTION, {
-              lineId: line.lineId,
-              planKey: plan.planId,
-            })
-          }
-        >
-          Add protection
-        </Button>
-      </span>
-    </li>
   );
 }
 

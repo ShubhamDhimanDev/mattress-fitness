@@ -10,7 +10,10 @@ type OwnProps = {
   caption?: string;
   /** Count bubble. Hidden from assistive technology because `label` already carries it. */
   badge?: number;
-  variant?: 'ghost' | 'solid';
+  /** `soft` is a paper fill (the drawer close button); `solid` is brand red. */
+  variant?: 'ghost' | 'solid' | 'soft';
+  /** `round` is a circle (close buttons, the cart button); the default is the 12 px choice radius. */
+  shape?: 'square' | 'round';
   className?: string;
 };
 
@@ -19,6 +22,7 @@ export type IconButtonProps = OwnProps & ActionElementProps;
 const VARIANT = {
   ghost: 'bg-transparent text-fg hover:bg-surface-muted active:bg-ink-200',
   solid: 'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700',
+  soft: 'bg-paper text-fg hover:bg-ink-100 active:bg-ink-200',
 } as const;
 
 export function IconButton({
@@ -27,6 +31,7 @@ export function IconButton({
   caption,
   badge,
   variant = 'ghost',
+  shape = 'square',
   className,
   ...element
 }: IconButtonProps) {
@@ -39,7 +44,8 @@ export function IconButton({
       inert={disabled}
       aria-label={label}
       className={cn(
-        'relative inline-flex min-h-touch min-w-touch shrink-0 flex-col items-center justify-center gap-0.5 rounded-choice px-2 motion-safe:transition-colors',
+        'relative inline-flex min-h-touch min-w-touch shrink-0 flex-col items-center justify-center gap-0.5 px-2 motion-safe:transition-colors',
+        shape === 'round' ? 'rounded-pill' : 'rounded-choice',
         VARIANT[variant],
         disabled && 'pointer-events-none opacity-60',
         className,

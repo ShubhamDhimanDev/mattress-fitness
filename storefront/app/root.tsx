@@ -34,6 +34,7 @@ import {
   existingContentPaths,
   buildFallbackNav,
 } from '~/lib/navigation';
+import {loadCollectionHandles} from '~/lib/shopify/collection-handles-data';
 import {loadFooterPageLinks} from '~/lib/shopify/content-pages-data';
 import {publicSignupConfig} from '~/lib/signup/config';
 import {loadMainNav} from '~/lib/shopify/menu-data';
@@ -91,6 +92,15 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
  */
 export function links() {
   return [
+    // The one self-hosted variable font (CR-31). `crossOrigin` is required for font preloads even on the same origin,
+    // otherwise the browser fetches the file twice.
+    {
+      rel: 'preload',
+      href: '/fonts/PlusJakartaSans-Variable.woff2',
+      as: 'font',
+      type: 'font/woff2',
+      crossOrigin: 'anonymous',
+    },
     {
       rel: 'preconnect',
       href: 'https://cdn.shopify.com',
@@ -145,15 +155,23 @@ export async function loader(args: Route.LoaderArgs) {
   // The store lookup, the ZIP cookie read, the site settings, the menu and the footer's page links are independent
   // of each other, so they run together. None of them fails the page: each degrades to "nothing" or to the fixed
   // navigation.
-  const [myStore, delivery, siteSettings, mainNav, footerPages, shop] =
-    await Promise.all([
-      loadMyStore(args.request, storefront),
-      loadDeliverySummary(args.request, env),
-      loadSiteSettings(storefront),
-      loadMainNav(storefront, env),
-      loadFooterPageLinks(storefront),
-      loadShopIdentity(storefront, env),
-    ]);
+  const [
+    myStore,
+    delivery,
+    siteSettings,
+    mainNav,
+    footerPages,
+    shop,
+    collectionHandles,
+  ] = await Promise.all([
+    loadMyStore(args.request, storefront),
+    loadDeliverySummary(args.request, env),
+    loadSiteSettings(storefront),
+    loadMainNav(storefront, env),
+    loadFooterPageLinks(storefront),
+    loadShopIdentity(storefront, env),
+    loadCollectionHandles(storefront),
+  ]);
 
   const footerLinks = buildFooterLinks(footerPages);
   const analytics = parseAnalyticsConfig(env);
@@ -205,7 +223,7 @@ export async function loader(args: Route.LoaderArgs) {
     // the fixed navigation is only sent when no admin menu is in use.
     fallbackNav: mainNav
       ? null
-      : buildFallbackNav(existingContentPaths(footerPages)),
+      : buildFallbackNav(existingContentPaths(footerPages), collectionHandles),
     utilityLinks: buildUtilityLinks(existingContentPaths(footerPages), {
       chat: chat ?? false,
     }),
@@ -266,7 +284,11 @@ export function Layout({children}: {children?: React.ReactNode}) {
         <meta name="theme-color" content={BRAND_THEME_COLOR} />
         <link rel="stylesheet" href={tailwindCss}></link>
         <Meta />
-        <Links />
+        {/* React Router 7.18 puts the server's nonce on the stylesheet links. Browsers blank a nonce attribute once parsed, so the
+            client must render an empty one to match what hydration reads back; a missing prop or the real value both make React
+            warn about the nonce on every page (seen on the real store, 2026-10-26). The stylesheets are same-origin, so the
+            enforced policy allows them through 'self' and not through the nonce. */}
+        <Links nonce={typeof document === 'undefined' ? nonce : ''} />
       </head>
       <body>
         <SkipLink />

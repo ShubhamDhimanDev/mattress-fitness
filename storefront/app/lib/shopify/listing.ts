@@ -151,11 +151,18 @@ export function readListingPage(
   }
   const info = new Map(Object.entries(pageInfo));
   const endCursor = info.get('endCursor');
+  const totalCount = info.get('totalCount');
   return {
     products: products.filter(isCardView),
     pageInfo: {
       hasNextPage: info.get('hasNextPage') === true,
       endCursor: typeof endCursor === 'string' ? endCursor : null,
+      totalCount:
+        typeof totalCount === 'number' &&
+        Number.isSafeInteger(totalCount) &&
+        totalCount >= 0
+          ? totalCount
+          : null,
     },
   };
 }
@@ -177,4 +184,20 @@ export function appendUnique<T extends {readonly id: string}>(
 ): T[] {
   const seen = new Set(current.map((item) => item.id));
   return [...current, ...next.filter((item) => !seen.has(item.id))];
+}
+
+/**
+ * "12 of 37 products" while more can be loaded and the total is known, "37 products" once all are on the page, and the old
+ * "12 products shown" when the total is unknown (Shopify reports none; only a list we filter ourselves has one).
+ */
+export function countLabel(
+  loaded: number,
+  total: number | null,
+  hasMore: boolean,
+): string {
+  const noun = (n: number) => (n === 1 ? 'product' : 'products');
+  if (total !== null && hasMore && total > loaded) {
+    return `${loaded} of ${total} ${noun(total)}`;
+  }
+  return `${loaded} ${noun(loaded)}${hasMore ? ' shown' : ''}`;
 }

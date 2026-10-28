@@ -3,6 +3,8 @@ import type {Route} from './+types/blogs._index';
 import {formatPageTitle} from '~/components/layout/documentTitle';
 import {PaginatedList} from '~/components/pages/ArticleList';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
+import {cardStyles} from '~/components/ui/Card';
+import {ChevronRightIcon} from '~/components/ui/Icons';
 import {SITE_NAME} from '~/lib/navigation';
 import {blogPath} from '~/lib/pages/content-pages-blog';
 import {cursorPaginationVariables} from '~/lib/pages/cursor-pagination';
@@ -50,12 +52,12 @@ export default function Blogs() {
   const {blogs} = useLoaderData<typeof loader>();
 
   return (
-    <div className="py-4">
+    <div className="py-6 md:py-10">
       <Breadcrumb
         items={[{label: 'Home', to: '/'}, {label: 'Blogs'}]}
         className="print:hidden"
       />
-      <h1 className="mt-2 border-b border-line pb-4 text-3xl font-bold">
+      <h1 className="type-display mt-4 border-b border-line pb-6 text-4xl md:text-5xl">
         Blogs
       </h1>
       <div className="mt-6">
@@ -65,13 +67,17 @@ export default function Blogs() {
           <PaginatedList connection={blogs} label="Blogs">
             {(blog) => (
               <li key={blog.handle}>
-                <h2 className="text-xl font-bold">
+                <h2 className="type-display text-title">
                   <Link
                     prefetch="intent"
                     to={blogPath(blog.handle)}
-                    className="inline-flex min-h-touch items-center text-fg hover:text-primary-700 hover:underline"
+                    className={
+                      cardStyles({interactive: true, padding: 'sm'}) +
+                      ' flex min-h-14 items-center justify-between gap-3 text-fg hover:text-primary-700'
+                    }
                   >
                     {blog.title}
+                    <ChevronRightIcon className="text-primary-700" />
                   </Link>
                 </h2>
               </li>

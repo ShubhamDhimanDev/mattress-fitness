@@ -43,7 +43,7 @@ test.describe('cart drawer (REQ-CART-001)', () => {
     const drawer = await addFirstProduct(page);
 
     await expect(drawer.getByRole('listitem').first()).toBeVisible();
-    await expect(drawer.getByText('Subtotal')).toBeVisible();
+    await expect(drawer.getByText('Estimated total')).toBeVisible();
     // Checkout opens the server gate, which revalidates the cart and then redirects to Shopify's hosted
     // checkout (REQ-CHK-001, REQ-PRE-006, ADR-0003).
     await expect(drawer.getByRole('link', {name: 'Checkout'})).toHaveAttribute(

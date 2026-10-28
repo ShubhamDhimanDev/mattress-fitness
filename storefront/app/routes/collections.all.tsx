@@ -26,9 +26,9 @@ export default function AllProducts() {
           {label: 'All products'},
         ]}
       />
-      <h1 className="mt-2 border-b border-line pb-4 type-display text-3xl">
-        All products
-      </h1>
+      <header className="mt-2 rounded-panel bg-paper p-6 md:p-10">
+        <h1 className="type-display text-hero md:text-heading">All products</h1>
+      </header>
       <ProductListing
         products={data.products}
         pageInfo={data.pageInfo}

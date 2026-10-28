@@ -12,8 +12,10 @@ import type {MainNavItem} from '~/lib/navigation';
 
 afterEach(cleanup);
 
-// REQ-NAV-001, NFR-003, BRAND_APPLICATION_SPEC 2.7: heavy uppercase display type only for short labels. Text typed into
-// Shopify admin or the navigation data can be any length, so past 40 characters it goes back to sentence case.
+// REQ-NAV-001, NFR-003, BRAND_APPLICATION_SPEC 2.7: text typed into Shopify admin or the navigation data can be any
+// length. CR-31: small labels (promo bar, header navigation, footer headings) use plain bold type, never `type-display`
+// (too tight at 13 to 16 px) and never capitals, whatever the length. The mobile menu rows (ui/Accordion) and the mega-menu
+// group headings keep the 40-character guard, because only those still use display type or capitals.
 
 const SHORT = 'Free delivery this week';
 const LONG =
@@ -25,25 +27,27 @@ function renderIn(element: React.ReactNode) {
 }
 
 describe('PromoBar display type guard', () => {
-  it('uses display type for a short message and plain heavy type for a long one', () => {
+  it('uses plain bold type for a short and a long message alike, never capitals', () => {
     expect(SHORT.length).toBeLessThanOrEqual(DISPLAY_TYPE_MAX_LENGTH);
     expect(LONG.length).toBeGreaterThan(DISPLAY_TYPE_MAX_LENGTH);
-    renderIn(<PromoBar message={{text: SHORT}} />);
-    expect(screen.getByText(SHORT)).toHaveClass('type-display');
-    cleanup();
-    renderIn(<PromoBar message={{text: LONG}} />);
-    const long = screen.getByText(LONG);
-    expect(long).toHaveClass('font-extrabold');
-    expect(long).not.toHaveClass('type-display');
+    for (const text of [SHORT, LONG]) {
+      renderIn(<PromoBar message={{text}} />);
+      const node = screen.getByText(text);
+      expect(node).toHaveClass('font-extrabold');
+      expect(node).not.toHaveClass('type-display');
+      expect(node).not.toHaveClass('uppercase');
+      cleanup();
+    }
   });
 
-  it('judges a link label on its own length', () => {
+  it('styles a link label like the message', () => {
     renderIn(
       <PromoBar
         message={{text: SHORT, to: '/collections/sale', linkLabel: LONG}}
       />,
     );
-    expect(screen.getByText(SHORT)).toHaveClass('type-display');
+    expect(screen.getByText(SHORT)).toHaveClass('font-extrabold');
+    expect(screen.getByText(SHORT)).not.toHaveClass('type-display');
     expect(screen.getByRole('link', {name: LONG})).toHaveClass(
       'font-extrabold',
     );
@@ -84,17 +88,17 @@ const NAV: readonly MainNavItem[] = [
 ];
 
 describe('MainNav display type guard', () => {
-  it('guards each top-level label and each group heading by its own length', () => {
+  it('sets every top-level label in plain bold type and guards each group heading by its own length', () => {
     renderIn(<MainNav items={NAV} />);
-    expect(screen.getByRole('link', {name: 'Sale'})).toHaveClass(
-      'type-display',
-    );
-    const long = screen.getByRole('link', {name: LONG});
-    expect(long).toHaveClass('font-extrabold');
-    expect(long).not.toHaveClass('type-display');
-    expect(screen.getByRole('button', {name: LONG})).not.toHaveClass(
-      'type-display',
-    );
+    for (const link of [
+      screen.getByRole('link', {name: 'Sale'}),
+      screen.getByRole('link', {name: LONG}),
+      screen.getByRole('button', {name: LONG}),
+    ]) {
+      expect(link).toHaveClass('font-bold');
+      expect(link).not.toHaveClass('type-display');
+      expect(link).not.toHaveClass('uppercase');
+    }
     expect(screen.getByText(LONG, {selector: 'p'})).not.toHaveClass(
       'uppercase',
     );
@@ -131,7 +135,7 @@ describe('mobile menu display type guard', () => {
 });
 
 describe('footer group heading display type guard', () => {
-  it('guards the visible heading and the phone toggle by the heading length', () => {
+  it('sets the visible heading and the phone toggle in plain bold type, whatever the length', () => {
     renderIn(
       <FooterGroups
         className=""
@@ -145,15 +149,15 @@ describe('footer group heading display type guard', () => {
         ]}
       />,
     );
-    const shortHeadings = screen.getAllByText('About');
-    const longHeadings = screen.getAllByText(LONG);
     // One plain heading (desktop) and one toggle button (phone) per group.
-    expect(shortHeadings).toHaveLength(2);
-    for (const node of shortHeadings) expect(node).toHaveClass('type-display');
-    expect(longHeadings).toHaveLength(2);
-    for (const node of longHeadings) {
-      expect(node).toHaveClass('font-extrabold');
-      expect(node).not.toHaveClass('type-display');
+    for (const text of ['About', LONG]) {
+      const nodes = screen.getAllByText(text);
+      expect(nodes).toHaveLength(2);
+      for (const node of nodes) {
+        expect(node).toHaveClass('font-extrabold');
+        expect(node).not.toHaveClass('type-display');
+        expect(node).not.toHaveClass('uppercase');
+      }
     }
   });
 });

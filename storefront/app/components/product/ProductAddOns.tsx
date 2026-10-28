@@ -4,6 +4,8 @@ import {CartActionForm} from '~/components/cart/CartActionForm';
 import {useCartVariantIds} from '~/components/product/useCartVariantIds';
 import {useProductAddOns} from '~/components/product/useProductAddOns';
 import {Button} from '~/components/ui/Button';
+import {Card} from '~/components/ui/Card';
+import {Chip} from '~/components/ui/Chip';
 import {Price} from '~/components/ui/Price';
 import {Skeleton} from '~/components/ui/Skeleton';
 import {ADD_ADDON_ACTION} from '~/lib/cart/custom-actions';
@@ -68,7 +70,10 @@ export function ProductAddOns({
         {announcement}
       </p>
       {state.status === 'loading' ? (
-        <div aria-busy="true" className={`${RESERVED} flex flex-col gap-3 p-4`}>
+        <div
+          aria-busy="true"
+          className={`${RESERVED} flex flex-col gap-3 rounded-card bg-paper p-4`}
+        >
           <span className="sr-only">{PRODUCT_ADDON_COPY.loading}</span>
           <Skeleton className="h-5 w-48" />
           <Skeleton className="h-4 w-full" />
@@ -81,7 +86,7 @@ export function ProductAddOns({
           <p role="alert" className="text-sm">
             {PRODUCT_ADDON_COPY.error}
           </p>
-          <Button type="button" variant="secondary" size="sm" onClick={retry}>
+          <Button type="button" variant="outline" size="sm" onClick={retry}>
             {PRODUCT_ADDON_COPY.retry}
           </Button>
         </div>
@@ -112,11 +117,14 @@ function AddOnList({
     (fetcher) => fetcher.state !== 'idle' && fetcher.formAction === '/cart',
   );
   return (
-    <section
+    <Card
+      as="section"
+      variant="tinted"
+      padding="sm"
       aria-labelledby={headingId}
-      className="flex flex-col gap-3 rounded-card border border-line p-4"
+      className="flex flex-col gap-3"
     >
-      <h2 id={headingId} className="type-display text-base">
+      <h2 id={headingId} className="type-display text-title">
         {PRODUCT_ADDON_COPY.heading}
       </h2>
       <p id={reasonId} className="text-sm text-fg-muted">
@@ -143,7 +151,7 @@ function AddOnList({
           />
         ))}
       </ul>
-    </section>
+    </Card>
   );
 }
 
@@ -182,7 +190,7 @@ function AddOnRow({
   }, [added]);
 
   return (
-    <li className="rounded-choice border border-line p-3">
+    <li className="rounded-card border border-line bg-surface p-4">
       <CartActionForm
         route="/cart"
         action={ADD_ADDON_ACTION}
@@ -196,7 +204,9 @@ function AddOnRow({
           return (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="flex min-w-0 flex-col">
-                <span className="font-bold">{variant.productTitle}</span>
+                <span className="text-lg font-extrabold">
+                  {variant.productTitle}
+                </span>
                 {variant.variantTitle ? (
                   <span className="text-sm text-fg-muted">
                     {variant.variantTitle}
@@ -206,9 +216,7 @@ function AddOnRow({
               </span>
               {added ? (
                 <span ref={viewCart} className="flex items-center gap-2">
-                  <span className="text-sm font-bold">
-                    {PRODUCT_ADDON_COPY.added}
-                  </span>
+                  <Chip tone="success">{PRODUCT_ADDON_COPY.added}</Chip>
                   <Button
                     type="button"
                     variant="ghost"
@@ -222,7 +230,7 @@ function AddOnRow({
               ) : (
                 <Button
                   type="submit"
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   // Flex item: shrink-0 keeps the label from squeezing below its longest word.
                   className="shrink-0"

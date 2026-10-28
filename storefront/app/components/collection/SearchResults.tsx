@@ -66,7 +66,7 @@ function ContentMatches({
   if (links.length === 0) return null;
   return (
     <section aria-labelledby="search-content-heading" className="mt-12">
-      <h2 id="search-content-heading" className="mb-2 text-xl font-bold">
+      <h2 id="search-content-heading" className="type-display mb-2 text-2xl">
         Pages and articles
       </h2>
       <ul>
@@ -97,21 +97,21 @@ function NoResults({
   articles: readonly ContentLink[];
 }) {
   return (
-    <div className="flex flex-col items-start gap-3 py-8">
-      <h2 className="text-xl font-bold">No products found for “{term}”</h2>
+    <div className="mt-6 flex flex-col items-start gap-3 rounded-card bg-surface-muted p-6 md:p-10">
+      <h2 className="type-display text-2xl">No products found for “{term}”</h2>
       <p className="text-base text-fg-muted">
         Check the spelling, try a more general word, or browse one of these.
       </p>
       <ul className="flex flex-wrap gap-2">
         {collections.map((collection) => (
           <li key={collection.id}>
-            <Button to={collection.to} variant="secondary" size="sm">
+            <Button to={collection.to} variant="outline" size="sm">
               {collection.title}
             </Button>
           </li>
         ))}
         <li>
-          <Button to="/collections/all" variant="secondary" size="sm">
+          <Button to="/collections/all" variant="outline" size="sm">
             All products
           </Button>
         </li>

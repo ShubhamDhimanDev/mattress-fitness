@@ -2,6 +2,8 @@ import {Image} from '~/lib/hydrogen/image';
 import {Link} from 'react-router';
 import {keyedText} from '~/lib/shopify/keys';
 import {ReviewsSlot} from '~/components/reviews/ReviewsSlot';
+import {Card} from '~/components/ui/Card';
+import {CheckIcon} from '~/components/ui/Icons';
 import {Accordion, type AccordionPanelItem} from '~/components/ui/Accordion';
 import type {BrandLink} from '~/lib/shopify/brand-link';
 import {splitSpecifications} from '~/lib/shopify/spec-tiles';
@@ -81,7 +83,7 @@ export function ProductSections({
   }
 
   return (
-    <div className="mt-12 flex flex-col gap-10">
+    <div className="mt-12 flex flex-col gap-12 md:mt-16 md:gap-16">
       {hasOverview || hasSpecs || hasFeatures ? (
         // The overview comes first in the HTML (a phone shopper reads it first). From lg the specification column sits on
         // the left and the overview on the right, placed by the grid and not by reordering the markup.
@@ -97,7 +99,7 @@ export function ProductSections({
             >
               <h2
                 id="pdp-overview-heading"
-                className="mb-3 text-2xl font-extrabold"
+                className="type-display mb-4 text-2xl md:text-3xl"
               >
                 Overview
               </h2>
@@ -115,21 +117,21 @@ export function ProductSections({
                 <section aria-labelledby="pdp-specs-heading">
                   <h2
                     id="pdp-specs-heading"
-                    className="mb-3 text-2xl font-extrabold"
+                    className="type-display mb-4 text-2xl md:text-3xl"
                   >
                     Specifications
                   </h2>
                   {tiles.length > 0 ? (
-                    <dl className="mb-4 grid grid-cols-2 border-t border-l border-line">
+                    <dl className="mb-4 grid grid-cols-2 gap-3">
                       {tiles.map((tile) => (
                         <div
                           key={tile.label}
-                          className="flex flex-col items-center justify-center gap-1 border-r border-b border-line p-3 text-center"
+                          className="flex flex-col items-center justify-center gap-1 rounded-card bg-paper p-4 text-center"
                         >
-                          <dt className="text-xs font-extrabold tracking-wide text-fg-muted uppercase">
+                          <dt className="text-caption font-bold tracking-wide text-fg-muted uppercase">
                             {tile.label}
                           </dt>
-                          <dd className="text-lg font-bold break-words">
+                          <dd className="text-lg font-extrabold break-words">
                             {tile.value}
                           </dd>
                         </div>
@@ -137,21 +139,26 @@ export function ProductSections({
                     </dl>
                   ) : null}
                   {rows.length > 0 ? (
-                    <table className="w-full border-collapse text-left text-base">
-                      <tbody>
-                        {rows.map((row) => (
-                          <tr key={row.label} className="border-b border-line">
-                            <th
-                              scope="row"
-                              className="w-2/5 py-2 pr-4 font-bold"
+                    <div className="overflow-hidden rounded-card border border-line">
+                      <table className="w-full border-collapse text-left text-base">
+                        <tbody>
+                          {rows.map((row) => (
+                            <tr
+                              key={row.label}
+                              className="border-b border-line last:border-b-0"
                             >
-                              {row.label}
-                            </th>
-                            <td className="py-2">{row.value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                              <th
+                                scope="row"
+                                className="w-2/5 bg-paper px-4 py-3 font-bold"
+                              >
+                                {row.label}
+                              </th>
+                              <td className="px-4 py-3">{row.value}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   ) : null}
                 </section>
               ) : null}
@@ -160,13 +167,16 @@ export function ProductSections({
                 <section aria-labelledby="pdp-features-heading">
                   <h2
                     id="pdp-features-heading"
-                    className="mb-3 text-2xl font-extrabold"
+                    className="type-display mb-4 text-2xl md:text-3xl"
                   >
                     Features
                   </h2>
-                  <ul className="list-disc pl-6 text-base">
+                  <ul className="flex flex-col gap-3 text-base">
                     {product.features.map((feature) => (
-                      <li key={feature}>{feature}</li>
+                      <li key={feature} className="flex items-start gap-3">
+                        <CheckIcon className="mt-0.5 size-5 shrink-0 text-success-fg" />
+                        <span>{feature}</span>
+                      </li>
                     ))}
                   </ul>
                 </section>
@@ -182,36 +192,43 @@ export function ProductSections({
           <h2 id="pdp-brand-heading" className="sr-only">
             About the brand and warranty
           </h2>
-          <Accordion
-            type="multiple"
-            headingLevel={3}
-            findInPage
-            items={brandRows}
-          />
+          <Card padding="none" className="px-4 md:px-6">
+            <Accordion
+              type="multiple"
+              headingLevel={3}
+              findInPage
+              items={brandRows}
+            />
+          </Card>
         </section>
       ) : null}
 
       {product.faqs.length > 0 ? (
         <section aria-labelledby="pdp-faq-heading">
-          <h2 id="pdp-faq-heading" className="mb-3 text-2xl font-extrabold">
+          <h2
+            id="pdp-faq-heading"
+            className="type-display mb-4 text-2xl md:text-3xl"
+          >
             Frequently asked questions
           </h2>
-          <Accordion
-            type="multiple"
-            headingLevel={3}
-            findInPage
-            items={product.faqs.map((faq) => ({
-              id: faq.id,
-              title: faq.question,
-              content: (
-                <div className="flex max-w-prose flex-col gap-2">
-                  {keyedText(faq.answer).map((paragraph) => (
-                    <p key={paragraph.key}>{paragraph.text}</p>
-                  ))}
-                </div>
-              ),
-            }))}
-          />
+          <Card padding="none" className="px-4 md:px-6">
+            <Accordion
+              type="multiple"
+              headingLevel={3}
+              findInPage
+              items={product.faqs.map((faq) => ({
+                id: faq.id,
+                title: faq.question,
+                content: (
+                  <div className="flex max-w-prose flex-col gap-2">
+                    {keyedText(faq.answer).map((paragraph) => (
+                      <p key={paragraph.key}>{paragraph.text}</p>
+                    ))}
+                  </div>
+                ),
+              }))}
+            />
+          </Card>
         </section>
       ) : null}
 

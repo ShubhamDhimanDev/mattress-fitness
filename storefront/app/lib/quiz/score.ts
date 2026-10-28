@@ -15,7 +15,12 @@
 // Prices here come from the catalog data passed in (Shopify), in integer cents.
 
 import type {Size} from '~/lib/catalog/attributes';
-import {BENEFITS, SLEEP_POSITIONS, indexIn} from '~/lib/catalog/attributes';
+import {
+  BENEFITS,
+  SLEEP_POSITIONS,
+  indexIn,
+  sizeIndex,
+} from '~/lib/catalog/attributes';
 import {variantForSize} from '~/lib/catalog/pricing';
 import type {CatalogProduct, SizeVariant} from '~/lib/catalog/types';
 import type {FilterDimension, FilterState} from '~/lib/filters';
@@ -36,6 +41,7 @@ export const QUIZ_DEFAULT_SIZE: Size = 'Queen';
 export const REASON_SEPARATOR = ' · ';
 const MAX_REASONS = 4;
 const FALLBACK_REASON = 'Available in your size and budget';
+const SIMILAR_FALLBACK_REASON = 'Close to what you asked for';
 
 type AttributeValue = {
   readonly attribute: QuizScoredAttribute;
@@ -178,6 +184,7 @@ function scoreOf(
 function reasonsFor(
   product: CatalogProduct,
   weights: readonly AttributeWeight[],
+  fallback: string,
 ): string[] {
   const matched = weights.filter(
     (entry) =>
@@ -196,7 +203,7 @@ function reasonsFor(
       .sort((a, b) => indexIn(SLEEP_POSITIONS, a) - indexIn(SLEEP_POSITIONS, b))
       .map((position) => `${position} sleepers`),
   ].slice(0, MAX_REASONS);
-  return reasons.length > 0 ? reasons : [FALLBACK_REASON];
+  return reasons.length > 0 ? reasons : [fallback];
 }
 
 type Candidate = {
@@ -219,14 +226,16 @@ function toMatch(
   candidate: Candidate,
   rank: number,
   weights: readonly AttributeWeight[],
+  fallbackReason: string = FALLBACK_REASON,
 ): QuizMatch {
-  const reasons = reasonsFor(candidate.product, weights);
+  const reasons = reasonsFor(candidate.product, weights, fallbackReason);
   return {
     rank,
     productId: candidate.product.id,
     handle: candidate.product.handle,
     title: candidate.product.title,
     brand: candidate.product.brand,
+    image: candidate.product.images[0] ?? null,
     score: candidate.score,
     reasons,
     reasonLine: reasons.join(REASON_SEPARATOR),
@@ -247,6 +256,97 @@ function emptyReason(
   if (inBudget === 0) return 'nothing_in_budget';
   return 'excluded_by_answers';
 }
+
+type ProductInSize = {
+  readonly product: CatalogProduct;
+  readonly variant: SizeVariant;
+};
+
+/** How far a price is outside the budget range, in cents (0 when inside). */
+function budgetGapCents(priceCents: number, resolved: ResolvedAnswers): number {
+  if (resolved.maxCents !== null && priceCents > resolved.maxCents) {
+    return priceCents - resolved.maxCents;
+  }
+  if (resolved.minCents !== null && priceCents < resolved.minCents) {
+    return resolved.minCents - priceCents;
+  }
+  return 0;
+}
+
+/** The buyable variant whose size is closest to the wanted one (ties: the smaller size). */
+function nearestSizeVariant(
+  product: CatalogProduct,
+  size: Size,
+): {variant: SizeVariant; gap: number} | null {
+  let best: {variant: SizeVariant; gap: number} | null = null;
+  for (const variant of product.variants) {
+    if (!variant.available) continue;
+    const gap = Math.abs(sizeIndex(variant.size) - sizeIndex(size));
+    if (best === null || gap < best.gap) best = {variant, gap};
+  }
+  return best;
+}
+
+/**
+ * Alternatives for an empty result: only the constraint that emptied it is relaxed, so the suggestions are
+ * the closest things to what was asked for (a nearby size, the nearest price above or below the budget, or
+ * products an exclusion had removed). Closest first, then the usual score and price order.
+ */
+function similarCandidates(
+  reason: QuizEmptyReason,
+  products: readonly CatalogProduct[],
+  inSize: readonly ProductInSize[],
+  resolved: ResolvedAnswers,
+): Candidate[] {
+  const excluded = (product: CatalogProduct) =>
+    resolved.exclusions.some((rule) =>
+      hasAttribute(product, rule.attribute, rule.value),
+    );
+  const scored = (
+    {product, variant}: ProductInSize,
+    distance: number,
+  ): RankedCandidate => ({
+    product,
+    variant,
+    score: scoreOf(product, resolved.weights),
+    distance,
+  });
+
+  let pool: RankedCandidate[];
+  switch (reason) {
+    case 'catalog_empty':
+      return [];
+    case 'nothing_in_size':
+      pool = products
+        .filter((product) => !excluded(product))
+        .flatMap((product) => {
+          const nearest = nearestSizeVariant(product, resolved.size);
+          return nearest
+            ? [scored({product, variant: nearest.variant}, nearest.gap)]
+            : [];
+        });
+      break;
+    case 'nothing_in_budget':
+      pool = inSize
+        .filter(({product}) => !excluded(product))
+        .map((entry) =>
+          scored(entry, budgetGapCents(entry.variant.priceCents, resolved)),
+        );
+      break;
+    case 'excluded_by_answers':
+      pool = inSize.map((entry) => scored(entry, 0));
+      break;
+    default: {
+      const unreachable: never = reason;
+      return unreachable;
+    }
+  }
+  return pool.sort(
+    (a, b) => a.distance - b.distance || compareCandidates(a, b),
+  );
+}
+
+type RankedCandidate = Candidate & {readonly distance: number};
 
 /**
  * Returns up to three best matches for the answers, or an explained empty
@@ -283,10 +383,21 @@ export function scoreProducts(
     }));
 
   if (candidates.length === 0) {
+    const reason = emptyReason(products.length, inSize.length, inBudget.length);
     return {
       status: 'empty',
       size: resolved.size,
-      reason: emptyReason(products.length, inSize.length, inBudget.length),
+      reason,
+      similar: similarCandidates(reason, products, inSize, resolved)
+        .slice(0, QUIZ_RESULT_COUNT)
+        .map((candidate, index) =>
+          toMatch(
+            candidate,
+            index + 1,
+            resolved.weights,
+            SIMILAR_FALLBACK_REASON,
+          ),
+        ),
     };
   }
   const top = [...candidates]
