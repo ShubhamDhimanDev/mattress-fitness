@@ -70,6 +70,8 @@ export function useLoadMore({
   return {
     products: visible,
     hasMore: cursor !== null,
+    /** The size of the whole filtered list when the loader knows it, else null. */
+    totalCount: info.totalCount ?? null,
     nextHref: cursor === null ? null : buildHref(cursor),
     loading: fetcher.state !== 'idle',
     load() {

@@ -124,7 +124,8 @@ export function ProductItem({
           </ul>
         ) : null}
 
-        <div className="mt-auto flex flex-col gap-1 pt-3 md:flex-row md:items-end md:justify-between md:gap-3">
+        {/* Always stacked: beside the price, "Add to compare" did not fit a three or four column card and ran over the amount. */}
+        <div className="mt-auto flex flex-col items-start gap-1 pt-3">
           {view ? (
             <CardPrice view={view} from={product.priceIsFrom} />
           ) : (

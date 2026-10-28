@@ -173,12 +173,28 @@ describe('brandListingState', () => {
   });
 });
 
+// The recorded products belong to another vendor; a store without Search & Discovery filters is filtered by our own code, so
+// the brand page only lists products whose vendor is the brand.
+const acmeCollection = {
+  collection: {
+    ...collection.collection,
+    products: {
+      ...collection.collection.products,
+      pageInfo: {hasNextPage: false, endCursor: null},
+      nodes: collection.collection.products.nodes.map((node) => ({
+        ...node,
+        vendor: 'Acme Sleep',
+      })),
+    },
+  },
+};
+
 describe('loadBrandPage', () => {
   const respond =
     (brand: Node | null, any: boolean) => (call: {query: string}) =>
       call.query === BRAND_PAGE_QUERY
         ? {brand, anyBrand: {nodes: any ? [{id: 'x'}] : []}}
-        : collection;
+        : acmeCollection;
 
   it('lists the brand products from a collection filtered by this vendor', async () => {
     const {storefront, calls} = fakeStorefront(respond(ACME, true));
@@ -204,7 +220,7 @@ describe('loadBrandPage', () => {
       call.query === BRAND_PAGE_QUERY
         ? {brand: ACME, anyBrand: {nodes: [{id: 'x'}]}}
         : call.variables.handle === 'mattresses'
-          ? collection
+          ? acmeCollection
           : {collection: null},
     );
     const page = await loadBrandPage(
@@ -216,6 +232,7 @@ describe('loadBrandPage', () => {
     expect(calls.map((c) => c.variables.handle).filter(Boolean)).toEqual([
       'acme-sleep',
       'acme-sleep',
+      'mattresses',
       'mattresses',
     ]);
   });

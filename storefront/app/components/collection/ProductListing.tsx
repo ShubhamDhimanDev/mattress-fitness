@@ -17,6 +17,7 @@ import {
 import type {ReportedList} from '~/lib/listing-events';
 import {listIdForPath} from '~/lib/listing-path';
 import {
+  countLabel,
   hrefForReset,
   hrefForSort,
   hrefForState,
@@ -127,9 +128,7 @@ export function ProductListing({
         {/* Below 1024 px the count, the Filters button and the sort are stacked; from there the sort sits at the right of the count. */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <p role="status" className="text-lg font-extrabold text-fg">
-            {list.products.length}{' '}
-            {list.products.length === 1 ? 'product' : 'products'}
-            {list.hasMore ? ' shown' : ''}
+            {countLabel(list.products.length, list.totalCount, list.hasMore)}
           </p>
           {showFilters ? (
             <Button

@@ -60,9 +60,22 @@ describe('isValidHandle (T-07)', () => {
   });
 });
 
+const wholeCollection = {
+  collection: {
+    ...collection.collection,
+    products: {
+      ...collection.collection.products,
+      pageInfo: {hasNextPage: false, endCursor: null},
+    },
+  },
+};
+
 describe('loadCollectionPage', () => {
   it('queries with the filters from the URL as variables and uses the 60 s priced cache', async () => {
-    const {storefront, calls} = fakeStorefront(() => collection);
+    // The whole-collection read is one page (the recorded response claims a next page, which only a 12 product page has).
+    const {storefront, calls} = fakeStorefront((call) =>
+      call.variables.first === 250 ? wholeCollection : collection,
+    );
     const state = parseFilterParams(
       new URLSearchParams(
         'size=queen&brand=CloudHaven+Linens&price_min=50&sort=price-desc',
@@ -75,7 +88,9 @@ describe('loadCollectionPage', () => {
     );
 
     expect(result.status).toBe('ok');
-    expect(calls).toHaveLength(1);
+    // The recorded mock store offers no filter groups, so Shopify ignored the size and brand filters: the page is then
+    // filtered by our own code from a second read of the whole collection (price and sort still go to Shopify).
+    expect(calls).toHaveLength(2);
     expect(calls[0].cache).toEqual(PRICED);
     expect(calls[0].variables).toMatchObject({
       handle: 'sun-drenched-morning-bedding',
@@ -89,14 +104,26 @@ describe('loadCollectionPage', () => {
         {price: {min: 50}},
       ],
     });
+    expect(calls[1].cache).toEqual(PRICED);
+    expect(calls[1].variables).toMatchObject({
+      first: 250,
+      after: null,
+      sortKey: 'PRICE',
+      reverse: true,
+      filters: [{price: {min: 50}}],
+    });
     if (result.status === 'ok') {
       expect(result.products).toHaveLength(4);
-      expect(result.pageInfo.hasNextPage).toBe(true);
-      // The mock store has no filter groups, so only the shopper's own selections remain (count 0).
+      expect(result.pageInfo.hasNextPage).toBe(false);
+      // Counts come from the whole collection, so the selected values are real numbers, not 0.
       expect(result.filterGroups.map((g) => g.dimension)).toEqual([
         'size',
         'brand',
+        'productType',
       ]);
+      expect(
+        result.filterGroups[0]?.options.find((o) => o.value === 'Queen'),
+      ).toMatchObject({count: 4, selected: true});
       expect(result.collection.faqs).toEqual([]);
     }
   });
@@ -335,15 +362,27 @@ describe('home (REQ-HOME-001)', () => {
     const data = buildHomeData({
       collections: {
         nodes: [
-          {id: 'gid://shopify/Collection/1', handle: 'frontpage', title: 'Home page', image: null},
-          {id: 'gid://shopify/Collection/2', handle: 'mattresses', title: 'Mattresses', image: null},
+          {
+            id: 'gid://shopify/Collection/1',
+            handle: 'frontpage',
+            title: 'Home page',
+            image: null,
+          },
+          {
+            id: 'gid://shopify/Collection/2',
+            handle: 'mattresses',
+            title: 'Mattresses',
+            image: null,
+          },
         ],
       },
       primary: null,
       fallbackProducts: {nodes: []},
       brands: {nodes: []},
     });
-    expect(data.collectionTiles.map((tile) => tile.to)).toEqual(['/collections/mattresses']);
+    expect(data.collectionTiles.map((tile) => tile.to)).toEqual([
+      '/collections/mattresses',
+    ]);
   });
 
   it('prefers brand entries from Shopify and the primary collection', () => {
