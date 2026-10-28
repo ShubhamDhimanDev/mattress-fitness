@@ -9,7 +9,10 @@ import {cleanText} from '~/lib/catalog/text';
 import {parseAdminLink} from '~/lib/shopify/admin-link';
 import {catalogCache} from '~/lib/shopify/cache';
 import {fieldRecord, mapImage} from '~/lib/shopify/common';
-import type {PromoTileView} from '~/lib/shopify/promo-placement';
+import {
+  parsePromoTone,
+  type PromoTileView,
+} from '~/lib/shopify/promo-placement';
 import {logError} from '~/lib/logging/logger';
 
 export const PROMO_FIELDS = {
@@ -19,6 +22,7 @@ export const PROMO_FIELDS = {
   heading: 'heading',
   link: 'link',
   enabled: 'enabled',
+  tone: 'tone',
 } as const;
 
 /** How many `promo_tile` entries one read returns (the query is not paged). */
@@ -100,6 +104,7 @@ export function mapPromoTiles(
     tiles.push({
       id: node.id,
       heading,
+      tone: parsePromoTone(fields[PROMO_FIELDS.tone]),
       image: imageOf(node),
       link: parseAdminLink(fields[PROMO_FIELDS.link]),
       position,

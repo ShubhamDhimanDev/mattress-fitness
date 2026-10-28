@@ -108,7 +108,12 @@ export default function BrandPage() {
           {label: brand.name},
         ]}
       />
-      <BrandHeader name={brand.name} logo={brand.logo} about={brand.about} />
+      <BrandHeader
+        name={brand.name}
+        logo={brand.logo}
+        about={brand.about}
+        heroImage={brand.heroImage ?? null}
+      />
 
       <ProductListing
         products={data.products}

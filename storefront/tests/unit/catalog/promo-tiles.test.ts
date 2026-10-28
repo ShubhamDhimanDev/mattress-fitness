@@ -92,6 +92,25 @@ describe('mapPromoTiles', () => {
     expect(good.link).toEqual({href: '/pages/finder', external: false});
   });
 
+  // CR31-13: the optional tone field; only a known tone is ever used, the rest is red.
+  it.each([
+    ['dark', 'dark'],
+    [' Light ', 'light'],
+    ['red', 'red'],
+    ['', 'red'],
+    ['purple', 'red'],
+    ['red" onclick="x', 'red'],
+    ['<script>', 'red'],
+  ])('reads the tone %j as %s', (raw, expected) => {
+    const [shown] = mapPromoTiles([tile('a', 'm', {tone: raw})], 'm');
+    expect(shown.tone).toBe(expected);
+  });
+
+  it('defaults to red when the tone field is missing', () => {
+    const [shown] = mapPromoTiles([tile('a', 'm')], 'm');
+    expect(shown.tone).toBe('red');
+  });
+
   it('omits everything when there are no tiles (the grid is products only)', () => {
     expect(mapPromoTiles([], 'm')).toEqual([]);
     expect(mapPromoTiles(null, 'm')).toEqual([]);
@@ -136,7 +155,7 @@ describe('loadPromoTiles', () => {
 });
 
 function view(id: string, position: number): PromoTileView {
-  return {id, heading: id, image: null, link: null, position};
+  return {id, heading: id, tone: 'red', image: null, link: null, position};
 }
 
 const labels = (items: ReturnType<typeof placePromoTiles<string>>) =>

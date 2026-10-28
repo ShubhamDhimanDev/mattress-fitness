@@ -98,6 +98,62 @@ describe('mapBrandNode', () => {
     });
   });
 
+  // CR31-11: the optional hero_image field; the logo and the hero are separate fields.
+  it('reads the optional hero image apart from the logo, and leaves it null when absent', () => {
+    const node = brandNode('acme-sleep', {name: 'Acme Sleep'});
+    expect(mapBrandNode(node)?.heroImage).toBeNull();
+    const withHero: Node = {
+      ...node,
+      fields: [
+        ...node.fields,
+        {
+          key: 'hero_image',
+          value: 'gid://shopify/MediaImage/2',
+          reference: {
+            image: {
+              url: 'https://cdn.shopify.com/hero.jpg',
+              altText: 'A made bed',
+              width: 1600,
+              height: 900,
+            },
+          },
+        },
+      ],
+    };
+    expect(mapBrandNode(withHero)).toMatchObject({
+      logo: null,
+      heroImage: {
+        url: 'https://cdn.shopify.com/hero.jpg',
+        altText: 'A made bed',
+        width: 1600,
+        height: 900,
+      },
+    });
+  });
+
+  it('ignores a hero image that is not an https URL', () => {
+    const node = brandNode('acme-sleep', {name: 'Acme Sleep'});
+    const bad: Node = {
+      ...node,
+      fields: [
+        ...node.fields,
+        {
+          key: 'hero_image',
+          value: 'gid://shopify/MediaImage/2',
+          reference: {
+            image: {
+              url: 'javascript:alert(1)',
+              altText: null,
+              width: 1,
+              height: 1,
+            },
+          },
+        },
+      ],
+    };
+    expect(mapBrandNode(bad)?.heroImage).toBeNull();
+  });
+
   it('skips entries without a name or a usable handle', () => {
     expect(mapBrandNode(brandNode('acme', {slug: 'acme'}))).toBeNull();
     expect(mapBrandNode(brandNode('Bad Handle', {name: 'X'}))).toBeNull();

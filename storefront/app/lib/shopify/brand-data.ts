@@ -108,7 +108,14 @@ type IndexNode = CatalogBrandsIndexQuery['brands']['nodes'][number];
 export {brandPath, normalizeBrandSlug};
 
 /** A brand with the handle its page lives at. */
-export type BrandPageView = BrandView & {readonly handle: string};
+export type BrandPageView = BrandView & {
+  readonly handle: string;
+  /** The optional `hero_image` of the brand entry (CR31-11); absent or null keeps the plain paper header. */
+  readonly heroImage?: ImageView | null;
+};
+
+/** Kept here, not in BRAND_FIELDS, so the brand reader owns the field it alone uses. */
+export const BRAND_HERO_FIELD = 'hero_image';
 
 export type BrandSummary = {
   readonly handle: string;
@@ -117,10 +124,17 @@ export type BrandSummary = {
   readonly to: string;
 };
 
-function logoOf(node: BrandNode | IndexNode): ImageView | null {
-  const field = node.fields.find((f) => f.key === BRAND_FIELDS.logo);
+function imageFieldOf(
+  node: BrandNode | IndexNode,
+  key: string,
+): ImageView | null {
+  const field = node.fields.find((f) => f.key === key);
   const reference = field?.reference;
   return reference && 'image' in reference ? mapImage(reference.image) : null;
+}
+
+function logoOf(node: BrandNode | IndexNode): ImageView | null {
+  return imageFieldOf(node, BRAND_FIELDS.logo);
 }
 
 /** A brand entry as a page view; null when it has no usable name or handle. */
@@ -141,6 +155,7 @@ export function mapBrandNode(
     name,
     slug: handle,
     logo: logoOf(node),
+    heroImage: imageFieldOf(node, BRAND_HERO_FIELD),
     about: richTextToParagraphs(fields[BRAND_FIELDS.about]),
     warranty: richTextToParagraphs(fields[BRAND_FIELDS.warranty]),
   };

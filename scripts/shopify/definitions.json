@@ -13,7 +13,8 @@
         { "key": "slug", "name": "Slug", "type": "single_line_text_field", "required": true, "description": "Lowercase, hyphenated; must equal the metaobject handle so the product importer can find the brand." },
         { "key": "logo", "name": "Logo", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "about", "name": "About", "type": "rich_text_field" },
-        { "key": "warranty_terms", "name": "Warranty terms", "type": "rich_text_field" }
+        { "key": "warranty_terms", "name": "Warranty terms", "type": "rich_text_field" },
+        { "key": "hero_image", "name": "Hero image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }], "description": "Optional. A wide picture shown beside the brand name at the top of the brand page. Leave empty for the plain header." }
       ]
     },
     {
@@ -137,7 +138,8 @@
         { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "heading", "name": "Heading", "type": "single_line_text_field", "required": true, "description": "Shown on the tile and used as the link text." },
         { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL; validated by the storefront (T-08). Without a valid link the tile is shown but is not clickable." },
-        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A tile shows only when this is on." }
+        { "key": "enabled", "name": "Enabled", "type": "boolean", "description": "A tile shows only when this is on." },
+        { "key": "tone", "name": "Colour", "type": "single_line_text_field", "validations": [{ "name": "choices", "value": ["red", "dark", "light"] }], "description": "Optional. The tile's colour: red (the default), dark (black) or light (cream with dark text). Empty or anything else shows red." }
       ]
     },
     {

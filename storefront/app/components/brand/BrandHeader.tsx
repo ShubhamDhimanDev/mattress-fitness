@@ -9,8 +9,8 @@ type BrandHeaderProps = {
   logo: ImageView | null;
   about: readonly string[];
   /**
-   * The brand's own hero picture from admin, when the brand entry has one (CR-31). The `brand` definition has no such
-   * field yet, so callers pass nothing today and the header is a clean paper band.
+   * The brand's own hero picture from the optional `hero_image` field of the brand entry (CR31-11). Without one the
+   * header stays a clean paper band.
    */
   heroImage?: ImageView | null;
 };
@@ -64,7 +64,7 @@ export function BrandHeader({
       {heroImage ? (
         <Image
           data={heroImage}
-          alt={heroImage.altText ?? ''}
+          alt={heroImage.altText ?? name}
           aspectRatio="4/3"
           sizes="(min-width: 1024px) 45vw, 100vw"
           loading="eager"

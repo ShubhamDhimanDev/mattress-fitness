@@ -104,7 +104,7 @@ test('every metafield the importer can write has a matching definition with the 
 
 test('the data model fields that other work packages depend on are present', () => {
   const fields = (/** @type {string} */ type) => spec.metaobjectDefinitions.find((definition) => definition.type === type).fieldDefinitions.map((field) => field.key);
-  assert.deepEqual(fields('brand'), ['name', 'slug', 'logo', 'about', 'warranty_terms']);
+  assert.deepEqual(fields('brand'), ['name', 'slug', 'logo', 'about', 'warranty_terms', 'hero_image']);
   assert.ok(['pickup_enabled', 'location_handle', 'latitude', 'longitude', 'hours', 'photo'].every((key) => fields('store').includes(key)));
   assert.ok(['postal_codes', 'free_over', 'fee_text'].every((key) => fields('delivery_zone').includes(key)));
   assert.ok(['haul_away_max', 'extend_enabled', 'promo_bar_text', 'promo_bar_link', 'support_phone'].every((key) => fields('site_settings').includes(key)));
@@ -137,6 +137,13 @@ test('homepage_section fixes its section types and promo_tile its grid position 
   assert.deepEqual(field('promo_tile', 'position').validations, [{ name: 'min', value: 1 }]);
   assert.equal(field('promo_tile', 'collection').type, 'collection_reference');
   assert.equal(field('promo_tile', 'collection').required, true);
+  // CR31-13 / CR31-11: optional fields added later; the storefront lists the same tones in PROMO_TONES (promo-data.ts).
+  assert.deepEqual(field('promo_tile', 'tone').validations, [{ name: 'choices', value: ['red', 'dark', 'light'] }]);
+  assert.equal(field('promo_tile', 'tone').required, undefined, 'the tone is optional: empty shows red');
+  const hero = field('brand', 'hero_image');
+  assert.equal(hero.type, 'file_reference');
+  assert.equal(hero.required, undefined, 'the hero image is optional: empty keeps the plain header');
+  assert.deepEqual(hero.validations, [{ name: 'file_type_options', value: ['Image'] }]);
 });
 
 // ---- spec validation ------------------------------------------------------------------------------------
@@ -194,7 +201,7 @@ test('metaobject definition input lists fields with required flags and storefron
   assert.equal(input.type, 'brand');
   assert.deepEqual(input.access, { storefront: 'PUBLIC_READ' });
   assert.equal(input.displayNameKey, 'name');
-  assert.deepEqual(input.fieldDefinitions.map((field) => [field.key, field.required]), [['name', true], ['slug', true], ['logo', false], ['about', false], ['warranty_terms', false]]);
+  assert.deepEqual(input.fieldDefinitions.map((field) => [field.key, field.required]), [['name', true], ['slug', true], ['logo', false], ['about', false], ['warranty_terms', false], ['hero_image', false]]);
   assert.equal(input.fieldDefinitions[2].validations[0].value, '["Image"]');
 });
 
