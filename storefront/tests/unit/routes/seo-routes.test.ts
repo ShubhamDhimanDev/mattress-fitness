@@ -213,7 +213,7 @@ describe('sitemap page route', () => {
   );
 });
 
-describe('extra sitemap route: brands and stores only when real', () => {
+describe('extra sitemap route: brands only when real', () => {
   const brandNode = (handle: string, name: string) => ({
     id: `gid://shopify/Metaobject/${handle}`,
     handle,
@@ -223,7 +223,7 @@ describe('extra sitemap route: brands and stores only when real', () => {
     ],
   });
 
-  it('lists real brands, and never the sample brands or the fixture stores', async () => {
+  it('lists real brands, and never the sample brands', async () => {
     const {storefront} = fakeStorefront(() => ({
       brands: {nodes: [brandNode('acme-sleep', 'Acme Sleep')]},
     }));
@@ -236,7 +236,7 @@ describe('extra sitemap route: brands and stores only when real', () => {
     expect(xml).toContain(`<loc>${SITE}/collections</loc>`);
     expect(xml).toContain(`<loc>${SITE}/brands</loc>`);
     expect(xml).toContain(`<loc>${SITE}/brands/acme-sleep</loc>`);
-    // Store pages are still fixture-backed (DEC-023) and noindex: not advertised.
+    // There are no store pages (single store, DEC-141).
     expect(xml).not.toContain('/stores');
     expect(xml).not.toContain('evil.example');
   });

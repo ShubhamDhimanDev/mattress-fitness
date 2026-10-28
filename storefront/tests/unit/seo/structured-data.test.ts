@@ -11,10 +11,8 @@ import {
 } from '~/lib/shopify/jsonld';
 import {mapProductPage} from '~/lib/shopify/product';
 import type {ProductPageView} from '~/lib/shopify/types';
-import {FIXTURE_STORES, getFixtureStore} from '~/lib/stores/fixtures';
-import {buildStoreJsonLd, serializeJsonLd} from '~/lib/stores/jsonld';
 
-// REQ-SEO-001, REQ-PDP-002, REQ-COL-004, REQ-LOC-001 (P7-04): the structured data the storefront emits, checked
+// REQ-SEO-001, REQ-PDP-002, REQ-COL-004 (P7-04): the structured data the storefront emits, checked
 // against the schema.org and Google rich-result requirements for each type, on recorded and fixture data.
 // The validators below are test-only: they encode what each type must contain, so a builder change that drops
 // a required field fails here. No rating, review or price is ever invented.
@@ -29,16 +27,6 @@ const SCHEMA_AVAILABILITY = [
   'https://schema.org/SoldOut',
   'https://schema.org/LimitedAvailability',
 ];
-const DAYS = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
-
 function isJson(value: unknown): value is Json {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -138,66 +126,6 @@ function faqProblems(ld: Json): string[] {
     if (!isJson(answer) || answer['@type'] !== 'Answer' || !text(answer.text))
       problems.push(`question ${index} answer`);
   });
-  return problems;
-}
-
-function localBusinessProblems(ld: Json): string[] {
-  const problems: string[] = [];
-  if (ld['@context'] !== 'https://schema.org') problems.push('@context');
-  if (ld['@type'] !== 'LocalBusiness') problems.push('@type');
-  if (!text(ld.name)) problems.push('name');
-  const address = ld.address;
-  if (!isJson(address) || address['@type'] !== 'PostalAddress') {
-    problems.push('address');
-  } else {
-    for (const field of [
-      'streetAddress',
-      'addressLocality',
-      'addressRegion',
-      'postalCode',
-    ]) {
-      if (!text(address[field])) problems.push(`address ${field}`);
-    }
-    if (address.addressCountry !== 'US') problems.push('addressCountry');
-  }
-  if ('telephone' in ld && !/^\+\d{10,15}$/.test(String(ld.telephone)))
-    problems.push('telephone');
-  if ('image' in ld && !absoluteHttps(ld.image)) problems.push('image');
-  if ('url' in ld && !absoluteHttps(ld.url)) problems.push('url');
-  if ('geo' in ld) {
-    const geo = ld.geo;
-    const lat = isJson(geo) ? geo.latitude : null;
-    const lon = isJson(geo) ? geo.longitude : null;
-    if (
-      typeof lat !== 'number' ||
-      typeof lon !== 'number' ||
-      Math.abs(lat) > 90 ||
-      Math.abs(lon) > 180
-    )
-      problems.push('geo');
-  }
-  if ('openingHoursSpecification' in ld) {
-    const specs = ld.openingHoursSpecification;
-    if (!Array.isArray(specs) || specs.length === 0) problems.push('hours');
-    else
-      for (const spec of specs) {
-        if (!isJson(spec) || spec['@type'] !== 'OpeningHoursSpecification') {
-          problems.push('hours type');
-          continue;
-        }
-        const days = Array.isArray(spec.dayOfWeek) ? spec.dayOfWeek : [];
-        if (
-          days.length === 0 ||
-          !days.every((day) => DAYS.includes(String(day)))
-        )
-          problems.push('hours days');
-        const opens = String(spec.opens);
-        const closes = String(spec.closes);
-        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(opens)) problems.push('opens');
-        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(closes)) problems.push('closes');
-        else if (opens >= closes) problems.push('closes before opens');
-      }
-  }
   return problems;
 }
 
@@ -337,10 +265,7 @@ describe('Product JSON-LD (REQ-PDP-002, REQ-SEO-001)', () => {
     }));
     const ld = buildProductJsonLd(hostile, ORIGIN);
     expect(String(ld.description).length).toBeLessThanOrEqual(5000);
-    // React Router serialises script:ld+json with escaping; our own serializer does the same for store data.
-    const json = serializeJsonLd(ld);
-    expect(json).not.toMatch(/<\/?script|<img/i);
-    expect(JSON.parse(json)).toEqual(JSON.parse(JSON.stringify(ld)));
+    // React Router serialises script:ld+json with escaping, so the hostile text stays inside JSON strings.
   });
 });
 
@@ -421,35 +346,6 @@ describe('FAQPage JSON-LD (REQ-PDP-002, REQ-COL-004)', () => {
 
   it('emits nothing when there are no questions', () => {
     expect(buildFaqJsonLd([])).toBeNull();
-  });
-});
-
-describe('LocalBusiness JSON-LD (REQ-LOC-001)', () => {
-  it('meets the LocalBusiness requirements for every fixture store, complete or sparse', () => {
-    expect(FIXTURE_STORES.length).toBeGreaterThanOrEqual(4);
-    for (const store of FIXTURE_STORES) {
-      const ld = buildStoreJsonLd(store, {siteOrigin: ORIGIN});
-      expect(localBusinessProblems(ld as unknown as Json), store.id).toEqual(
-        [],
-      );
-      expect(ratingKeys(ld), store.id).toEqual([]);
-    }
-  });
-
-  it('is still valid without a site origin: the URL fields are left out, not guessed', () => {
-    const ld = buildStoreJsonLd(getFixtureStore('fixture-store-buffalo'));
-    expect(localBusinessProblems(ld as unknown as Json)).toEqual([]);
-    expect(ld).not.toHaveProperty('url');
-    expect(ld).not.toHaveProperty('@id');
-  });
-
-  it('keeps a hostile store name inside the JSON-LD script block', () => {
-    const base = getFixtureStore('fixture-store-buffalo');
-    const ld = buildStoreJsonLd({
-      ...base,
-      name: '</script><script>alert(1)</script>',
-    });
-    expect(serializeJsonLd(ld)).not.toMatch(/<\/?script/i);
   });
 });
 

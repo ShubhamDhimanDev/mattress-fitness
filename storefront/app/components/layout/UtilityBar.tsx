@@ -1,19 +1,15 @@
-import type {ReactNode} from 'react';
 import {Link} from 'react-router';
 import {LazyBoundary} from '~/components/layout/LazyPanel';
 import {chatPanel} from '~/components/layout/lazyPanels';
-import {MapPinIcon, PhoneIcon} from '~/components/ui/Icons';
+import {PhoneIcon} from '~/components/ui/Icons';
 import {consentHandle} from '~/lib/analytics/gate';
 import {
-  STORE_LOCATOR_PATH,
   UTILITY_LINKS,
   type SupportPhone,
   type UtilityLink,
 } from '~/lib/navigation';
 
 type UtilityBarProps = {
-  /** Left side: the shopper's store link. */
-  children: ReactNode;
   /** The client's number; without one no phone link is rendered. */
   supportPhone?: SupportPhone | null;
   /** The links to show; the root loader leaves out those whose page does not exist (P6-09). */
@@ -28,28 +24,18 @@ const LINK_CLASSES =
   'inline-flex min-h-touch items-center gap-1.5 font-semibold hover:underline';
 
 /**
- * Thin ink bar above the main row (CR-31). Left: the store link. Right (from 1024 px): find a store, the other
- * utility links (track order, contact, chat) and the phone number, which renders only when it is configured (B-15).
- * The right-hand group needs about 870 px, so below 1024 px it lives in the mobile menu, which always lists it, and
- * the bar stays one line at 768 px (BV-006). The bar carries `on-dark` so the focus ring is yellow on ink.
+ * Thin ink bar above the main row (CR-31). From 1024 px it lists the utility links (track order, contact, chat) and
+ * the phone number, which renders only when it is configured (B-15). Below 1024 px those live in the mobile menu,
+ * which always lists them, so the bar is hidden there (BV-006). The bar carries `on-dark` so the focus ring is yellow on ink.
  */
 export function UtilityBar({
-  children,
   supportPhone = null,
   links = UTILITY_LINKS,
 }: UtilityBarProps) {
   return (
-    <div className="on-dark bg-surface-inverse text-caption font-semibold text-white">
-      <div className="mx-auto flex max-w-page items-center justify-center gap-4 px-4 md:px-10 lg:justify-between">
-        {/* The store name truncates when the bar is full (BV-013). */}
-        <div className="flex min-w-0 items-center">{children}</div>
+    <div className="on-dark hidden bg-surface-inverse text-caption font-semibold text-white lg:block">
+      <div className="mx-auto flex max-w-page items-center justify-center gap-4 px-4 md:px-10 lg:justify-end">
         <ul className="hidden shrink-0 items-center gap-x-6 lg:flex">
-          <li>
-            <Link to={STORE_LOCATOR_PATH} className={LINK_CLASSES}>
-              <MapPinIcon className="size-4" />
-              Find a store
-            </Link>
-          </li>
           {links.map((link) =>
             link.id === 'chat' ? (
               link.chat && (

@@ -12,7 +12,6 @@ import {
   HowItWorks,
   QuizBand,
   SetupCards,
-  StoreFinder,
 } from '~/components/home/ContentBlocks';
 import {HeroSection} from '~/components/home/HeroSection';
 import {OfferCards} from '~/components/home/OfferCards';
@@ -135,8 +134,6 @@ function BlockView({block, home}: {block: BlockSection; home: HomeData}) {
       return <SetupCards block={block} />;
     case 'how-it-works':
       return <HowItWorks block={block} />;
-    case 'store-finder':
-      return <StoreFinder block={block} />;
     case 'faq':
       return <FaqBlock block={block} faqs={home.faqs} />;
     default: {

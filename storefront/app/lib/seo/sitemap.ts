@@ -126,27 +126,21 @@ export type ExtraSitemapInput = {
   readonly origin: string;
   /** Brand page paths, only from real `brand` metaobjects (never the sample brands). */
   readonly brandPaths: readonly string[];
-  /** Store page paths, only when the store list is real (never fixtures); empty otherwise. */
-  readonly storePaths: readonly string[];
   /** Policy page paths (`/policies/<handle>`), only for policies the shop has written (shop-policies.ts). */
   readonly policyPaths?: readonly string[];
 };
 
 /**
- * The pages Shopify's sitemap does not list. The home page and the collection index are static; brands and
- * stores are listed only when the caller found real data, and shop policies only when they exist. Every path is checked against the same indexable
+ * The pages Shopify's sitemap does not list. The home page and the collection index are static; brands are listed only when the caller found real data, and shop policies only when they exist. Every path is checked against the same indexable
  * rule as the canonical link, and duplicates are removed.
  */
 export function extraSitemapEntries(input: ExtraSitemapInput): SitemapEntry[] {
   const fixed = ['/', '/collections'];
   const brandIndex = input.brandPaths.length > 0 ? ['/brands'] : [];
-  const storeIndex = input.storePaths.length > 0 ? ['/stores'] : [];
   const paths = [
     ...fixed,
     ...brandIndex,
     ...input.brandPaths,
-    ...storeIndex,
-    ...input.storePaths,
     ...(input.policyPaths ?? []),
   ];
   const seen = new Set<string>();

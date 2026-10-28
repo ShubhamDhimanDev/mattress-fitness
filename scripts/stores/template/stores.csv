@@ -1,2 +1,0 @@
-slug,name,address_line_1,address_line_2,city,state,postal_code,latitude,longitude,phone,hours,time_zone,pickup_enabled,location_handle
-example-store-delete-this-row,EXAMPLE STORE (made-up row: delete it),100 Example Street,Suite 1,Springfield,IL,62701,39.7817,-89.6501,(217) 555-0100,Mon-Fri 10:00 AM - 8:00 PM; Sat 10am-6pm; Sun Closed,America/Chicago,false,

@@ -1,4 +1,4 @@
-// Response headers for pages whose output depends on a cookie (the "my store" cookie, the cart cookie).
+// Response headers for pages whose output depends on a cookie (the cart cookie).
 // Without them a shared cache could serve one shopper's store, or their Set-Cookie, to another (P-L3, T-05).
 
 export const PRIVATE_NO_STORE_HEADERS = {

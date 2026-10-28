@@ -24,7 +24,6 @@ const PUBLIC_PATH_PREFIXES: readonly string[] = [
   '/pages',
   '/brands',
   '/blogs',
-  '/stores',
   '/quiz',
   '/compare',
   '/search',

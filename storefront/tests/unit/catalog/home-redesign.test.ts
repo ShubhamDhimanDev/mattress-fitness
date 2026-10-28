@@ -189,7 +189,7 @@ describe('finder (REQ-HOME-001, REQ-COL-002)', () => {
 });
 
 describe('new home block types (REQ-HOME-001, CR-31)', () => {
-  it('reads the five content blocks with their cards, in admin order', () => {
+  it('reads the four content blocks with their cards, in admin order', () => {
     const sections = mapHomeSections([
       node('a', {...ON, type: 'faq', order: '5', heading: 'Questions'}),
       node(
@@ -207,18 +207,12 @@ describe('new home block types (REQ-HOME-001, CR-31)', () => {
         heading: 'Take the [[quiz]]',
         link: '/quiz',
       }),
-      node('d', {
-        ...ON,
-        type: 'store-finder',
-        order: '4',
-        heading: 'Find a store',
-      }),
       node('e', {...ON, type: 'setup-cards', order: '2'}, [
         {title: 'Card', link: '/collections', link_label: 'Shop'},
       ]),
     ]);
     expect(sections.map((s) => (s.kind === 'block' ? s.type : s.kind))).toEqual(
-      ['quiz-band', 'setup-cards', 'how-it-works', 'store-finder', 'faq'],
+      ['quiz-band', 'setup-cards', 'how-it-works', 'faq'],
     );
     const quiz = sections[0];
     expect(quiz).toMatchObject({
@@ -235,7 +229,7 @@ describe('new home block types (REQ-HOME-001, CR-31)', () => {
   it('leaves out a block that is missing what it needs', () => {
     const sections = mapHomeSections([
       node('a', {...ON, type: 'quiz-band', order: '1'}),
-      node('b', {...ON, type: 'store-finder', order: '2', heading: '  '}),
+      node('b', {...ON, type: 'quiz-band', order: '2', heading: '  '}),
       node('c', {...ON, type: 'setup-cards', order: '3', heading: 'No cards'}),
       node('d', {...ON, type: 'how-it-works', order: '4'}, [
         {title: '   '},

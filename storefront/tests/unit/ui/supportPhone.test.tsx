@@ -26,10 +26,7 @@ describe('the support phone appears only when configured', () => {
   const surfaces: ReadonlyArray<
     readonly [string, (phone: SupportPhone | null) => React.ReactNode]
   > = [
-    [
-      'utility bar',
-      (phone) => <UtilityBar supportPhone={phone}>left</UtilityBar>,
-    ],
+    ['utility bar', (phone) => <UtilityBar supportPhone={phone} />],
     ['footer', (phone) => <SiteFooter supportPhone={phone} />],
     [
       'mobile menu',

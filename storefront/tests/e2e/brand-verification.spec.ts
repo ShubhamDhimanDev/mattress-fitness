@@ -1048,7 +1048,7 @@ test.describe('BA-10 layout fixes: utility bar breakpoint, cart page spacing, na
     'The width is set explicitly here, so the desktop project covers every width.',
   );
 
-  // BV-006: the right-hand utility links need about 870 px beside the ZIP and store controls, so they show from
+  // BV-006: the right-hand utility links need about 870 px beside the ZIP control, so they show from
   // 1024 px (where the full navigation replaces the menu button). Below that the bar must stay on ONE line.
   for (const [width, linksShown] of [
     [360, false],
@@ -1064,13 +1064,8 @@ test.describe('BA-10 layout fixes: utility bar breakpoint, cart page spacing, na
       await gotoReady(page, '/');
       const header = banner(page);
       const zip = header.getByRole('button', {name: 'Enter delivery ZIP'});
-      const store = header.getByRole('link', {name: 'Select your store'});
       await expect(zip).toBeVisible();
-      await expect(store).toBeVisible();
-      const [zipBox, storeBox] = await Promise.all([
-        zip.boundingBox(),
-        store.boundingBox(),
-      ]);
+      const zipBox = await zip.boundingBox();
       const bar = zip.locator(
         'xpath=ancestor::div[contains(@class,"bg-surface-muted")][1]',
       );
@@ -1078,13 +1073,8 @@ test.describe('BA-10 layout fixes: utility bar breakpoint, cart page spacing, na
       note(
         info,
         `utility bar ${width}`,
-        JSON.stringify({zipBox, storeBox, barHeight: barBox?.height}),
+        JSON.stringify({zipBox, barHeight: barBox?.height}),
       );
-      // The same row: the two controls start at the same height (a wrapped bar stacks them).
-      expect(
-        Math.abs((zipBox?.y ?? 0) - (storeBox?.y ?? 99)),
-        'ZIP and store sit on one row',
-      ).toBeLessThanOrEqual(2);
       // One row of 44 px touch targets plus the bar padding; the wrapped bar was 88 px.
       expect(barBox?.height ?? 999, 'utility bar height').toBeLessThanOrEqual(
         56,
@@ -1131,47 +1121,32 @@ test.describe('BA-10 layout fixes: utility bar breakpoint, cart page spacing, na
     });
   }
 
-  // BV-006, content that grows: a saved ZIP and a real-length store name (the fixtures' names run to 33 characters)
-  // replace the short default texts. At 1024 the right-hand links take about 870 px, so this is the tightest bar. The
+  // BV-006, content that grows: a saved ZIP replaces the short default text. At 1024 the right-hand links take about 870 px, so this is the tightest bar. The
   // texts are written into the page (a saved ZIP needs a delivery zone this store does not have); only the bar is judged.
   for (const width of [1023, 1024]) {
-    test(`BV-006 a saved ZIP and a long store name keep the utility bar to one row at ${width} px`, async ({
+    test(`BV-006 a saved ZIP keeps the utility bar to one row at ${width} px`, async ({
       page,
     }, info) => {
       await page.setViewportSize({width, height: 900});
       await gotoReady(page, '/');
       const header = banner(page);
       const zip = header.getByRole('button', {name: 'Enter delivery ZIP'});
-      const store = header.getByRole('link', {name: 'Select your store'});
       await expect(zip).toBeVisible();
       await zip.evaluate((el) => {
         const text = el.querySelector('span');
         if (text) text.textContent = 'Delivering to 15222';
       });
-      await store.evaluate((el) => {
-        const text = el.querySelector('span');
-        if (text)
-          text.textContent = 'My store: Wrenfield Sleep Gallery Buffalo';
-      });
       // The accessible names changed with the texts, so find the same controls by their new names.
       const longZip = header.getByRole('button', {name: /Delivering to 15222/});
-      const longStore = header.getByRole('link', {name: /My store: Wrenfield/});
-      const [zipBox, storeBox] = await Promise.all([
-        longZip.boundingBox(),
-        longStore.boundingBox(),
-      ]);
+      const zipBox = await longZip.boundingBox();
       const barBox = await longZip
         .locator('xpath=ancestor::div[contains(@class,"bg-surface-muted")][1]')
         .boundingBox();
       note(
         info,
         `long texts ${width}`,
-        JSON.stringify({zipBox, storeBox, barHeight: barBox?.height}),
+        JSON.stringify({zipBox, barHeight: barBox?.height}),
       );
-      expect(
-        Math.abs((zipBox?.y ?? 0) - (storeBox?.y ?? 99)),
-        'ZIP and store sit on one row',
-      ).toBeLessThanOrEqual(2);
       expect(barBox?.height ?? 999, 'utility bar height').toBeLessThanOrEqual(
         56,
       );

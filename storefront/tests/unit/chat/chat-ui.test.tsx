@@ -72,9 +72,7 @@ function Page({
   return (
     <MemoryRouter>
       <button type="button">Elsewhere</button>
-      <UtilityBar links={links}>
-        <span>left</span>
-      </UtilityBar>
+      <UtilityBar links={links} />
     </MemoryRouter>
   );
 }
@@ -227,8 +225,8 @@ describe('NFR-013 provider failure hides chat only', () => {
     ).toBeNull();
     expect(screen.queryByRole('button', {name: 'Dismiss'})).toBeNull();
     expect(screen.getByRole('status').textContent).toBe('');
-    // Only the ordinary links remain ("Find a store" and the two given ones): no empty item where the call-out was.
-    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    // Only the ordinary links remain (the two given ones): no empty item where the call-out was.
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 
   it('after the shopper pressed it, a failure removes the button, announces, shows a notice with the contact page, and focus is not lost', async () => {
@@ -318,12 +316,12 @@ describe('REQ-ANL-004 header integration', () => {
   it('UtilityBar renders the chat entry as a button after the other links, and nothing while hidden', async () => {
     render(<Page config={open} />);
     expect(screen.queryByText('Chat with us')).toBeNull();
-    // The bar always lists "Find a store" first (CR-31), then the links it was given.
-    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    // The bar lists the links it was given.
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
     await flushIdle();
     expect(await chatButton()).toBeTruthy();
     expect(screen.queryByRole('link', {name: 'Chat with us'})).toBeNull();
-    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 
   it('a chat entry without a configuration (the boolean form) renders nothing: never the old stand-in link', async () => {
@@ -334,13 +332,11 @@ describe('REQ-ANL-004 header integration', () => {
             {id: 'contact', label: 'Contact us', to: '/pages/contact'},
             {id: 'chat', label: 'Chat with us', to: '/pages/contact'},
           ]}
-        >
-          <span>left</span>
-        </UtilityBar>
+        />
       </MemoryRouter>,
     );
     await shellLoaded();
     expect(screen.queryByText('Chat with us')).toBeNull();
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
   });
 });

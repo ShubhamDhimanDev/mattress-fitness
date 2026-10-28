@@ -47,9 +47,7 @@ describe('REQ-ANL-004 no chat provider configured', () => {
             {id: 'track', label: 'Track order', to: '/track-order'},
             {id: 'contact', label: 'Contact us', to: '/pages/contact'},
           ]}
-        >
-          <span>left</span>
-        </UtilityBar>
+        />
       </MemoryRouter>,
     );
     await act(async () => {
@@ -61,6 +59,6 @@ describe('REQ-ANL-004 no chat provider configured', () => {
     expect(runtimeLoaded).not.toHaveBeenCalled();
     expect(screen.queryByRole('status')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 });

@@ -1,12 +1,12 @@
 // Static fallback content for the site chrome (REQ-NAV-001, REQ-NAV-002).
-// Pure data and types, no framework imports (the phone parser is a pure helper from lib/stores).
+// Pure data and types, no framework imports (the phone parser is a pure helper from lib/phone).
 // Every URL and label here is a PLACEHOLDER until the client's catalog, Shopify navigation menus and content
 // pages exist. The Shopify admin menu (lib/nav-menu.ts, P3B-02) replaces MAIN_NAV when it is present and usable;
 // these fixed items remain the fallback when it is absent, empty or its read fails.
 
 import {BRAND_NAME} from '~/lib/brand';
 import type {PublicChatConfig} from '~/lib/chat/config';
-import {normalizeUsPhone} from '~/lib/stores/directions';
+import {normalizeUsPhone} from '~/lib/phone';
 
 /** The store name in titles, the copyright line and the logo's accessible name: one constant (brand.ts). */
 export const SITE_NAME = BRAND_NAME;
@@ -434,8 +434,6 @@ export function buildFallbackNav(
   );
 }
 
-export const STORE_LOCATOR_PATH = '/stores';
-
 export type ReassuranceItem = {
   id: string;
   icon: 'truck' | 'shield' | 'tag';
@@ -520,7 +518,7 @@ export type FooterPageLink = {
   order: number;
 };
 
-/** The links that are not Shopify content: the quiz, the comparison, the store locator and order tracking. */
+/** The links that are not Shopify content: the quiz, the comparison and order tracking. */
 export const FOOTER_SUPPORT_GROUPS_DRAFT: readonly PageFooterGroup[] = [
   {
     id: 'support',
@@ -549,7 +547,7 @@ export const FOOTER_SUPPORT_GROUPS_DRAFT: readonly PageFooterGroup[] = [
   {
     id: 'about',
     heading: 'About',
-    links: [{label: 'Find a store', to: STORE_LOCATOR_PATH, order: 20}],
+    links: [],
   },
 ];
 
@@ -649,7 +647,6 @@ export const FOOTER_QUICK_LINKS_START_DRAFT: readonly FooterQuickLink[] = [
 ];
 
 export const FOOTER_QUICK_LINKS_END_DRAFT: readonly FooterQuickLink[] = [
-  {id: 'stores', label: 'Store locator', to: STORE_LOCATOR_PATH},
   {
     id: 'contact',
     label: 'Get in touch',

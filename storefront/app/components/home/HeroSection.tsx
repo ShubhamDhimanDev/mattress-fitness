@@ -4,10 +4,10 @@ import {HighlightedText} from '~/components/home/HighlightedText';
 import {HomeFinder} from '~/components/home/HomeFinder';
 import {buttonStyles} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
-import {ChevronRightIcon, TruckIcon} from '~/components/ui/Icons';
+import {TruckIcon} from '~/components/ui/Icons';
 import {displayHeadingClass} from '~/lib/display-type';
 import {Image} from '~/lib/hydrogen/image';
-import {HOME_ASSURANCE_ITEMS, STORE_LOCATOR_PATH} from '~/lib/navigation';
+import {HOME_ASSURANCE_ITEMS} from '~/lib/navigation';
 import type {AdminLink} from '~/lib/shopify/admin-link';
 import {plainHeading} from '~/lib/shopify/home-highlight';
 import type {HomeFinderData} from '~/lib/shopify/home-finder';
@@ -29,9 +29,8 @@ type HeroSectionProps = {
 /**
  * The home hero (REQ-HOME-001, CR-31): the heading with its `[[highlighted phrase]]`, the text, the optional button from
  * admin, the finder card and the large photo. Text, image and link come from the `homepage_section` entry; the finder
- * from the catalog. The two floating notes on the photo appear only when their content exists in the project's config:
- * the delivery note needs a published delivery item (lib/navigation.ts), the store link needs only the store locator
- * path. Without an image the copy and finder are one column.
+ * from the catalog. The floating delivery note on the photo appears only when its content exists in the project's config: it
+ * needs a published delivery item (lib/navigation.ts). Without an image the copy and finder are one column.
  */
 export function HeroSection({
   id,
@@ -122,13 +121,6 @@ export function HeroSection({
                 {delivery.text}
               </Link>
             ) : null}
-            <Link
-              to={STORE_LOCATOR_PATH}
-              className="on-dark absolute right-4 bottom-4 left-4 flex min-h-touch items-center justify-between rounded-card bg-ink-900 px-5 py-4 text-lg font-extrabold text-white"
-            >
-              Find a store
-              <ChevronRightIcon className="size-6" />
-            </Link>
           </div>
         ) : null}
       </div>

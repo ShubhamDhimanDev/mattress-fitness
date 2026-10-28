@@ -1,4 +1,4 @@
-// Seeds sample metaobject ENTRIES (brands, FAQs, two stores, homepage sections, site settings) on a DEVELOPMENT store so the
+// Seeds sample metaobject ENTRIES (brands, FAQs, homepage sections, site settings) on a DEVELOPMENT store so the
 // storefront readers have real content to show. All names, addresses and copy are invented sample text, not the client's.
 // Idempotent: each entry is upserted by type and handle, so a second run changes nothing.
 //
@@ -47,28 +47,10 @@ const ENTRIES = [
   ].map(([slug, name]) => ({type: 'brand', handle: slug, fields: {name, slug}})),
   ...[
     ['how-long-does-delivery-take', 'How long does delivery take?', 'Sample answer: most in-zone orders are delivered within a week. The real answer comes from the client.', 'general'],
-    ['can-i-try-before-i-buy', 'Can I try a mattress in a store?', 'Sample answer: yes, visit any store from the store locator. The real answer comes from the client.', 'general'],
+    ['can-i-try-before-i-buy', 'Can I try a mattress in the store?', 'Sample answer: yes, visit our store. The real answer comes from the client.', 'general'],
     ['what-is-the-comfort-guarantee', 'What is the comfort guarantee?', 'Sample answer: a protector in the mattress size keeps the guarantee valid. The real terms come from the client.', 'product'],
     ['do-you-remove-my-old-mattress', 'Do you remove my old mattress?', 'Sample answer: yes, for a fee, when we deliver. The real answer comes from the client.', 'product'],
   ].map(([handle, question, answer, scope]) => ({type: 'faq', handle, fields: {question, answer: rich(answer), scope}})),
-  {
-    type: 'store',
-    handle: 'chicago-loop',
-    fields: {
-      name: 'Sample Sleep Gallery Chicago Loop', slug: 'chicago-loop', address_line_1: '100 Example Street', city: 'Chicago', state: 'IL', postal_code: '60601',
-      latitude: 41.8864, longitude: -87.6186, phone: '312-555-0101', time_zone: 'America/Chicago',
-      hours: JSON.stringify({'Mon-Fri': '10:00-20:00', Sat: '10:00-18:00', Sun: '12:00-17:00'}),
-    },
-  },
-  {
-    type: 'store',
-    handle: 'evanston-studio',
-    fields: {
-      name: 'Sample Sleep Studio Evanston', slug: 'evanston-studio', address_line_1: '25 Sample Avenue', city: 'Evanston', state: 'IL', postal_code: '60201',
-      latitude: 42.0451, longitude: -87.6877, phone: '847-555-0102', time_zone: 'America/Chicago',
-      hours: JSON.stringify({'Mon-Sat': '10:00-19:00', Sun: 'Closed'}),
-    },
-  },
   // Homepage blocks in the order of the redesign (CR-31). Every text below is SAMPLE text for the development store: the
   // client writes the real wording in admin. [[double brackets]] highlight a phrase in the heading.
   {
@@ -112,11 +94,6 @@ const ENTRIES = [
     type: 'homepage_section',
     handle: 'home-how-it-works',
     fields: {type: 'how-it-works', heading: 'How it works', body: 'Sample text: from choosing to sleeping, in three steps.', cards: refs('homepage_card/home-step-1', 'homepage_card/home-step-2', 'homepage_card/home-step-3'), order: 11, enabled: true},
-  },
-  {
-    type: 'homepage_section',
-    handle: 'home-store-finder',
-    fields: {type: 'store-finder', heading: 'Find a store near you', body: 'Sample text: visit a store to try a mattress in person.', order: 12, enabled: true},
   },
   // Shows the FAQ entries whose scope is "general" (the first two FAQs above).
   {type: 'homepage_section', handle: 'home-faq', fields: {type: 'faq', heading: 'Questions, answered', order: 13, enabled: true}},

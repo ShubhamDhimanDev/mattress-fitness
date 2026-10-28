@@ -31,7 +31,6 @@ import {
 // The dev server compiles on demand and the mock store answers slowly (about 25 s for a cold /collections).
 test.describe.configure({timeout: 120_000});
 
-const STORE_PATH = '/stores/new-york/buffalo/buffalo-gallery';
 const COMPARE = [
   'wrenfield-solace-plush-memory-foam',
   'wrenfield-solace-medium-memory-foam',
@@ -212,10 +211,6 @@ const ROUTES: RouteCase[] = [
     open: async (page) =>
       go(page, await firstLink(page, '/brands', '/brands/')),
   },
-  {name: 'stores-index', open: (page) => go(page, '/stores')},
-  {name: 'stores-state', open: (page) => go(page, '/stores/new-york')},
-  {name: 'stores-city', open: (page) => go(page, '/stores/new-york/buffalo')},
-  {name: 'store', open: (page) => go(page, STORE_PATH)},
   {name: 'quiz-intro', open: (page) => go(page, '/quiz')},
   {
     name: 'quiz-question',
@@ -502,7 +497,7 @@ test.describe('NFR-003 keyboard: skip link', () => {
     await auditViewport(page, isMobile);
   });
 
-  for (const path of ['/', '/collections/all', '/cart', '/quiz', '/stores']) {
+  for (const path of ['/', '/collections/all', '/cart', '/quiz']) {
     test(`first Tab stop on ${path} is a visible skip link; Enter moves focus into main and the next Tab stays in main`, async ({
       page,
     }) => {
@@ -566,10 +561,6 @@ test.describe('NFR-003 keyboard: full tab order of key templates (order, focus v
       name: 'compare with four products',
       open: async (page) =>
         void (await go(page, `/compare?handles=${COMPARE.join(',')}`)),
-    },
-    {
-      name: 'store page',
-      open: async (page) => void (await go(page, STORE_PATH)),
     },
     {
       name: 'search results',
@@ -1226,7 +1217,6 @@ const KEY_TEMPLATES: ReflowPage[] = [
         `/compare?handles=${COMPARE.slice(0, 2).join(',')}`,
       )),
   },
-  {name: 'store page', open: async (page) => void (await go(page, STORE_PATH))},
   {
     name: 'brands index',
     open: async (page) => void (await go(page, '/brands')),

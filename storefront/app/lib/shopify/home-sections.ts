@@ -6,7 +6,7 @@
 //  - banners (hero, promo-banner, financing) carry their own heading, text, image and link from admin;
 //  - catalog blocks (shop-by-size, featured, brands, categories) take their content from the catalog and
 //    only borrow the heading, position and visibility from admin;
-//  - content blocks (quiz-band, setup-cards, how-it-works, store-finder, faq, CR-31) carry heading, text, image and
+//  - content blocks (quiz-band, setup-cards, how-it-works, faq, CR-31) carry heading, text, image and
 //    link like a banner, and the first three also a list of `homepage_card` entries. A block with nothing to show is
 //    left out, so a half-filled admin still gives a complete page.
 // `signup` is the email signup (P7-02); it renders nothing unless the signup is configured.
@@ -34,7 +34,6 @@ export const HOMEPAGE_SECTION_TYPES = [
   'quiz-band',
   'setup-cards',
   'how-it-works',
-  'store-finder',
   'faq',
 ] as const;
 export type HomepageSectionType = (typeof HOMEPAGE_SECTION_TYPES)[number];
@@ -72,8 +71,7 @@ export const MAX_SETUP_CARDS = 3;
 export type BannerType = 'hero' | 'promo-banner' | 'financing';
 export type CatalogSectionType =
   'shop-by-size' | 'featured' | 'brands' | 'categories';
-export type BlockType =
-  'quiz-band' | 'setup-cards' | 'how-it-works' | 'store-finder' | 'faq';
+export type BlockType = 'quiz-band' | 'setup-cards' | 'how-it-works' | 'faq';
 
 /** Heading types that may carry a `[[highlighted phrase]]` (home-highlight.ts); every other heading is stored plain. */
 const HIGHLIGHT_TYPES: ReadonlySet<HomepageSectionType> =
@@ -82,7 +80,6 @@ const HIGHLIGHT_TYPES: ReadonlySet<HomepageSectionType> =
     'quiz-band',
     'setup-cards',
     'how-it-works',
-    'store-finder',
     'faq',
   ]);
 
@@ -198,7 +195,6 @@ function blockType(type: HomepageSectionType): BlockType | null {
   return type === 'quiz-band' ||
     type === 'setup-cards' ||
     type === 'how-it-works' ||
-    type === 'store-finder' ||
     type === 'faq'
     ? type
     : null;
@@ -261,7 +257,6 @@ type Candidate = {
 function blockHasContent(block: BlockSection): boolean {
   switch (block.type) {
     case 'quiz-band':
-    case 'store-finder':
       return block.heading !== null;
     case 'setup-cards':
     case 'how-it-works':

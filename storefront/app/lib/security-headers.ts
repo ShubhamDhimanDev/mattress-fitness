@@ -15,7 +15,7 @@ const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
 /**
  * Sensitive browser features this storefront never uses (a grep of app/ finds no camera, microphone,
- * geolocation or Payment Request call; the store locator searches by ZIP, and payment happens on Shopify's own
+ * geolocation or Payment Request call; payment happens on Shopify's own
  * checkout origin). Only features every current engine recognises are listed: an unknown feature name is a
  * console error in some browsers and the end-to-end specs fail on console errors.
  */
