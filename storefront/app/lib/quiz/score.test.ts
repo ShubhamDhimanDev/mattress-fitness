@@ -268,6 +268,7 @@ describe('quiz scoring: golden cases (REQ-QZ-003, REQ-QZ-002)', () => {
         handle: 'a-plush-hybrid',
         title: 'a-plush-hybrid',
         brand: 'Test Brand',
+        image: null,
         score: 11,
         reasons: ['Plush', 'Hybrid', 'Cooling', 'Side sleepers'],
         reasonLine: 'Plush · Hybrid · Cooling · Side sleepers',
@@ -503,7 +504,53 @@ describe('quiz scoring: golden cases (REQ-QZ-003, REQ-QZ-002)', () => {
         status: 'empty',
         size: expect.any(String),
         reason,
+        similar: expect.any(Array),
       });
+    });
+
+    it('suggests nothing when there are no products at all', () => {
+      const outcome = scoreProducts({}, [], CONFIG);
+      expect(outcome.status === 'empty' && outcome.similar).toEqual([]);
+    });
+
+    it('suggests the nearest prices above the budget, closest first', () => {
+      const pricey = product({
+        handle: 'z-pricey',
+        comfort: 'Plush',
+        type: 'Hybrid',
+        positions: ['Side'],
+        benefits: ['Cooling'],
+        sizes: {Queen: 299900},
+      });
+      const outcome = scoreProducts(
+        {size: ['queen'], budget: ['cap']},
+        [pricey, E],
+        CONFIG,
+      );
+      expect(outcome.status).toBe('empty');
+      if (outcome.status !== 'empty') return;
+      // E is $299 over the $1,500 cap, the other $1,499 over: E comes first whatever the scores.
+      expect(outcome.similar.map((m) => [m.rank, m.handle])).toEqual([
+        [1, E.handle],
+        [2, pricey.handle],
+      ]);
+    });
+
+    it('suggests products an exclusion removed, and a nearby size when none is offered', () => {
+      const excluded = scoreProducts({type: ['no-latex']}, [D], CONFIG);
+      expect(excluded.status === 'empty' && excluded.similar).toHaveLength(1);
+
+      const noQueen = scoreProducts({size: ['queen']}, [G], CONFIG);
+      expect(noQueen.status).toBe('empty');
+      if (noQueen.status !== 'empty') return;
+      expect(noQueen.similar.map((m) => [m.handle, m.size])).toEqual([
+        [G.handle, 'Twin'],
+      ]);
+    });
+
+    it('never suggests a sold-out size', () => {
+      const outcome = scoreProducts({size: ['queen']}, [F], CONFIG);
+      expect(outcome.status === 'empty' && outcome.similar).toEqual([]);
     });
   });
 });

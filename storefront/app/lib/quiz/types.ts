@@ -6,6 +6,7 @@
 // the client can approve them in plain language (CLR-012).
 
 import type {Size} from '~/lib/catalog/attributes';
+import type {ProductImage} from '~/lib/catalog/types';
 
 /** Product attributes a rule can score or exclude on (REQ-QZ-003). */
 export type QuizScoredAttribute =
@@ -93,6 +94,8 @@ export type QuizMatch = {
   readonly handle: string;
   readonly title: string;
   readonly brand: string;
+  /** The product's first image, or null (the preview fixtures have none). */
+  readonly image: ProductImage | null;
   readonly score: number;
   /** For example ["Medium", "Hybrid", "Cooling"]. */
   readonly reasons: readonly string[];
@@ -121,4 +124,9 @@ export type QuizOutcome =
       readonly status: 'empty';
       readonly size: Size;
       readonly reason: QuizEmptyReason;
+      /**
+       * Nearest alternatives when the answers matched nothing: the one constraint that emptied the result
+       * (size, budget or an exclusion) is relaxed. Empty when there are no products at all.
+       */
+      readonly similar: readonly QuizMatch[];
     };

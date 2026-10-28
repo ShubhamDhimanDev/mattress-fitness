@@ -19,6 +19,7 @@ const OK: QuizOutcome = {
       handle: 'larkmoor-cedar-medium-hybrid',
       title: 'Title',
       brand: 'Brand',
+      image: null,
       score: 9,
       reasons: ['Medium'],
       reasonLine: 'Medium',
@@ -101,7 +102,12 @@ describe('quiz analytics events (REQ-QZ-006)', () => {
     const event = buildQuizCompleteEvent({
       questionCount: 8,
       answers: {},
-      outcome: {status: 'empty', size: 'Queen', reason: 'nothing_in_budget'},
+      outcome: {
+        status: 'empty',
+        size: 'Queen',
+        reason: 'nothing_in_budget',
+        similar: [],
+      },
     });
     expect(event.params).toEqual({
       quiz_id: QUIZ_ID,

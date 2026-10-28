@@ -36,7 +36,7 @@ export async function loader({context}: Route.LoaderArgs) {
   const [read, rawConfig, catalog] = await Promise.all([
     readAccountQuiz(customerAccount),
     getQuizConfigRaw(context.storefront),
-    getQuizProducts(),
+    getQuizProducts(context.storefront),
   ]);
   if (read.status !== 'ok') {
     return data(

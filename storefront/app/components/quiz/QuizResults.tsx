@@ -7,6 +7,7 @@ import {ProductTile} from '~/components/pages/ProductTile';
 import {Badge} from '~/components/ui/Badge';
 import {Button} from '~/components/ui/Button';
 import {Card} from '~/components/ui/Card';
+import type {ProductImage} from '~/lib/catalog/types';
 import {matchPriceView} from '~/lib/pages/quiz-view';
 import type {QuizMatch, QuizOutcome} from '~/lib/quiz/types';
 
@@ -35,6 +36,16 @@ type QuizResultsProps = {
   onRetake: () => void;
 };
 
+// Three cards across at most, so a Shopify CDN image never needs to be wider than this (2x for dense screens).
+const CARD_IMAGE_WIDTH = 720;
+
+/** Asks Shopify's CDN for a card-sized copy instead of the original upload. */
+function resized(image: ProductImage): ProductImage {
+  const url = new URL(image.url);
+  url.searchParams.set('width', String(CARD_IMAGE_WIDTH));
+  return {...image, url: url.toString()};
+}
+
 /** The top matches, reasons, prices in the chosen size, and the three actions (REQ-QZ-002). */
 export function QuizResults({
   outcome,
@@ -48,6 +59,9 @@ export function QuizResults({
   onRetake,
 }: QuizResultsProps) {
   const matches = outcome.status === 'ok' ? outcome.matches : [];
+  // No exact match: the closest alternatives are shown, labelled as such, rather than an empty page.
+  const similar = outcome.status === 'empty' ? outcome.similar : [];
+  const shown = matches.length > 0 ? matches : similar;
   return (
     <section
       aria-labelledby="quiz-results-heading"
@@ -60,24 +74,32 @@ export function QuizResults({
           tabIndex={-1}
           className="type-display text-3xl md:text-heading"
         >
-          {matches.length > 0 ? 'Your best matches' : 'No matches found'}
+          {matches.length > 0
+            ? 'Your best matches'
+            : similar.length > 0
+              ? 'No exact matches'
+              : 'No matches found'}
         </h2>
         <p role="status" className="text-lead text-fg-muted">
           {matches.length > 0
             ? `${matches.length} ${matches.length === 1 ? 'mattress' : 'mattresses'} matched in ${outcome.size}.`
-            : (emptyMessage ?? '')}
+            : `${emptyMessage ?? ''}${similar.length > 0 ? ' Here are the closest mattresses instead.' : ''}`.trim()}
         </p>
         <p className="text-sm text-fg-muted">
           Shopping guidance, not medical advice.
         </p>
       </div>
 
-      {matches.length > 0 ? (
-        <ol className="grid gap-4 md:grid-cols-3 md:gap-6">
-          {matches.map((match) => (
+      {shown.length > 0 ? (
+        <ol
+          aria-label={matches.length > 0 ? undefined : 'Similar mattresses'}
+          className="grid gap-4 md:grid-cols-3 md:gap-6"
+        >
+          {shown.map((match) => (
             <li key={match.productId}>
               <ResultCard
                 match={match}
+                similar={matches.length === 0}
                 canAddToCart={canAddToCart}
                 onResultClick={onResultClick}
               />
@@ -99,7 +121,7 @@ export function QuizResults({
             })
           }
         >
-          See all matches
+          {matches.length > 0 ? 'See all matches' : 'Browse all mattresses'}
         </Button>
         <Button
           to={retakeHref}
@@ -133,10 +155,12 @@ export function QuizResults({
 
 function ResultCard({
   match,
+  similar,
   canAddToCart,
   onResultClick,
 }: {
   match: QuizMatch;
+  similar: boolean;
   canAddToCart: boolean;
   onResultClick: (click: ResultClick) => void;
 }) {
@@ -154,12 +178,11 @@ function ResultCard({
       aria-labelledby={`match-${match.rank}-title`}
       className="flex h-full flex-col gap-3"
     >
-      {/* Placeholder on purpose: QuizMatch carries no image (scoring keeps handles, sizes and variant ids
-          only) and the preview fixtures have none. When the live loader (P6-01) adds `image` to QuizMatch,
-          pass it here. */}
-      <ProductTile image={null} />
+      <ProductTile image={match.image ? resized(match.image) : null} />
       <p className="flex items-center gap-2 text-sm font-bold text-fg-muted">
-        <Badge variant="new">Match {match.rank}</Badge>
+        <Badge variant="new">
+          {similar ? 'Similar' : `Match ${match.rank}`}
+        </Badge>
         <span aria-hidden="true">·</span>
         <span>{match.brand}</span>
       </p>
@@ -173,7 +196,10 @@ function ResultCard({
         </Link>
       </h3>
       <p className="rounded-choice bg-paper p-3 text-base text-fg">
-        <span className="font-bold">Why it matches:</span> {match.reasonLine}
+        <span className="font-bold">
+          {similar ? 'Why we suggest it:' : 'Why it matches:'}
+        </span>{' '}
+        {match.reasonLine}
       </p>
       <p className="mt-auto flex flex-wrap items-baseline gap-x-2">
         <span className="text-2xl font-extrabold">{price.text}</span>

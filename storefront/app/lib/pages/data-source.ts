@@ -11,6 +11,7 @@
 import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {CatalogProduct} from '~/lib/catalog/types';
 import {loadQuizConfigRaw} from '~/lib/shopify/quiz-data';
+import {loadQuizProducts} from '~/lib/shopify/quiz-products';
 import {loadShopifyStores} from '~/lib/shopify/store-data';
 import {FIXTURE_PRODUCTS} from '~/lib/catalog/fixtures';
 import {FIXTURE_STORES, FIXTURE_STORE_WARNINGS} from '~/lib/stores/fixtures';
@@ -33,13 +34,18 @@ export type QuizProductsResult = {
 };
 
 /**
- * Products the quiz may recommend, with size variants, prices and availability.
- * TODO(P3B-01): replace with a Storefront API query for the mattress collection
- * (metafields from SHOPIFY_DATA_MODEL "Product"), cached long with short-lived
- * availability.
+ * Products the quiz may recommend, with size variants, prices and availability. With a Storefront client the
+ * `mattresses` collection is read (P3B-01, priced cache) and that is the answer, even when it is empty or the read
+ * failed: the quiz then says it found no mattresses, and never shows the fictional preview products on a connected
+ * store. The labelled fixtures are only for running without a Storefront client.
  */
-export function getQuizProducts(): Promise<QuizProductsResult> {
-  return Promise.resolve({source: 'fixtures', products: previewProducts()});
+export async function getQuizProducts(
+  storefront?: Storefront,
+): Promise<QuizProductsResult> {
+  if (storefront) {
+    return {source: 'shopify', products: await loadQuizProducts(storefront)};
+  }
+  return {source: 'fixtures', products: previewProducts()};
 }
 
 /**

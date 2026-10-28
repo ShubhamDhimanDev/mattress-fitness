@@ -219,7 +219,7 @@ export async function prepareAccountSave(
 ): Promise<PreparedSave> {
   const [rawConfig, catalog] = await Promise.all([
     getQuizConfigRaw(storefront),
-    getQuizProducts(),
+    getQuizProducts(storefront),
   ]);
   const config: QuizConfig = resolveQuizConfig(rawConfig).config;
   const request = parseSyncRequest(rawPayload, config, nowMs);
