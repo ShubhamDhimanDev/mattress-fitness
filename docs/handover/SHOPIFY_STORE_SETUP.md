@@ -33,7 +33,7 @@ Drafted 2026-10-26 for P5B-05 to P5B-11, REQ-CHK-002 to 006, the configuration s
 | 6 | Gift and bundle discounts | REQ-PROMO-001/002, P4-12 | C or W | real rules (CLR-011, Q-020) |
 | 7 | Customer accounts | REQ-ACC-001/002 | C then O | domain, channel choice (Q-003) |
 | 8 | Headless or Hydrogen channel permissions | REQ-HOST-002/003 | C or O | Q-003 |
-| 9 | Post-purchase options | REQ-POST-001/002, P5B-11 | O decides | client reply to CR-09 |
+| 9 | Post-purchase options | REQ-POST-001/002, P5B-11 | O decides | **Parked by the owner 2026-10-28 (DEC-139)**; client reply to CR-09 only if reinstated |
 | 10 | Dev store verification script | V-xx | W | Admin token (B-02) |
 
 ---
@@ -244,6 +244,8 @@ Values we need: which channel (Q-003); the live domain; confirmation of who crea
 ---
 
 ## 9. Post-purchase options (REQ-POST-001/002, P5B-11, SD-02, SD-03, CR-09, V-19)
+
+> **Parked by the owner 2026-10-28 (DEC-139).** Nothing in this section is to be done or sent to the client for now. The research below is kept for when the item is reinstated.
 
 **Facts (Shopify documentation, F-23, F-24).** Post-purchase checkout extensions are in beta; on a live store the app's developer must request access, with review "up to seven days"; **all merchants can install App Store apps that use them; only Plus merchants can install custom apps that use them.** Thank-you and order-status page extensions work on all plans except Starter. The post-purchase build guide does **not** mention headless checkouts, the Storefront API, Hydrogen or custom carts. Nothing in Shopify's documentation says whether a post-purchase page appears after a checkout opened from a Storefront-API cart (V-19).
 

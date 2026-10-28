@@ -39,7 +39,7 @@ REQ-DEL-001, REQ-DEL-002, REQ-PRE-003, REQ-PROMO-003, REQ-POST-001, REQ-POST-002
 | P5B-08 | Payments: cards, Shop Pay, Apple Pay, Google Pay, PayPal, Affirm as activated by the client | integration-engineer | CLR-007 | configuration checklist |
 | P5B-09 | Checkout features and tax verification: discount codes, marketing opt-in, express buttons, wallet behaviour for in-zone carts | integration-engineer | P5B-07 | verification notes and screenshots for SD-04 |
 | P5B-10 | Customer email templates in brand: confirmation, shipping, pickup-ready, refund | technical-writer | G-2 | template changes and test sends |
-| P5B-11 | Post-purchase options: evaluate an App Store app on the dev store (V-19), present results, configure if chosen, or record the drop | integration-engineer | Q-007, V-19 | evaluation note, configuration or change request |
+| P5B-11 | **PARKED by the owner 2026-10-28 (DEC-139): not started, not in the Phase 5B gate until reinstated.** Post-purchase options: evaluate an App Store app on the dev store (V-19), present results, configure if chosen, or record the drop | integration-engineer | Q-007, V-19 | evaluation note, configuration or change request |
 | P5B-12 | Test orders on the dev store for every delivery method and each activated payment option; cancel and refund each | qa-engineer | P5B-04 to P5B-10 | evidence in `progress/TEST_RESULTS.md` |
 | P5B-13 | Phase gate review | project-manager | all | gate record |
 

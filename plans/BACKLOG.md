@@ -463,7 +463,7 @@ Follow-ups raised in this round, each against an existing task (no new requireme
 | --- | --- | --- |
 | **Hydrogen 2026.10 migration P1-12 is the next task and a launch blocker** (B-12); owner choice (a) or (b) and ADR-0008 acceptance still owed | P1-12 | shopify-hydrogen-developer, solution-architect, owner |
 | **Verification pass V on a real store**: nothing built so far has been seen on a store; the VD register is the checklist | V (VD-01 to VD-25) | owner (Admin token B-27, password B-25), qa-engineer |
-| **Owner decision CR-09 / P5B-11**: the recommendation is to drop post-purchase offers (SD-02, SD-03) instead of buying an App Store app | P5B-11 | owner, then client |
+| **Owner decision CR-09 / P5B-11**: the recommendation is to drop post-purchase offers (SD-02, SD-03) instead of buying an App Store app. **PARKED by the owner 2026-10-28 (DEC-139): left for now, nothing built or evaluated; revisit after launch or when the client asks** | P5B-11 | owner, then client |
 | Independent code review of `c368ea4` and `335dc3e` (reviews, pickup, stores, quiz sync, scoring rules) and of the financing and branding batch; security review of the Judge.me proxy and the Affirm lazy adapter (CSP, consent) | P3B-12, P3B-10, P3B-16, P6-04, P6-13, P4-08 | code-reviewer (not the author), security-engineer |
 | Correct the P6-13 row once the orchestrator confirms the quiz callers | P6-13 | orchestrator |
 
@@ -529,7 +529,7 @@ Tracked so nothing mock ships. The scaffold runs on **mock.shop** (`MockShopNoti
 | CR-06 | Copywriting beyond product copy (content pages, blog)                                          | EXC-10          |                                                |
 | CR-07 | Ongoing maintenance and hosting upkeep after handover                                          | EXC-13          | Mandatory conversation under Option B (SOW §3) |
 | CR-08 | Replace in-checkout haul-away Function with layered enforcement (SD-01)                        | SOW §5          | Awaiting client acknowledgement                |
-| CR-09 | Post-purchase and thank-you offers through a client-paid App Store app, or drop (SD-02, SD-03) | SOW §5          | Awaiting client choice                         |
+| CR-09 | Post-purchase and thank-you offers through a client-paid App Store app, or drop (SD-02, SD-03) | SOW §5          | PARKED by the owner 2026-10-28 (DEC-139); no client choice needed now                         |
 | CR-10 | Local delivery wallet-button limitation (SD-04)                                                | SOW §7          | Awaiting client acknowledgement                |
 | CR-11 | Guest order tracking limited to 60 days (SD-05)                                                | SOW §4          | Awaiting client acknowledgement                |
 | CR-12 | Single delivery zone (SD-07); extra zones later                                                | SOW §7          | Owner chose one zone; client acknowledgement   |
