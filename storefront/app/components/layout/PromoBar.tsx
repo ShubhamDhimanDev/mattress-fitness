@@ -1,4 +1,6 @@
+import {useState} from 'react';
 import {Link} from 'react-router';
+import {CloseIcon} from '~/components/ui/Icons';
 import {cn} from '~/components/ui/cn';
 import type {PromoMessage} from '~/lib/navigation';
 
@@ -45,12 +47,19 @@ function PromoLink({
  * and no label the whole message is the link, so a link typed in admin works without a second field.
  */
 export function PromoBar({message}: PromoBarProps) {
-  if (!message || message.text.trim() === '') return null;
+  // Closing is not stored: the bar stays closed while the visitor browses (the layout stays mounted) and is back,
+  // server-rendered with the page, on every reload. Storing it made the bar flash before hydration closed it.
+  const [dismissed, setDismissed] = useState(false);
+
+  if (!message || message.text.trim() === '' || dismissed) return null;
+
+  const close = () => setDismissed(true);
+
   const to = message.to;
   const linked = to === undefined ? null : {...message, to};
   return (
-    <div className="on-dark bg-primary-500 text-white">
-      <p className="mx-auto flex max-w-page flex-wrap items-center justify-center gap-x-3 px-4 text-center md:px-10">
+    <div className="on-dark relative bg-primary-500 text-white">
+      <p className="mx-auto flex max-w-page flex-wrap items-center justify-center gap-x-3 px-12 text-center md:px-14">
         {linked && !message.linkLabel ? (
           <PromoLink message={linked} label={message.text} />
         ) : (
@@ -60,6 +69,14 @@ export function PromoBar({message}: PromoBarProps) {
           <PromoLink message={linked} label={message.linkLabel} />
         ) : null}
       </p>
+      <button
+        type="button"
+        onClick={close}
+        aria-label="Close announcement"
+        className="absolute right-1 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full hover:bg-white/15 md:right-4"
+      >
+        <CloseIcon aria-hidden="true" className="size-4" />
+      </button>
     </div>
   );
 }
