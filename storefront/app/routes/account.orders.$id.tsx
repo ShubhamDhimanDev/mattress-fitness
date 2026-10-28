@@ -137,9 +137,11 @@ export default function OrderRoute() {
         <h2 className="type-display text-2xl md:text-3xl">
           Order {order.name}
         </h2>
-        <p className="text-fg-muted">
-          Placed on {new Date(order.processedAt!).toDateString()}
-        </p>
+        {order.processedAt ? (
+          <p className="text-fg-muted">
+            Placed on {new Date(order.processedAt).toDateString()}
+          </p>
+        ) : null}
         {order.confirmationNumber && (
           <p className="text-fg-muted">
             Confirmation: {order.confirmationNumber}
@@ -183,7 +185,7 @@ export default function OrderRoute() {
                       {discountPercentage ? (
                         <span>-{discountPercentage}% OFF</span>
                       ) : (
-                        discountValue && <Money data={discountValue!} />
+                        <Money data={discountValue} />
                       )}
                     </td>
                   </tr>
@@ -193,7 +195,7 @@ export default function OrderRoute() {
                     Subtotal
                   </th>
                   <td className="px-2 py-2 sm:px-4">
-                    <Money data={order.subtotal!} />
+                    <Money data={order.subtotal} />
                   </td>
                 </tr>
                 <tr>
@@ -201,7 +203,7 @@ export default function OrderRoute() {
                     Tax
                   </th>
                   <td className="px-2 py-2 sm:px-4">
-                    <Money data={order.totalTax!} />
+                    <Money data={order.totalTax} />
                   </td>
                 </tr>
                 <tr className="text-lg font-extrabold">
@@ -209,7 +211,7 @@ export default function OrderRoute() {
                     Total
                   </th>
                   <td className="px-2 py-3 sm:px-4">
-                    <Money data={order.totalPrice!} />
+                    <Money data={order.totalPrice} />
                   </td>
                 </tr>
               </tfoot>
@@ -289,11 +291,12 @@ function OrderLineRow({lineItem}: {lineItem: OrderLineItemFullFragment}) {
         </div>
       </td>
       <td className="px-2 py-3 sm:px-4">
-        <Money data={lineItem.price!} />
+        <Money data={lineItem.price} />
       </td>
       <td className="px-2 py-3 sm:px-4">{lineItem.quantity}</td>
       <td className="px-2 py-3 sm:px-4">
-        <Money data={lineItem.totalDiscount!} />
+        {/* The line total after its own discounts, from Shopify (unit price x quantity, less line discounts). */}
+        <Money data={lineItem.totalPriceWithDiscounts} />
       </td>
     </tr>
   );

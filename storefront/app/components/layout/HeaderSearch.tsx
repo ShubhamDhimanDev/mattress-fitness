@@ -219,13 +219,15 @@ export function HeaderSearch() {
         aria-label="Site search"
         // The outlined pill (CR-31). The input draws no ring of its own: the pill shows the focus ring while the input has
         // keyboard focus, so one clear outline surrounds the whole field (WCAG 2.4.7); the button keeps the global ring.
-        className="flex h-13 w-full items-center rounded-pill border-2 border-ink-900 bg-surface pr-1 pl-4 has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus"
+        className="flex h-13 w-full items-center rounded-pill border-2 border-ink-900 bg-surface pr-0 pl-3 md:pr-1 md:pl-4 has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus"
       >
         {({fetchResults, goToSearch, inputRef}) => (
           <>
+            {/* The decorative magnifier needs ~28 px the placeholder cannot spare on the narrowest phones (320 to 360 px),
+                where "Search" was clipped to "Sea" (CR31-03): it appears from 400 px and the word comes first. */}
             <SearchIcon
               aria-hidden="true"
-              className="mr-2 size-5 shrink-0 text-fg md:hidden"
+              className="mr-1.5 hidden size-4 shrink-0 text-fg min-[400px]:block md:hidden"
             />
             <label htmlFor={inputId} className="sr-only">
               Search products and pages
@@ -263,7 +265,7 @@ export function HeaderSearch() {
                 setExpanded(true);
               }}
               onKeyDown={onKeyDown}
-              className="h-full min-h-touch min-w-0 flex-1 bg-transparent pr-2 text-base font-medium text-fg outline-none"
+              className="h-full min-h-touch min-w-0 flex-1 bg-transparent pr-1 text-base md:pr-2 font-medium text-fg outline-none"
             />
             <button
               type="submit"
