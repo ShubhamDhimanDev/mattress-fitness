@@ -250,23 +250,10 @@ export function HowItWorks({block}: {block: BlockSection}) {
 }
 
 /**
- * Whether the stores page reads a `zip` parameter. It does not yet (routes/stores._index.tsx has no ZIP search, and that
- * route belongs to another developer), so the ZIP field is left out rather than shown doing nothing. Turn this on, or pass
- * `zipSearch`, when the stores page filters by ZIP.
+ * "Find a store": a dark band with the heading, text, a ZIP field and a map picture from admin. The ZIP field is a plain
+ * GET form to the stores page, which lists the stores in that ZIP area (CR31-10); the ZIP is never stored or logged here.
  */
-export const STORES_PAGE_READS_ZIP = false;
-
-/**
- * "Find a store": a dark band with the heading, text, the way into the store locator and a map picture from admin. The
- * ZIP field is a plain GET form to the stores page (see `STORES_PAGE_READS_ZIP`); the ZIP is never stored or logged here.
- */
-export function StoreFinder({
-  block,
-  zipSearch = STORES_PAGE_READS_ZIP,
-}: {
-  block: BlockSection;
-  zipSearch?: boolean;
-}) {
+export function StoreFinder({block}: {block: BlockSection}) {
   if (!block.heading) return null;
   const headingId = `${block.id}-heading`;
   return (
@@ -280,31 +267,25 @@ export function StoreFinder({
       <div className="flex min-w-0 flex-col items-start gap-5">
         <SectionHeading id={headingId} text={block.heading} />
         <Lead paragraphs={block.body} inverse />
-        {zipSearch ? (
-          <form
-            method="get"
-            action={STORE_LOCATOR_PATH}
-            className="flex w-full max-w-lg flex-col gap-3 sm:flex-row sm:items-end"
-          >
-            <Input
-              name="zip"
-              label="ZIP code"
-              hideLabel
-              placeholder="ZIP code"
-              inputMode="numeric"
-              autoComplete="postal-code"
-              maxLength={10}
-              className="flex-1"
-            />
-            <Button type="submit" size="lg">
-              Find stores
-            </Button>
-          </form>
-        ) : (
-          <Button to={STORE_LOCATOR_PATH} size="lg">
-            Find a store
+        <form
+          method="get"
+          action={STORE_LOCATOR_PATH}
+          className="flex w-full max-w-lg flex-col gap-3 sm:flex-row sm:items-end"
+        >
+          <Input
+            name="zip"
+            label="ZIP code"
+            hideLabel
+            placeholder="ZIP code"
+            inputMode="numeric"
+            autoComplete="postal-code"
+            maxLength={10}
+            className="flex-1"
+          />
+          <Button type="submit" size="lg">
+            Find stores
           </Button>
-        )}
+        </form>
       </div>
       {block.image ? (
         <Image
