@@ -8,6 +8,7 @@ import {
   validateAddAddOn,
   validateAddBundle,
   validateAddGift,
+  validateAddProductBundle,
   validateAddLines,
   validateAddProtection,
   validateAddWithProtection,
@@ -20,6 +21,7 @@ import {
   ADD_ADDON_ACTION,
   ADD_BUNDLE_ACTION,
   ADD_GIFT_ACTION,
+  ADD_PRODUCT_BUNDLE_ACTION,
   ADD_PROTECTION_ACTION,
   ADD_WITH_PROTECTION_ACTION,
   CHANGE_SIZE_ACTION,
@@ -31,6 +33,7 @@ import {
   addAddOn,
   addBundle,
   addGift,
+  addProductBundle,
   pickerWarningText,
 } from '~/lib/offers-runtime/picker-steps';
 import {
@@ -206,6 +209,21 @@ export async function action({request, context}: Route.ActionArgs) {
       const input = validateAddBundle(inputs);
       if (input.status === 'invalid') return rejected(input.reason);
       const added = await addBundle(runtime, await cart.get(), input.value);
+      if (added.status === 'rejected') return rejected(added.reason);
+      result = added.result;
+      if (added.warning) partial.push(pickerWarningText(added.warning));
+      break;
+    }
+    case ADD_PRODUCT_BUNDLE_ACTION: {
+      const input = validateAddProductBundle(inputs);
+      if (input.status === 'invalid') return rejected(input.reason);
+      // From the product page the anchor may not be in the cart yet, so a stale cookie starts a fresh cart (P4-06).
+      const added = await addProductBundle(
+        runtime,
+        await cart.get(),
+        input.value,
+        (created) => cart.create(created),
+      );
       if (added.status === 'rejected') return rejected(added.reason);
       result = added.result;
       if (added.warning) partial.push(pickerWarningText(added.warning));

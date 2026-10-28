@@ -109,6 +109,57 @@ function validQuantity(quantity: unknown): quantity is number {
   );
 }
 
+export type BundleCompanion = {
+  readonly productId: string;
+  readonly variantId: string;
+  readonly quantity: number;
+};
+
+/**
+ * The sizes a product page can offer this bundle in, as the admin wrote them. A rule whose companions are all single
+ * variants does not depend on size, so it is offered once for every size (`null`).
+ */
+export function bundleOfferedSizes(bundle: BundleRule): (string | null)[] {
+  const sizes = new Map<string, string>();
+  for (const member of bundle.members) {
+    if (member.variants.type !== 'by-size') continue;
+    for (const size of Object.keys(member.variants.variantIdBySize)) {
+      const key = normalizeSize(size);
+      if (key !== null && !sizes.has(key)) sizes.set(key, size.trim());
+    }
+  }
+  return sizes.size === 0 ? [null] : [...sizes.values()];
+}
+
+/**
+ * Every companion of a bundle for one size, one entry per variant (two members that resolve to one variant add up), or
+ * null when the rule is invalid or any companion has no variant in that size: a set without all its members would not
+ * earn the Shopify saving, so it is never offered. Variant ids only; no price is produced here.
+ */
+export function bundleCompanionsForSize(
+  bundle: BundleRule,
+  size: string | null,
+): BundleCompanion[] | null {
+  if (
+    bundle.members.length === 0 ||
+    !bundle.members.every((member) => validQuantity(member.quantity))
+  ) {
+    return null;
+  }
+  const companions = new Map<string, BundleCompanion>();
+  for (const member of bundle.members) {
+    const variantId = memberVariantId(member, size);
+    if (variantId === null) return null;
+    const existing = companions.get(variantId);
+    companions.set(variantId, {
+      productId: member.productId,
+      variantId,
+      quantity: (existing?.quantity ?? 0) + member.quantity,
+    });
+  }
+  return [...companions.values()];
+}
+
 /**
  * The lines for one Add-all call: the selected anchor variant plus every companion in the same size. All or
  * nothing: if any companion has no variant for the size, or is not available, no partial bundle is offered,

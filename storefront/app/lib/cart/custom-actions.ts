@@ -24,3 +24,9 @@ export const ADD_ADDON_ACTION = 'CustomAddAddOn';
 
 /** Add the missing companions of a bundle (P4-06, REQ-ADD-002): a bundle id and the anchor line id only. */
 export const ADD_BUNDLE_ACTION = 'CustomAddBundle';
+
+/**
+ * "Add all" on the product page (P4-06, REQ-ADD-002): a bundle id and the anchor variant being viewed, which may not be in
+ * the cart yet. The server derives every line, size and quantity again.
+ */
+export const ADD_PRODUCT_BUNDLE_ACTION = 'CustomAddProductBundle';

@@ -188,6 +188,7 @@ export type PickerStepFailure =
   | 'addon-already-in-cart'
   | 'cart-changed'
   | 'bundle-not-offered'
+  | 'bundle-already-in-cart'
   | 'bundle-partial'
   | 'bundle-add-failed';
 
@@ -200,6 +201,8 @@ export const PICKER_STEP_FAILURE_TEXT: Record<PickerStepFailure, string> = {
   'addon-already-in-cart':
     'That item and its mattress are already in your cart. You can change the quantity in your cart.',
   'bundle-not-offered': 'That set is not available on your cart right now.',
+  'bundle-already-in-cart':
+    'Every item in that set is already in your cart. You can change quantities in your cart.',
   'bundle-partial':
     'Some items in the set could not be added. Please check your cart or try again.',
   'bundle-add-failed':
@@ -238,6 +241,27 @@ export const PICKER_COPY = {
     adding: 'Adding',
     completeHeading: 'Set complete',
   },
+} as const;
+
+/**
+ * Wording for the product page's "Frequently bought together" card (P4-06, REQ-ADD-002). Placeholder copy until the client
+ * approves it (CLR-010, CLR-011). No price claim: every price is Shopify's and the saving, if any, is shown only after
+ * Shopify reports it on the cart.
+ */
+export const PRODUCT_BUNDLE_COPY = {
+  heading: 'Frequently bought together',
+  help: 'Sized for the size you selected. Any saving is applied by the store and shown in your cart.',
+  thisItem: 'This item',
+  loading: 'Loading the set for this size',
+  addAll: 'Add all to cart',
+  adding: 'Adding',
+  added: 'Added to cart',
+  viewCart: 'View cart',
+  error: 'We could not load this set.',
+  retry: 'Try again',
+  soldOut: 'Available again when this size is back in stock.',
+  failed: 'We could not add the set. Please try again.',
+  savings: 'Savings on these items',
 } as const;
 
 /**

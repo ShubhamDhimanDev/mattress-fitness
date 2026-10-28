@@ -13,10 +13,15 @@
 //  - BUNDLE: a bundle id and an anchor line id. The lines to add are derived again from the rule and the cart (the
 //    companions still missing, in the anchor's size), added in ONE call, and the result is reconciled against the cart
 //    read back from Shopify, so a partial add is reported instead of looking like success.
+//  - BUNDLE FROM THE PRODUCT PAGE (P4-06, "Add all"): a bundle id and the anchor VARIANT being viewed, because the anchor
+//    may not be in the cart yet. The anchor's product and size are read from Shopify (never from the request), the sets of
+//    sizes are matched by the rule, every line must be in stock, and only what the cart does not hold yet is added, in ONE
+//    call, then reconciled against the cart read back. No quantity, price or discount is read from the request.
 // A refusal is a fixed text and changes nothing; the route's gate then repairs whatever is left.
 
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 import {
+  addAllPayload,
   bundleCompletions,
   reconcileAddAll,
   type BundleLine,
@@ -376,9 +381,19 @@ export async function addBundle(
       quantity: line.quantity,
     })),
   );
+  return settleBundleAdd(runtime, quantitiesByVariant(cart), requested, result);
+}
 
-  // What Shopify really holds decides, not what the mutation said (a partial add can still return userErrors).
-  const before = quantitiesByVariant(cart);
+/**
+ * What Shopify really holds decides, not what the mutation said (a partial add can still return userErrors): the cart is
+ * read back and compared with what was asked for. Shared by the cart picker and the product page.
+ */
+async function settleBundleAdd(
+  runtime: OfferRuntime,
+  before: ReadonlyMap<string, number>,
+  requested: readonly BundleLine[],
+  result: CartMutationResult,
+): Promise<PickerResult> {
   const after = await runtime.cart.get();
   if (!after) {
     return failed(result)
@@ -404,4 +419,87 @@ export async function addBundle(
       return unreachable;
     }
   }
+}
+
+export type AddProductBundleInput = {
+  readonly bundleId: string;
+  /** The variant of the bundle's anchor product the shopper is viewing. */
+  readonly anchorVariantId: string;
+};
+
+/**
+ * "Add all" on the product page (P4-06, REQ-ADD-002). Everything is derived again on the server: the rule by id, the
+ * anchor's product and size from Shopify, the companions in that size from the rule, availability from a fresh read.
+ * All or nothing (a set without every member would not earn the Shopify saving): any missing size or sold-out member
+ * refuses the whole add. Lines the cart already holds are not added again, so a repeat or a second tab cannot double the
+ * set, and no line can pass the cart's per-line limit (a member is at most 10 units, topped up to that and no further).
+ */
+export async function addProductBundle(
+  runtime: OfferRuntime,
+  current: CartApiQueryFragment | null,
+  input: AddProductBundleInput,
+  create?: CartCreator,
+): Promise<PickerResult> {
+  const config = loadConfig(runtime);
+  if (config.unverified) return rejection('unverified');
+  const {rules} = config.config;
+  const rule = rules.bundles.find((bundle) => bundle.id === input.bundleId);
+  if (!rule) return rejection('bundle-not-offered');
+
+  // A gift, protector or service variant is never the anchor, whatever product a forged request says it is in.
+  const index = buildRuleIndex(rules);
+  if (
+    index.giftVariantIds.has(input.anchorVariantId) ||
+    index.comfortProtectorVariantIds.has(input.anchorVariantId) ||
+    index.haulAwayVariantId === input.anchorVariantId
+  ) {
+    return rejection('bundle-not-offered');
+  }
+  const target = await loadSwapTarget(
+    runtime.storefront,
+    input.anchorVariantId,
+  );
+  if (target.status !== 'ok' || target.productId !== rule.anchorProductId) {
+    return rejection('bundle-not-offered');
+  }
+  const request = {
+    anchorVariantId: input.anchorVariantId,
+    size: sizeOf(target.options),
+  };
+
+  const planned = addAllPayload(rule, request);
+  if (planned.status !== 'ok') return rejection('bundle-not-offered');
+  const available = await loadOfferedVariants(
+    runtime.storefront,
+    planned.lines.map((line) => line.variantId),
+  );
+  const payload = addAllPayload(rule, {
+    ...request,
+    availableVariantIds: new Set(available.keys()),
+  });
+  if (payload.status !== 'ok') return rejection('bundle-not-offered');
+
+  const held =
+    current && current.lines.nodes.length > 0
+      ? quantitiesByVariant(current)
+      : new Map<string, number>();
+  const requested = payload.lines.flatMap((line) => {
+    const missing = line.quantity - (held.get(line.variantId) ?? 0);
+    return missing > 0 ? [{...line, quantity: missing}] : [];
+  });
+  if (requested.length === 0) return rejection('bundle-already-in-cart');
+  if (current && !(await cartUnchanged(runtime, current))) {
+    return rejection('cart-changed');
+  }
+
+  const lines: CartLineAddInput[] = requested.map((line) => ({
+    merchandiseId: line.variantId,
+    quantity: line.quantity,
+  }));
+  let result = await runtime.cart.addLines(lines);
+  // A stale or unknown cart cookie answers with no cart and no error: start a fresh cart with the same lines.
+  if (!result.cart?.id && !failed(result) && create) {
+    result = await create({lines});
+  }
+  return settleBundleAdd(runtime, held, requested, result);
 }

@@ -6,6 +6,8 @@ import {
 } from 'react-router';
 import type {Route} from './+types/products.$handle';
 import {formatPageTitle} from '~/components/layout/documentTitle';
+import {useAside} from '~/components/Aside';
+import {FrequentlyBoughtTogether} from '~/components/product/FrequentlyBoughtTogether';
 import {ProductBuyBox} from '~/components/product/ProductBuyBox';
 import {ProductGallery} from '~/components/product/ProductGallery';
 import {PRODUCT_END_ID} from '~/components/product/sticky-add-bar';
@@ -25,6 +27,8 @@ import {offersConfigOf} from '~/lib/extend/runtime';
 import {loadOfferOnlyHandles} from '~/lib/shopify/offer-only';
 import {hasDevAddOnsCookie} from '~/lib/offers-runtime/product-addons';
 import {productHasAddOns} from '~/lib/offers-runtime/product-addons-server';
+import {productHasBundle} from '~/lib/offers-runtime/product-bundle-server';
+import {sizeOf} from '~/lib/offers-runtime/sizes';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 import {
   parseSelectedOptions,
@@ -145,6 +149,10 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
       (import.meta.env.DEV &&
         hasDevAddOnsCookie(request.headers.get('Cookie') ?? '')) ||
       productHasAddOns(context.env, product.id),
+    // Whether a bundle rule makes this product the anchor of a "Frequently bought together" set (P4-06): rules only, no
+    // Shopify read, the same for every shopper. The card asks for the set itself after load (/api/product-bundle) and
+    // renders nothing when no size has a complete set in stock. False = the card is not mounted and costs nothing.
+    bundleExpected: productHasBundle(context.env, product.id),
     canonical: siteOrigin ? `${siteOrigin}/products/${product.handle}` : null,
     // Reviews: the section exists only with a provider; the aggregate (stars, rating markup) only when it has real reviews.
     reviewsEnabled: reviews.enabled,
@@ -167,10 +175,12 @@ export default function Product() {
     protection,
     brandLink,
     addOnsExpected,
+    bundleExpected,
     reviewsEnabled,
     rating,
   } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
+  const {open} = useAside();
 
   // The same pure functions the server used, so the first render and later switches always agree.
   const variant = selectVariant(
@@ -214,6 +224,23 @@ export default function Product() {
           rating={rating}
         />
       </div>
+      {bundleExpected ? (
+        // `empty:hidden`: when the card has nothing to show (no complete set for this size) the wrapper is empty and its
+        // margin goes with it.
+        <div className="mt-8 empty:hidden">
+          <FrequentlyBoughtTogether
+            productId={product.id}
+            anchor={{
+              variantId: variant.id,
+              productTitle: product.title,
+              size: sizeOf(variant.selectedOptions),
+              available: variant.available,
+              price: variant.price,
+            }}
+            onViewCart={() => open('cart')}
+          />
+        </div>
+      ) : null}
       <ProductSections
         product={product}
         brandLink={brandLink}
