@@ -28,10 +28,20 @@ function directive(policy: string | null, name: string): string[] {
 }
 
 describe('REQ-ANL-004 chat CSP: nothing by default', () => {
-  it('no approved provider has a host: the table is empty and every id gives none', () => {
-    expect(Object.keys(CHAT_CSP)).toEqual([]);
+  it('only tawk.to has hosts: no provider and the fake give none', () => {
+    expect(Object.keys(CHAT_CSP)).toEqual(['tawk']);
     expect(chatCspHosts(null)).toBe(NO_CHAT_CSP);
     expect(chatCspHosts('fake')).toBe(NO_CHAT_CSP);
+  });
+
+  it('tawk.to gets its documented hosts and nothing broader (no http, no bare wildcard)', () => {
+    const tawk = chatCspHosts('tawk');
+    expect(tawk.script).toEqual(['https://*.tawk.to']);
+    expect(tawk.connect).toEqual(['https://*.tawk.to', 'wss://*.tawk.to']);
+    expect(tawk.frame).toEqual(['https://*.tawk.to']);
+    for (const host of Object.values(tawk).flat()) {
+      expect(host).toMatch(/^(https|wss):\/\/(\*\.)?tawk\.(to|link)$/);
+    }
   });
 
   it('with no chat hosts both policies are byte-for-byte what they were', () => {

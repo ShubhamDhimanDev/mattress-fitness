@@ -59,6 +59,58 @@ describe('REQ-ANL-004 parseChatConfig', () => {
   });
 });
 
+describe('REQ-ANL-004 tawk.to configuration', () => {
+  const ids = {
+    PUBLIC_CHAT_PROVIDER: 'tawk',
+    PUBLIC_TAWK_PROPERTY_ID: 'prop123',
+    PUBLIC_TAWK_WIDGET_ID: 'wid456',
+  };
+
+  it('is on with both ids, in every build (not development only), and carries them to the browser', () => {
+    for (const development of [true, false]) {
+      expect(parseChatConfig(ids, {...dev, development})).toEqual({
+        status: 'on',
+        config: {
+          providerId: 'tawk',
+          requiresConsent: true,
+          tawk: {propertyId: 'prop123', widgetId: 'wid456'},
+        },
+      });
+    }
+  });
+
+  it('trims the ids', () => {
+    const result = parseChatConfig(
+      {...ids, PUBLIC_TAWK_PROPERTY_ID: '  prop123 '},
+      dev,
+    );
+    expect(result.status === 'on' && result.config.tawk?.propertyId).toBe(
+      'prop123',
+    );
+  });
+
+  it.each([
+    [{...ids, PUBLIC_TAWK_PROPERTY_ID: undefined}],
+    [{...ids, PUBLIC_TAWK_WIDGET_ID: ''}],
+    [{...ids, PUBLIC_TAWK_PROPERTY_ID: 'a/b'}],
+    [{...ids, PUBLIC_TAWK_WIDGET_ID: '../evil'}],
+    [{...ids, PUBLIC_TAWK_WIDGET_ID: 'x.evil.example'}],
+    [{...ids, PUBLIC_TAWK_PROPERTY_ID: 'a b'}],
+    [{...ids, PUBLIC_TAWK_PROPERTY_ID: 'x'.repeat(41)}],
+  ] as const)('refuses missing or hostile ids %j', (env) => {
+    expect(parseChatConfig(env, dev)).toEqual({
+      status: 'off',
+      reason: 'provider_misconfigured',
+    });
+  });
+
+  it('stays off while consent is required and the banner has no analytics category', () => {
+    expect(
+      parseChatConfig(ids, {...dev, analyticsCategoryConfigured: false}),
+    ).toEqual({status: 'off', reason: 'needs_consent_category'});
+  });
+});
+
 describe('NFR-011 parseChatRequiresConsent is strict', () => {
   it.each([
     [undefined, true],
