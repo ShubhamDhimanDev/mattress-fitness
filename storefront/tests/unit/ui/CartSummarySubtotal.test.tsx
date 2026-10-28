@@ -66,7 +66,7 @@ describe('cart summary while the cart is being updated (RS-02)', () => {
   it('shows a busy placeholder, not "-", and a busy Checkout button on the first add', () => {
     renderSummary({lines: {nodes: []}, isOptimistic: true});
 
-    const subtotal = screen.getByText('Subtotal').closest('div');
+    const subtotal = screen.getByText('Estimated total').closest('div');
     expect(subtotal).not.toBeNull();
     const value = subtotal?.querySelector('dd');
     // The announcement is a live region (role="status"); aria-busy on the <dd> would not be announced (m5).
@@ -91,10 +91,10 @@ describe('cart summary while the cart is being updated (RS-02)', () => {
       lines: {nodes: []},
       isOptimistic: true,
       checkoutUrl: 'https://shop.example/checkout',
-      cost: {subtotalAmount: money},
+      cost: {totalAmount: money},
     });
     const value = screen
-      .getByText('Subtotal')
+      .getByText('Estimated total')
       .closest('div')
       ?.querySelector('dd');
     expect(value).not.toHaveAttribute('aria-busy');
@@ -111,10 +111,10 @@ describe('cart summary while the cart is being updated (RS-02)', () => {
     renderSummary({
       lines: {nodes: []},
       checkoutUrl: 'https://shop.example/checkout',
-      cost: {subtotalAmount: money},
+      cost: {totalAmount: money},
     });
     const value = screen
-      .getByText('Subtotal')
+      .getByText('Estimated total')
       .closest('div')
       ?.querySelector('dd');
     expect(value).not.toHaveAttribute('aria-busy');
@@ -134,7 +134,7 @@ describe('Checkout keeps keyboard focus when the checkout URL arrives (m5)', () 
   const ready: Cart = {
     lines: {nodes: []},
     checkoutUrl: 'https://shop.example/checkout',
-    cost: {subtotalAmount: money},
+    cost: {totalAmount: money},
   };
 
   it('is the same element before and after, and focus stays on it', () => {

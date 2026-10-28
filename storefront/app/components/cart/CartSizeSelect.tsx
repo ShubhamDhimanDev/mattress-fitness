@@ -27,7 +27,9 @@ export function CartSizeSelect({
   const {submit, pending} = useCartSubmit(`cart-size-${lineId}`);
   return (
     <Select
-      label={`Size of ${title}`}
+      // Visible label is just "Size" (the line above already names the product); the accessible name still says which line.
+      label="Size"
+      aria-label={`Size of ${title}`}
       className={className}
       value={currentVariantId}
       disabled={disabled || pending}

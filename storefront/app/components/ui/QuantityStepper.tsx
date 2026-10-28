@@ -16,7 +16,7 @@ type QuantityStepperProps = {
   /** Names the item in the button labels: "Decrease quantity of Queen mattress". */
   itemName?: string;
   disabled?: boolean;
-  /** `sm` is the cart drawer's pill: 44 px buttons in a 1 px border, a smaller number. */
+  /** `sm` is the cart drawer's pill: 36 px buttons in a 1 px border, a smaller number. */
   size?: 'md' | 'sm';
   className?: string;
 };
@@ -26,11 +26,11 @@ export function clampQuantity(value: number, min: number, max: number): number {
 }
 
 // 46 px buttons inside a 2 px bordered group (CR-31); both are above the 44 px touch target. The `sm` pill (cart drawer)
-// keeps 44 px buttons, round, inside a 1 px border. There is no class merging, so the two sizes are separate strings.
+// has 36 px round buttons inside a 1 px border (owner request, still above WCAG 2.2 AA's 24 px minimum). There is no class merging, so the two sizes are separate strings.
 const STEP_BUTTON_BASE =
   'inline-flex shrink-0 items-center justify-center text-fg motion-safe:transition-colors hover:bg-paper active:bg-ink-100 aria-disabled:cursor-not-allowed aria-disabled:text-fg-muted aria-disabled:hover:bg-transparent';
 const STEP_BUTTON = `${STEP_BUTTON_BASE} size-11.5 rounded-sm`;
-const STEP_BUTTON_SMALL = `${STEP_BUTTON_BASE} size-11 rounded-pill`;
+const STEP_BUTTON_SMALL = `${STEP_BUTTON_BASE} size-9 rounded-pill`;
 
 export function QuantityStepper({
   value,
@@ -115,7 +115,7 @@ export function QuantityStepper({
         className={cn(
           'bg-transparent text-center font-extrabold text-fg disabled:text-fg-muted',
           small
-            ? 'h-11 w-8 text-sm'
+            ? 'h-9 w-7 text-sm'
             : 'h-11.5 w-12 border-x-2 border-line text-base',
         )}
       />

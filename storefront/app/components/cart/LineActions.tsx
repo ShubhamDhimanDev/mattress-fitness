@@ -69,11 +69,11 @@ export function RemoveButton({
           aria-label={`Remove ${title} from cart`}
           onClick={onRemove}
           className={cn(
-            'inline-flex size-11 items-center justify-center rounded-pill text-fg-muted motion-safe:transition-colors hover:bg-paper hover:text-error-fg disabled:cursor-not-allowed disabled:opacity-60',
+            'inline-flex size-9 items-center justify-center rounded-pill text-fg-muted motion-safe:transition-colors hover:bg-paper hover:text-error-fg disabled:cursor-not-allowed disabled:opacity-60',
             className,
           )}
         >
-          <TrashIcon className="size-5" />
+          <TrashIcon className="size-4.5" />
         </button>
       </CartActionForm>
     );

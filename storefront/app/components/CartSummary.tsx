@@ -69,29 +69,13 @@ export function CartSummary({
         <h3 id={headingId} className="sr-only">
           Order summary
         </h3>
-        <dl>
-          <SubtotalRow subtotal={subtotal} compact />
-        </dl>
-        <p className="text-xs text-fg-muted">
-          {delivery.free
-            ? 'Delivery is free. Tax is calculated at checkout.'
-            : 'Delivery and tax are calculated at checkout.'}
-        </p>
         {financing}
-        {/* Estimated total at the left, checkout button at the right (the cart page's "View full cart" is in the drawer header).
-            A blocked or unavailable cart shows its message full width instead, so the alert never sits in a narrow column. */}
+        {/* Estimated total at the left, checkout button at the right (the cart page's "View full cart" is in the drawer header),
+            then the delivery and tax note under the button. A blocked or unavailable cart shows its message full width instead,
+            so the alert never sits in a narrow column. */}
         {state === 'ready' ? (
-          <div className="mt-1 flex items-center gap-4 border-t border-line pt-3">
-            <div className="shrink-0">
-              <span className="block text-xs font-semibold text-fg-muted">
-                Estimated total
-              </span>
-              {total.status === 'ready' ? (
-                <Price price={total.amount} size="md" stale={total.updating} />
-              ) : (
-                <Skeleton className="h-7 w-24" />
-              )}
-            </div>
+          <div className="flex items-center gap-4">
+            <EstimatedTotal total={total} className="shrink-0" />
             <CheckoutPanel
               state={state}
               blocked={blocked}
@@ -101,12 +85,20 @@ export function CartSummary({
             />
           </div>
         ) : (
-          <CheckoutPanel
-            state={state}
-            blocked={blocked}
-            optimistic={optimistic}
-          />
+          <>
+            <EstimatedTotal total={total} />
+            <CheckoutPanel
+              state={state}
+              blocked={blocked}
+              optimistic={optimistic}
+            />
+          </>
         )}
+        <p className="text-center text-xs text-fg-muted">
+          {delivery.free
+            ? 'Delivery is free. Tax is calculated at checkout.'
+            : 'Delivery and tax are calculated at checkout.'}
+        </p>
       </section>
     );
   }
@@ -181,30 +173,17 @@ function checkoutStateOf(
     : 'unavailable';
 }
 
-function SubtotalRow({
-  subtotal,
-  compact = false,
-}: {
-  subtotal: SubtotalView;
-  /** The drawer's smaller row: muted label, medium amount. */
-  compact?: boolean;
-}) {
+function SubtotalRow({subtotal}: {subtotal: SubtotalView}) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <dt className={cn(compact ? 'text-sm text-fg-muted' : 'text-fg-muted')}>
-        Subtotal
-      </dt>
+      <dt className="text-fg-muted">Subtotal</dt>
       {/* While Shopify answers there is either an out-of-date amount (kept, in italic, never dimmed: dimming would drop
           the text under 4.5:1) or none (a busy placeholder of the final size): never a bare dash that reads as a
           missing price (RS-02). The status element is always mounted and only its text changes, so a screen reader
           that is already watching it announces "Updating price"; `aria-busy` on the <dd> would not be announced. */}
       <dd className="font-bold">
         {subtotal.status === 'ready' ? (
-          <Price
-            price={subtotal.amount}
-            size={compact ? 'sm' : 'md'}
-            stale={subtotal.updating}
-          />
+          <Price price={subtotal.amount} size="md" stale={subtotal.updating} />
         ) : (
           <Skeleton className="h-7 w-24" />
         )}
@@ -215,6 +194,40 @@ function SubtotalRow({
         </span>
       </dd>
     </div>
+  );
+}
+
+/**
+ * The drawer's one total. It carries the same always-mounted live region as the subtotal row, so a change in flight is
+ * announced as "Updating price" (RS-02).
+ */
+function EstimatedTotal({
+  total,
+  className,
+}: {
+  total: SubtotalView;
+  className?: string;
+}) {
+  return (
+    <dl className={className}>
+      <div>
+        <dt className="block text-xs font-semibold text-fg-muted">
+          Estimated total
+        </dt>
+        <dd>
+          {total.status === 'ready' ? (
+            <Price price={total.amount} size="md" stale={total.updating} />
+          ) : (
+            <Skeleton className="h-7 w-24" />
+          )}
+          <span role="status" className="sr-only">
+            {total.status === 'pending' || total.updating
+              ? 'Updating price'
+              : ''}
+          </span>
+        </dd>
+      </div>
+    </dl>
   );
 }
 

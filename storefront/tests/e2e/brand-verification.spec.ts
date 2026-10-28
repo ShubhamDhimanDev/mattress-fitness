@@ -94,7 +94,11 @@ async function addToCart(page: Page, path: string) {
   await expect(drawer.getByRole('list', {name: 'Cart items'})).toBeVisible();
   // Settle: the optimistic subtotal ("Updating price") must give way to the amount before a measurement.
   await expect(
-    drawer.locator('dl').filter({hasText: 'Subtotal'}).locator('dd').first(),
+    drawer
+      .locator('dl')
+      .filter({hasText: 'Estimated total'})
+      .locator('dd')
+      .first(),
   ).toHaveText(/\$[\d,]+\.\d{2}/, {timeout: 30_000});
   return drawer;
 }
