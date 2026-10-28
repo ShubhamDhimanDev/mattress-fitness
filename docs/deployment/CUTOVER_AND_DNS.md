@@ -172,7 +172,7 @@ None of these places an order. Run from your own machine after step 15. Use the 
 |---|---|---|
 | 1 | `http://<DOMAIN>/` returns 301 to https; `https` returns 200 over HTTP/2; gzip on | yes |
 | 2 | Valid certificate for every served name (`curl -vI`, or a TLS checker); expiry date and renewal timer recorded | yes |
-| 3 | Pages return 200: `/`, a collection, a product, `/cart`, `/search?q=bed`, `/stores`, `/quiz`, `/compare`, `/robots.txt`, `/sitemap.xml` | yes |
+| 3 | Pages return 200: `/`, a collection, a product, `/cart`, `/search?q=bed`, `/quiz`, `/compare`, `/robots.txt`, `/sitemap.xml` | yes |
 | 4 | Security headers present once each on pages, an asset, a 404 and the redirect; `Cache-Control: private, no-cache` and `Vary: Cookie` on the home document | yes |
 | 5 | Add an item by `/cart/<variant-id>:1`; the `cart` cookie has `Secure; HttpOnly; SameSite=Lax` | yes |
 | 6 | Checkout hand-off: the cart's checkout link reaches the store's checkout domain (do not pay) | yes |

@@ -5,7 +5,7 @@ Task P0-08. The SOW says the shopping experience "follows the patterns" of the r
 ## Header and global elements
 
 - A slim strip above the header carries a cross-link to the retailer's sister brand (not needed for us).
-- Delivery ZIP entry and a "my store" selector sit in the header on every page; both persist (REQ-NAV-003, REQ-LOC-003).
+- Delivery ZIP entry and a "my store" selector sit in the header on the reference site (observation). Ours has the ZIP entry only (REQ-NAV-003); the my-store selector (REQ-LOC-003) was descoped 2026-10-28, DEC-141.
 - Utility links: order tracking, contact, chat, phone number (REQ-ACC-003, REQ-ANL-004).
 - Search, account and cart sit on the main row; the cart icon is not visible in page text, so confirm placement visually before copying a pattern (we decide ours).
 - Main navigation groups: sale, mattresses, foundations and adjustable bases, beds and furniture, bedding, clearance, a guide section, plus a link to the sleep finder (REQ-NAV-002 follows the SOW list).
@@ -121,7 +121,7 @@ Mega-menu open behaviour and visuals (hover or click, width, any images); the mo
 
 ## How the build used these notes (checked 2026-10-15)
 
-Built from these patterns, in our own structure and wording: header with delivery ZIP and my-store entry, search combobox, main navigation, home sections (eight admin-ordered types), collection with filters, promo tiles and "Load more", product page with size selector and buy box, cart drawer and page, quiz, compare, store locator and brand pages. Deliberately **not shown until the client supplies content** (REQ-CNT-001, B-15): the reassurance strip, guarantee claims, Financing and Warranty links, the promo bar text and the support phone link. Not built yet: the reviews slot, pickup choice, "you might also need" cards on the product page (the cart pickers exist), the sticky mobile add-to-cart bar (not confirmed either way), the text-message signup, social links and the floating chat. No text, image or markup from the reference site is used.
+Built from these patterns, in our own structure and wording: header with delivery ZIP (the reference's my-store entry, store locator, "find a store" and "try in store" were not copied: one store only, 2026-10-28, DEC-141), search combobox, main navigation, home sections (eight admin-ordered types), collection with filters, promo tiles and "Load more", product page with size selector and buy box, cart drawer and page, quiz, compare and brand pages. Deliberately **not shown until the client supplies content** (REQ-CNT-001, B-15): the reassurance strip, guarantee claims, Financing and Warranty links, the promo bar text and the support phone link. Not built yet: the reviews slot, pickup choice, "you might also need" cards on the product page (the cart pickers exist), the sticky mobile add-to-cart bar (not confirmed either way), the text-message signup, social links and the floating chat. No text, image or markup from the reference site is used.
 
 ## Use
 

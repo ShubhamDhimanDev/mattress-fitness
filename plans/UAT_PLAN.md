@@ -36,13 +36,13 @@ Rounds follow this table, one consolidated round per row group. IDs refer to [TR
 
 | Round | Page type | What the client checks | Main requirement IDs | Build state on 2026-10-26 |
 |---|---|---|---|---|
-| R1 | Home and global shell (header, footer, menus, promo bar, phone, guarantees, delivery ZIP in header, my store) | Sections show the client's content; links work; nothing invented shows; hidden items are hidden until the client's text exists | REQ-HOME-001, REQ-NAV-001 to 003, REQ-CNT-001 | Built on mocks; client text not supplied |
+| R1 | Home and global shell (header, footer, menus, promo bar, phone, guarantees, delivery ZIP in header) | Sections show the client's content; links work; nothing invented shows; hidden items are hidden until the client's text exists | REQ-HOME-001, REQ-NAV-001 to 003, REQ-CNT-001 | Built on mocks; client text not supplied |
 | R2 | Collections, brands, filters, search | Products sort into the right collections; filters (size, brand, comfort, type, price) and counts correct; search suggestions and results; sale prices crossed out | REQ-COL-001, REQ-COL-002, REQ-SRCH-001, REQ-SRCH-002 | Built on mocks; filters unverified on a store (V-04) |
-| R3 | Product pages (size selector, price, gallery, specs, bullets, brand section, pickup availability, reviews slot, delivery promise, add-ons slot, protection panel) | Facts match the product sheet; sizes and prices correct; sale logic; copy approved; images and alt text | REQ-PDP-003 to 005, REQ-ADD-*, REQ-EXT-* | Built on mocks; pickup and reviews placeholders; Extend off |
+| R3 | Product pages (size selector, price, gallery, specs, bullets, brand section, reviews slot, delivery promise, add-ons slot, protection panel) | Facts match the product sheet; sizes and prices correct; sale logic; copy approved; images and alt text | REQ-PDP-005, REQ-ADD-*, REQ-EXT-* | Built on mocks; reviews placeholder; Extend off |
 | R4 | Compare and quiz | Compare shows the right attributes; quiz questions approved; answers recommend sensible products; results can be saved to the account | REQ-CMP-001, REQ-QZ-001 to 007 | Built on fixtures and a default quiz; the client has not approved the questions |
 | R5 | Cart, offers and pre-checkout steps (gift, bundle, add-on, comfort-guarantee protector, haul-away, delivery choice, Extend protection) | Prices and discounts in the cart equal checkout; rules enforced; messages understandable; free-delivery progress | REQ-CART-*, REQ-PROMO-001/002, REQ-PRE-*, REQ-CHK-001 | Built on mocks and fakes; gift picker off until V-03; cart-equals-checkout unverified (B-25) |
 | R6 | Delivery, checkout hand-off and payments | One delivery zone by ZIP; white-glove in-zone only; pickup; parcel; hand-off to Shopify's hosted checkout; payment types the client activated; emails | REQ-DEL-001, REQ-DEL-002, REQ-CHK-001 to 006 | Zone is developer-managed (OFFER_CONFIG_JSON); checkout never exercised (B-25) |
-| R7 | Store locator and store pages | Addresses, hours (time zone), phone, photo, directions, pickup flag | REQ-LOC-001 to 003 | Built on sample stores; admin data path unverified |
+| R7 | **Withdrawn 2026-10-28 (DEC-141, SD-12): one store only, no store locator.** Check instead that the Contact page and the footer carry the one store's address, hours and phone as the client entered them | The client's own details, nothing invented | none (REQ-LOC-001 to 003 `Descoped`) | Not built; client content |
 | R8 | Account and order tracking | Sign-in (new customer accounts), orders, addresses; guest order tracking (60-day limit, SD-05) | REQ-ACC-001 to 003 | Built; never run against a store; SD-05 not acknowledged |
 | R9 | Content pages, policies, blog, FAQs | The 15 pages and policies read correctly; links appear only when a page exists with text; privacy policy matches practice | REQ-CNT-001, REQ-CNT-002 | Layouts built; no store holds client text |
 | R10 | Sign-up, consent, analytics, chat | Email signup and confirmation; consent banner and withdrawal; nothing fires before consent; chat call-outs | REQ-ANL-001 to 004, NFR-011 | Built on fakes; providers not connected; chat has no provider |
@@ -91,14 +91,13 @@ Each script is run by a client team member on one device, following the steps in
 
 **WT-06 Delivery and checkout (R6)**
 1. In-zone ZIP with a mattress: white-glove is offered. Out-of-zone ZIP: it is not, and parcel or pickup is offered for suitable items.
-2. Choose store pickup for an item available at a store.
+2. Choose store pickup at the pre-checkout step (pickup at the client's one store).
 3. Reach Shopify's checkout; confirm your logo and colours; the payment methods shown are the ones activated (test mode). **Do not enter a real card.** Use the test card numbers the payment provider documents, only in test mode.
 4. After a test order, check the order emails (confirmation, shipping, pickup-ready, refund) read correctly in the client's brand.
 
-**WT-07 Stores (R7)**
-1. Open the store list and each store page: address, hours, phone, photo. Hours match the store's actual hours and time zone.
-2. Tap the phone and directions links on a phone.
-3. Set "my store"; open a product and check pickup availability for that store.
+**WT-07 Your store's details (R7)** *(replaces the store locator walkthrough, withdrawn 2026-10-28, DEC-141)*
+1. Open the Contact page: the address, hours and phone are the ones you entered in Shopify admin.
+2. Tap the phone number on a phone.
 
 **WT-08 Account and tracking (R8)**
 1. Create a test account with a synthetic email; sign in; sign out.
@@ -205,7 +204,7 @@ Acceptance against SOW sections 4 to 8 (built from TRACEABILITY; one row per in-
 
 | SOW section | Deliverable group | Result (Accepted / Accepted with deferral / Not live, reason / Not accepted) | Issue IDs or deferral reference |
 |---|---|---|---|
-| 4 | Storefront: home, collections, product pages, search, compare, quiz, store locator, account, content pages | `[to fill]` | |
+| 4 | Storefront: home, collections, product pages, search, compare, quiz, account, content pages | `[to fill]` | |
 | 5 | Cart, pre-checkout offers and upsells | `[to fill]` | |
 | 6 | Accident protection (Extend) | `[to fill]` (live only once Extend approves) | |
 | 7 | Checkout, delivery and payments | `[to fill]` | |

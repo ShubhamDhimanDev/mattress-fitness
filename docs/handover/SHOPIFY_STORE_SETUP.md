@@ -57,8 +57,8 @@ Drafted 2026-10-26 for P5B-05 to P5B-11, REQ-CHK-002 to 006, the configuration s
 | | |
 | --- | --- |
 | Purpose | Local delivery and pickup depend on the stock location. Shopify shows Local delivery only if **all physical products can ship from one location that has stock for the whole order** (Shopify help, F-28). |
-| Where | Settings, **Locations** (named in `ADMIN_GUIDE.md` 5.2; not re-confirmed in Shopify's help this session `[ADMIN, NOT SEEN]`). |
-| Values we need | Which locations exist (stores, warehouse); which one fulfils online orders; where each product's stock lives. Does any product ship from a different place than the rest (that breaks Local delivery for mixed carts)? |
+| Where | Settings, **Locations** (not re-confirmed in Shopify's help this session `[ADMIN, NOT SEEN]`). |
+| Values we need | Which locations exist (the one store, warehouse); which one fulfils online orders; where each product's stock lives. Does any product ship from a different place than the rest (that breaks Local delivery for mixed carts)? |
 | Who | C |
 | Verify | In a dev-store order whose items are stocked at two locations, note whether Local delivery is offered (expected: not). TOP. |
 | Basic-plan limits | None stated on the help page. |
@@ -81,12 +81,12 @@ Drafted 2026-10-26 for P5B-05 to P5B-11, REQ-CHK-002 to 006, the configuration s
 
 | | |
 | --- | --- |
-| Purpose | Each retail store is a pickup location; the customer gets a "ready for pickup" email when staff mark the order ready. |
+| Purpose | The client's one store is the pickup location (DEC-141, one store only); the customer gets a "ready for pickup" email when staff mark the order ready. |
 | Where in admin | Confirmed (Shopify help): Settings, **Shipping and delivery**, then **Pickup in store** in **Additional delivery methods**; click the location and turn on **"Let customers pick up orders directly at this location"** in **Location status**. Other sections: **Expected pickup date** (processing time customers see), **Store transfers** (supply a missing item from another location), **Ready for pickup notification** (pickup instructions; replaces the old `email_body` customisation), **Checkout preview**. Save. Staff mark an order: Orders, open the order, **Ready for pickup**, **Mark as ready for pickup**; later **Mark as picked up**. The email template is named **Ready for pickup** under Settings, **Notifications** (section 5). |
 | Requirements | At least one location that fulfils online orders; the store uses the latest checkout; by default pickup is offered only when the **whole order** is in stock at the pickup location. |
-| Values we need | Which stores offer pickup; the pickup processing time to show per store; the pickup instructions wording (client-approved); whether store transfers are allowed (and who moves stock). The store's location name must match the **Shopify location** field of its Store metaobject exactly (ADMIN_GUIDE 5.2). |
+| Values we need | The pickup processing time to show; the pickup instructions wording (client-approved); whether store transfers are allowed (and who moves stock). The storefront reads no store record, so no name has to match. |
 | Who | C. W sets one location up on the dev store. |
-| Verify | TOP with the pickup method; check the checkout preview and the order; mark ready, then picked up; read the test emails (section 5). Product page: pickup answer for a size with known stock (needs the storefront permission in section 8). |
+| Verify | TOP with the pickup method; check the checkout preview and the order; mark ready, then picked up; read the test emails (section 5). The product page shows no pickup answer (removed 2026-10-28). |
 | Basic-plan limits | Custom pickup apps and "ship and pickup in one order" are Plus only. Standard pickup is not restricted. |
 
 ### 2.4 Parcel shipping rates (REQ-CHK-003, P5B-07)
@@ -226,9 +226,9 @@ Derived by searching `storefront/app/` for Storefront API operations on 2026-10-
 | --- | --- | --- | --- |
 | Products, variants, collections, search, predictive search, availability, product recommendations in queries | `lib/shopify/queries.ts`, `routes/search.tsx`, `routes/collections.*` | `unauthenticated_read_product_listings` | scope grants "Product and Collection objects" |
 | Product tags (`offer-only`, `extend-coverage`: `products(query: "tag:...")` and the tag field) | `lib/shopify/offer-only.ts`, `lib/extend/coverage-catalog.ts` | `unauthenticated_read_product_tags` | scope grants the tags field; whether tag search needs it is V-27c |
-| Inventory (`availableForSale`, quantity fields) | product queries, `lib/shopify/pickup-data.ts` | `unauthenticated_read_product_inventory` | `quantityAvailable` per the scope table |
-| Pickup availability per store (`ProductVariant.storeAvailability`, `Location`) | `lib/shopify/pickup-data.ts`, `routes/api.pickup-availability.tsx` | `unauthenticated_read_product_pickup_locations` | confirmed scope table and F-29 |
-| Metaobjects: `brand`, `homepage_section`, `promo_tile`, `quiz_question`, `quiz_option`, `quiz_scoring_rule`, `site_settings`, `store` (also defined: `faq`, `offer_rule`, `delivery_zone`, not read yet) | `lib/shopify/*-data.ts` | `unauthenticated_read_metaobjects`; **each definition also needs Storefront access "PUBLIC_READ"** (`definitions.json` sets it; verify after `apply-definitions`) | confirmed |
+| Inventory (`availableForSale`, quantity fields) | product queries | `unauthenticated_read_product_inventory` | `quantityAvailable` per the scope table |
+| Pickup availability per store (`ProductVariant.storeAvailability`, `Location`) | **No longer read (removed 2026-10-28, DEC-141: one store only)** | `unauthenticated_read_product_pickup_locations` is not needed by the storefront | n/a |
+| Metaobjects: `brand`, `homepage_section`, `promo_tile`, `quiz_question`, `quiz_option`, `quiz_scoring_rule`, `site_settings` (also defined: `faq`, `offer_rule`, `delivery_zone`, not read yet) | `lib/shopify/*-data.ts` | `unauthenticated_read_metaobjects`; **each definition also needs Storefront access "PUBLIC_READ"** (`definitions.json` sets it; verify after `apply-definitions`) | confirmed |
 | Product, variant and collection metafields (`custom.*`: comfort, type, faqs, dimensions, brand, extend_category, related_*) | `lib/shopify/queries.ts`, `lib/extend/coverage-facts.ts` | Storefront access on each metafield definition (set to PUBLIC_READ in `definitions.json`); no scope row | confirmed in the file; effect unverified (V-04, V-05) |
 | Blogs and articles | `routes/blogs.*` | `unauthenticated_read_content` | scope grants Article, Blog, Comment |
 | Pages (`page(handle)`), navigation menu (`menu(handle)`), shop policies (`shop { privacyPolicy ... }`) | `routes/pages.$handle.tsx`, `lib/shopify/menu-data.ts`, `routes/policies.*` | probably `unauthenticated_read_content`, **`[NOT SEEN]`**: the scope table lists only Article, Blog and Comment | read the error on first run and compare |
@@ -276,13 +276,13 @@ Prerequisites: the Admin token exists (B-02), the development store has the samp
 | V-02, V-16 | Add a covered item with a coverage line (mock on): change the parent's quantity, remove the parent, reload; after a TOP order read the order lines for the parent relationship and line properties. | Child follows or is removed as F-26 says; relationship survives in the order | Extend mock on |
 | V-03, V-27a | `OFFER_SETUP_DEVSTORE.md` section 5 gift and bundle steps. | Gift $0 in cart and checkout; allocation title readable; both automatic discounts combine as hoped; count against 25 | Section 6 discounts created |
 | V-04 | Add one filter (comfort level) in the Search and Discovery app (name `[ADMIN, NOT SEEN]`), query a collection with `productFilters` through the Storefront API. | Filter values and counts return | Metafield definitions applied |
-| V-05 | Create one entry of each metaobject type; fetch `metaobjects(type: "store", first: 5)` with the public token; check the `offer-only` tag sitemap exclusion at `/sitemap.xml` (V-27c). | Entries returned; offer-only products absent from the sitemap | `apply-definitions.mjs`, section 8 permissions |
+| V-05 | Create one entry of each metaobject type; fetch `metaobjects(type: "brand", first: 5)` with the public token; check the `offer-only` tag sitemap exclusion at `/sitemap.xml` (V-27c). | Entries returned; offer-only products absent from the sitemap | `apply-definitions.mjs`, section 8 permissions |
 | V-06a | Read Local delivery on the dev store and on a paid Basic trial store if the owner allows one. | Same screen, no plan error | Owner authorisation for any trial store |
 | V-06b | Section 2.2 step 5: screenshot the Express Checkout area for an in-zone cart and a parcel cart. | Only Shop Pay with Local delivery (R-22) | Wallets active |
 | V-06c | Try to read Local delivery postal codes through the Admin API (`deliveryProfiles` or locations; the field is `[NOT SEEN]`); if absent, record "export by hand". | Known answer either way | Admin token |
 | V-06d | Query a cart's `deliveryGroups` with only a ZIP in `buyerIdentity.deliveryAddressPreferences` (F-20). | Options for a bare ZIP, or the documented refusal | Cart through the API |
 | V-06e | Add a shipping rate conditioned on the ZIP in the dev admin. | Possible or not | Section 2.4 |
-| V-07 | Request `storeAvailability` for a variant with stock at one location; compare with the Store metaobject's location name. | Right "ready for pickup" answer | Section 8 pickup scope, Store entry |
+| V-07 | *(No longer needed by the storefront since 2026-10-28, DEC-141: per-store pickup availability was removed.)* Was: request `storeAvailability` for a variant with stock at one location. | n/a | n/a |
 | V-08 | Section 7 verify row. | Sign-in, orders, address edit, quiz write all work | Tunnel, accounts on |
 | V-09 | Place a guest order (TOP); call `POST /track-order` with its number and email; try one wrong email. | Right order found; same generic failure otherwise; rows older than 60 days not found | `read_orders` token |
 | V-10, V-19 | Install the ReConvert free plan on the dev store, configure a one-click offer, run TOP from our cart and see whether the post-purchase page and the thank-you offer show. Uninstall after. | Offer shows (or does not) for a Storefront-API cart | Dev store only; no cost |

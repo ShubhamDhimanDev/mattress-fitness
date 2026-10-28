@@ -25,7 +25,7 @@ Everything below tagged `UNVERIFIED` is a statement about Shopify's behaviour we
 - delete products, ever;
 - delete sizes or images missing from the sheet unless you add `--allow-removals`;
 - add the `offer-only` or `extend-coverage` tags (do that in Shopify admin, section 8 below);
-- create brand entries, collections, filters, pages or store entries;
+- create brand entries, collections, filters or pages;
 - undo a run (there is no revert tool; the run record lets a person restore values by hand).
 
 ## 1. What you need

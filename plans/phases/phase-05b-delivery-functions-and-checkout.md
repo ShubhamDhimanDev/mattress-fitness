@@ -35,7 +35,7 @@ REQ-DEL-001, REQ-DEL-002, REQ-PRE-003, REQ-PROMO-003, REQ-POST-001, REQ-POST-002
 | P5B-04 | Pre-checkout delivery choice and haul-away step: eligibility, quantity cap, "Recycle and disposal service" line, server cap | shopify-hydrogen-developer | P5B-01, CLR-010 | `app/routes/checkout-steps.tsx` extension |
 | P5B-05 | Detective control: Flow rule (or webhook check) that tags and notifies over-limit or mismatched haul-away orders; admin-guide note to keep the cap in sync | integration-engineer | V-17, P5B-04 | Flow screenshots and config notes, or `app/lib/orders/haul-away-check.ts` |
 | P5B-06 | Checkout branding: logo, background, colours, fonts in the checkout and accounts editor | ui-ux-designer | G-2 | admin configuration checklist and screenshots |
-| P5B-07 | Delivery methods: Local delivery zone with price and minimum-order rules, store pickup with ready-for-pickup email, parcel shipping rates | integration-engineer | P5B-01, REQ-LOC-002 | configuration checklist |
+| P5B-07 | Delivery methods: Local delivery zone with price and minimum-order rules, store pickup (the client's one store) with ready-for-pickup email, parcel shipping rates | integration-engineer | P5B-01 | configuration checklist |
 | P5B-08 | Payments: cards, Shop Pay, Apple Pay, Google Pay, PayPal, Affirm as activated by the client | integration-engineer | CLR-007 | configuration checklist |
 | P5B-09 | Checkout features and tax verification: discount codes, marketing opt-in, express buttons, wallet behaviour for in-zone carts | integration-engineer | P5B-07 | verification notes and screenshots for SD-04 |
 | P5B-10 | Customer email templates in brand: confirmation, shipping, pickup-ready, refund | technical-writer | G-2 | template changes and test sends |

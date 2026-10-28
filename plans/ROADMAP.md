@@ -16,7 +16,7 @@ flowchart LR
   P4 --> P5A[5A Extend protection]
   P4 --> P5B[5B Delivery, haul-away, checkout config]
   P3A -. delivery-zone decision .-> P5B
-  P3B --> P6[6 Quiz, compare, stores, account, content]
+  P3B --> P6[6 Quiz, compare, account, content]
   P4 --> P6
   P5A --> P7[7 Analytics, SEO, a11y, perf, security]
   P5B --> P7
@@ -56,7 +56,7 @@ Lanes share no files: A owns `storefront/app/components` and styles; B owns `scr
 1. **Split Phase 3** into 3A (connectivity, data model, import) and 3B (catalog UI) so the import tool and store data, which depend on client inputs, do not gate UI work that can run on mock data first.
 2. **Split Phase 5** into 5A (Extend) and 5B (delivery, haul-away, checkout configuration, post-purchase options) because 5A waits on a third party for go-live and 5B does not. On Basic, 5B builds no Function (ADR-0006).
 3. **Move the delivery-zone decision to P3A-10.** The product page needs a delivery promise (3B placeholder, 5B real) and the data model must exist before offers are designed; deciding the single source of truth early prevents two lists drifting.
-4. **Move store data to 3A and "my store" to 3B**, ahead of the store locator pages in Phase 6, because product pickup availability and the header selector need them.
+4. **Move store data to 3A and "my store" to 3B**, ahead of the store locator pages in Phase 6, because product pickup availability and the header selector need them. *(Void since 2026-10-28: one store only, the store locator, store data and "my store" were removed, DEC-141, CR-32.)*
 5. **Introduce `track()` in Phase 2**, so quiz and other features emit analytics events from the start and Phase 7 only wires providers.
 6. **Linking model decided once in Phase 4**, reused by Extend in 5A: nested cart lines (F-26), verified on a Basic-equivalent dev store (V-16) in P4-01, recorded in P5A-02.
 7. **Extend moved off the blocked list** (2026-10-12 owner decision): its pure library, mock and tests are scheduled as early parallel work.

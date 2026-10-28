@@ -67,19 +67,19 @@ Warm, natural-light bedroom photography with one red accent object in some shots
 
 | Page | Change | Existing pieces touched | New content from admin |
 | --- | --- | --- | --- |
-| **Header** | Two-row header as in the preview: dark utility bar (delivery promise, find a store, track order, phone), main row (logo 64 px, delivery-ZIP chip, wide search, account, cart with red count), nav row with mega-menu links and a red "Take the sleep quiz" button | `UtilityBar`, `TopStrip`, `SiteHeader`, `MainNav`, `MobileNav`, `DeliveryZipControl`, `HeaderSearch`, `BrandLogo` | none |
+| **Header** | Two-row header as in the preview: dark utility bar (delivery promise, track order, phone; hidden below 1024 px, its links live in the mobile menu; the "find a store" link was removed 2026-10-28, DEC-141), main row (logo 64 px, delivery-ZIP chip, wide search, account, cart with red count), nav row with mega-menu links and a red "Take the sleep quiz" button | `UtilityBar`, `TopStrip`, `SiteHeader`, `MainNav`, `MobileNav`, `DeliveryZipControl`, `HeaderSearch`, `BrandLogo` | none |
 | **Sticky header** | Decision D3: keep scrolling away (today, CR-16) or make the compact header sticky. Not in the preview | `SiteHeader` | |
 | **Footer** | Dark footer with logo, one-line blurb, three link groups, privacy choices; phone and hours from admin | `SiteFooter` | none |
 | **Home** | Section order in section 4.1 | `HomeSections`, `CatalogSections`, `BannerSection`, `ReassuranceStrip`, `PromoBar` | new block types, 4.1 |
 | **Collection / search** | Card grid with the new product card (badge, brand, name, type chip, From price, Compare checkbox); filter panel as a drawer on phones and a left column on desktop; same filters and URL state | `ProductTile`, `ProductListing`, `FilterPanel`, `SearchResults` | none |
-| **Product page** | Larger gallery with thumbnails, buy box with size chips, delivery choice cards (home, pickup, try in store), protection and add-on offers as cards, sticky add-to-cart bar on phones | `ProductBuyBox`, `ProductGallery`, `ProductAddOns`, `ProductSections`, `PickupAvailability` | none |
+| **Product page** | Larger gallery with thumbnails, buy box with size chips, delivery choice cards (home, pickup; "try in store" and per-store pickup availability were removed 2026-10-28, DEC-141), protection and add-on offers as cards, sticky add-to-cart bar on phones | `ProductBuyBox`, `ProductGallery`, `ProductAddOns`, `ProductSections` | none |
 | **Brand page** | Hero with the brand's name and an image, its mattresses grid, and the "about" text | `routes/brands.$handle.tsx` | brand `hero_image` field (4.2) |
 | **Cart page, drawer, empty cart** | Section 5 | `CartMain`, `CartLineItem`, `CartSummary`, `CartOffers`, ... | empty-cart illustration |
-| **Quiz, compare, stores, account, content pages** | Restyle through tokens and the new primitives only; layouts stay | | |
+| **Quiz, compare, account, content pages** | Restyle through tokens and the new primitives only; layouts stay | | |
 
 ### 4.1 Home sections (top to bottom, as in the preview)
 
-1. Hero: highlighted headline, short line, finder card (size chips, feel, brand, quiz tab), large photo with two floating cards (free delivery, try in store). *Existing `hero` banner; the finder card is new.*
+1. Hero: highlighted headline, short line, finder card (size chips, feel, brand, quiz tab), large photo with two floating cards (free delivery; the "try in store"/"find a store" card was removed 2026-10-28, DEC-141). *Existing `hero` banner; the finder card is new.*
 2. Trust strip, four items. *Existing `ReassuranceStrip` / `HOME_ASSURANCE_ITEMS`; items still shown only when their content exists (B-15).*
 3. **Brands showcase** (new look, section 4.2): full-width red band, 12 brand tiles, "See all brands" and "Compare mattresses". *Existing `brands` catalog block.*
 4. Shop by size: six bed-size tiles drawn in the page (no photos). *Existing `shop-by-size`.*
@@ -89,7 +89,7 @@ Warm, natural-light bedroom photography with one red accent object in some shots
 8. Sleep quiz band with a photo. *New block type `quiz-band`.*
 9. Complete your sleep setup: protection, bases, bedding cards. *New block type `setup-cards`.*
 10. How it works, three steps with a photo. *New block type `how-it-works`.*
-11. Find a store: ZIP field, two nearest stores, a map picture. *New block type `store-finder` (uses the existing store data and ZIP logic).*
+11. ~~Find a store: ZIP field, two nearest stores, a map picture.~~ *Dropped 2026-10-28 (DEC-141, one store only); the `store-finder` block type no longer exists.*
 12. FAQ accordion. *New block type `faq` (the project already has FAQ entries).*
 13. Email signup band. *Existing `signup` block.*
 
@@ -162,7 +162,7 @@ Order matters: R1 and R2 first (everything depends on them), then R3, then R4 (t
 | D2 | Red promo panels and the red brands band, with savings text staying amber and orange | Accept |
 | D3 | Sticky compact header while scrolling (CR-16) | Yes on phones only (the cart and search stay in reach), after a keyboard test that focus is never hidden |
 | D4 | Brand logos | Text names now; ask each brand for its logo file and written permission |
-| D5 | New home block types (quiz band, setup cards, how it works, store finder, FAQ) | Build all five; each hides itself when empty |
+| D5 | New home block types (quiz band, setup cards, how it works, store finder, FAQ) | Build all five; each hides itself when empty. *(The store finder block was dropped 2026-10-28, DEC-141.)* |
 | D6 | Hero finder tabs: size, feel, quiz (brand as a select) | As in the preview |
 | D7 | Treat the redesign as change request CR-31 and send it to the client with the preview | Yes; nothing in the signed scope names a visual direction beyond "like the reference in the client's brand" (Q-004) |
 

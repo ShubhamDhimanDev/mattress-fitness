@@ -22,8 +22,8 @@ For the plan in [REDESIGN_PLAN](REDESIGN_PLAN.md). The `IMG-xx` labels are the o
 | IMG-01 | Home hero | 5:6, 2000 x 2400 | `hero-bedroom.webp` |
 | IMG-02 | How it works, delivery | 4:3, 1600 x 1200 | `delivery-setup.webp` |
 | IMG-03 | Sleep quiz band | 4:3, 1600 x 1200 | `quiz-choosing.webp` |
-| IMG-04 | Stores, product page "try in store" | 16:9, 2000 x 1125 | `store-showroom.webp` |
-| IMG-05 | Find a store, map | 4:3, 1600 x 1200 | `store-map.webp` |
+| IMG-04 | *(Not needed since 2026-10-28, DEC-141: no store pages or "try in store".)* Stores, product page "try in store" | 16:9, 2000 x 1125 | `store-showroom.webp` |
+| IMG-05 | *(Not needed since 2026-10-28, DEC-141: no store finder.)* Find a store, map | 4:3, 1600 x 1200 | `store-map.webp` |
 | IMG-06 to IMG-11 | Shop by feel tiles | 1:1, 1200 x 1200 each | `feel-plush.webp`, `feel-medium.webp`, `feel-firm.webp`, `feel-hybrid.webp`, `feel-memory-foam.webp`, `feel-latex.webp` |
 | IMG-12 | Protection plan card | 4:3, 1600 x 1200 | `protection-plan.webp` |
 | IMG-13 | Bedding category tile and signup band | 3:2, 1600 x 1067 | `bedding-flatlay.webp` |

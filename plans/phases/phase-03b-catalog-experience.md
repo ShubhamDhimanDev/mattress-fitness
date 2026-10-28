@@ -2,11 +2,11 @@
 
 ## Objective
 
-Let shoppers find and understand a mattress: menu, homepage, collections with filters, search, and rich product pages with live size pricing, pickup availability and the "my store" and ZIP context. (Second half of the original Phase 3.) **Business outcome:** the "clear buying decisions" objective of the SOW is demonstrable end to end on real catalog data.
+Let shoppers find and understand a mattress: menu, homepage, collections with filters, search, and rich product pages with live size pricing and the ZIP context. (Pickup availability and "my store" were withdrawn 2026-10-28, DEC-141: one store only.) (Second half of the original Phase 3.) **Business outcome:** the "clear buying decisions" objective of the SOW is demonstrable end to end on real catalog data.
 
 ## Scope
 
-In: Storefront API queries and generated types, caching strategy, mega menu, homepage sections, collection pages, filters, promo tiles, collection FAQs, brand pages, predictive search and results, product pages, "my store" selector and pickup availability, ZIP entry, reviews adapter.
+In: Storefront API queries and generated types, caching strategy, mega menu, homepage sections, collection pages, filters, promo tiles, collection FAQs, brand pages, predictive search and results, product pages, ZIP entry, reviews adapter.
 Out: add-ons, bundles and gifts (4), delivery promise (5B), Extend offer (5A), comparison and quiz (6).
 
 ## Prerequisites
@@ -17,6 +17,8 @@ Phase 2 shell; Phase 3A data on the store; V-04, V-05, V-07 verified; Q-011 (rev
 
 REQ-NAV-002, REQ-NAV-003, REQ-HOME-001, REQ-COL-001, REQ-COL-002, REQ-COL-003, REQ-COL-004, REQ-COL-005, REQ-SRCH-001, REQ-SRCH-002, REQ-PDP-001, REQ-PDP-002, REQ-PDP-003, REQ-PDP-004, REQ-PDP-005, REQ-LOC-003
 
+REQ-PDP-003, REQ-PDP-004 and REQ-LOC-003 are `Descoped` (2026-10-28, DEC-141, SD-12): one store only, nothing to build or accept.
+
 ## Architecture and design decisions
 
 - All reads go through typed query modules in `storefront/app/lib/shopify/` using generated types; route loaders compose them. Components receive plain props.
@@ -24,7 +26,7 @@ REQ-NAV-002, REQ-NAV-003, REQ-HOME-001, REQ-COL-001, REQ-COL-002, REQ-COL-003, R
 - Filters and sort live in the URL; the filter codec is a pure, unit-tested module shared by collections and search.
 - The product page selects variants from URL state (`?Size=...`), server-renders the selected variant, and updates without a full reload.
 - Reviews sit behind a `ReviewsProvider` interface so the chosen app (Q-011) is an adapter; with no provider nothing renders and no rating schema is emitted.
-- ZIP and "my store" are first-party cookies, validated server-side, never forwarded to third-party scripts (NFR-011).
+- The ZIP is a first-party cookie, validated server-side, never forwarded to third-party scripts (NFR-011).
 - Structured data is generated from the same props as the visible content so it cannot drift.
 
 ## Tasks
@@ -40,25 +42,24 @@ REQ-NAV-002, REQ-NAV-003, REQ-HOME-001, REQ-COL-001, REQ-COL-002, REQ-COL-003, R
 | P3B-07 | Predictive search and search results page | shopify-hydrogen-developer | P3B-04 | `app/routes/search.tsx`, predictive endpoint |
 | P3B-08 | Product page core: gallery, size selector with dimensions, live price, savings, badges, URL state | shopify-hydrogen-developer | P3B-01 | `app/routes/products.$handle.tsx` |
 | P3B-09 | Product page content: overview, specifications, features, brand, delivery and warranty sections, FAQs, Product JSON-LD | shopify-hydrogen-developer | P3B-08 | components |
-| P3B-10 | "My store" selector, "set as my store", pickup availability and try-in-store link | shopify-hydrogen-developer | P3B-08, REQ-LOC-002 | `app/lib/store-context.ts`, components |
+| P3B-10 | **Withdrawn 2026-10-28 (DEC-141, CR-32):** "My store" selector, "set as my store", pickup availability and try-in-store link | shopify-hydrogen-developer | P3B-08 | none (code removed) |
 | P3B-11 | ZIP entry in the header: validator, cookie, server-side read | shopify-hydrogen-developer | P3B-01 | `app/lib/zip.ts`, header component |
 | P3B-12 | Reviews adapter interface and the chosen provider (blocked until Q-011); ratings on collections and product pages | integration-engineer | Q-011 | `app/lib/reviews/*` |
 | P3B-13 | Homepage sections from Shopify, reorderable in admin | shopify-hydrogen-developer | P3B-01 | `app/routes/_index.tsx`, section components |
 | P3B-14 | E2E journeys (home to collection to filter to product to size change), accessibility scans, performance baseline | qa-engineer | P3B-03 to P3B-13 | `storefront/tests/e2e/*.spec.ts` |
-| P3B-16 | Add the optional `time_zone` field to the `store` metaobject definition (store hours need it) and to the importer | solution-architect | P3A-02 | `scripts/shopify/definitions.json`, `docs/architecture/SHOPIFY_DATA_MODEL.md` |
+| P3B-16 | **Withdrawn 2026-10-28 (DEC-141, CR-32):** the optional `time_zone` field of the `store` metaobject (there is no `store` metaobject any more) | solution-architect | P3A-02 | none |
 | P3B-15 | Phase gate review | project-manager | all | gate record |
 
 ## Dependencies and blockers
 
-P3B-12 and REQ-PDP-005 are Blocked by Q-011 and CLR-005; the adapter interface and the "no provider" state still ship. Pickup availability needs store-to-location mapping (P3A-07).
-
+P3B-12 and REQ-PDP-005 are Blocked by Q-011 and CLR-005; the adapter interface and the "no provider" state still ship.
 ## Security considerations
 
-Escape or sanitise all rich text from Shopify (metaobject rich text, descriptions) before rendering; never `dangerouslySetInnerHTML` unsanitised content. Validate `?Size` and filter parameters against known values. Predictive search endpoint is rate-friendly (debounce, length floor) and returns no private data. Cookies are `SameSite=Lax`, `Secure`, no personal data beyond ZIP and store handle.
+Escape or sanitise all rich text from Shopify (metaobject rich text, descriptions) before rendering; never `dangerouslySetInnerHTML` unsanitised content. Validate `?Size` and filter parameters against known values. Predictive search endpoint is rate-friendly (debounce, length floor) and returns no private data. Cookies are `SameSite=Lax`, `Secure`, no personal data beyond the ZIP.
 
 ## Testing
 
-Unit: filter codec, variant selection, price and badge logic, ZIP validator, section mappers. Integration: query modules against recorded responses. E2E and accessibility: collection filtering, load more, search, size change, store selection, keyboard operation of the menu and filters. Performance: baseline LCP on collection and product templates recorded for Phase 7.
+Unit: filter codec, variant selection, price and badge logic, ZIP validator, section mappers. Integration: query modules against recorded responses. E2E and accessibility: collection filtering, load more, search, size change, keyboard operation of the menu and filters. Performance: baseline LCP on collection and product templates recorded for Phase 7.
 
 ## Acceptance criteria
 

@@ -110,7 +110,7 @@ Open these and expect no error page. On a store with a single product and no `ma
 | a product page                                 | Gallery, size picker, price, **Add to cart**; no protection panel                 |
 | Add to cart, then open the cart                | Drawer with the line, quantity stepper and **Checkout**                           |
 | `/search?q=queen`                              | Results                                                                           |
-| `/compare`, `/quiz`, `/stores`                 | Work on built-in sample data (they do not read the store yet)                      |
+| `/compare`, `/quiz`                            | Work on built-in sample data (they do not read the store yet)                      |
 
 Then, in the browser's network tab, confirm nothing is requested from Extend, Klaviyo, Google, Meta, Affirm or a maps host. Shopify's own consent script may log one blocked telemetry request to `shopifysvc.com`; that is the content policy refusing it on purpose and is not a problem.
 

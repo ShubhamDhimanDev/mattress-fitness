@@ -23,9 +23,9 @@ One row per SOW section and deliverable. "State 2026-10-26" is the build state f
 
 | SOW section | Deliverable | State 2026-10-26 (from STATUS) | Final result (Accepted, Accepted with deferral, Not live with reason, Deviated and acknowledged, Not delivered) | Evidence |
 |---|---|---|---|---|
-| 4 | Home, collections and filters, brand pages, search, product pages, compare, sleep quiz, store locator, account, content pages and blog | Built on mocks and fixtures; none verified on a store | `[to fill]` | `[UAT sign-off, TRACEABILITY]` |
-| 4 | Navigation, header, footer, promo bar, delivery ZIP, my store | Built; promo text, phone and guarantee strip wait for client content | `[to fill]` | |
-| 4 | Reviews, pickup availability | Adapter and placeholders built per the latest commits; no provider; hidden when no data | `[to fill]` | |
+| 4 | Home, collections and filters, brand pages, search, product pages, compare, sleep quiz, account, content pages and blog (the store locator was removed 2026-10-28, SD-12: record the client's acknowledgement) | Built on mocks and fixtures; none verified on a store | `[to fill]` | `[UAT sign-off, TRACEABILITY]` |
+| 4 | Navigation, header, footer, promo bar, delivery ZIP | Built; promo text, phone and guarantee strip wait for client content | `[to fill]` | |
+| 4 | Reviews | Adapter and placeholder built per the latest commits; no provider; hidden when no data (per-store pickup availability removed 2026-10-28, SD-12) | `[to fill]` | |
 | 4 / 10 | Analytics (GA4, Meta) with consent; email signup; live chat | Built on fakes; ids and accounts not supplied; chat has no provider | `[to fill]` | |
 | 5 | Cart, add-on, bundle and gift offers, comfort-guarantee protector, haul-away, free-delivery progress | Built; gift picker off; haul-away limit not enforced in checkout (SD-01) | `[to fill]` | |
 | 5 | Post-purchase and thank-you offers | Not built by us (SD-02, SD-03); client decision | `[to fill]` | |

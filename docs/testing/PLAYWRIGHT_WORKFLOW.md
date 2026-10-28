@@ -105,7 +105,7 @@ Projects (as configured in `playwright.config.ts`; the browser set is finalised 
 | Delivery                       | eligible ZIP, ineligible ZIP, invalid ZIP, ZIP+4; promise text; haul-away offered only when eligible; maximum enforced (UI and server)                        |
 | Checkout hand-off              | lines and totals identical to the cart; discounts preserved; **stop at Shopify's checkout page** (no payment)                                                 |
 | Error states                   | each provider (Extend, reviews, maps, chat, analytics) failing or slow; Storefront API error; 404 and out-of-stock products; offline                          |
-| Quiz, compare, stores, account | full quiz and retake; saved results; compare on mobile; my store; sign-in and orders; guest tracking generic errors                                           |
+| Quiz, compare, account | full quiz and retake; saved results; compare on mobile; sign-in and orders; guest tracking generic errors                                           |
 | Accessibility                  | axe on every template with zero serious or critical; keyboard path through each flow; focus management in drawers and dialogs; reduced motion                 |
 | Console and network            | no console errors or warnings on key pages; no request to a tracker before consent; no private token in any client request                                    |
 

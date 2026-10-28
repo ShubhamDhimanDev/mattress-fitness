@@ -2,24 +2,24 @@
 
 ## Objective
 
-Connect the storefront to a real Shopify store, define the catalog and content data model once as code, and load the client's products, brands and stores through a validated, repeatable import. (This is the first half of the original Phase 3, split because the catalog data and import tool are a distinct, client-dependent deliverable that everything in 3B reads.) **Business outcome:** the client's real catalog exists in Shopify, structured so filters, the quiz and offers work without code changes for new products.
+Connect the storefront to a real Shopify store, define the catalog and content data model once as code, and load the client's products and brands through a validated, repeatable import. (This is the first half of the original Phase 3, split because the catalog data and import tool are a distinct, client-dependent deliverable that everything in 3B reads.) **Business outcome:** the client's real catalog exists in Shopify, structured so filters, the quiz and offers work without code changes for new products.
 
 ## Scope
 
-In: store connection, metafield and metaobject definitions as scripts, product sheet template, validator, idempotent import, image upload, drafted copy, brand and store data, rule-based collections, filter configuration, delivery-zone data-model decision.
+In: store connection, metafield and metaobject definitions as scripts, product sheet template, validator, idempotent import, image upload, drafted copy, brand data, rule-based collections, filter configuration, delivery-zone data-model decision.
 Out: storefront pages (3B), offer rules (4), Extend products (5A).
 
 ## Prerequisites
 
-G-1 (store access); decisions Q-002 and Q-003 for the sales channel (Hydrogen channel versus Headless channel); CLR-014 (sheet, images), CLR-015 (stores), CLR-009 (zip list) in at least sample form; Phase 0 verifications V-04, V-05, V-07.
+G-1 (store access); decisions Q-002 and Q-003 for the sales channel (Hydrogen channel versus Headless channel); CLR-014 (sheet, images), CLR-009 (zip list) in at least sample form; Phase 0 verifications V-04, V-05, V-07.
 
 ## Requirement IDs
 
-REQ-LOC-002, REQ-CAT-001, REQ-CAT-002, REQ-CAT-003, REQ-CAT-004, REQ-CAT-005, REQ-CAT-006, REQ-CAT-009
+REQ-LOC-002 (`Descoped` 2026-10-28, DEC-141: one store only, nothing to build or accept), REQ-CAT-001, REQ-CAT-002, REQ-CAT-003, REQ-CAT-004, REQ-CAT-005, REQ-CAT-006, REQ-CAT-009
 
 ## Architecture and design decisions
 
-- Data model in [SHOPIFY_DATA_MODEL](../../docs/architecture/SHOPIFY_DATA_MODEL.md): one product per model with a variant per size; attributes stored as product metafields; brands, stores, FAQs, homepage sections, promo tiles, quiz and offer rules as metaobjects, all with Storefront API read access enabled.
+- Data model in [SHOPIFY_DATA_MODEL](../../docs/architecture/SHOPIFY_DATA_MODEL.md): one product per model with a variant per size; attributes stored as product metafields; brands, FAQs, homepage sections, promo tiles, quiz and offer rules as metaobjects, all with Storefront API read access enabled.
 - Definitions are created by a script from a JSON spec so the same model is applied to the development store and later to the client's store, never by hand in two places.
 - The import tool is idempotent (stable handle and SKU keys), validates before writing, supports dry run, and is the same tool handed to the client (REQ-CAT-009). It uses Admin API access from a least-privilege custom app token read from the environment.
 - Only approved copy is published (CLR-017); drafts carry an approval flag.
@@ -35,7 +35,7 @@ REQ-LOC-002, REQ-CAT-001, REQ-CAT-002, REQ-CAT-003, REQ-CAT-004, REQ-CAT-005, RE
 | P3A-04 | Validator and validation report (missing, invalid, duplicate SKUs, unknown attribute values, image mismatches) | shopify-hydrogen-developer | P3A-03 | `scripts/catalog/validate.mjs` and unit tests |
 | P3A-05 | Idempotent importer (dry run, upsert products, variants, metafields, prices, compare-at) | shopify-hydrogen-developer | P3A-04 | `scripts/catalog/import.mjs`, integration tests on the development store |
 | P3A-06 | Image upload, ordering and alt text | shopify-hydrogen-developer | P3A-05 | importer module and report |
-| P3A-07 | Brands and stores data import (store to Shopify location mapping) | shopify-hydrogen-developer | P3A-02, CLR-015 | `scripts/catalog/import-stores.mjs` |
+| P3A-07 | Brands data import. *(The stores half, with the store to Shopify location mapping, was withdrawn 2026-10-28, DEC-141: one store only.)* | shopify-hydrogen-developer | P3A-02 | brands import in the catalog tool |
 | P3A-08 | Rule-based collections and filter configuration (Search and Discovery) per the approved category structure | shopify-hydrogen-developer | P3A-05, V-04 | collection rules spec, admin checklist |
 | P3A-09 | Draft descriptions, bullets, SEO titles and meta descriptions from client facts; approval workflow | technical-writer | P3A-05 | drafts in the sheet, approval log |
 | P3A-10 | Decide the delivery-zone source of truth and zip-list format (Q-008, V-06); accept the ADR | solution-architect | P0-07 | ADR |
@@ -44,7 +44,7 @@ REQ-LOC-002, REQ-CAT-001, REQ-CAT-002, REQ-CAT-003, REQ-CAT-004, REQ-CAT-005, RE
 
 ## Dependencies and blockers
 
-CLR-014 and CLR-015 gate P3A-11; sample data allows everything up to it. Q-008 gates P3A-10.
+CLR-014 gates P3A-11; sample data allows everything up to it. Q-008 gates P3A-10.
 
 ## Security considerations
 
@@ -56,7 +56,7 @@ Unit: validator rules, mappers, price and compare-at logic. Integration: import 
 
 ## Acceptance criteria
 
-REQ-CAT-001 to REQ-CAT-006, REQ-CAT-009 and REQ-LOC-002 acceptance criteria met on the development store, then on the client's store once access is granted (a run on the live store requires explicit approval).
+REQ-CAT-001 to REQ-CAT-006, REQ-CAT-009 acceptance criteria met on the development store, then on the client's store once access is granted (a run on the live store requires explicit approval).
 
 ## Definition of done
 
