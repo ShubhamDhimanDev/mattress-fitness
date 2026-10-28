@@ -25,7 +25,7 @@ async function loadCriticalData({context, request}: Route.LoaderArgs) {
   // The cursor and direction are checked before they reach the query (security M3).
   const paginationVariables = cursorPaginationVariables(
     new URL(request.url).searchParams,
-    4,
+    16,
   );
 
   const [{collections}] = await Promise.all([
