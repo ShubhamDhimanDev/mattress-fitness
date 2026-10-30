@@ -463,18 +463,16 @@ describe('REQ-CNT-001 header links to Shopify content', () => {
       [],
     );
     expect(left).toContain('/collections/mattresses');
-    expect(left).toContain('/quiz');
-    expect(left).toContain('/compare');
   });
 
-  it('keeps exactly the guide and journal links whose page exists', () => {
+  it('holds no guide or journal link in the fixed navigation, whatever pages exist (CR-31)', () => {
     const pruned = buildFallbackNav(
       new Set(['/pages/size-guide', '/blogs/journal']),
     );
     const left = paths(pruned).filter((to) =>
       /^\/(pages|blogs)\//.test(to ?? ''),
     );
-    expect(left).toEqual(['/pages/size-guide', '/blogs/journal']);
+    expect(left).toEqual([]);
   });
 
   it('drops a menu left with no groups, and a group left with no links', () => {
@@ -570,32 +568,12 @@ describe('REQ-CNT-001 the shell default navigation links nothing that could 404'
     ).toEqual([]);
   });
 
-  it('adds the buying guides and the journal back, in place, when they exist', () => {
-    const full = buildFallbackNav(
-      new Set([
-        '/pages/size-guide',
-        '/pages/comfort-guide',
-        '/pages/mattress-types-guide',
-        '/pages/adjustable-base-guide',
-        '/blogs/journal',
-      ]),
-    );
-    const guides = full.find((item) => item.id === 'guides');
-    expect(
-      guides?.kind === 'menu' ? guides.groups.map((g) => g.id) : [],
-    ).toEqual(['guides-buying', 'guides-help']);
-    expect(
-      guides?.kind === 'menu'
-        ? guides.groups.flatMap((g) => g.links.map((l) => l.to))
-        : [],
-    ).toEqual([
-      '/pages/size-guide',
-      '/pages/comfort-guide',
-      '/pages/mattress-types-guide',
-      '/pages/adjustable-base-guide',
-      '/quiz',
-      '/compare',
-      `/blogs/${JOURNAL_BLOG_HANDLE}`,
+  it('is exactly Mattresses, Box Springs & Adjustable Beds, Beds & Furniture and Bedding, with no Sale (CR-31)', () => {
+    expect(MAIN_NAV.map((item) => item.label)).toEqual([
+      'Mattresses',
+      'Box Springs & Adjustable Beds',
+      'Beds & Furniture',
+      'Bedding',
     ]);
   });
 
@@ -625,7 +603,7 @@ describe('REQ-CNT-001 the shell default navigation links nothing that could 404'
     const paths = everyPath(pruned);
     expect(paths).toContain('/collections/mattresses');
     expect(paths).toContain('/brands');
-    expect(paths).not.toContain('/collections/sale');
+    expect(paths).not.toContain('/collections/headboards');
     expect(paths).not.toContain('/collections/box-springs');
     expect(
       paths.some((to) => to?.startsWith('/collections/mattresses?size=')),
@@ -634,15 +612,17 @@ describe('REQ-CNT-001 the shell default navigation links nothing that could 404'
 
   it('keeps every link when the collection read failed (null), so a shop outage never empties the menu', () => {
     const paths = everyPath(buildFallbackNav(new Set(), null));
-    expect(paths).toContain('/collections/sale');
+    expect(paths).toContain('/collections/headboards');
     expect(paths).toContain('/collections/box-springs');
   });
 
   it('drops the whole Mattresses filter set when the mattresses collection itself is missing', () => {
-    const paths = everyPath(buildFallbackNav(new Set(), new Set(['sale'])));
+    const paths = everyPath(
+      buildFallbackNav(new Set(), new Set(['box-springs'])),
+    );
     expect(paths.some((to) => to?.startsWith('/collections/mattresses'))).toBe(
       false,
     );
-    expect(paths).toContain('/collections/sale');
+    expect(paths).toContain('/collections/box-springs');
   });
 });

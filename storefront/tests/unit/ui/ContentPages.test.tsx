@@ -324,7 +324,6 @@ describe('REQ-CNT-001 utility links in the header bar and the mobile menu', () =
       .getAllByRole('link', {hidden: true})
       .map((link) => link.getAttribute('href') ?? '');
     expect(hrefs.filter((href) => href.startsWith('/pages/'))).toEqual([
-      '/pages/size-guide',
       '/pages/contact',
     ]);
     expect(hrefs).not.toContain('/blogs/journal');

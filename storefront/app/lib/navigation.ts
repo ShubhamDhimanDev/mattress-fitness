@@ -96,7 +96,7 @@ export type MainNavItem = NavLinkItem | NavMenuItem;
 export const SLEEP_QUIZ_LINK: NavLinkItem = {
   kind: 'link',
   id: 'quiz',
-  label: 'Find your mattress',
+  label: 'Sleep quiz',
   to: '/quiz',
   emphasis: true,
 };
@@ -125,7 +125,6 @@ function slug(value: string): string {
 const MATTRESSES_PATH = '/collections/mattresses';
 
 export const MAIN_NAV: readonly MainNavItem[] = [
-  {kind: 'link', id: 'sale', label: 'Sale', to: '/collections/sale'},
   {
     kind: 'menu',
     id: 'mattresses',
@@ -191,42 +190,44 @@ export const MAIN_NAV: readonly MainNavItem[] = [
   {
     kind: 'menu',
     id: 'foundations',
-    label: 'Foundations & Bases',
+    label: 'Box Springs & Adjustable Beds',
     to: '/collections/foundations-and-bases',
     groups: [
       {
         id: 'foundations-foundations',
-        heading: 'Foundations',
+        heading: 'Box springs',
         links: [
-          {label: 'Box springs', to: '/collections/box-springs'},
+          {label: 'All box springs', to: '/collections/box-springs'},
           {label: 'Low profile', to: '/collections/low-profile-foundations'},
         ],
       },
       {
         id: 'foundations-adjustable',
-        heading: 'Adjustable bases',
+        heading: 'Adjustable beds',
         links: [
-          {label: 'All adjustable bases', to: '/collections/adjustable-bases'},
+          {label: 'All adjustable beds', to: '/collections/adjustable-bases'},
         ],
-      },
-      {
-        id: 'foundations-frames',
-        heading: 'Frames',
-        links: [{label: 'Bed frames', to: '/collections/bed-frames'}],
       },
     ],
   },
   {
     kind: 'menu',
     id: 'furniture',
-    label: 'Furniture',
+    label: 'Beds & Furniture',
     to: '/collections/furniture',
     groups: [
+      {
+        id: 'furniture-beds',
+        heading: 'Beds',
+        links: [
+          {label: 'Bed frames', to: '/collections/bed-frames'},
+          {label: 'Headboards', to: '/collections/headboards'},
+        ],
+      },
       {
         id: 'furniture-bedroom',
         heading: 'Bedroom',
         links: [
-          {label: 'Headboards', to: '/collections/headboards'},
           {label: 'Dressers', to: '/collections/dressers'},
           {label: 'Nightstands', to: '/collections/nightstands'},
         ],
@@ -251,63 +252,7 @@ export const MAIN_NAV: readonly MainNavItem[] = [
       },
     ],
   },
-  {
-    kind: 'link',
-    id: 'clearance',
-    label: 'Clearance',
-    to: '/collections/clearance',
-  },
-  {
-    kind: 'menu',
-    id: 'guides',
-    label: 'Guides',
-    // No `to`: "guides" is not one of the 15 content pages (REQ-CNT-001), so a heading link could 404. The
-    // groups below are the way in; a Shopify admin menu can give the heading a page of its own (REQ-NAV-002).
-    // Only links that need no Shopify content. The guide pages and the journal are added by `buildFallbackNav`
-    // (server side) when they exist, so this constant, which is also the shell's default, can never link a 404.
-    groups: [
-      {
-        id: 'guides-help',
-        heading: 'Help choosing',
-        links: [
-          {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to},
-          {label: 'Compare mattresses', to: COMPARE_PATH},
-        ],
-      },
-    ],
-  },
 ];
-
-/**
- * The Guides menu with its Shopify-written links (the four buying guides, the journal). Used only by
- * `buildFallbackNav` on the server, so it does not reach the browser bundle.
- */
-const GUIDES_WITH_CONTENT: NavMenuItem = {
-  kind: 'menu',
-  id: 'guides',
-  label: 'Guides',
-  groups: [
-    {
-      id: 'guides-buying',
-      heading: 'Buying guides',
-      links: [
-        {label: 'Size guide', to: '/pages/size-guide'},
-        {label: 'Comfort guide', to: '/pages/comfort-guide'},
-        {label: 'Mattress types guide', to: '/pages/mattress-types-guide'},
-        {label: 'Adjustable base guide', to: '/pages/adjustable-base-guide'},
-      ],
-    },
-    {
-      id: 'guides-help',
-      heading: 'Help choosing',
-      links: [
-        {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to},
-        {label: 'Compare mattresses', to: COMPARE_PATH},
-        {label: 'Sleep journal', to: '/blogs/journal'},
-      ],
-    },
-  ],
-};
 
 export type UtilityLink = {
   id: string;
@@ -418,20 +363,12 @@ export function pruneMainNav(
   });
 }
 
-/**
- * The fixed navigation for the pages that exist: `MAIN_NAV` with the Guides menu swapped for the full one, then
- * pruned. `MAIN_NAV` itself holds no Shopify-written link, so a shell given no availability data (its default)
- * links nothing that could 404.
- */
+/** The fixed navigation for the collections that exist (CR-31): `MAIN_NAV`, pruned. */
 export function buildFallbackNav(
   existing: ReadonlySet<string>,
   collections: CollectionHandles = null,
 ): MainNavItem[] {
-  return pruneMainNav(
-    MAIN_NAV.map((item) => (item.id === 'guides' ? GUIDES_WITH_CONTENT : item)),
-    existing,
-    collections,
-  );
+  return pruneMainNav(MAIN_NAV, existing, collections);
 }
 
 export type ReassuranceItem = {
@@ -447,42 +384,37 @@ export type ReassuranceItem = {
 };
 
 /**
- * Every reassurance item the design has room for. All three are invented placeholder wording: the client has
- * not supplied the delivery promise, the comfort guarantee or the price guarantee (REQ-CNT-001, B-15), so
- * they stay marked `awaitingContent` and nothing is shown, strip included.
- * TODO(REQ-CNT-001): drop `awaitingContent` from each item once the client's wording, pages and terms exist.
+ * The three promises in the trust strip under the main menu (CR-31). The wording is the owner's, taken from the
+ * reference strip; the terms behind them (delivery area, comfort trial, price match) are still the client's to
+ * confirm (Q-008), so the strip states them without linking to pages that may not exist.
  */
 export const REASSURANCE_DRAFT: readonly ReassuranceItem[] = [
   {
     id: 'delivery',
     icon: 'truck',
-    text: 'In-home delivery & setup',
+    text: 'Free in-home delivery & setup',
     to: '/pages/delivery-and-shipping',
-    // A service claim the client has not confirmed (one delivery zone, ADR-0007; wording Q-008).
-    awaitingContent: true,
   },
   {
     id: 'comfort',
     icon: 'shield',
-    text: 'Comfort guarantee',
+    text: '100% comfort guarantee',
     to: '/pages/comfort-guarantee',
-    awaitingContent: true,
   },
   {
     id: 'price',
     icon: 'tag',
     text: 'Price guarantee',
     to: '/pages/price-guarantee',
-    awaitingContent: true,
   },
 ];
 
-/** The header strip and the home page body show the same items: only those whose content exists. */
+/** The header strip shows every item that is not held back with `awaitingContent`. */
 export const REASSURANCE_ITEMS: readonly ReassuranceItem[] =
   publishedLinks(REASSURANCE_DRAFT);
 
-export const HOME_ASSURANCE_ITEMS: readonly ReassuranceItem[] =
-  REASSURANCE_ITEMS;
+/** The strip under the menu is the one place the promises show on the home page: no second row or hero note. */
+export const HOME_ASSURANCE_ITEMS: readonly ReassuranceItem[] = [];
 
 /**
  * The promotion bar message, from `site_settings.promo_bar_text` and `promo_bar_link` in Shopify admin (read by

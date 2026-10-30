@@ -15,21 +15,15 @@ import {
 // REQ-CNT-001 / B-15: unsupplied claims and contact details are held back.
 
 describe('unsupplied claims (B-15)', () => {
-  it('keeps the reassurance wording in the draft list but renders none of it', () => {
-    const draftText = REASSURANCE_DRAFT.map((i) => i.text);
-    expect(draftText).toEqual(
-      expect.arrayContaining([
-        'In-home delivery & setup',
-        'Comfort guarantee',
-        'Price guarantee',
-      ]),
-    );
-    // Every draft item is invented wording until the client supplies it, so the strip has nothing to show.
-    expect(REASSURANCE_DRAFT.every((i) => i.awaitingContent === true)).toBe(
-      true,
-    );
-    expect(REASSURANCE_ITEMS).toEqual([]);
-    expect(HOME_ASSURANCE_ITEMS).toEqual(REASSURANCE_ITEMS);
+  it('shows the three promises from the reference strip under the menu (CR-31)', () => {
+    expect(REASSURANCE_ITEMS.map((i) => i.text)).toEqual([
+      'Free in-home delivery & setup',
+      '100% comfort guarantee',
+      'Price guarantee',
+    ]);
+    // The home page has no second row or hero note: the strip under the menu is the one place.
+    expect(HOME_ASSURANCE_ITEMS).toEqual([]);
+    expect(REASSURANCE_DRAFT).toHaveLength(REASSURANCE_ITEMS.length);
   });
 
   it('holds back every Shopify-written footer link until the page exists (no page data, no link)', () => {

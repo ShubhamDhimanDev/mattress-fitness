@@ -1,4 +1,3 @@
-import {Link} from 'react-router';
 import {ShieldCheckIcon, TagIcon, TruckIcon} from '~/components/ui/Icons';
 import {
   REASSURANCE_ITEMS,
@@ -17,9 +16,10 @@ type ReassuranceStripProps = {
 };
 
 /**
- * Trust strip under the header (CR-31): a paper band with a red round icon beside each short promise, as many columns
- * as fit. It shows only the items whose content the client has supplied (REQ-CNT-001, B-15), so it holds none to
- * three items today and disappears when there are none.
+ * Trust strip under the main menu (CR-31): an outline icon beside each short promise in bold capitals, spread across
+ * the page and stacked on a phone. The promises are statements, not links: the pages behind them are the client's to
+ * write, and a link to a page that does not exist would 404. Items held back with `awaitingContent` never show
+ * (REQ-CNT-001, B-15), and the strip disappears when none is left.
  */
 export function ReassuranceStrip({
   items = REASSURANCE_ITEMS,
@@ -29,21 +29,17 @@ export function ReassuranceStrip({
   if (shown.length === 0) return null;
 
   return (
-    <div className="border-b border-line bg-paper text-fg">
-      <ul className="mx-auto grid max-w-page grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-x-6 px-4 py-3 md:px-10">
+    <div className="border-b border-line bg-surface text-fg">
+      <ul className="mx-auto flex max-w-page flex-col items-start gap-1 px-4 py-2 md:flex-row md:items-center md:justify-between md:gap-6 md:px-10 md:py-3">
         {shown.map((item) => {
           const Icon = ICONS[item.icon];
           return (
-            <li key={item.id}>
-              <Link
-                to={item.to}
-                className="flex min-h-touch items-center gap-3 py-1 text-sm font-bold hover:underline md:text-base"
-              >
-                <span className="inline-flex size-11.5 shrink-0 items-center justify-center rounded-pill bg-primary-500 text-white">
-                  <Icon className="size-5.5" />
-                </span>
-                <span>{item.text}</span>
-              </Link>
+            <li
+              key={item.id}
+              className="flex min-h-touch items-center gap-3 text-sm font-extrabold tracking-tight uppercase md:text-base"
+            >
+              <Icon className="size-8 text-primary-500" strokeWidth={1.5} />
+              <span>{item.text}</span>
             </li>
           );
         })}
