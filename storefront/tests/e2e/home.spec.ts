@@ -89,20 +89,20 @@ test.describe('REQ-HOME-001 home page', () => {
   });
 });
 
-test.describe('home page reassurance (REQ-CNT-001 pending)', () => {
-  // Every reassurance item is invented wording until the client supplies it (B-15), so the block is absent.
-  // When items are published (drop `awaitingContent` in lib/navigation.ts), expect the region and its links.
-  test('does not show the invented delivery, comfort and price claims', async ({
+test.describe('home page reassurance (CR-31)', () => {
+  // The promises show once, in the strip under the main menu; the page body repeats none of them.
+  test('shows the promises under the menu and not again in the page body', async ({
     page,
   }) => {
     await gotoReady(page, '/');
     await expect(
+      page.getByRole('banner').getByText('Price guarantee', {exact: true}),
+    ).toBeVisible();
+    await expect(
       page.getByRole('region', {name: 'Buy with confidence'}),
     ).toHaveCount(0);
     await expect(
-      page.getByRole('main').getByRole('link', {
-        name: /In-home delivery|Comfort guarantee|Price guarantee/,
-      }),
+      page.getByRole('main').getByText(/in-home delivery/i),
     ).toHaveCount(0);
   });
 });

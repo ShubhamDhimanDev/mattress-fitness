@@ -72,7 +72,7 @@ describe('REQ-NAV-002 desktop menu from the Shopify menu', () => {
       expect(button).toHaveAttribute('aria-controls');
     }
     expect(
-      within(nav).getByRole('link', {name: 'Find your mattress'}),
+      within(nav).getByRole('link', {name: 'Sleep quiz'}),
     ).toBeInTheDocument();
   });
 
@@ -170,9 +170,7 @@ describe('REQ-NAV-002 desktop menu from the Shopify menu', () => {
     fireEvent.keyDown(screen.getByRole('button', {name: 'Mattresses'}), {
       key: 'End',
     });
-    expect(
-      screen.getByRole('link', {name: 'Find your mattress'}),
-    ).toHaveFocus();
+    expect(screen.getByRole('link', {name: 'Sleep quiz'})).toHaveFocus();
   });
 
   it('the fixed fallback navigation still renders when the Shopify menu is absent', () => {
@@ -180,9 +178,10 @@ describe('REQ-NAV-002 desktop menu from the Shopify menu', () => {
     expect(
       screen.getByRole('button', {name: 'Mattresses'}),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Sale'})).toHaveAttribute(
+    expect(screen.queryByRole('link', {name: 'Sale'})).toBeNull();
+    expect(screen.getByRole('link', {name: 'Sleep quiz'})).toHaveAttribute(
       'href',
-      '/collections/sale',
+      '/quiz',
     );
   });
 });

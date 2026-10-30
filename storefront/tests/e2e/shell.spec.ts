@@ -172,9 +172,7 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
       'href',
       '/cart',
     );
-    await expect(
-      header.getByRole('link', {name: 'Find your mattress'}),
-    ).toHaveCount(1); // one per breakpoint: the main row on a phone, the navigation on desktop (the other is display:none)
+    await expect(header.getByRole('link', {name: 'Sleep quiz'})).toHaveCount(1); // one per breakpoint: the main row on a phone, the navigation on desktop (the other is display:none)
 
     if (isMobile) {
       // Right-hand utility links move into the menu drawer below 1024 px (they need about 870 px beside the ZIP and
@@ -216,18 +214,21 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
     }
   });
 
-  // REQ-CNT-001 / B-15: the delivery promise, the comfort guarantee and the price guarantee are placeholder
-  // wording the client has not supplied, so the strip is not rendered at all. When the client's pages arrive,
-  // drop `awaitingContent` per item in lib/navigation.ts and change this test to expect those items.
-  test('the reassurance strip shows nothing the client has not supplied', async ({
+  // CR-31: the three promises sit under the main menu as plain statements, not links.
+  test('the reassurance strip shows the three promises under the menu', async ({
     page,
   }) => {
     await gotoReady(page);
     const header = page.getByRole('banner');
+    for (const text of [
+      'Free in-home delivery & setup',
+      '100% comfort guarantee',
+      'Price guarantee',
+    ]) {
+      await expect(header.getByText(text, {exact: true})).toBeVisible();
+    }
     await expect(
-      header.getByRole('link', {
-        name: /In-home delivery|Comfort guarantee|Price guarantee/,
-      }),
+      header.getByRole('link', {name: /comfort guarantee|price guarantee/i}),
     ).toHaveCount(0);
   });
 
@@ -486,14 +487,11 @@ test.describe('REQ-NAV-001 / REQ-NAV-002 desktop navigation (keyboard and pointe
         elements.map((element) => (element.textContent ?? '').trim()),
       );
     expect(names).toEqual([
-      'Sale',
       'Mattresses',
-      'Foundations & Bases',
-      'Furniture',
+      'Box Springs & Adjustable Beds',
+      'Beds & Furniture',
       'Bedding',
-      'Clearance',
-      'Guides',
-      'Find your mattress',
+      'Sleep quiz',
     ]);
   });
 
@@ -541,7 +539,9 @@ test.describe('REQ-NAV-001 / REQ-NAV-002 desktop navigation (keyboard and pointe
 
   test('Space also opens a menu', async ({page}) => {
     await gotoReady(page);
-    const furniture = mainNav(page).getByRole('button', {name: 'Furniture'});
+    const furniture = mainNav(page).getByRole('button', {
+      name: 'Beds & Furniture',
+    });
     await furniture.focus();
     await page.keyboard.press('Space');
     await expect(furniture).toHaveAttribute('aria-expanded', 'true');
@@ -559,33 +559,27 @@ test.describe('REQ-NAV-001 / REQ-NAV-002 desktop navigation (keyboard and pointe
 
     await page.keyboard.press('ArrowRight');
     await expect(
-      nav.getByRole('button', {name: 'Foundations & Bases'}),
+      nav.getByRole('button', {name: 'Box Springs & Adjustable Beds'}),
     ).toBeFocused();
     await page.keyboard.press('ArrowLeft');
     await expect(mattresses).toBeFocused();
-    await page.keyboard.press('ArrowLeft');
-    await expect(nav.getByRole('link', {name: 'Sale'})).toBeFocused();
     await page.keyboard.press('End');
-    await expect(
-      nav.getByRole('link', {name: 'Find your mattress'}),
-    ).toBeFocused();
+    await expect(nav.getByRole('link', {name: 'Sleep quiz'})).toBeFocused();
     await page.keyboard.press('Home');
-    await expect(nav.getByRole('link', {name: 'Sale'})).toBeFocused();
+    await expect(mattresses).toBeFocused();
   });
 
   test('plain items are links and do not claim to expand', async ({page}) => {
     await gotoReady(page);
     const nav = mainNav(page);
-    await expect(nav.getByRole('link', {name: 'Sale'})).toHaveAttribute(
-      'href',
-      '/collections/sale',
-    );
+    await expect(nav.getByRole('link', {name: 'Sale'})).toHaveCount(0);
     await expect(
-      nav.getByRole('link', {name: 'Clearance'}),
+      nav.getByRole('link', {name: 'Sleep quiz'}),
     ).not.toHaveAttribute('aria-expanded');
-    await expect(
-      nav.getByRole('link', {name: 'Find your mattress'}),
-    ).toHaveAttribute('href', '/quiz');
+    await expect(nav.getByRole('link', {name: 'Sleep quiz'})).toHaveAttribute(
+      'href',
+      '/quiz',
+    );
   });
 
   test('hovering opens a menu, moving onto the panel keeps it open and leaving closes it', async ({
@@ -731,7 +725,7 @@ test.describe('REQ-NAV-001 mobile navigation drawer', () => {
     // Keyboard: ArrowDown moves to the next section header, Enter opens it and closes the previous one.
     await page.keyboard.press('ArrowDown');
     const foundations = drawer.getByRole('button', {
-      name: 'Foundations & Bases',
+      name: 'Box Springs & Adjustable Beds',
     });
     await expect(foundations).toBeFocused();
     await page.keyboard.press('Enter');

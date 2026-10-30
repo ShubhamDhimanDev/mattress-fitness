@@ -131,7 +131,7 @@ describe('root loader: content links', () => {
     const guides = linkTargets(data.fallbackNav).filter((to) =>
       /^\/(pages|blogs)\//.test(to ?? ''),
     );
-    expect(guides).toEqual(['/pages/size-guide']);
+    expect(guides).toEqual([]);
     expect(data.footerLinks.legal.map((link) => link.to)).toEqual([
       '/policies/privacy-policy',
     ]);
