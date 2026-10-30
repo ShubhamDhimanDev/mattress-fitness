@@ -183,7 +183,7 @@ export function ProductListing({
           <>
             <h2 className="sr-only">Products</h2>
             {/* Two columns on a phone, as in the design; three from 1024 px and four from 1280 px, with or without the sidebar. */}
-            <ul className="mt-4 grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+            <ul className="mt-4 grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-3 2xl:grid-cols-4">
               {placePromoTiles(list.products, promoTiles, list.hasMore).map(
                 (item) =>
                   item.kind === 'tile' ? (
