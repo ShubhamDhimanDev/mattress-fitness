@@ -41,7 +41,7 @@ const PHASE_FILES = {
   '8': 'phase-08-acceptance-and-uat.md',
   '9': 'phase-09-launch-and-handover.md',
 };
-const REQ_STATUSES = new Set(['Confirmed', 'Assumed', 'Blocked', 'Pending approval']);
+const REQ_STATUSES = new Set(['Confirmed', 'Assumed', 'Blocked', 'Pending approval', 'Descoped']);
 const TASK_STATUSES = new Set(['TODO', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW', 'DONE']);
 const AGENTS = [
   'project-manager', 'solution-architect', 'shopify-hydrogen-developer', 'ui-ux-designer',

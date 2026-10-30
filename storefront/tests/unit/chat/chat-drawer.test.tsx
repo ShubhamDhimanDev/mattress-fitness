@@ -51,9 +51,7 @@ function Page() {
   return (
     <MemoryRouter>
       <Aside.Provider>
-        <UtilityBar links={links}>
-          <span>left</span>
-        </UtilityBar>
+        <UtilityBar links={links} />
         <MenuToggle />
         <Drawer />
       </Aside.Provider>

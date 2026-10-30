@@ -270,7 +270,6 @@ describe('parseAdminLink (T-08)', () => {
       '/blogs/journal/post#top',
       {href: '/blogs/journal/post#top', external: false},
     ],
-    ['/stores', {href: '/stores', external: false}],
     ['/quiz', {href: '/quiz', external: false}],
     ['/compare?ids=1', {href: '/compare?ids=1', external: false}],
     ['/search?q=firm', {href: '/search?q=firm', external: false}],

@@ -16,7 +16,6 @@ import {LazyBoundary, PanelFailed} from '~/components/layout/LazyPanel';
 import {cartPanel, mobileMenuPanel} from '~/components/layout/lazyPanels';
 import {PromoBar} from '~/components/layout/PromoBar';
 import {ReassuranceStrip} from '~/components/layout/ReassuranceStrip';
-import {StoreSelectorLink} from '~/components/layout/StoreSelectorLink';
 import {TopStrip} from '~/components/layout/TopStrip';
 import {UtilityBar} from '~/components/layout/UtilityBar';
 import {Action} from '~/components/ui/Action';
@@ -45,8 +44,6 @@ type SiteHeaderProps = {
   isLoggedIn: Promise<boolean>;
   promo?: PromoMessage | null;
   topStrip?: ReactNode;
-  /** Name of the shopper's chosen store, read from the validated my_store cookie by the root loader (P3B-10). */
-  storeName?: string | null;
   supportPhone?: SupportPhone | null;
   /** False in production when the ZIP cookie cannot be signed: a plain unavailable note replaces the control. */
   deliveryZipAvailable?: boolean;
@@ -68,7 +65,6 @@ export function SiteHeader({
   promo,
   topStrip,
   mainNav = null,
-  storeName = null,
   supportPhone = null,
   deliveryZipAvailable = true,
   fallbackNav = MAIN_NAV,
@@ -110,9 +106,7 @@ export function SiteHeader({
     <header className="contents lg:relative lg:z-30 lg:block lg:bg-surface">
       <PromoBar message={promo} />
       <TopStrip visible={Boolean(topStrip)}>{topStrip}</TopStrip>
-      <UtilityBar supportPhone={supportPhone} links={utilityLinks}>
-        <StoreSelectorLink storeName={storeName} />
-      </UtilityBar>
+      <UtilityBar supportPhone={supportPhone} links={utilityLinks} />
 
       <div className="sticky top-0 z-30 border-b border-line bg-surface lg:static">
         <div className="relative mx-auto flex max-w-page items-center gap-1 px-4 py-2 md:gap-3 md:px-10 lg:gap-5 lg:py-3">

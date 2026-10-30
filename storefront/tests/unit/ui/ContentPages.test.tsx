@@ -172,9 +172,6 @@ describe('REQ-CNT-001 footer links to Shopify pages', () => {
     }
     // The fixed links are still there.
     expect(
-      within(element).getAllByRole('link', {name: 'Find a store'}).length,
-    ).toBeGreaterThan(0);
-    expect(
       within(element).getByRole('link', {name: 'Sleep quiz'}),
     ).toBeInTheDocument();
   });
@@ -297,14 +294,14 @@ describe('REQ-CNT-001 utility links in the header bar and the mobile menu', () =
   const withContact = buildUtilityLinks(new Set(['/pages/contact']));
 
   it('the bar shows only "Track order" by default, and "Contact us" once the page exists', async () => {
-    renderIn(<UtilityBar>left</UtilityBar>);
+    renderIn(<UtilityBar />);
     expect(
       await screen.findByRole('link', {name: 'Track order'}),
     ).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'Contact us'})).toBeNull();
     expect(screen.queryByRole('link', {name: 'Chat with us'})).toBeNull();
     cleanup();
-    renderIn(<UtilityBar links={withContact}>left</UtilityBar>);
+    renderIn(<UtilityBar links={withContact} />);
     expect(
       await screen.findByRole('link', {name: 'Contact us'}),
     ).toHaveAttribute('href', '/pages/contact');

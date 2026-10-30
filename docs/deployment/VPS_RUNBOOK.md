@@ -356,7 +356,7 @@ Run from your own machine against the public name. None of these places an order
 3. `curl -sI -H 'Accept-Encoding: gzip' https://<DOMAIN>/ | grep -i content-encoding` [gzip]
 4. Headers pass through once: `curl -sI https://<DOMAIN>/ | cut -d: -f1 | tr 'A-Z' 'a-z' | sort | uniq -d` [prints nothing: no header appears twice]. Then compare the security headers with [SECURITY_HEADERS](../security/SECURITY_HEADERS.md): `strict-transport-security`, `content-security-policy`, `content-security-policy-report-only`, `x-content-type-options`, `x-frame-options`, `referrer-policy`, `permissions-policy`, `cross-origin-opener-policy`. Repeat for a static asset (`/assets/<a real file>`), a 404 (`/no-such-page`), and the redirect in step 1 (only nosniff-type headers matter on http).
 5. Caching of the document: `curl -sI https://<DOMAIN>/ | grep -iE 'cache-control|vary'` [`private, no-cache` and `Vary: Cookie`]
-6. Pages: `/`, a collection, a product, `/cart`, `/search?q=bed`, `/stores`, `/quiz`, `/compare` [200 each]; `/robots.txt` [200]; with `PUBLIC_SITE_URL` set, `/sitemap.xml` [200]
+6. Pages: `/`, a collection, a product, `/cart`, `/search?q=bed`, `/quiz`, `/compare` [200 each]; `/robots.txt` [200]; with `PUBLIC_SITE_URL` set, `/sitemap.xml` [200]
 7. Cookies: add an item (`/cart/<variant-id>:1`) in a browser or with `curl -sI` [302; the `cart` cookie has `Secure; HttpOnly; SameSite=Lax`]
 8. Checkout hand-off: the cart's checkout link goes to the store's checkout domain (do not pay)
 9. Webhook rejects unsigned calls: `curl -s -o /dev/null -w '%{http_code}\n' -X POST -d '{}' https://<DOMAIN>/webhooks/shopify` [not 200: 401 with the secret set, 503 without]

@@ -2,7 +2,6 @@ import {useState, type ReactNode} from 'react';
 import type {Route} from './+types/_dev.components';
 import {DeliveryZipControl} from '~/components/layout/DeliveryZipControl';
 import {PromoBar} from '~/components/layout/PromoBar';
-import {StoreSelectorLink} from '~/components/layout/StoreSelectorLink';
 import {Accordion} from '~/components/ui/Accordion';
 import {Badge} from '~/components/ui/Badge';
 import {Breadcrumb} from '~/components/ui/Breadcrumb';
@@ -404,11 +403,6 @@ function ButtonsSection() {
       <Sample label="Icon buttons">
         <IconButton label="Search" icon={<SearchIcon />} />
         <IconButton
-          label="Find a store"
-          caption="Stores"
-          icon={<MapPinIcon />}
-        />
-        <IconButton
           label="Cart, 3 items"
           caption="Cart"
           badge={3}
@@ -555,8 +549,8 @@ function FormsSection() {
           />
           <Radio
             name="method"
-            value="try"
-            label="Try in store first (unavailable)"
+            value="soon"
+            label="Unavailable option"
             variant="card"
             disabled
           />
@@ -784,8 +778,6 @@ function ComposedSection() {
             onSubmit={setZip}
             onClear={() => setZip(null)}
           />
-          <StoreSelectorLink storeName={null} />
-          <StoreSelectorLink storeName="Downtown" />
         </Sample>
       </div>
       <Sample label="Promotional bar (the page header shows the real one)">

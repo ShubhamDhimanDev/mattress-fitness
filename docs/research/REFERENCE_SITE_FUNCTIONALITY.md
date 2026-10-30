@@ -19,7 +19,7 @@ Coverage: **Covered** (a requirement matches the behaviour), **Partly** (part is
 | Reference behaviour | Our ID | Coverage | Build state |
 |---|---|---|---|
 | Delivery ZIP entry in the header | REQ-NAV-003 | Covered | IN_PROGRESS: signed cookie, server-side read, `/delivery` page built; no dev-store evidence |
-| Store selector | REQ-LOC-003 | Covered | IN_PROGRESS: cookie, "Set as my store", header display built; pickup use of it not built |
+| Store selector | REQ-LOC-003 | **Dropped 2026-10-28 (DEC-141, SD-12): one store only** | Descoped; removed |
 | Order-tracking link | REQ-ACC-003 | Partly: the SOW tracking is by order number and email, limited to 60 days (SD-05, CR-11). What the reference's tracking page does is not observed | IN_PROGRESS: library only, no route or UI (P6-08); the footer link is hidden until the page exists (UXD-26) |
 | Contact link | REQ-CNT-001 (Contact page) | Covered | NOT_STARTED (P6-09); link hidden until the page exists |
 | Live chat | REQ-ANL-004 | Covered (default Shopify Inbox, Q-011) | NOT_STARTED (P7-03); needs a provider choice; hidden until configured |
@@ -37,7 +37,7 @@ Coverage: **Covered** (a requirement matches the behaviour), **Partly** (part is
 | Top-level groups: sale, mattresses, foundations and adjustable beds, furniture, bedding, clearance, sleep guide | REQ-NAV-002 | Covered (the SOW list matches) | NOT_STARTED in TRACEABILITY. A `MainNav` with fallback links exists from the shell; the Shopify-menu-driven mega menu (P3B-02) has no backlog row and is **not in the functionality-first list**. Finding F-1 below |
 | Mega menus by size, brand, comfort, type, price band | REQ-NAV-002 | Covered | As above. Menu opening behaviour on the reference is not observed |
 | Bedding menu: pillows, sheets, protectors, toppers | REQ-NAV-002 (bedding), REQ-CAT-005 (collections) | Covered as menu and collections; the products and categories come from the client's sheet (CLR-014) | Depends on catalog import (P3A, waits for the Admin token) |
-| Finder in the guide menu (questionnaire to ranked recommendations, then shop online or try in store) | REQ-QZ-001 to REQ-QZ-007 | Covered, with one gap: the "try in store" next step on the results page (see CR-30) | IN_PROGRESS on fixtures; wording not client-approved (CLR-012) |
+| Finder in the guide menu (questionnaire to ranked recommendations, then shop online or try in store) | REQ-QZ-001 to REQ-QZ-007 | Covered; the "try in store" next step (CR-30) was withdrawn 2026-10-28 with the store locator (DEC-141) | IN_PROGRESS on fixtures; wording not client-approved (CLR-012) |
 | Blog | REQ-CNT-002 | Covered | NOT_STARTED (P6-09) |
 | FAQs | REQ-CNT-001 (FAQ page); REQ-COL-004, REQ-PDP-002 (FAQ blocks) | Covered | Collection FAQs IN_PROGRESS; FAQ page NOT_STARTED |
 | Guides by comfort, type, size, adjustable base | REQ-CNT-001 (comfort, mattress types, size, adjustable base guides) | Covered | NOT_STARTED; text is the client's (CLR-016) |
@@ -50,10 +50,10 @@ Coverage: **Covered** (a requirement matches the behaviour), **Partly** (part is
 |---|---|---|---|
 | Hero sale banner; shop-by-size tiles; brand sale tiles; category tiles | REQ-HOME-001 | Covered, editable and orderable in admin | IN_REVIEW to IN_PROGRESS: eight admin-ordered section types with fallbacks; admin editing unproven (no dev store) |
 | Financing promo (0% for 60 months above a threshold) | REQ-HOME-001 (financing banner), REQ-CNT-001 (Financing page), REQ-CART-005 | Partly. The banner and page layout are in scope. The offer itself needs a real provider and terms (CLR-007, CLR-008); the SOW gives no computed monthly figure | Banner and links hidden until content exists (SD-11, CR-14, Q-016) |
-| Finder block and store-finder block | REQ-QZ-007, REQ-HOME-001 | Covered | Built on fixtures |
+| Finder block and store-finder block | REQ-QZ-007, REQ-HOME-001 | Finder block covered; the store-finder block was dropped 2026-10-28 (DEC-141) | Finder built on fixtures |
 | In-store-only offers (mattress plus free base) | REQ-HOME-001 can show a **teaser tile** (content) | Partly. The online teaser is in scope. Honouring an in-store-only price at the point of sale is POS (EXC-06, EXC-08) | Tile type exists; nothing offer-specific. Candidate CR-29 for anything beyond a tile |
 | Floor-model clearance | REQ-NAV-002 (clearance), REQ-CAT-005 (rule collections) | Partly. A clearance collection is in scope. One-off, store-specific floor units are not (needs per-location stock and POS) | Candidate CR-29 |
-| Chat, store-finder and call prompts | REQ-HOME-001, REQ-ANL-004, REQ-LOC-001 | Covered | Chat NOT_STARTED; store pages built on fixtures |
+| Chat, store-finder and call prompts | REQ-HOME-001, REQ-ANL-004 | Chat and call prompts covered; store-finder dropped 2026-10-28 (REQ-LOC-001 descoped, DEC-141) | Chat is tawk.to (DEC-136) |
 | Email and text-message signup block | REQ-HOME-001, REQ-ANL-003, NFR-011 | Covered (form and consent). Incentive and reminders: see the SMS row below | Signup section renders nothing until P7-02; NOT_STARTED |
 
 ### Guarantees, policies and company pages
@@ -95,7 +95,7 @@ Coverage: **Covered** (a requirement matches the behaviour), **Partly** (part is
 | 3-hour window announced the evening before; fee refund if missed | EXC-04 (online booking of windows; the client's team schedules) | **Not in scope** as a feature. The announcement and refund are client operations; the policy can be stated in the Delivery and shipping page content | No build. Booking is CR-02; dynamic promise is CR-25 |
 | Next-day delivery on eligible orders | REQ-DEL-002 allows a client-approved promise string per delivery type, with no stock or carrier calculation | Partly. A static line is in scope; deciding "next day" per order from stock and routes is not (EXC-06 if it needs warehouse data). Candidate CR-25 | PDP promise shows in-zone yes or no only; wording not supplied (CLR-009) |
 | Standard parcel shipping for small items, no setup | REQ-CHK-003 (parcel shipping) | Covered | NOT_STARTED; configured in Shopify admin; parcel mixing with in-home items is a client answer (SD-04) |
-| In-store pickup | REQ-CHK-003, REQ-PDP-003, REQ-LOC-002 | Covered for items available at the chosen store | PDP availability NOT_STARTED; needs per-location stock on a store (V-07) |
+| In-store pickup | REQ-CHK-003 (REQ-PDP-003 and REQ-LOC-002 descoped 2026-10-28, DEC-141) | Pickup is a delivery choice at the client's one store; no per-store availability on the product page | Pickup location and email set up in Shopify (SHOPIFY_STORE_SETUP 2.3) |
 | Some pickup items take days to reach the store | none | **Not in scope.** Shopify has a per-location pickup-time text (F-29); a per-item transfer lead time needs warehouse data (EXC-06). Candidate CR-26 | Not built |
 | Nationwide delivery by contacting service, with a fee | none (single zone, SD-07). Boxed items can use parcel shipping | **Not in scope.** Candidate CR-24 (message and contact path); a real quote engine is not proposed | Not built |
 | Haul-away, priced per piece, chosen online by quantity | REQ-PRE-003, REQ-PROMO-003, REQ-CAT-007 | Covered, with a client-set maximum (the reference states none) | IN_PROGRESS: cart gate, step, detective check built on fakes; residual risk B-17, B-18 |
@@ -107,7 +107,7 @@ Coverage: **Covered** (a requirement matches the behaviour), **Partly** (part is
 | Reference behaviour | Our ID | Coverage | Build state |
 |---|---|---|---|
 | Questionnaire, ranked recommendations | REQ-QZ-001 to REQ-QZ-003 | Covered; ours returns the best three with reasons | IN_PROGRESS on fixtures |
-| Shop online or try in store as the next step | REQ-QZ-002 (Add to cart, See all matches, Retake) | Partly: no store link on the results. Candidate CR-30 | Not built |
+| Shop online or try in store as the next step | REQ-QZ-002 (Add to cart, See all matches, Retake) | Partly: no store link on the results. CR-30 withdrawn 2026-10-28 (DEC-141) | Not built, and no longer planned |
 | Saved results, tracking, "not medical advice" | REQ-QZ-005, REQ-QZ-006, REQ-QZ-007 | Covered (the SOW goes beyond what was observed) | Device storage built; account sync and GA events not |
 
 ## 2. Reference behaviours outside the SOW or against an exclusion: change-request candidates
@@ -124,11 +124,11 @@ Registered in [BACKLOG](../../plans/BACKLOG.md) as CR-18 to CR-30, status **prop
 | CR-23 | Company pages: careers, press, affiliate programme | none | S each for careers and press; M for an affiliate programme with tracking | Low | Client content; an affiliate platform adds fees (EXC-12) |
 | CR-24 | Out-of-area delivery message with a "contact us for a delivery quote" path | REQ-DEL-002, SD-07, CR-12 | S | Medium: stops dead ends for shoppers outside the one zone | Client policy for out-of-area orders and who answers (operations). A fee calculator is not proposed |
 | CR-25 | Dynamic delivery promise: next-day eligibility per item, window announcement and fee refund tracking | REQ-DEL-002, EXC-04, EXC-06, CR-02 | L | High if the client runs next-day delivery, but needs data we do not hold | Warehouse, route and stock data (EXC-06); windows booking is CR-02. The static promise string is already in scope |
-| CR-26 | Pickup lead time for items that must be transferred to the store | REQ-PDP-003, EXC-06 | M to L | Medium | Shopify's per-location pickup-time field (F-29) and V-07; per-item transfer data needs a warehouse or ERP feed (EXC-06) |
-| CR-27 | Per-store stock on listings and search ("available at my store" badge or filter) | REQ-PDP-003, REQ-LOC-003 | M | Medium: connects online browsing to the showroom | REQ-PDP-003 verified first (V-07), a Storefront API cost and cache check across 400 products. **Not observed on the reference**; a candidate extension of the store selector |
+| CR-26 *(withdrawn 2026-10-28, DEC-141)* | Pickup lead time for items that must be transferred to the store | REQ-PDP-003, EXC-06 | M to L | Medium | Shopify's per-location pickup-time field (F-29) and V-07; per-item transfer data needs a warehouse or ERP feed (EXC-06) |
+| CR-27 *(withdrawn 2026-10-28, DEC-141)* | Per-store stock on listings and search ("available at my store" badge or filter) | REQ-PDP-003, REQ-LOC-003 | M | Medium: connects online browsing to the showroom | REQ-PDP-003 verified first (V-07), a Storefront API cost and cache check across 400 products. **Not observed on the reference**; a candidate extension of the store selector |
 | CR-28 | Sister-brand switcher or strip above the header | none | S | Low unless the client has a second brand | Client confirmation that a sister brand exists; REFERENCE_PATTERNS says not needed |
 | CR-29 | Floor-model clearance listings (one-off, store-specific units) and in-store-only offer handling beyond a teaser tile | EXC-06, EXC-08, REQ-HOME-001 | M | Medium for clearance revenue | Per-location stock, one product record per unit, POS rules. A homepage teaser tile and a clearance collection are already in scope |
-| CR-30 | Store-finder or "try in store" step on the quiz results page | REQ-QZ-002 | S | Medium: matches the reference's finder hand-off to a showroom visit | REQ-LOC-003 and REQ-PDP-004 exist; the owner may rule it a design detail inside REQ-QZ-002 instead |
+| CR-30 *(withdrawn 2026-10-28, DEC-141)* | Store-finder or "try in store" step on the quiz results page | REQ-QZ-002 | S | Medium: matches the reference's finder hand-off to a showroom visit | REQ-LOC-003 and REQ-PDP-004 exist; the owner may rule it a design detail inside REQ-QZ-002 instead |
 
 Quick wins the owner could offer the client together: CR-21, CR-22, CR-24, CR-30 and the fixed-code form of CR-18 (all S). Needs a client policy first: CR-19, CR-20, CR-23, CR-28. Large and needs data we do not hold: CR-25, CR-26, CR-27, CR-29.
 
@@ -145,7 +145,7 @@ Quick wins the owner could offer the client together: CR-21, CR-22, CR-24, CR-30
 | Extended warranty | Extend FAQ and a claims page | Extend offer, linked coverage line and order sync, run against a local mock behind a flag; Extend handles claims | SOW §6; ADR-0009. Live only with the client's approved account (REQ-EXT-004 Blocked) |
 | Signup | Text signup with a discount and reminders | Email and text signup forms with recorded consent; no incentive and no automated reminders | EXC-03 excludes the flows; forms are included (REQ-ANL-003) |
 | Order tracking | A tracking link in the header | Guest lookup by order number and email, 60 days, generic errors, rate limited | SD-05, CR-11. The reference's own rules are not observed |
-| Pickup | Pickup, with some items taking days to reach the store | Availability for the shopper's chosen store from per-location stock; no transfer lead time | REQ-PDP-003; lead times need warehouse data (EXC-06) |
+| Pickup | Pickup, with some items taking days to reach the store | Pickup at the one store as a delivery choice; no per-store availability and no transfer lead time (REQ-PDP-003 descoped 2026-10-28, DEC-141) | REQ-CHK-003; lead times need warehouse data (EXC-06) |
 | Header on scroll | Compact fixed header (earlier observation) | Whole header scrolls away | REQ-NAV-001 names no sticky header; CR-16, UXD-12 |
 | Filter counts | No counts visible (earlier observation) | Counts that must match Shopify admin | REQ-COL-002 acceptance criteria |
 | Offers | Not observed beyond badges and inline rows | Offers run on our pages before Shopify's hosted checkout and arrive as ordinary lines | SOW §5; ADR-0003; EXC-01 and EXC-02 keep checkout Shopify's |
@@ -156,7 +156,7 @@ Quick wins the owner could offer the client together: CR-21, CR-22, CR-24, CR-30
 
 These reference behaviours are in the SOW and fit the functionality-first plan in [CURRENT_PHASE](../../plans/CURRENT_PHASE.md). Everything stays on mocks, fixtures and fakes, hidden until content or configuration exists, and nothing can go `DONE` before the dev-store pass (DEC-076).
 
-1. **Product-page fulfilment choices** (delivery by ZIP, pickup by store, try in store) and the **add-on rows** ("you might also need", "frequently bought with"): plan steps 3 and 8 (P4-03, P4-12 seam, P3B-10). This is the largest visible functional gap between our product page and the reference's.
+1. **Product-page fulfilment choices** (delivery by ZIP, pickup by store; "try in store" was dropped 2026-10-28, DEC-141) and the **add-on rows** ("you might also need", "frequently bought with"): plan steps 3 and 8 (P4-03, P4-12 seam, P3B-10). This is the largest visible functional gap between our product page and the reference's.
 2. **Reviews and ratings** adapter with a hidden slot: step 8 (P3B-12).
 3. **Signup (email and text) and chat** adapters: step 4 (P7-02, P7-03) plus the consent layer (P7-01), each off until configured.
 4. **Content and policy pages** and the blog, including the guarantee, price guarantee, warranty, financing, delivery and shipping, accessibility, FAQ and the four guides: step 5 (P6-09), hidden until the client supplies text.

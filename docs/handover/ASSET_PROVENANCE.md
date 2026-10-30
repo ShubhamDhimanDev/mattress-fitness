@@ -61,7 +61,7 @@ All of this is invented and must never be shown to shoppers or the client as the
 |---|---|---|---|---|
 | D-1 | Sample product sheets | `scripts/catalog/sample/mattresses.csv`, `invalid.csv`, `offer-products.csv` | Invented brands (for example Cloudmere, Tidewell, Ashgrove, Verdant, Everyday, Quillmoor Sleep, Brindlewood Bedding), models, prices, descriptions marked "made-up sample copy". The CSV header row is the product contract of this project | SYNTHETIC |
 | D-2 | Catalog fixtures | `storefront/app/lib/catalog/fixtures.ts` | Invented brands, lines and models; image URLs on the reserved `.test` domain that never resolve; fake variant IDs | SYNTHETIC |
-| D-3 | Store fixtures | `storefront/app/lib/stores/fixtures.ts` | Invented store names ("Wrenfield Sleep Gallery Buffalo", "Wrenfield Sleep Studio Rochester"), placeholder streets, phone numbers in the fiction range 555-01xx | SYNTHETIC |
+| D-3 | Store fixtures (removed 2026-10-28, DEC-141: `storefront/app/lib/stores/fixtures.ts` no longer exists) | none | Was: invented store names, placeholder streets and phone numbers in the fiction range 555-01xx | REMOVED |
 | D-4 | Test fixtures and e2e data | `storefront/tests/**`, `storefront/app/**/*.test.*` | Invented names, addresses and order numbers; example domains | SYNTHETIC |
 | D-5 | Example offer configuration | `docs/integrations/OFFER_SETUP_DEVSTORE.md`, test files | Fake Shopify IDs and made-up rules (DEC-082) | SYNTHETIC |
 | D-6 | Mock-store data | read live from `mock.shop`, `bedding.mock.shop` during development | Shopify's public demo stores; nothing copied into the repository | Not in repository |

@@ -10,7 +10,7 @@
 //   - the SMS fields are looked at only when SMS is on. A number needs its own ticked consent and the other way round;
 //   - a surface or a consent version this build does not know is a stale or tampered form, never "close enough".
 
-import {normalizeUsPhone} from '~/lib/stores/directions';
+import {normalizeUsPhone} from '~/lib/phone';
 import {EMAIL_CONSENT, SMS_CONSENT} from '~/lib/signup/consent';
 import {validateSignupEmail} from '~/lib/signup/email';
 import {

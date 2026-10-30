@@ -276,7 +276,7 @@ Labels: `type-display` (uppercase, 800) for all except `ghost` (sentence case, 7
 
 **Pattern.** Brand-switch strip; grey utility bar with two underlined icon links at the left and plain text links at the right; main row with logo left, search at the right with the magnifier inside, solid icons; centred navigation row with chevrons on items that open a panel; three-item reassurance strip; the header turns compact and fixed on scroll.
 
-**Ours now.** Promo bar (amber), optional top strip (hidden), utility bar (grey), main row with a moon icon and the site name as logo, pill search, `IconButton`s, desktop `MainNav`, `ReassuranceStrip` (tinted, content-gated).
+**Ours now.** (Written before 2026-10-28; since then the utility bar has no store link and is hidden below 1024 px.) Promo bar (amber), optional top strip (hidden), utility bar (grey), main row with a moon icon and the site name as logo, pill search, `IconButton`s, desktop `MainNav`, `ReassuranceStrip` (tinted, content-gated).
 
 **Change.**
 
@@ -284,7 +284,7 @@ Labels: `type-display` (uppercase, 800) for all except `ghost` (sentence case, 7
 | --- | --- |
 | Promo bar (`PromoBar.tsx`) | `on-dark bg-primary-500 text-white`, `type-display text-sm`, link underlined; keep `min-h-touch` and the "no text from admin means no bar" rule |
 | Top strip (`TopStrip.tsx`) | no change (hidden; the client has no sister brand) |
-| Utility bar (`UtilityBar.tsx`) | `bg-surface-muted text-ink-700` (9.45); ZIP and store links `font-bold underline underline-offset-2 hover:no-underline` with their icons; right links regular, underline on hover. 44 px high. **As built (QA BV-006, UXD-28): the right-hand links show from 1024 px (`lg:flex`), not 768 px**, because they need about 870 px beside the ZIP and store controls and wrapped the bar to 88 px at 768 px. The menu button stays until 1024 px and the menu lists the same links, so nothing is unreachable. (The 768 px column of the section 4 table above, "utility shows tracking, contact, chat", is superseded.) |
+| Utility bar (`UtilityBar.tsx`) | `bg-surface-muted text-ink-700` (9.45); ZIP link `font-bold underline underline-offset-2 hover:no-underline` with its icon (the store link and "My store" were removed 2026-10-28, DEC-141); right links regular, underline on hover. 44 px high. **Update 2026-10-28 (orchestrator-reported): the whole utility bar is hidden below 1024 px and its links live in the mobile menu.** **As built (QA BV-006, UXD-28): the right-hand links show from 1024 px (`lg:flex`), not 768 px**, because they need about 870 px beside the ZIP and store controls and wrapped the bar to 88 px at 768 px. The menu button stays until 1024 px and the menu lists the same links, so nothing is unreachable. (The 768 px column of the section 4 table above, "utility shows tracking, contact, chat", is superseded.) |
 | Main row (`SiteHeader.tsx`) | `BrandLogo` (section 3) replaces the moon icon and name; row padding `py-2`; at `lg` the logo is 64 px so the row is 80 px high; search spans the middle column but is capped `lg:max-w-xl lg:justify-self-end` |
 | Search (`HeaderSearch.tsx`) | input `rounded-l-choice` (was pill), border `border-line-strong`; submit `rounded-r-choice bg-primary-500 border-primary-500 text-white hover:bg-primary-600 hover:border-primary-600`; suggestion panel unchanged |
 | Navigation (`MainNav.tsx`) | top item `type-display text-sm`, `min-h-14` (56 px), hover `text-primary-700` (7.83), open `bg-primary-50 text-primary-700` (7.12); current page keeps underline; the emphasised item (Sale) keeps the amber pill with `ink-900` text. Panel: `border-t-4 border-primary-500 bg-surface shadow-md`, group headings `text-xs font-extrabold uppercase tracking-wide text-fg` (was muted), "View all" link `text-primary-700` bold. Keyboard behaviour unchanged (disclosure, arrows, Esc) |
@@ -306,7 +306,7 @@ Heights, top to bottom at 1280 with a promo message: promo 44, utility 44, main 
 1. Surface `bg-surface-muted text-fg`; remove `on-dark` (the ring is blue: 5.76 on `ink-100`). Add `border-t-4 border-primary-500` on top of the footer as the one brand accent.
 2. Group headings: `type-display text-sm text-fg`. Links: `text-sm text-ink-700 hover:text-primary-700 hover:underline` (9.45 and 6.81 on `ink-100`), 44 px rows as now. Mobile separators `border-ink-300`.
 3. Add a brand row above the groups: `BrandLogo` footer size and, at the right, the social links **only when the client supplies the URLs** (REQ-CNT-001; round `border-2 border-ink-700` icon links, 44 px, `aria-label` per network). Until then the row shows the logo only.
-4. Add a quick-links row (order tracking, delivery information, account at the left; store locator, contact at the right; text `text-base font-bold`), which reuses `UTILITY_LINKS` and `STORE_LOCATOR_PATH`.
+4. Add a quick-links row (order tracking, delivery information, account at the left; contact at the right; text `text-base font-bold`), which reuses `UTILITY_LINKS`. *(The "store locator" link and `STORE_LOCATOR_PATH` were removed 2026-10-28, DEC-141.)*
 5. Signup band: **not rendered** until the email and text-message providers and wording exist (P7-02, UXD-16). Reserve no space. When built: a heading in `type-display text-primary-700` (7.83 on `ink-100`), a labelled email field, a `primary` button, consent text for the text-message line (NFR-011).
 6. Bottom row: copyright `text-sm text-ink-700`, legal links and the phone link (existing).
 
@@ -431,7 +431,7 @@ Review-fix commit 6366e20 on this branch (the code was re-read on 2026-10-22; th
 | Logo | Header 56 px below `lg`, 64 px at `lg`; original in `storefront/brand-source/`, comment in `brand.ts` corrected | `BrandLogo.tsx`, `lib/brand.ts` |
 | Info colour | Info toast and `QuizIntro` frame are a neutral ink frame (UXD-24) | `Toast.tsx`, `QuizIntro.tsx` |
 | 40 character guard | Also covers promo bar, nav labels, nav and mobile group headings, footer group headings, accordion menu rows (UXD-22) | `PromoBar`, `MainNav`, `MobileNav`, `SiteFooter`, `Accordion` |
-| Footer quick links | `/track-order`, `/pages/delivery-and-shipping`, `/pages/contact` hidden (`awaitingContent`); row shows "Your account" and "Store locator"; "Track your order" in the support group held back (UXD-26) | `lib/navigation.ts` |
+| Footer quick links | `/track-order`, `/pages/delivery-and-shipping`, `/pages/contact` hidden (`awaitingContent`); row shows "Your account" (no "Store locator" since 2026-10-28, DEC-141); "Track your order" in the support group held back (UXD-26) | `lib/navigation.ts` |
 | Card titles | Clamp at 4 lines only from `md`, none below | `ProductItem.tsx` |
 | Find in page | Brand and FAQ accordion rows use `hidden="until-found"` (Ctrl+F reveal not verified on a real page) | `Accordion.tsx` |
 | Price | Savings badge inside the live price region; stale price italic, not dimmed | `ProductBuyBox.tsx`, `Price.tsx` |

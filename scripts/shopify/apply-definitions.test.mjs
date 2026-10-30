@@ -29,12 +29,12 @@ const TOTAL = spec.metaobjectDefinitions.length + spec.metafieldDefinitions.leng
 
 // ---- the shipped spec ------------------------------------------------------------------------------------
 
-test('definitions.json is valid and declares the twelve metaobject types of the data model', () => {
+test('definitions.json is valid and declares the eleven metaobject types of the data model', () => {
   const checked = validateSpec(spec);
   assert.deepEqual(checked.ok ? [] : checked.errors, []);
-  assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_card', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'quiz_scoring_rule', 'site_settings', 'store']);
+  assert.deepEqual(spec.metaobjectDefinitions.map((definition) => definition.type).sort(), ['brand', 'delivery_zone', 'faq', 'homepage_card', 'homepage_section', 'offer_rule', 'promo_tile', 'quiz_option', 'quiz_question', 'quiz_scoring_rule', 'site_settings']);
   assert.equal(spec.metafieldDefinitions.length, 19, '16 product metafields, the variant dimensions field, the collection FAQs and the customer quiz result');
-  assert.equal(TOTAL, 31);
+  assert.equal(TOTAL, 30);
 });
 
 test('custom.faqs is defined for products and for collections with the same shape (REQ-COL-004)', () => {
@@ -105,7 +105,6 @@ test('every metafield the importer can write has a matching definition with the 
 test('the data model fields that other work packages depend on are present', () => {
   const fields = (/** @type {string} */ type) => spec.metaobjectDefinitions.find((definition) => definition.type === type).fieldDefinitions.map((field) => field.key);
   assert.deepEqual(fields('brand'), ['name', 'slug', 'logo', 'about', 'warranty_terms', 'hero_image']);
-  assert.ok(['pickup_enabled', 'location_handle', 'latitude', 'longitude', 'hours', 'photo'].every((key) => fields('store').includes(key)));
   assert.ok(['postal_codes', 'free_over', 'fee_text'].every((key) => fields('delivery_zone').includes(key)));
   assert.ok(['haul_away_max', 'extend_enabled', 'promo_bar_text', 'promo_bar_link', 'support_phone'].every((key) => fields('site_settings').includes(key)));
   // The storefront reads these three as plain text (site-settings.ts); a different type would change what the read returns.
@@ -125,7 +124,7 @@ test('homepage_section fixes its section types and promo_tile its grid position 
   const definition = (/** @type {string} */ type) => spec.metaobjectDefinitions.find((candidate) => candidate.type === type);
   const field = (/** @type {string} */ type, /** @type {string} */ key) => definition(type).fieldDefinitions.find((candidate) => candidate.key === key);
   // The storefront lists the same values in HOMEPAGE_SECTION_TYPES (tests/unit/catalog/home-sections.test.ts).
-  assert.deepEqual(field('homepage_section', 'type').validations, [{ name: 'choices', value: ['hero', 'promo-banner', 'shop-by-size', 'featured', 'brands', 'categories', 'financing', 'signup', 'quiz-band', 'setup-cards', 'how-it-works', 'store-finder', 'faq'] }]);
+  assert.deepEqual(field('homepage_section', 'type').validations, [{ name: 'choices', value: ['hero', 'promo-banner', 'shop-by-size', 'featured', 'brands', 'categories', 'financing', 'signup', 'quiz-band', 'setup-cards', 'how-it-works', 'faq'] }]);
   assert.deepEqual(definition('homepage_section').fieldDefinitions.map((candidate) => candidate.key), ['type', 'heading', 'body', 'image', 'link', 'link_label', 'order', 'enabled', 'cards']);
   assert.equal(field('homepage_section', 'link_label').required, undefined, 'the label is optional: without it the heading is the link');
   // The cards of the setup and how-it-works blocks (CR-31): a list of homepage_card entries, declared before the section.
@@ -374,15 +373,15 @@ test('an existing definition that only lacks a spec field is extended in a live 
 test('missing fields are still added when something else also differs, but the other difference is only reported and the run fails', async () => {
   const fake = createFakeShopify();
   assert.equal((await run(['--live'], { fake })).code, 0);
-  dropField(fake, 'store', 'location_handle');
-  fake.state.metaobjectDefinitions.get('store').name = 'Renamed in admin';
+  dropField(fake, 'brand', 'warranty_terms');
+  fake.state.metaobjectDefinitions.get('brand').name = 'Renamed in admin';
   fake.reset();
   const result = await run(['--live'], { fake });
   assert.equal(result.code, 1);
-  assert.match(result.out, /DIFF store: name is "Renamed in admin"/);
-  assert.match(result.out, /ADD store: field location_handle/);
+  assert.match(result.out, /DIFF brand: name is "Renamed in admin"/);
+  assert.match(result.out, /ADD brand: field warranty_terms/);
   assert.deepEqual(fake.mutations().map((call) => call.operationName), ['AddMetaobjectDefinitionFields']);
-  assert.equal(fake.state.metaobjectDefinitions.get('store').name, 'Renamed in admin', 'the name is never changed');
+  assert.equal(fake.state.metaobjectDefinitions.get('brand').name, 'Renamed in admin', 'the name is never changed');
 });
 
 test('a definition id that is not a metaobject definition gid is never sent back; the missing field is reported as a difference', async () => {

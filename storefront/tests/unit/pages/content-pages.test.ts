@@ -296,7 +296,7 @@ describe('REQ-CNT-001 merging page links into the footer groups', () => {
     expect(merged).toEqual([
       {id: 'support', labels: []},
       {id: 'sleep-guide', labels: ['Sleep quiz', 'Compare mattresses']},
-      {id: 'about', labels: ['Find a store']},
+      {id: 'about', labels: []},
     ]);
   });
 
@@ -324,10 +324,7 @@ describe('REQ-CNT-001 merging page links into the footer groups', () => {
       ...FOOTER_QUICK_LINKS_START_DRAFT,
       ...FOOTER_QUICK_LINKS_END_DRAFT,
     ];
-    expect(visibleQuickLinks(draft, []).map((l) => l.id)).toEqual([
-      'account',
-      'stores',
-    ]);
+    expect(visibleQuickLinks(draft, []).map((l) => l.id)).toEqual(['account']);
     const shown = visibleQuickLinks(
       draft,
       footerPageLinks(available({pages: ['delivery-and-shipping', 'contact']})),
@@ -335,7 +332,6 @@ describe('REQ-CNT-001 merging page links into the footer groups', () => {
     expect(shown.map((l) => [l.id, l.to])).toEqual([
       ['delivery', '/pages/delivery-and-shipping'],
       ['account', '/account'],
-      ['stores', '/stores'],
       ['contact', '/pages/contact'],
     ]);
   });
@@ -386,11 +382,10 @@ describe('REQ-CNT-001 the footer link model built by the root loader', () => {
     const links = buildFooterLinks([]);
     expect(links.supportGroups.map((group) => group.id)).toEqual([
       'sleep-guide',
-      'about',
     ]);
     expect(links.legal).toEqual([]);
     expect(links.quickStart.map((link) => link.id)).toEqual(['account']);
-    expect(links.quickEnd.map((link) => link.id)).toEqual(['stores']);
+    expect(links.quickEnd.map((link) => link.id)).toEqual([]);
   });
 
   it('adds every existing page to its group, the legal row and the quick links', () => {
@@ -412,7 +407,7 @@ describe('REQ-CNT-001 the footer link model built by the root loader', () => {
     expect(byGroup).toEqual({
       support: ['Contact us', 'Delivery and shipping', 'FAQ'],
       'sleep-guide': ['Sleep quiz', 'Compare mattresses', 'Sleep journal'],
-      about: ['About us', 'Find a store'],
+      about: ['About us'],
     });
     expect(links.legal.map((link) => link.to)).toEqual([
       '/policies/privacy-policy',
@@ -421,10 +416,7 @@ describe('REQ-CNT-001 the footer link model built by the root loader', () => {
       'delivery',
       'account',
     ]);
-    expect(links.quickEnd.map((link) => link.id)).toEqual([
-      'stores',
-      'contact',
-    ]);
+    expect(links.quickEnd.map((link) => link.id)).toEqual(['contact']);
   });
 });
 
@@ -503,7 +495,7 @@ describe('REQ-CNT-001 header links to Shopify content', () => {
         to: '/pages/y',
         groups: [
           {id: 'a', heading: 'A', links: [{label: 'Y', to: '/pages/y'}]},
-          {id: 'b', heading: 'B', links: [{label: 'S', to: '/stores'}]},
+          {id: 'b', heading: 'B', links: [{label: 'S', to: '/search'}]},
         ],
       },
       {kind: 'link', id: 'faq', label: 'FAQ', to: '/pages/faq'},

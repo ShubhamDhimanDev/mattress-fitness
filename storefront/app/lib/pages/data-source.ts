@@ -1,7 +1,6 @@
-// The one seam between the quiz, comparison and store-locator pages and their
+// The one seam between the quiz and comparison pages and their
 // data. There is no development store yet, and mock.shop has none of the mattress
-// metafields (comfort level, type, sleep positions, benefits) or `store`
-// metaobjects, so today every function returns the synthetic fixtures and says so
+// metafields (comfort level, type, sleep positions, benefits), so today every function returns the synthetic fixtures and says so
 // through `source`. Pages show a visible preview notice whenever `source` is
 // 'fixtures' (NFR-007: the fixture brands are fictional and must never look real).
 //
@@ -12,10 +11,7 @@ import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {CatalogProduct} from '~/lib/catalog/types';
 import {loadQuizConfigRaw} from '~/lib/shopify/quiz-data';
 import {loadQuizProducts} from '~/lib/shopify/quiz-products';
-import {loadShopifyStores} from '~/lib/shopify/store-data';
 import {FIXTURE_PRODUCTS} from '~/lib/catalog/fixtures';
-import {FIXTURE_STORES, FIXTURE_STORE_WARNINGS} from '~/lib/stores/fixtures';
-import type {Store} from '~/lib/stores/types';
 
 /** Where the data came from. 'shopify' is returned only once the real queries exist. */
 export type DataSource = 'fixtures' | 'shopify';
@@ -81,32 +77,4 @@ export function getCompareCandidates(
   // Fixtures hold every product already; the handles matter to the real query.
   void handles;
   return Promise.resolve({source: 'fixtures', candidates: previewProducts()});
-}
-
-export type StoresResult = {
-  readonly source: DataSource;
-  readonly stores: readonly Store[];
-  /** Problems found while reading store records; contain no personal data. */
-  readonly warnings: readonly string[];
-};
-
-/**
- * Every published store for the locator (REQ-LOC-001, REQ-LOC-002). With a Storefront client the `store`
- * metaobjects are read and parsed (long cache); a store with none, a failed read or no client keeps the labelled
- * fixtures, which is the behaviour before the dev store exists. A real store list is never mixed with fixtures.
- */
-export async function getStores(
-  storefront?: Storefront,
-): Promise<StoresResult> {
-  if (storefront) {
-    const live = await loadShopifyStores(storefront);
-    if (live) {
-      return {source: 'shopify', stores: live.stores, warnings: live.warnings};
-    }
-  }
-  return {
-    source: 'fixtures',
-    stores: FIXTURE_STORES,
-    warnings: FIXTURE_STORE_WARNINGS,
-  };
 }

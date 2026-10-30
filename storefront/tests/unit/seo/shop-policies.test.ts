@@ -118,7 +118,6 @@ describe('extra sitemap entries with policies', () => {
     extraSitemapEntries({
       origin: ORIGIN,
       brandPaths: [],
-      storePaths: [],
       ...(policyPaths ? {policyPaths} : {}),
     }).map((entry) => entry.loc);
 
@@ -137,7 +136,6 @@ describe('extra sitemap entries with policies', () => {
       extraSitemapEntries({
         origin: ORIGIN,
         brandPaths: [],
-        storePaths: [],
         policyPaths: ['/policies/privacy-policy'],
       }),
     );

@@ -281,13 +281,12 @@ test.describe('real development store: pages render from real data (READ paths)'
   test('pages that read metaobjects or sample data that the store does not have yet degrade to fixed states (V-05)', async ({
     page,
   }, info) => {
-    // Definitions (brand, homepage_section, promo_tile, site_settings, store, quiz_*) do not exist on the dev store yet.
+    // Definitions (brand, homepage_section, promo_tile, site_settings, quiz_*) do not exist on the dev store yet.
     // Each page must answer 200 with a heading and no console error; nothing may become a 500.
     const paths = [
       '/',
       '/brands',
       '/brands/mattressfitness',
-      '/stores',
       '/compare',
       '/quiz',
       '/blogs',

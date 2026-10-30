@@ -5,7 +5,7 @@ Deliverable H-04 (task P9-09; requirement REQ-HAND-004: a session held, attendan
 ## 1. Principles
 
 1. **Teach on a development or staging store with synthetic data, never on the live store.** No real customer data in any exercise.
-2. **Teach what is true on the day.** The admin guide marks items `BUILT, AWAITING DEV-STORE VERIFICATION`, `NOT CONNECTED YET`, `DEVELOPER-MANAGED`, `PLANNED`. Before the session the trainer re-reads those tags against the release notes ([RELEASE_NOTES_TEMPLATE](RELEASE_NOTES_TEMPLATE.md)) and updates the slides. On 2026-10-26 the following were **not** self-service: offer rules, the haul-away maximum and the delivery ZIP list (a developer edits `OFFER_CONFIG_JSON`); the store locator and quiz may still read built-in sample data; Extend protection, chat, post-purchase offers and Affirm are not live.
+2. **Teach what is true on the day.** The admin guide marks items `BUILT, AWAITING DEV-STORE VERIFICATION`, `NOT CONNECTED YET`, `DEVELOPER-MANAGED`, `PLANNED`. Before the session the trainer re-reads those tags against the release notes ([RELEASE_NOTES_TEMPLATE](RELEASE_NOTES_TEMPLATE.md)) and updates the slides. On 2026-10-26 the following were **not** self-service: offer rules, the haul-away maximum and the delivery ZIP list (a developer edits `OFFER_CONFIG_JSON`); the quiz may still read built-in sample data; Extend protection, chat, post-purchase offers and Affirm are not live.
 3. Each topic is **show, then do**: the trainee performs the task from the written guide, not from the trainer's memory. The guide is the test subject.
 4. Say what the trainee should **not** do (the "Please do not change these" list, ADMIN_GUIDE section 1) before they touch anything.
 5. Say who to call (ADMIN_GUIDE "Who to call"; the names are filled at handover, `[client input needed]`/`[to fill]`), and that after launch-day support, maintenance, hosting upkeep and new features are separate (EXC-13).
@@ -14,7 +14,7 @@ Deliverable H-04 (task P9-09; requirement REQ-HAND-004: a session held, attendan
 
 | Group | Who | Sessions | Format |
 |---|---|---|---|
-| A. Store managers and merchandisers | Products, prices, sales, collections, homepage, menus, stores, quiz | 1 to 5 | Live (screen share or in person), hands-on, `[assumed]` 3 to 4 hours in total, over one or two sittings |
+| A. Store managers and merchandisers | Products, prices, sales, collections, homepage, menus, the store's contact details, quiz | 1 to 5 | Live (screen share or in person), hands-on, `[assumed]` 3 to 4 hours in total, over one or two sittings |
 | B. Customer service | Order tracking page, privacy choices, troubleshooting, what is not live | 1, 6 | Live, 60 minutes `[assumed]` |
 | C. Content writers | The 15 pages, policies, blog, SEO fields | 5 | Live, 60 minutes `[assumed]` |
 | D. Technical contact (client's developer or maintenance provider, if any) | Deploy, rollback, rotate a secret, failed sync, catalog import setup | 7 | Live, 90 minutes `[assumed]`, separate |
@@ -75,15 +75,15 @@ Exercises:
 
 Check: the trainee can state which of these they can change themselves today (discounts) and which need a developer (offer rules, zone, haul-away maximum, until P4-12 lands).
 
-### Session 4. Stores, homepage, menus and the quiz (60 minutes, group A)
+### Session 4. Your store's details, homepage, menus and the quiz (60 minutes, group A)
 
-Content (ADMIN_GUIDE sections 5, 6, 7): add or edit a store and its hours (time zone), set pickup, close a store; homepage sections and promo tiles; collection FAQs; promo bar and phone number; brands; menus (handle, nesting, tag-filtered items); the quiz: edit a question, an answer and its scoring, what a bad mapping does, test the quiz after an edit. Use the tags on the day: the store locator and the quiz may still be `NOT CONNECTED YET`; teach only what is connected, and say so for the rest.
+Content (ADMIN_GUIDE sections 5, 6, 7): where the one store's address, hours and phone are edited (Contact page, Settings > Policies, the support phone field); homepage sections and promo tiles; collection FAQs; promo bar and phone number; brands; menus (handle, nesting, tag-filtered items); the quiz: edit a question, an answer and its scoring, what a bad mapping does, test the quiz after an edit. Use the tags on the day: the quiz may still be `NOT CONNECTED YET`; teach only what is connected, and say so for the rest.
 
 Exercises:
 - 4a. Edit one homepage section; reorder two; see the result.
 - 4b. Create a menu with one nested item; ask the developer to set the handle; see the header change.
 - 4c. Add the phone number in Site settings; confirm the link appears and that with the field empty no link shows.
-- 4d. (If connected) add a test store with hours and see it on the locator.
+- 4d. Edit the address and hours text on the Contact page and see the change after the cache delay.
 - 4e. (If connected) change one answer's weight; retake the quiz; confirm the change; undo it.
 
 Check: the trainee finds the "do not change" fields and says how long a change takes to show.

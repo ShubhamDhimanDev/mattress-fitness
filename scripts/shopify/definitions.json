@@ -30,30 +30,6 @@
       ]
     },
     {
-      "type": "store",
-      "name": "Store",
-      "description": "Physical store for the locator, my-store selector and pickup (REQ-LOC-002).",
-      "displayNameKey": "name",
-      "storefrontAccess": "PUBLIC_READ",
-      "fieldDefinitions": [
-        { "key": "name", "name": "Name", "type": "single_line_text_field", "required": true },
-        { "key": "slug", "name": "Slug", "type": "single_line_text_field", "required": true },
-        { "key": "address_line_1", "name": "Address line 1", "type": "single_line_text_field", "required": true },
-        { "key": "address_line_2", "name": "Address line 2", "type": "single_line_text_field" },
-        { "key": "city", "name": "City", "type": "single_line_text_field", "required": true },
-        { "key": "state", "name": "State", "type": "single_line_text_field", "required": true },
-        { "key": "postal_code", "name": "Postal code", "type": "single_line_text_field", "required": true },
-        { "key": "latitude", "name": "Latitude", "type": "number_decimal" },
-        { "key": "longitude", "name": "Longitude", "type": "number_decimal" },
-        { "key": "phone", "name": "Phone", "type": "single_line_text_field" },
-        { "key": "hours", "name": "Opening hours", "type": "json", "description": "Opening hours per weekday; the JSON shape is fixed in P3B with the locator." },
-        { "key": "time_zone", "name": "Time zone", "type": "single_line_text_field", "description": "Optional. IANA time zone name, for example America/New_York (not EST or Central). With it the site shows 'Open now' in the store's own time; without it the hours are listed but 'open now' is not shown (P3B-16)." },
-        { "key": "photo", "name": "Photo", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
-        { "key": "pickup_enabled", "name": "Pickup enabled", "type": "boolean" },
-        { "key": "location_handle", "name": "Shopify location", "type": "single_line_text_field", "description": "The matching Shopify location, for pickup availability. Enter its name as in Settings > Locations (capitalisation and spaces versus hyphens do not matter) or its numeric id. The Storefront API exposes only id and name." }
-      ]
-    },
-    {
       "type": "quiz_scoring_rule",
       "name": "Quiz scoring rule",
       "description": "One plain-language scoring rule for a quiz answer: when the shopper picks the answer, products with this attribute value score higher, lower, or are left out (REQ-QZ-003, REQ-QZ-004, NFR-005, P6-13).",
@@ -115,8 +91,8 @@
       "displayNameKey": "heading",
       "storefrontAccess": "PUBLIC_READ",
       "fieldDefinitions": [
-        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup", "quiz-band", "setup-cards", "how-it-works", "store-finder", "faq"] }], "description": "Section kind. hero, promo-banner, financing, quiz-band, store-finder and faq use heading, body, image and link; setup-cards and how-it-works use Cards; shop-by-size, featured, brands, categories and signup need only heading, order, enabled." },
-        { "key": "heading", "name": "Heading", "type": "single_line_text_field", "description": "In hero, quiz-band, setup-cards, how-it-works, store-finder and faq, write [[a phrase]] in double square brackets to highlight it in red. Other types show the plain text." },
+        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup", "quiz-band", "setup-cards", "how-it-works", "faq"] }], "description": "Section kind. hero, promo-banner, financing, quiz-band and faq use heading, body, image and link; setup-cards and how-it-works use Cards; shop-by-size, featured, brands, categories and signup need only heading, order, enabled." },
+        { "key": "heading", "name": "Heading", "type": "single_line_text_field", "description": "In hero, quiz-band, setup-cards, how-it-works and faq, write [[a phrase]] in double square brackets to highlight it in red. Other types show the plain text." },
         { "key": "body", "name": "Body", "type": "multi_line_text_field" },
         { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },
         { "key": "link", "name": "Link", "type": "single_line_text_field", "description": "Relative path or https URL. Plain text on purpose: Shopify's url type rejects relative paths. The storefront validates it against an allow-list (T-08)." },

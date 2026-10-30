@@ -277,11 +277,11 @@ Footer: About ("About us"). Shoppers expect: who you are, how long you have been
 
 - Who we are
 - What we sell and the brands we carry
-- Our stores (link to the store finder, which has its own page)
+- Our store (address and hours; the site has no store finder, one store only, DEC-141)
 - How we help you choose (link to the sleep quiz, guides)
 - Contact
 
-Questions: What is the business's story, in your words? When did it start and who owns it? Which brands do you carry (only those you may name)? How many stores and where (the store finder gets this from the store entries, so do not retype addresses and hours here)? What awards, memberships or certifications can you document? Which photos and people may be shown, and do you have permission? Which claims can you prove?
+Questions: What is the business's story, in your words? When did it start and who owns it? Which brands do you carry (only those you may name)? Where is your store (there is no store finder or store list on the site; the address and hours are written on the Contact page, so do not repeat them here)? What awards, memberships or certifications can you document? Which photos and people may be shown, and do you have permission? Which claims can you prove?
 
 ### 5.8 Contact (`contact`)
 
@@ -289,7 +289,7 @@ Footer: Customer support, the top bar and phone menu ("Contact us") and the quic
 
 - Call us
 - Email us
-- Visit a store (link to the store finder)
+- Visit us (the store's address and hours, written here: there is no store finder)
 - Hours for phone and email
 - What to have ready (order number, email)
 - Order questions (link to order tracking)
@@ -407,7 +407,7 @@ For each page, a named person ticks every line.
 - [ ] Title is clear; there is no Heading 1 in the content; headings go in order (2, then 3).
 - [ ] Every image has alt text; there are no embedded frames, forms or widgets (they would be removed).
 - [ ] Links work: each starts with `https://`, `mailto:` or `tel:`, or is a site path starting `/`; link text says where it goes.
-- [ ] Phone, email, hours and addresses match the store settings and the store entries.
+- [ ] Phone, email, hours and addresses match the store settings (Settings > Policies).
 - [ ] Shopify's shipping and refund policies agree with the Delivery and shipping and the Warranty and returns pages, and with checkout (section 4.4).
 - [ ] SEO title and description are filled and unique. For the FAQ page: each question is a Heading 2 or 3 ending in "?" and followed directly by a paragraph, and there are at least two (5.6a).
 - [ ] The page is read once on a phone-size screen, and by someone who did not write it.

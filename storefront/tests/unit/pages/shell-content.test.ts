@@ -11,11 +11,8 @@ import {
   resolveSupportPhone,
   visibleQuickLinks,
 } from '~/lib/navigation';
-import {hasMyStoreCookie, summarizeMyStore} from '~/lib/pages/my-store-summary';
-import {FIXTURE_STORES} from '~/lib/stores/fixtures';
-import {buildStoreIndex} from '~/lib/stores/grouping';
 
-// REQ-CNT-001 / B-15: unsupplied claims and contact details are held back. REQ-LOC-003 / P3B-10: the header's store.
+// REQ-CNT-001 / B-15: unsupplied claims and contact details are held back.
 
 describe('unsupplied claims (B-15)', () => {
   it('keeps the reassurance wording in the draft list but renders none of it', () => {
@@ -61,11 +58,7 @@ describe('unsupplied claims (B-15)', () => {
       expect(labels(FOOTER_SUPPORT_GROUPS), label).not.toContain(label);
     }
     expect(labels(FOOTER_SUPPORT_GROUPS)).toEqual(
-      expect.arrayContaining([
-        'Sleep quiz',
-        'Compare mattresses',
-        'Find a store',
-      ]),
+      expect.arrayContaining(['Sleep quiz', 'Compare mattresses']),
     );
   });
 
@@ -76,7 +69,7 @@ describe('unsupplied claims (B-15)', () => {
     ];
     // Without page data only the links that need no Shopify page remain; /track-order still waits (P6-08 flag).
     const shown = visibleQuickLinks(draft, []);
-    expect(shown.map((l) => l.id)).toEqual(['account', 'stores']);
+    expect(shown.map((l) => l.id)).toEqual(['account']);
     for (const to of [
       '/track-order',
       '/pages/delivery-and-shipping',
@@ -136,37 +129,5 @@ describe('support phone (B-15: never the invented number)', () => {
     expect(dev?.display).toMatch(/placeholder/i);
     expect(dev?.href).toBe('tel:+18005550100');
     expect(resolveSupportPhone(undefined, false)).toBeNull();
-  });
-});
-
-describe('my store in the header', () => {
-  const index = buildStoreIndex(FIXTURE_STORES);
-  const buffalo = 'new-york.buffalo.buffalo-gallery';
-
-  it('recognises a my_store cookie only when one is present', () => {
-    expect(hasMyStoreCookie(null)).toBe(false);
-    expect(hasMyStoreCookie('a=1; b=2')).toBe(false);
-    expect(hasMyStoreCookie(`a=1; my_store=${buffalo}`)).toBe(true);
-  });
-
-  it('returns only the name, slug, public key and page path for a valid cookie', () => {
-    expect(summarizeMyStore(index, `my_store=${buffalo}`)).toEqual({
-      name: 'Wrenfield Sleep Gallery Buffalo',
-      slug: 'buffalo-gallery',
-      key: buffalo,
-      path: '/stores/new-york/buffalo/buffalo-gallery',
-    });
-  });
-
-  it.each([
-    null,
-    'my_store=',
-    'my_store=new-york.buffalo.nope',
-    'my_store=a.b',
-    'my_store=%E0%A4%A',
-    `my_store=${encodeURIComponent('new-york.buffalo.<script>')}`,
-    `my_store=${'x'.repeat(500)}`,
-  ])('selects nothing for %j', (header) => {
-    expect(summarizeMyStore(index, header)).toBeNull();
   });
 });

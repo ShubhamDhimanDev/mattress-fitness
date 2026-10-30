@@ -42,12 +42,6 @@ import {
   chooseSupportPhone,
   loadSiteSettings,
 } from '~/lib/shopify/site-settings';
-import {
-  hasMyStoreCookie,
-  summarizeMyStore,
-  type MyStoreSummary,
-} from '~/lib/pages/my-store-summary';
-import {loadStoreIndex} from '~/lib/pages/stores-data';
 
 export type RootLoader = typeof loader;
 
@@ -126,37 +120,15 @@ export function headers() {
   return new Headers(PRIVATE_REVALIDATE_HEADERS);
 }
 
-/**
- * The shopper's chosen store, for the header (REQ-LOC-003). Only the name and slug of a store found in our
- * own list leave the server; an invalid or tampered cookie, a missing list or a failure all mean no store.
- */
-async function loadMyStore(
-  request: Request,
-  storefront: Storefront,
-): Promise<MyStoreSummary | null> {
-  const cookieHeader = request.headers.get('Cookie');
-  // Most visitors have no cookie: skip the store list entirely.
-  if (!hasMyStoreCookie(cookieHeader)) return null;
-  try {
-    const {index} = await loadStoreIndex(storefront);
-    return summarizeMyStore(index, cookieHeader);
-  } catch {
-    // The header falls back to "Select your store"; nothing from the request is logged (T-05).
-    logError('root.store_read_failed');
-    return null;
-  }
-}
-
 export async function loader(args: Route.LoaderArgs) {
   // Start fetching non-critical data without blocking time to first byte
   const deferredData = loadDeferredData(args);
   const {storefront, env} = args.context;
 
-  // The store lookup, the ZIP cookie read, the site settings, the menu and the footer's page links are independent
+  // The ZIP cookie read, the site settings, the menu and the footer's page links are independent
   // of each other, so they run together. None of them fails the page: each degrades to "nothing" or to the fixed
   // navigation.
   const [
-    myStore,
     delivery,
     siteSettings,
     mainNav,
@@ -164,7 +136,6 @@ export async function loader(args: Route.LoaderArgs) {
     shop,
     collectionHandles,
   ] = await Promise.all([
-    loadMyStore(args.request, storefront),
     loadDeliverySummary(args.request, env),
     loadSiteSettings(storefront),
     loadMainNav(storefront, env),
@@ -200,7 +171,6 @@ export async function loader(args: Route.LoaderArgs) {
     financing,
     // Extend's logo and terms-link slots (REQ-EXT-004); both null until the client or Extend supplies the https URLs.
     extendBranding: parseExtendBranding(env),
-    myStore,
     // The Shopify admin menu (REQ-NAV-002), or null: the layout then shows the fixed navigation. No price, no
     // shopper data: safe for the long catalog cache.
     mainNav,
@@ -317,7 +287,6 @@ export default function App() {
       <PageLayout
         cart={data.cart}
         isLoggedIn={data.isLoggedIn}
-        myStore={data.myStore}
         promo={data.promo}
         mainNav={data.mainNav}
         footerLinks={data.footerLinks}
@@ -419,7 +388,6 @@ export function ErrorBoundary() {
       <PageLayout
         cart={data.cart}
         isLoggedIn={data.isLoggedIn}
-        myStore={data.myStore}
         promo={data.promo}
         mainNav={data.mainNav}
         footerLinks={data.footerLinks}

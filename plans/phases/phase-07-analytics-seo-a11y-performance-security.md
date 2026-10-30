@@ -32,7 +32,7 @@ REQ-ANL-001, REQ-ANL-002, REQ-ANL-003, REQ-ANL-004, REQ-SEO-001, NFR-002, NFR-00
 | P7-01 | Consent layer and GA4 and Meta event mapping (page, ecommerce, quiz) | integration-engineer | Q-015, Q-012 | `storefront/app/lib/analytics/*` |
 | P7-02 | Klaviyo email and SMS signup forms with recorded consent | integration-engineer | CLR-004, Q-015 | `app/routes/signup.tsx`, component |
 | P7-03 | Chat provider embed and call-outs | integration-engineer | Q-011 | `app/lib/chat/*` |
-| P7-04 | SEO: titles and meta, canonical URLs, sitemap, robots, Product, Breadcrumb, FAQ and LocalBusiness data, faceted-URL policy | shopify-hydrogen-developer | P3B-14 | `app/lib/seo/*`, routes |
+| P7-04 | SEO: titles and meta, canonical URLs, sitemap, robots, Product, Breadcrumb and FAQ data (LocalBusiness withdrawn with the store locator, DEC-141), faceted-URL policy | shopify-hydrogen-developer | P3B-14 | `app/lib/seo/*`, routes |
 | P7-05 | Accessibility audit: automated, keyboard and screen-reader passes; fix findings | ui-ux-designer | all UI phases | audit report and fixes |
 | P7-06 | Performance: budgets, Lighthouse CI, fixes for LCP, INP and CLS on key templates | shopify-hydrogen-developer | P3B-14 | `docs/testing/PERFORMANCE.md`, config |
 | P7-07 | Security hardening: headers, CSP, rate limits, dependency audit, secret scan, threat-model verification | security-engineer | all | `docs/security/REVIEW-phase7.md` |

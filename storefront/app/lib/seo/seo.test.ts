@@ -358,12 +358,12 @@ describe('sitemap XML (REQ-SEO-001)', () => {
   });
 });
 
-describe('extra sitemap entries: brands and stores only when real (REQ-SEO-001, REQ-COL-005)', () => {
+describe('extra sitemap entries: brands only when real (REQ-SEO-001, REQ-COL-005)', () => {
   const locs = (input: Parameters<typeof extraSitemapEntries>[0]) =>
     extraSitemapEntries(input).map((entry) => entry.loc);
 
-  it('lists the home page and collection index, and nothing about brands or stores without real data', () => {
-    expect(locs({origin: ORIGIN, brandPaths: [], storePaths: []})).toEqual([
+  it('lists the home page and collection index, and nothing about brands without real data', () => {
+    expect(locs({origin: ORIGIN, brandPaths: []})).toEqual([
       `${ORIGIN}/`,
       `${ORIGIN}/collections`,
     ]);
@@ -374,7 +374,6 @@ describe('extra sitemap entries: brands and stores only when real (REQ-SEO-001, 
       locs({
         origin: ORIGIN,
         brandPaths: ['/brands/acme-sleep', '/brands/zen-rest'],
-        storePaths: [],
       }),
     ).toEqual([
       `${ORIGIN}/`,
@@ -385,31 +384,30 @@ describe('extra sitemap entries: brands and stores only when real (REQ-SEO-001, 
     ]);
   });
 
-  it('adds stores and drops duplicates', () => {
+  it('drops duplicate brand paths', () => {
     const result = locs({
       origin: ORIGIN,
-      brandPaths: [],
-      storePaths: [
-        '/stores',
-        '/stores/new-york',
-        '/stores/new-york',
-        '/stores/new-york/buffalo',
-      ],
+      brandPaths: ['/brands/acme-sleep', '/brands/acme-sleep'],
     });
     expect(result).toEqual([
       `${ORIGIN}/`,
       `${ORIGIN}/collections`,
-      `${ORIGIN}/stores`,
-      `${ORIGIN}/stores/new-york`,
-      `${ORIGIN}/stores/new-york/buffalo`,
+      `${ORIGIN}/brands`,
+      `${ORIGIN}/brands/acme-sleep`,
     ]);
   });
 
   it('never lists a private, tool or relative path, whatever it is given', () => {
     const result = locs({
       origin: ORIGIN,
-      brandPaths: ['/cart', 'brands/relative', '/account/orders', '/brands/ok'],
-      storePaths: ['/search?q=x', '/compare'],
+      brandPaths: [
+        '/cart',
+        'brands/relative',
+        '/account/orders',
+        '/search?q=x',
+        '/compare',
+        '/brands/ok',
+      ],
     });
     expect(result.join(' ')).not.toMatch(
       /cart|account|compare|search|relative/,

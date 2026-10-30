@@ -1,10 +1,4 @@
-import {
-  expect,
-  test,
-  type BrowserContext,
-  type Locator,
-  type Page,
-} from '@playwright/test';
+import {expect, test, type Locator, type Page} from '@playwright/test';
 import {
   collectConsoleErrors,
   expectNoSeriousA11yViolations,
@@ -157,7 +151,7 @@ test.describe('REQ-NAV-001 shell: landmarks, skip link and title', () => {
 });
 
 test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () => {
-  test('shows the ZIP entry, my store, search, account and cart entry points', async ({
+  test('shows the ZIP entry, search, account and cart entry points', async ({
     page,
     isMobile,
   }) => {
@@ -166,9 +160,6 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
 
     await expect(
       header.getByRole('button', {name: 'Enter delivery ZIP'}),
-    ).toBeVisible();
-    await expect(
-      header.getByRole('link', {name: 'Select your store'}),
     ).toBeVisible();
     await expect(
       header.getByRole('combobox', {name: 'Search products and pages'}),
@@ -221,9 +212,6 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
       await expect(
         header.getByRole('link', {name: /555-0100 \(dev placeholder\)/}),
       ).toBeVisible();
-      await expect(
-        header.getByRole('link', {name: 'Find a store'}),
-      ).toBeVisible();
       await expect(header.getByRole('button', {name: 'Menu'})).toBeHidden();
     }
   });
@@ -255,8 +243,8 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
   });
 
   // REQ-CNT-001 / P6-09: a footer link exists only for a Shopify page that exists with content, so the guarantee
-  // links appear only once the client has written those pages. The always-present "Find a store" link proves the
-  // About group is open; the guarantee links, when shown, must be the registry pages and must resolve.
+  // links appear only once the client has written those pages. The guarantee links, when shown, must be the registry
+  // pages and must resolve.
   test('the footer makes no comfort or price guarantee claim the client has not written', async ({
     page,
     request,
@@ -264,12 +252,6 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
   }) => {
     await gotoReady(page);
     const footer = page.getByRole('contentinfo');
-    if (isMobile) {
-      await footer.getByRole('button', {name: 'About', exact: true}).click();
-    }
-    await expect(
-      footer.getByRole('link', {name: 'Find a store'}),
-    ).toBeVisible();
     const guarantees = footer.getByRole('link', {
       name: /Comfort guarantee|Price guarantee/,
     });
@@ -311,72 +293,6 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
         expect(status, `${path} is a 404 or a 200 page`).toBe(200);
       }
     }
-  });
-
-  // REQ-LOC-003 / P3B-10: the header shows the store from the my_store cookie. The cookie is validated on
-  // the server against the store list; only the store name reaches the page.
-  test.describe('my store in the header', () => {
-    const BUFFALO = 'new-york.buffalo.buffalo-gallery';
-
-    async function setCookie(
-      context: BrowserContext,
-      baseURL: string | undefined,
-      value: string,
-    ) {
-      await context.addCookies([
-        {
-          name: 'my_store',
-          value: encodeURIComponent(value),
-          url: baseURL ?? '',
-        },
-      ]);
-    }
-
-    test('shows My store: <name> for a valid cookie and never prints the cookie value', async ({
-      page,
-      context,
-      baseURL,
-    }) => {
-      await setCookie(context, baseURL, BUFFALO);
-      const response = await gotoReady(page);
-      await expect(
-        page.getByRole('banner').getByRole('link', {
-          name: 'My store: Wrenfield Sleep Gallery Buffalo',
-        }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole('banner').getByRole('link', {name: 'Select your store'}),
-      ).toHaveCount(0);
-      // The page may name the store; the cookie text itself must not be echoed into the HTML.
-      expect(await response?.text()).not.toContain(BUFFALO);
-    });
-
-    test('a tampered cookie selects nothing and is not echoed', async ({
-      page,
-      context,
-      baseURL,
-    }) => {
-      const tampered = 'new-york.buffalo.<script>alert(1)</script>';
-      await setCookie(context, baseURL, tampered);
-      const response = await gotoReady(page);
-      await expect(
-        page.getByRole('banner').getByRole('link', {name: 'Select your store'}),
-      ).toBeVisible();
-      const html = (await response?.text()) ?? '';
-      expect(html).not.toContain('alert(1)');
-    });
-
-    // The document varies by cookie, so it is private; no-cache (not no-store) keeps the back/forward cache.
-    test('the page is private and revalidated, but not no-store', async ({
-      page,
-      context,
-      baseURL,
-    }) => {
-      await setCookie(context, baseURL, BUFFALO);
-      const response = await gotoReady(page);
-      expect(response?.headers()['cache-control']).toBe('private, no-cache');
-      expect(response?.headers()['vary']).toMatch(/cookie/i);
-    });
   });
 
   test('the cart button opens the cart drawer, Escape closes it and focus returns', async ({
@@ -939,10 +855,12 @@ test.describe('REQ-NAV-001 footer', () => {
     await gotoReady(page);
     const footer = page.getByRole('contentinfo');
     if (isMobile) {
-      await footer.getByRole('button', {name: 'About', exact: true}).click();
+      await footer
+        .getByRole('button', {name: 'Sleep guide', exact: true})
+        .click();
     }
-    await footer.getByRole('link', {name: 'Find a store'}).click();
-    await expect(page).toHaveURL(/\/stores$/);
+    await footer.getByRole('link', {name: 'Sleep quiz'}).click();
+    await expect(page).toHaveURL(/\/quiz$/);
     await expect(page.getByRole('contentinfo')).toBeVisible();
   });
 

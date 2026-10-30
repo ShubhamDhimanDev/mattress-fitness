@@ -8,7 +8,6 @@ import {CompareToggle} from '~/components/compare/CompareToggle';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {AddWithProtectionButton} from '~/components/extend/AddWithProtectionButton';
 import {ProtectionPanel} from '~/components/extend/ProtectionPanel';
-import {PickupSlot} from '~/components/product/PickupSlot';
 import {ProductAddOns} from '~/components/product/ProductAddOns';
 import {StickyAddBar} from '~/components/product/StickyAddBar';
 import {useStickyAddBar} from '~/components/product/useStickyAddBar';
@@ -276,12 +275,10 @@ export function ProductBuyBox({
       {protection === 'unknown' ? panel : null}
       <CartMessages suppressed={asideType === 'cart'} />
 
-      {/* The fulfilment choices as cards: home delivery for the saved ZIP (P5B-03, REQ-DEL-002; read after load so this page
-          carries no ZIP), store pickup for this size and "my store", and "Try in store" (P3B-10, REQ-PDP-003, REQ-PDP-004). */}
+      {/* Home delivery for the saved ZIP (P5B-03, REQ-DEL-002; read after load so this page carries no ZIP). */}
       {/* TODO(P5B-03): hide it for products that never ship in-home once the catalog says which (Q-008, CLR-009). */}
       <div className="flex flex-col gap-3">
         <DeliveryCheck />
-        <PickupSlot variantId={variant.id} productHandle={product.handle} />
       </div>
 
       {/* Size-matched foundations, bases and frames (P4-03): the "Complete your sleep setup" cards. */}

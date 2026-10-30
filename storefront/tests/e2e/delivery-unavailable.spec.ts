@@ -47,9 +47,6 @@ test.describe('delivery check unavailable (REQ-DEL-001, P3B-11)', () => {
     await expect(
       banner(page).getByRole('button', {name: /delivery ZIP|Delivering to/i}),
     ).toHaveCount(0);
-    await expect(
-      banner(page).getByRole('link', {name: 'Select your store'}),
-    ).toBeVisible();
     expect(ourErrors(errors)).toEqual([]);
   });
 
@@ -115,15 +112,10 @@ test.describe('delivery check unavailable (REQ-DEL-001, P3B-11)', () => {
       await page.setViewportSize({width, height: 900});
       await gotoReady(page, '/');
       const notice = banner(page).getByText(TEXT);
-      const store = banner(page).getByRole('link', {name: 'Select your store'});
       await expect(notice).toBeVisible();
-      await expect(store).toBeVisible();
       // The 44 px control (icon and text) that replaces the ZIP button, not the 24 px text inside it: the existing
       // BV-006 test compares the same boxes (button against link).
-      const [noticeBox, storeBox] = await Promise.all([
-        notice.locator('xpath=..').boundingBox(),
-        store.boundingBox(),
-      ]);
+      const noticeBox = await notice.locator('xpath=..').boundingBox();
       const barBox = await notice
         .locator('xpath=ancestor::div[contains(@class,"bg-surface-muted")][1]')
         .boundingBox();
@@ -131,14 +123,9 @@ test.describe('delivery check unavailable (REQ-DEL-001, P3B-11)', () => {
         type: `utility bar ${width}`,
         description: JSON.stringify({
           noticeBox,
-          storeBox,
           barHeight: barBox?.height,
         }),
       });
-      expect(
-        Math.abs((noticeBox?.y ?? 0) - (storeBox?.y ?? 99)),
-        'the notice and the store link sit on one row',
-      ).toBeLessThanOrEqual(2);
       expect(barBox?.height ?? 999, 'utility bar height').toBeLessThanOrEqual(
         56,
       );

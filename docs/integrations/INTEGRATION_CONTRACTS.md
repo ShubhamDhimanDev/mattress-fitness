@@ -23,7 +23,7 @@ One row per external system. "Verified" means confirmed from a primary source on
 | Klaviyo | email and SMS signup | server API: Subscribe Profiles (`/api/profile-subscription-bulk-create-jobs`), built P7-02, unverified against Klaviyo | private key (server only) and list ID (env); not the browser endpoint, which Klaviyo forbids for servers | integration-engineer | none | key, list ID (double opt-in), SMS consent text (Q-015); see [KLAVIYO](KLAVIYO.md) | REQ-ANL-003 |
 | Google Analytics 4 | analytics | script | measurement ID (public) | integration-engineer | none | access (CLR-004) | REQ-ANL-001, REQ-QZ-006 |
 | Meta | marketing tracking | pixel | pixel ID (public) | integration-engineer | none | access (CLR-004) | REQ-ANL-002 |
-| Maps provider | store maps | adapter; Leaflet with OpenStreetMap tiles on store pages, Google Maps directions link as fallback | none | integration-engineer | OSM tile policy (F-37) | none | REQ-LOC-001 |
+| Maps provider | *(removed 2026-10-28, DEC-141: no store locator, no map)* | none | none | none | none | none | REQ-LOC-001 (`Descoped`) |
 | GitHub | client-owned repository and CI | git, Actions | tokens in the repo's secret store | devops-engineer | none | organisation (Q-014) | REQ-HAND-001 |
 | Figma MCP (optional) | read client design files | MCP over HTTP, OAuth | user's own Figma login; no secrets in the repo | ui-ux-designer | connected and authenticated; Starter plan, View seat, 20 read calls per month; write tools denied (F-14, F-16) | whether client files exist (Q-004) | Phase 2 |
 | Playwright MCP | browser exploration | MCP over stdio | none | qa-engineer | server runs and speaks MCP, version 0.0.83, 25 tools (F-14, F-17) | Claude Code connection after approval (B-04) | testing |

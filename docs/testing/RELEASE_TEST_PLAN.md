@@ -76,7 +76,7 @@ List of the 35 spec files by name (counted from the folder on 2026-10-26), with 
 | `search.spec.ts` | Search results and predictive search (REQ-SRCH-001/002) | none |
 | `compare.spec.ts` | Compare: empty state, select and remove, persistence, size and similar, mobile (REQ-CMP-001) | none |
 | `quiz.spec.ts` | Quiz intro, full run, keyboard, remembered on device, layout (REQ-QZ-001/002/005) | none |
-| `stores.spec.ts` | Store locator pages, unknown places, my store, layout (REQ-LOC-001/003) | fixtures only; no Shopify data |
+| `stores.spec.ts` | Removed 2026-10-28 with the store locator (DEC-141, REQ-LOC-001/003 `Descoped`) | n/a |
 | `cart.spec.ts` | Cart drawer and page, hostile input, server hand-off (REQ-CART-001, REQ-PRE-006, REQ-CHK-001) | none |
 | `pickers.spec.ts` | Gift, add-on and bundle pickers (REQ-CART-002/003, REQ-ADD-002) | Success paths skip on mock stores (V-03, V-06, V-17) |
 | `product-addons.spec.ts` | Product page add-on slot (REQ-ADD-001) | `E2E_ADDONS_RULES=on` and a server with real foundation rules for the success path |
@@ -232,9 +232,9 @@ Everything built so far is unverified against the platform it depends on (STATUS
 | V-02 | Nested lines (`parent`) on a Basic-equivalent store: child quantity, update of parent, webhook and Admin representation | Dev store; Admin token (B-27) | REQ-EXT-002, REQ-ADD-002, protection success path |
 | V-03 | Automatic discounts (gift at $0, bundle saving, title exposed on the cart allocation) apply in Storefront carts as at checkout; the 25-discount cap; combination with codes | Dev store; discounts created (OFFER_SETUP_DEVSTORE); no token needed to read, token to automate | REQ-PROMO-001/002, gift picker (B-21), P4-12 |
 | V-04 | Collection and search filters on metafields (comfort, type, benefits, positions, line), counts, Search and Discovery configuration. On the owner's store only price filtering was seen | Dev store with products and S&D filters (B-26) | REQ-COL-002, REQ-SRCH-002 |
-| V-05 | Metaobjects (stores, FAQs, homepage sections, quiz, offer rules, site settings) readable via the Storefront API; definitions applied; the `offer-only` tag search; sitemap behaviour | Dev store; `apply-definitions` (token) | REQ-LOC-002, REQ-HOME-001, REQ-QZ-004, P3A-02 |
+| V-05 | Metaobjects (FAQs, homepage sections, quiz, offer rules, site settings; the `store` definition was removed 2026-10-28, eleven definitions remain) readable via the Storefront API; definitions applied; the `offer-only` tag search; sitemap behaviour | Dev store; `apply-definitions` (token) | REQ-HOME-001, REQ-QZ-004, P3A-02 |
 | V-06 | White-glove delivery by ZIP in checkout: Local delivery and postal codes; V-06a plan support; V-06b express wallets with Local delivery; V-06c Admin API read of postal codes; V-06d delivery options by ZIP before checkout; V-06e ZIP-conditioned rates | Dev store or paid Basic trial (V-26); Local delivery configured | REQ-DEL-001, REQ-CHK-003, REQ-CHK-005, B-17 |
-| V-07 | `storeAvailability` per location and the store-to-location mapping (pickup) | Dev store with locations and stock | REQ-PDP-003, P3B-10 |
+| V-07 | **Withdrawn 2026-10-28 (DEC-141): no per-store pickup availability any more.** Was: `storeAvailability` per location and the store-to-location mapping (pickup) | n/a | REQ-PDP-003 (`Descoped`) |
 | V-08 | Customer Account API for a headless storefront: callback URLs, new customer accounts, sign-in, orders, addresses | Dev store with new customer accounts | REQ-ACC-001/002, P6-07, P6-04 |
 | V-09 | Guest order lookup: Admin `read_orders`, `name:` search, 60-day window without `read_all_orders`, latency against the 800 ms floor, cost per lookup | Dev store with a test order; `read_orders` token | REQ-ACC-003, P6-08, SD-05 |
 | V-10 | Checkout customisations on Basic: largely answered by docs; open: behaviour of a chosen app on a headless checkout (V-19) | Docs; dev store with an app | REQ-CHK-002, REQ-POST-001/002 |
@@ -255,7 +255,7 @@ Everything built so far is unverified against the platform it depends on (STATUS
 | V-25 | Shop Pay Installments / Affirm messaging components on headless; correct order range | Client's Affirm activation (CLR-007); docs | REQ-CART-005 |
 | V-26 | Dev stores are not plan-gated: plan-dependent claims (Flow, nested lines, Local delivery with wallets, app installs) need documentation plus a read-only check on the client's store or a paid Basic trial | Client's store; trial store | V-16 to V-19, REQ-PROMO-003 |
 | V-27 | Seven built-in assumptions only a store can settle: (a) gift at 0 by a line-level automatic discount and the allocation title; (b) `PARENT_LINE_INVALID_REFERENCE` for a variant parent (source unrecorded); (c) `products(query: "tag:extend-coverage")` and sitemap hiding; (d) Extend price does not depend on quantity (quote at quantity 1, DEC-040); (e) `delivery_choice` and decline attributes reach the order, pickup order has no shipping address, Local delivery shipping line as assumed by the detective; (f) `cartAttributesUpdate` replace versus merge; (g) `Cart.updatedAt` resolution for the picker's re-read | Dev store; Extend | V-03, V-05, V-11, V-16, V-20 |
-| V-28 | Not built so not assumed: `storeAvailability`, guest lookup route against a store, Customer Account flows against a store, metaobject reads for `store`, `quiz_*`, `offer_rule`, `delivery_zone`, `site_settings` | Dev store | REQ-PDP-003, REQ-ACC-001 to 003, REQ-LOC-002, REQ-QZ-004 |
+| V-28 | Not built so not assumed: guest lookup route against a store, Customer Account flows against a store, metaobject reads for `quiz_*`, `offer_rule`, `delivery_zone`, `site_settings` (`storeAvailability` and `store` reads were removed 2026-10-28, DEC-141) | Dev store | REQ-ACC-001 to 003, REQ-QZ-004 |
 
 ### 6.2 Other debts (no V number)
 
@@ -264,7 +264,7 @@ Everything built so far is unverified against the platform it depends on (STATUS
 | VD-01 | Cart total equals checkout total (REQ-CHK-001); the real checkout hand-off and every test order. Blocked by the Online Store password (B-25, DEC-075) | Owner removes the password; dev store | REQ-CHK-001, REQ-ACPT-002, G3 to G5 |
 | VD-02 | The catalog importer and `apply-definitions` have never touched a real store (dry run or live); client-side clean run (REQ-HAND-002) | Admin token (B-27), allow-list, demo catalog (DEC-077), client's sheet (CLR-014) | P3A-05, REQ-CAT-*, REQ-HAND-002 |
 | VD-03 | Content pages and the blog: no store holds a page with text, a terms policy or an article; template, contents list, FAQ structured data, canonical, print, blog listing never rendered with content | Owner makes test objects by hand (B-26), then client text (CLR-016) | REQ-CNT-001/002, P6-09, P6-11 |
-| VD-04 | Store locator data path: stores come from fixtures; hours and time zone from Shopify not read | Dev store metaobjects; P3A-07, P3B-16, P6-06 | REQ-LOC-002 |
+| VD-04 | **Withdrawn 2026-10-28 (DEC-141): no store locator, so no debt.** Was: store locator data path | n/a | REQ-LOC-002 (`Descoped`) |
 | VD-05 | Quiz scoring rules as metaobjects; quiz saved to the account on sign-in | Dev store; V-08 | REQ-QZ-004/005, P6-13, P6-04 |
 | VD-06 | The detective order check on a real order; webhook delivery and HMAC with a real signature; Extend sync/reconcile with real data | Dev store, token, subscription (V-12, V-20), Extend demo host | REQ-PRE-005/006, REQ-EXT-003, B-17, B-18 |
 | VD-07 | `nginx -t`, the nginx template (zones `mf_*`, the `.map` guard, probe paths, IPv6 /64 key), systemd unit (`systemd-analyze verify`, sandbox options, `MemoryMax`), certbot issue and renewal, firewall, SSH hardening: none ever run | A throwaway VPS; the owner (B-31 item 3) | REQ-HOST-003, B-19 |

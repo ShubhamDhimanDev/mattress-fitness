@@ -179,8 +179,8 @@ describe('resolveMenuLink: plain URLs (HTTP type)', () => {
         OPTIONS,
       ),
     ).toEqual({to: '/collections/sale?sort_by=price', external: false});
-    expect(resolveMenuLink({type: 'HTTP', url: '/stores'}, OPTIONS)).toEqual({
-      to: '/stores',
+    expect(resolveMenuLink({type: 'HTTP', url: '/quiz'}, OPTIONS)).toEqual({
+      to: '/quiz',
       external: false,
     });
   });

@@ -4,10 +4,9 @@ import {Accordion} from '~/components/ui/Accordion';
 import {Button, buttonStyles} from '~/components/ui/Button';
 import {Card} from '~/components/ui/Card';
 import {cn} from '~/components/ui/cn';
-import {Input} from '~/components/ui/Input';
 import {displayHeadingClass} from '~/lib/display-type';
 import {Image} from '~/lib/hydrogen/image';
-import {SLEEP_QUIZ_LINK, STORE_LOCATOR_PATH} from '~/lib/navigation';
+import {SLEEP_QUIZ_LINK} from '~/lib/navigation';
 import {plainHeading} from '~/lib/shopify/home-highlight';
 import {
   MAX_SETUP_CARDS,
@@ -17,7 +16,7 @@ import {
 import {keyedText} from '~/lib/shopify/keys';
 import type {FaqView} from '~/lib/shopify/types';
 
-// The five content blocks added by CR-31 (quiz band, setup cards, how it works, store finder, FAQ). Every word and image
+// The four content blocks added by CR-31 (quiz band, setup cards, how it works, FAQ). Every word and image
 // comes from the block's `homepage_section` entry (and its `homepage_card` entries); the only fixed text is the label of a
 // button whose target is fixed too. Each block returns null when the content it needs is missing (the mapper already
 // drops most; the checks here keep a block safe if it is rendered on its own).
@@ -245,57 +244,6 @@ export function HowItWorks({block}: {block: BlockSection}) {
           ))}
         </ol>
       </div>
-    </section>
-  );
-}
-
-/**
- * "Find a store": a dark band with the heading, text, a ZIP field and a map picture from admin. The ZIP field is a plain
- * GET form to the stores page, which lists the stores in that ZIP area (CR31-10); the ZIP is never stored or logged here.
- */
-export function StoreFinder({block}: {block: BlockSection}) {
-  if (!block.heading) return null;
-  const headingId = `${block.id}-heading`;
-  return (
-    <section
-      aria-labelledby={headingId}
-      className={cn(
-        'on-dark grid gap-8 rounded-hero bg-ink-900 px-4 py-11 text-white md:gap-12 md:px-12 md:py-16',
-        block.image && 'lg:grid-cols-2 lg:items-center',
-      )}
-    >
-      <div className="flex min-w-0 flex-col items-start gap-5">
-        <SectionHeading id={headingId} text={block.heading} />
-        <Lead paragraphs={block.body} inverse />
-        <form
-          method="get"
-          action={STORE_LOCATOR_PATH}
-          className="flex w-full max-w-lg flex-col gap-3 sm:flex-row sm:items-end"
-        >
-          <Input
-            name="zip"
-            label="ZIP code"
-            hideLabel
-            placeholder="ZIP code"
-            inputMode="numeric"
-            autoComplete="postal-code"
-            maxLength={10}
-            className="flex-1"
-          />
-          <Button type="submit" size="lg">
-            Find stores
-          </Button>
-        </form>
-      </div>
-      {block.image ? (
-        <Image
-          data={block.image}
-          alt={block.image.altText ?? ''}
-          aspectRatio="4/3"
-          sizes="(min-width: 1024px) 50vw, 100vw"
-          className="w-full rounded-hero object-cover"
-        />
-      ) : null}
     </section>
   );
 }

@@ -17,14 +17,11 @@ import type {
   PromoMessage,
   SupportPhone,
 } from '~/lib/navigation';
-import type {MyStoreSummary} from '~/lib/pages/my-store-summary';
 import type {SignupPublicConfig} from '~/lib/signup/shared';
 
 type PageLayoutProps = {
   cart: Promise<CartApiQueryFragment | null>;
   isLoggedIn: Promise<boolean>;
-  /** The shopper's chosen store from the validated cookie, or null (REQ-LOC-003). */
-  myStore?: MyStoreSummary | null;
   /** From the site_settings entry (lib/shopify/site-settings.ts, P3B-13); null hides the bar, nothing is invented (B-15). */
   promo?: PromoMessage | null;
   /** The main navigation from the Shopify admin menu (REQ-NAV-002); null shows the fixed navigation. */
@@ -51,7 +48,6 @@ type PageLayoutProps = {
 export function PageLayout({
   cart,
   isLoggedIn,
-  myStore = null,
   promo = null,
   mainNav = null,
   footerLinks,
@@ -72,7 +68,6 @@ export function PageLayout({
         mainNav={mainNav}
         fallbackNav={fallbackNav ?? undefined}
         utilityLinks={utilityLinks}
-        storeName={myStore?.name ?? null}
         supportPhone={supportPhone}
         deliveryZipAvailable={deliveryZipAvailable}
       />
