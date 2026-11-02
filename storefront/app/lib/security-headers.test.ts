@@ -106,7 +106,13 @@ describe('buildReportOnlyCsp', () => {
   it('is a tightened policy that names every resource type', () => {
     expect(directive(policy, 'default-src')).toEqual(["'self'"]);
     expect(directive(policy, 'object-src')).toEqual(["'none'"]);
-    expect(directive(policy, 'frame-src')).toEqual(["'none'"]);
+    // Frames: only the store map's origin (and the Shopify bases), nothing else.
+    expect(directive(policy, 'frame-src')).toEqual([
+      "'self'",
+      'https://cdn.shopify.com',
+      'https://shopify.com',
+      'https://www.openstreetmap.org',
+    ]);
     expect(directive(policy, 'script-src-attr')).toEqual(["'none'"]);
     expect(directive(policy, 'base-uri')).toEqual(["'self'"]);
     for (const name of [
@@ -138,7 +144,7 @@ describe('buildReportOnlyCsp', () => {
     expect(directive(policy, 'form-action')).toContain('https://shopify.com');
   });
 
-  it('allows no third-party origin yet (T-10) and no unsafe script source', () => {
+  it('allows no third-party origin but the map frame (T-10) and no unsafe script source', () => {
     const origins = policy.match(/https?:\/\/[^\s;]+/g) ?? [];
     expect(new Set(origins)).toEqual(
       new Set([
@@ -147,7 +153,12 @@ describe('buildReportOnlyCsp', () => {
         'https://checkout.example.com',
         'https://shop.example.com',
         'https://shopify.com',
+        // The footer's store map frame (lib/business.ts): the one third-party origin, in frame-src only.
+        'https://www.openstreetmap.org',
       ]),
+    );
+    expect(directive(policy, 'script-src')).not.toContain(
+      'https://www.openstreetmap.org',
     );
     expect(directive(policy, 'script-src')).not.toContain("'unsafe-inline'");
     expect(directive(policy, 'script-src')).not.toContain("'unsafe-eval'");

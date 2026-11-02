@@ -575,7 +575,6 @@ export const FOOTER_QUICK_LINKS_START_DRAFT: readonly FooterQuickLink[] = [
     to: '/pages/delivery-and-shipping',
     pageId: 'page:delivery-and-shipping',
   },
-  {id: 'account', label: 'Your account', to: '/account'},
 ];
 
 export const FOOTER_QUICK_LINKS_END_DRAFT: readonly FooterQuickLink[] = [

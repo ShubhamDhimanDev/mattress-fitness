@@ -199,14 +199,10 @@ export async function loader(args: Route.LoaderArgs) {
     }),
     ...delivery,
     // The promotion bar and the phone come from the `site_settings` entry (P3B-13). The phone is shown only when
-    // valid: PUBLIC_SUPPORT_PHONE overrides the admin value; development shows a labelled placeholder when
-    // neither is set (REQ-CNT-001, B-15). Nothing here is a price, and nothing keys on the shopper.
+    // valid: PUBLIC_SUPPORT_PHONE overrides the admin value; the store's own number (lib/business.ts) is the fallback
+    // (REQ-CNT-001). Nothing here is a price, and nothing keys on the shopper.
     promo: siteSettings.promo,
-    supportPhone: chooseSupportPhone(
-      env.PUBLIC_SUPPORT_PHONE,
-      siteSettings,
-      import.meta.env.DEV,
-    ),
+    supportPhone: chooseSupportPhone(env.PUBLIC_SUPPORT_PHONE, siteSettings),
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     // Public identifiers and the consent mode (P7-01). Unset ids mean no provider: nothing loads (REQ-ANL-001/002).
     analytics,

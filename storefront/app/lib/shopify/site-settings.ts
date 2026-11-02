@@ -11,6 +11,7 @@
 
 import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {SiteSettingsQuery} from 'storefrontapi.generated';
+import {BUSINESS_PHONE} from '~/lib/business';
 import {cleanText} from '~/lib/catalog/text';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {
@@ -103,18 +104,17 @@ export function mapSiteSettings(nodes: SettingsNodes): SiteSettings {
 
 /**
  * The phone to show. A valid number in `PUBLIC_SUPPORT_PHONE` wins (the deployment's explicit override), then
- * the admin value, then nothing; only development falls back to the labelled placeholder (`resolveSupportPhone`
- * owns the US-number rules and the placeholder). An invalid override is ignored rather than hiding a valid
- * admin number.
+ * the admin value, then the store's own number from lib/business.ts (`resolveSupportPhone` owns the US-number
+ * rules). An invalid override is ignored rather than hiding a valid admin number.
  */
 export function chooseSupportPhone(
   envValue: unknown,
   settings: SiteSettings,
-  isDev: boolean,
-): SupportPhone | null {
+): SupportPhone {
   return (
     resolveSupportPhone(envValue, false) ??
-    resolveSupportPhone(settings.supportPhoneRaw, isDev)
+    resolveSupportPhone(settings.supportPhoneRaw, false) ??
+    BUSINESS_PHONE
   );
 }
 

@@ -122,10 +122,18 @@ describe('report-only policy and analytics hosts', () => {
 });
 
 describe('enforced policy extras for Hydrogen', () => {
-  it('are empty with no provider, so the enforced policy is untouched', () => {
-    expect(enforcedCspExtras(undefined)).toEqual({});
-    expect(enforcedCspExtras({})).toEqual({});
-    expect(enforcedCspExtras({ga4: false, meta: false})).toEqual({});
+  it('are only the map frame with no provider, so scripts, images and connections are untouched', () => {
+    const mapOnly = {
+      frameSrc: [
+        "'self'",
+        'https://cdn.shopify.com',
+        'https://shopify.com',
+        'https://www.openstreetmap.org',
+      ],
+    };
+    expect(enforcedCspExtras(undefined)).toEqual(mapOnly);
+    expect(enforcedCspExtras({})).toEqual(mapOnly);
+    expect(enforcedCspExtras({ga4: false, meta: false})).toEqual(mapOnly);
   });
 
   it('repeat the Shopify fallback sources when script-src and img-src are named, and add the provider hosts', () => {

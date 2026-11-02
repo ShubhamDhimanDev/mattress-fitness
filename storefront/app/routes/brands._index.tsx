@@ -51,14 +51,16 @@ export default function BrandsIndex() {
                 )}
               >
                 {brand.logo ? (
+                  // The logo replaces the name; its alt keeps the link named for screen readers.
                   <Image
                     data={brand.logo}
-                    alt=""
+                    alt={brand.name}
                     sizes="160px"
                     className="h-auto max-h-16 w-auto max-w-full object-contain"
                   />
-                ) : null}
-                {brand.name}
+                ) : (
+                  brand.name
+                )}
               </Link>
             </li>
           ))}

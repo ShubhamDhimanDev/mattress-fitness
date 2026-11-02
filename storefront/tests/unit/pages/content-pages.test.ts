@@ -324,14 +324,14 @@ describe('REQ-CNT-001 merging page links into the footer groups', () => {
       ...FOOTER_QUICK_LINKS_START_DRAFT,
       ...FOOTER_QUICK_LINKS_END_DRAFT,
     ];
-    expect(visibleQuickLinks(draft, []).map((l) => l.id)).toEqual(['account']);
+    // The footer no longer links the account (the header's Sign in does).
+    expect(visibleQuickLinks(draft, []).map((l) => l.id)).toEqual([]);
     const shown = visibleQuickLinks(
       draft,
       footerPageLinks(available({pages: ['delivery-and-shipping', 'contact']})),
     );
     expect(shown.map((l) => [l.id, l.to])).toEqual([
       ['delivery', '/pages/delivery-and-shipping'],
-      ['account', '/account'],
       ['contact', '/pages/contact'],
     ]);
   });
@@ -384,7 +384,7 @@ describe('REQ-CNT-001 the footer link model built by the root loader', () => {
       'sleep-guide',
     ]);
     expect(links.legal).toEqual([]);
-    expect(links.quickStart.map((link) => link.id)).toEqual(['account']);
+    expect(links.quickStart.map((link) => link.id)).toEqual([]);
     expect(links.quickEnd.map((link) => link.id)).toEqual([]);
   });
 
@@ -412,10 +412,7 @@ describe('REQ-CNT-001 the footer link model built by the root loader', () => {
     expect(links.legal.map((link) => link.to)).toEqual([
       '/policies/privacy-policy',
     ]);
-    expect(links.quickStart.map((link) => link.id)).toEqual([
-      'delivery',
-      'account',
-    ]);
+    expect(links.quickStart.map((link) => link.id)).toEqual(['delivery']);
     expect(links.quickEnd.map((link) => link.id)).toEqual(['contact']);
   });
 });

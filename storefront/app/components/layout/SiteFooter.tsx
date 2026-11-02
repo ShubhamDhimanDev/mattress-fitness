@@ -2,9 +2,11 @@ import {lazy, Suspense, useId, useState, type ComponentType} from 'react';
 import {Link} from 'react-router';
 import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
 import {FooterLogo} from '~/components/layout/BrandLogo';
+import {StoreMap} from '~/components/layout/StoreMap';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {cn} from '~/components/ui/cn';
 import {BRAND_TAGLINE} from '~/lib/brand';
+import {BUSINESS_ADDRESS} from '~/lib/business';
 import type {SignupPublicConfig} from '~/lib/signup/shared';
 import {ChevronDownIcon, PhoneIcon} from '~/components/ui/Icons';
 import {
@@ -118,6 +120,27 @@ function QuickLinks({links}: {links: readonly FooterQuickLink[]}) {
   );
 }
 
+/**
+ * The Sleep guide group takes the place of "Shop by brand" in the shop-by row (the brands are in the main menu and on
+ * /brands); the support row keeps the rest. Without a Sleep guide group the brand column is simply dropped.
+ */
+function splitFooterGroups(supportGroups: readonly FooterGroup[]): {
+  support: readonly FooterGroup[];
+  shop: readonly FooterGroup[];
+} {
+  const sleepGuide = supportGroups.find((group) => group.id === 'sleep-guide');
+  return {
+    support: supportGroups.filter((group) => group.id !== 'sleep-guide'),
+    shop: FOOTER_SHOP_GROUPS.flatMap((group) =>
+      group.id === 'mattresses-brand'
+        ? sleepGuide
+          ? [sleepGuide]
+          : []
+        : [group],
+    ),
+  };
+}
+
 export function SiteFooter({
   supportPhone = null,
   links = NO_FOOTER_LINKS,
@@ -130,6 +153,7 @@ export function SiteFooter({
   /** The email signup (P7-02), or null when it is not configured: then nothing is rendered and no code is requested. */
   signup?: SignupPublicConfig | null;
 }) {
+  const groups = splitFooterGroups(links.supportGroups);
   return (
     // Ink band with the round logo, the client's tagline, the link groups and the legal row (CR-31). No social icons: the
     // providers, wording and URLs do not exist yet (REQ-CNT-001, B-15). The signup block exists only when configured.
@@ -139,6 +163,12 @@ export function SiteFooter({
           <FooterLogo />
           {/* The client's own tagline, plain text; the logo's alt is the name only, so nothing is read twice. */}
           <p className="text-base font-bold text-white">{BRAND_TAGLINE}</p>
+          {/* The store's address, phone and map (lib/business.ts), under the logo. */}
+          <address className="flex flex-col text-sm text-ink-300 not-italic">
+            {BUSINESS_ADDRESS.lines.map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+          </address>
           {supportPhone ? (
             <a href={supportPhone.href} className={cn(LINK_CLASSES, 'gap-2')}>
               <PhoneIcon className="size-4" />
@@ -146,6 +176,7 @@ export function SiteFooter({
               {supportPhone.display}
             </a>
           ) : null}
+          <StoreMap linkClassName={LINK_CLASSES} />
           {signup ? (
             // The form is built for a light surface, so it sits on a white card inside the ink band.
             <div className="on-light w-full max-w-xl rounded-card bg-surface p-5 text-fg">
@@ -161,11 +192,11 @@ export function SiteFooter({
             <QuickLinks links={links.quickEnd} />
           </div>
           <FooterGroups
-            groups={links.supportGroups}
+            groups={groups.support}
             className="grid gap-0 empty:hidden md:grid-cols-3 md:gap-8"
           />
           <FooterGroups
-            groups={FOOTER_SHOP_GROUPS}
+            groups={groups.shop}
             className="grid gap-0 border-t-0 md:grid-cols-3 md:gap-8 md:border-t md:border-ink-700 md:pt-8 xl:grid-cols-5"
           />
         </nav>

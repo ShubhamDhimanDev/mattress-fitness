@@ -48,12 +48,18 @@ describe('REQ-ANL-004 chat CSP: nothing by default', () => {
     expect(buildReportOnlyCsp({...base, chat: NO_CHAT_CSP})).toBe(
       buildReportOnlyCsp(base),
     );
-    expect(enforcedCspExtras(undefined, NO_CHAT_CSP)).toEqual({});
+    expect(enforcedCspExtras(undefined, NO_CHAT_CSP)).toEqual(
+      enforcedCspExtras(undefined),
+    );
     expect(enforcedCspExtras({ga4: true}, NO_CHAT_CSP)).toEqual(
       enforcedCspExtras({ga4: true}),
     );
+    // Only the store map's frame, no chat window.
     expect(directive(buildReportOnlyCsp(base), 'frame-src')).toEqual([
-      "'none'",
+      "'self'",
+      'https://cdn.shopify.com',
+      'https://shopify.com',
+      'https://www.openstreetmap.org',
     ]);
   });
 });
@@ -77,6 +83,7 @@ describe('REQ-ANL-004 chat CSP: a configured provider (synthetic) is in both pol
       "'self'",
       'https://cdn.shopify.com',
       'https://shopify.com',
+      'https://www.openstreetmap.org',
       'https://frame.vendor.example',
     ]);
     expect(directive(report, 'frame-src')).toEqual(enforced.frameSrc);
