@@ -4,6 +4,7 @@ import {Accordion} from '~/components/ui/Accordion';
 import {Button, buttonStyles} from '~/components/ui/Button';
 import {Card} from '~/components/ui/Card';
 import {cn} from '~/components/ui/cn';
+import {SiteImage} from '~/components/ui/SiteImage';
 import {displayHeadingClass} from '~/lib/display-type';
 import {Image} from '~/lib/hydrogen/image';
 import {SLEEP_QUIZ_LINK} from '~/lib/navigation';
@@ -15,6 +16,7 @@ import {
 } from '~/lib/shopify/home-sections';
 import {keyedText} from '~/lib/shopify/keys';
 import type {FaqView} from '~/lib/shopify/types';
+import {SITE_IMAGES, type SiteImage as SiteImageData} from '~/lib/site-images';
 
 // The four content blocks added by CR-31 (quiz band, setup cards, how it works, FAQ). Every word and image
 // comes from the block's `homepage_section` entry (and its `homepage_card` entries); the only fixed text is the label of a
@@ -81,8 +83,7 @@ export function QuizBand({block}: {block: BlockSection}) {
     <section
       aria-labelledby={headingId}
       className={cn(
-        'grid gap-8 rounded-hero bg-paper px-4 py-11 md:gap-12 md:px-12 md:py-16',
-        block.image && 'lg:grid-cols-2 lg:items-center',
+        'grid gap-8 rounded-hero bg-paper px-4 py-11 md:gap-12 md:px-12 md:py-16 lg:grid-cols-2 lg:items-center',
       )}
     >
       <div className="flex min-w-0 flex-col items-start gap-5">
@@ -110,12 +111,28 @@ export function QuizBand({block}: {block: BlockSection}) {
           sizes="(min-width: 1024px) 45vw, 100vw"
           className="w-full rounded-hero object-cover"
         />
-      ) : null}
+      ) : (
+        <SiteImage
+          image={SITE_IMAGES.quizChoosing}
+          aspectRatio="4/3"
+          sizes="(min-width: 1024px) 45vw, 100vw"
+          className="w-full rounded-hero object-cover object-top"
+        />
+      )}
     </section>
   );
 }
 
-function SetupCard({card, headingId}: {card: HomeCard; headingId: string}) {
+function SetupCard({
+  card,
+  headingId,
+  fallbackImage,
+}: {
+  card: HomeCard;
+  headingId: string;
+  /** Bundled photograph shown when the card has no admin image. */
+  fallbackImage: SiteImageData;
+}) {
   const titleIsLink = card.link !== null && card.linkLabel === null;
   return (
     <Card as="li" padding="none" className="flex flex-col overflow-hidden">
@@ -127,7 +144,14 @@ function SetupCard({card, headingId}: {card: HomeCard; headingId: string}) {
           sizes="(min-width: 768px) 30vw, 100vw"
           className="w-full object-cover"
         />
-      ) : null}
+      ) : (
+        <SiteImage
+          image={fallbackImage}
+          aspectRatio="4/3"
+          sizes="(min-width: 768px) 30vw, 100vw"
+          className="w-full object-cover"
+        />
+      )}
       <div className="flex flex-1 flex-col items-start gap-3 p-6">
         <h3 id={headingId} className="type-display text-title">
           {card.link && titleIsLink ? (
@@ -180,6 +204,7 @@ export function SetupCards({block}: {block: BlockSection}) {
           <SetupCard
             key={cardKeys[position].key}
             card={card}
+            fallbackImage={SITE_IMAGES.homeSetup[position]}
             headingId={`${block.id}-card-${position}`}
           />
         ))}
@@ -196,10 +221,7 @@ export function HowItWorks({block}: {block: BlockSection}) {
   return (
     <section
       aria-labelledby={block.heading ? headingId : undefined}
-      className={cn(
-        'grid gap-8 md:gap-12',
-        block.image && 'lg:grid-cols-2 lg:items-center',
-      )}
+      className={cn('grid gap-8 md:gap-12 lg:grid-cols-2 lg:items-center')}
     >
       {block.image ? (
         <Image
@@ -209,7 +231,14 @@ export function HowItWorks({block}: {block: BlockSection}) {
           sizes="(min-width: 1024px) 45vw, 100vw"
           className="w-full rounded-hero object-cover"
         />
-      ) : null}
+      ) : (
+        <SiteImage
+          image={SITE_IMAGES.delivery}
+          aspectRatio="4/3"
+          sizes="(min-width: 1024px) 45vw, 100vw"
+          className="w-full rounded-hero object-cover object-top"
+        />
+      )}
       <div className="flex min-w-0 flex-col gap-4">
         {block.heading ? (
           <SectionHeading id={headingId} text={block.heading} />

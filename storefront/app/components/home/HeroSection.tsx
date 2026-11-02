@@ -6,6 +6,7 @@ import {buttonStyles} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {TruckIcon} from '~/components/ui/Icons';
 import {displayHeadingClass} from '~/lib/display-type';
+import {SiteImage} from '~/components/ui/SiteImage';
 import {Image} from '~/lib/hydrogen/image';
 import {HOME_ASSURANCE_ITEMS} from '~/lib/navigation';
 import type {AdminLink} from '~/lib/shopify/admin-link';
@@ -13,6 +14,7 @@ import {plainHeading} from '~/lib/shopify/home-highlight';
 import type {HomeFinderData} from '~/lib/shopify/home-finder';
 import {keyedText} from '~/lib/shopify/keys';
 import type {ImageView} from '~/lib/shopify/types';
+import {SITE_IMAGES} from '~/lib/site-images';
 
 type HeroSectionProps = {
   id: string;
@@ -53,10 +55,7 @@ export function HeroSection({
       className="rounded-hero bg-paper px-4 py-8 md:px-10 md:py-14"
     >
       <div
-        className={cn(
-          'grid gap-8 md:gap-12',
-          image && 'lg:grid-cols-2 lg:items-center',
-        )}
+        className={cn('grid gap-8 md:gap-12 lg:grid-cols-2 lg:items-center')}
       >
         <div className="flex min-w-0 flex-col items-start gap-5">
           {heading ? (
@@ -96,8 +95,8 @@ export function HeroSection({
           ) : null}
         </div>
 
-        {image ? (
-          <div className="relative">
+        <div className="relative">
+          {image ? (
             <Image
               data={image}
               // Decorative unless the client wrote alt text in admin; the heading carries the meaning.
@@ -107,22 +106,31 @@ export function HeroSection({
               loading="eager"
               className="w-full rounded-hero object-cover"
             />
-            {delivery ? (
-              <Link
-                to={delivery.to}
-                className="absolute top-4 left-4 flex items-center gap-3 rounded-card bg-surface p-3 pr-4 font-bold text-fg shadow-lg"
+          ) : (
+            // No admin image: the bundled photograph, so the hero is never a bare text panel.
+            <SiteImage
+              image={SITE_IMAGES.homeHero}
+              aspectRatio="5/6"
+              sizes="(min-width: 1024px) 45vw, 100vw"
+              loading="eager"
+              className="w-full rounded-hero object-cover"
+            />
+          )}
+          {delivery ? (
+            <Link
+              to={delivery.to}
+              className="absolute top-4 left-4 flex items-center gap-3 rounded-card bg-surface p-3 pr-4 font-bold text-fg shadow-lg"
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-11 items-center justify-center rounded-choice bg-primary-500 text-white"
               >
-                <span
-                  aria-hidden="true"
-                  className="flex size-11 items-center justify-center rounded-choice bg-primary-500 text-white"
-                >
-                  <TruckIcon className="size-6" />
-                </span>
-                {delivery.text}
-              </Link>
-            ) : null}
-          </div>
-        ) : null}
+                <TruckIcon className="size-6" />
+              </span>
+              {delivery.text}
+            </Link>
+          ) : null}
+        </div>
       </div>
     </section>
   );

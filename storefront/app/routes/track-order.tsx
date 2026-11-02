@@ -19,7 +19,9 @@ import {GuestLookupNotice} from '~/components/orders/GuestLookupNotice';
 import {GuestOrderLookupForm} from '~/components/orders/GuestOrderLookupForm';
 import {GuestOrderSummary} from '~/components/orders/GuestOrderSummary';
 import {formatPageTitle} from '~/components/layout/documentTitle';
+import {SiteImage} from '~/components/ui/SiteImage';
 import {noStoreHeaders} from '~/lib/cart/http';
+import {SITE_IMAGES} from '~/lib/site-images';
 import {
   GUEST_LOOKUP_UNAVAILABLE_MESSAGE,
   guestLookupConfigured,
@@ -82,6 +84,13 @@ export default function TrackOrderPage() {
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-8">
+      <SiteImage
+        image={SITE_IMAGES.quizChoosing}
+        aspectRatio="3/2"
+        sizes="(min-width: 640px) 36rem, 100vw"
+        loading="eager"
+        className="w-full rounded-hero object-cover object-top"
+      />
       <h1 className="type-display text-4xl md:text-5xl">Track your order</h1>
       <p className="text-lead text-fg-muted">
         Enter your order number and the email address you used. This works for

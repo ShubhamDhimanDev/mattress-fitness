@@ -2,6 +2,8 @@ import type {RefObject} from 'react';
 import {Button} from '~/components/ui/Button';
 import {Card} from '~/components/ui/Card';
 import {InfoIcon} from '~/components/ui/Icons';
+import {SiteImage} from '~/components/ui/SiteImage';
+import {SITE_IMAGES} from '~/lib/site-images';
 
 type QuizIntroProps = {
   questionCount: number;
@@ -32,23 +34,36 @@ export function QuizIntro({
       className="flex flex-col gap-6"
     >
       <Card variant="raised" padding="md" className="flex flex-col gap-5">
-        <h2
-          id="quiz-intro-heading"
-          ref={headingRef}
-          tabIndex={-1}
-          className="type-display text-3xl md:text-heading"
-        >
-          Find a mattress that fits how you sleep
-        </h2>
-        <p className="max-w-prose text-lead text-fg">
-          Answer {questionCount} quick questions, one tap each. We will match
-          your answers to the mattresses we sell and show your three best
-          matches in your size and budget.
-        </p>
-        <div>
-          <Button to={startHref} preventScrollReset onClick={onStart} size="lg">
-            Start the quiz
-          </Button>
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-center lg:gap-10">
+          <div className="flex flex-col items-start gap-5">
+            <h2
+              id="quiz-intro-heading"
+              ref={headingRef}
+              tabIndex={-1}
+              className="type-display text-3xl md:text-heading"
+            >
+              Find a mattress that fits how you sleep
+            </h2>
+            <p className="max-w-prose text-lead text-fg">
+              Answer {questionCount} quick questions, one tap each. We will
+              match your answers to the mattresses we sell and show your three
+              best matches in your size and budget.
+            </p>
+            <Button
+              to={startHref}
+              preventScrollReset
+              onClick={onStart}
+              size="lg"
+            >
+              Start the quiz
+            </Button>
+          </div>
+          <SiteImage
+            image={SITE_IMAGES.quizIntro}
+            aspectRatio="4/3"
+            sizes="(min-width: 1024px) 40vw, 100vw"
+            className="w-full rounded-card object-cover"
+          />
         </div>
         <Card
           variant="tinted"
