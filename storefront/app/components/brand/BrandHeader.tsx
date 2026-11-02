@@ -38,17 +38,19 @@ export function BrandHeader({
         {logo ? (
           <Image
             data={logo}
-            // The brand name is the h1 beside it, so the logo adds nothing for a screen reader.
+            // The brand name is the h1 beside it (visually hidden while the logo shows), so the logo adds nothing for a screen reader.
             alt=""
             sizes="(min-width: 768px) 200px, 160px"
             loading="eager"
-            className="h-auto max-h-24 w-auto max-w-40 shrink-0 object-contain md:max-w-48"
+            className="h-auto max-h-24 w-auto max-w-56 shrink-0 object-contain md:max-w-72"
           />
         ) : null}
         <h1
           className={cn(
             displayHeadingClass(name),
             'text-4xl text-balance md:text-5xl',
+            // The logo shows the name; the h1 stays for the page title and screen readers.
+            logo && 'sr-only',
           )}
         >
           {name}

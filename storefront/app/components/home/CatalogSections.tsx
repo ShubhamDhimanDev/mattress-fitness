@@ -161,14 +161,16 @@ export function BrandTiles({
               className="flex min-h-19 flex-col items-center justify-center gap-1 rounded-choice bg-surface p-2 text-center text-sm font-extrabold break-words text-fg motion-safe:transition-shadow hover:shadow-lift md:min-h-33 md:rounded-card md:p-4 md:text-lg"
             >
               {brand.logo ? (
+                // The logo replaces the name; its alt keeps the link named for screen readers.
                 <Image
                   data={brand.logo}
-                  alt=""
+                  alt={brand.name}
                   sizes="160px"
                   className="h-auto max-h-10 w-auto max-w-full object-contain md:max-h-14"
                 />
-              ) : null}
-              {brand.name}
+              ) : (
+                brand.name
+              )}
             </Link>
           </li>
         ))}
