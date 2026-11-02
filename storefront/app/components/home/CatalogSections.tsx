@@ -109,7 +109,7 @@ export function FeaturedProducts({
           </Button>
         ) : null}
       </div>
-      <ul className="mt-6 grid grid-cols-2 gap-3 md:mt-9 md:grid-cols-4 md:gap-6">
+      <ul className="mt-6 grid grid-cols-1 gap-3 md:mt-9 md:grid-cols-3 md:gap-6">
         {featured.products.slice(0, 8).map((product, index) => (
           <li key={product.id}>
             <ProductItem

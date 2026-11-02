@@ -21,13 +21,14 @@ export function HeaderLogo() {
       <img
         src={HEADER_LOGO.src}
         srcSet={HEADER_LOGO.srcSet}
+        sizes={HEADER_LOGO.sizes}
         width={HEADER_LOGO.width}
         height={HEADER_LOGO.height}
         alt={BRAND_NAME}
         loading="eager"
         decoding="async"
         {...HIGH_PRIORITY}
-        className="size-14 lg:size-16"
+        className="h-auto w-32 md:w-40 lg:w-56"
       />
     </Link>
   );
@@ -36,17 +37,19 @@ export function HeaderLogo() {
 /** The logo in the footer: below the fold, so it loads lazily. Not a link: the header already has the home link. */
 export function FooterLogo() {
   return (
-    <img
-      src={FOOTER_LOGO.src}
-      srcSet={FOOTER_LOGO.srcSet}
-      sizes={FOOTER_LOGO.sizes}
-      width={FOOTER_LOGO.width}
-      height={FOOTER_LOGO.height}
-      alt={BRAND_NAME}
-      loading="lazy"
-      decoding="async"
-      // The PNG has opaque white corners; the round clip keeps them from showing on the footer's ink surface.
-      className="size-24 shrink-0 rounded-full"
-    />
+    // The wordmark is transparent with dark red lettering, so on the footer's ink band it sits on a white plate.
+    <span className="inline-flex shrink-0 rounded-card bg-white px-4 py-3">
+      <img
+        src={FOOTER_LOGO.src}
+        srcSet={FOOTER_LOGO.srcSet}
+        sizes={FOOTER_LOGO.sizes}
+        width={FOOTER_LOGO.width}
+        height={FOOTER_LOGO.height}
+        alt={BRAND_NAME}
+        loading="lazy"
+        decoding="async"
+        className="h-auto w-56 max-w-full"
+      />
+    </span>
   );
 }

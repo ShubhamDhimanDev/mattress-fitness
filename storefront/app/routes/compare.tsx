@@ -293,7 +293,7 @@ export default function ComparePage() {
           <h2 id="compare-similar-heading" className="type-display text-3xl">
             Similar products
           </h2>
-          <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {data.similar.map((product) => (
               <li
                 key={product.handle}

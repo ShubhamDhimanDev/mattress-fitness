@@ -12,6 +12,7 @@ import {
   FOOTER_LOGO,
   HEADER_LOGO,
   logoPath,
+  wordmarkPath,
 } from '~/lib/brand';
 import {SITE_NAME} from '~/lib/navigation';
 
@@ -74,25 +75,21 @@ describe('HeaderLogo', () => {
     renderIn(<HeaderLogo />);
     const img = screen.getByRole('img', {name: BRAND_NAME});
     expect(screen.getAllByRole('img')).toHaveLength(1);
-    expect(img).toHaveAttribute('src', logoPath(96));
+    expect(img).toHaveAttribute('src', wordmarkPath(512));
     expect(img).toHaveAttribute(
       'srcset',
-      `${logoPath(96)} 1x, ${logoPath(180)} 2x`,
+      `${wordmarkPath(256)} 256w, ${wordmarkPath(512)} 512w, ${wordmarkPath(1024)} 1024w`,
     );
-    expect(img).toHaveAttribute('width', '56');
-    expect(img).toHaveAttribute('height', '56');
+    expect(img).toHaveAttribute('width', '224');
+    expect(img).toHaveAttribute('height', '29');
   });
 
-  it('renders 56 px below lg and 64 px from lg (BRAND_APPLICATION_SPEC 3: working minimum 56)', () => {
+  it('renders the wordmark 128 px wide on phones, 160 from md and 224 from lg, keeping its aspect ratio', () => {
     renderIn(<HeaderLogo />);
     const img = screen.getByRole('img', {name: BRAND_NAME});
     const classes = img.className.split(' ').filter(Boolean);
-    expect(classes).toContain('size-14');
-    expect(classes).toContain('lg:size-16');
-    // No smaller step below the working minimum.
-    expect(classes).not.toContain('size-12');
-    expect(classes.filter((name) => /^(md:)?size-1[0-3]$/.test(name))).toEqual(
-      [],
+    expect(classes).toEqual(
+      expect.arrayContaining(['h-auto', 'w-32', 'md:w-40', 'lg:w-56']),
     );
   });
 
@@ -112,17 +109,17 @@ describe('HeaderLogo', () => {
 });
 
 describe('FooterLogo and the footer', () => {
-  it('uses the 256 and 512 files with sizes, explicit dimensions and lazy loading', () => {
+  it('uses the wordmark files with sizes, explicit dimensions and lazy loading', () => {
     renderIn(<FooterLogo />);
     const img = screen.getByRole('img', {name: BRAND_NAME});
-    expect(img).toHaveAttribute('src', logoPath(256));
+    expect(img).toHaveAttribute('src', wordmarkPath(512));
     expect(img).toHaveAttribute(
       'srcset',
-      `${logoPath(256)} 256w, ${logoPath(512)} 512w`,
+      `${wordmarkPath(256)} 256w, ${wordmarkPath(512)} 512w, ${wordmarkPath(1024)} 1024w`,
     );
-    expect(img).toHaveAttribute('sizes', '112px');
-    expect(img).toHaveAttribute('width', '112');
-    expect(img).toHaveAttribute('height', '112');
+    expect(img).toHaveAttribute('sizes', '224px');
+    expect(img).toHaveAttribute('width', '224');
+    expect(img).toHaveAttribute('height', '29');
     expect(img).toHaveAttribute('loading', 'lazy');
   });
 
