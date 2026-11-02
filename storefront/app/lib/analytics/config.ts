@@ -19,12 +19,16 @@ export type AnalyticsEnv = {
   readonly PUBLIC_CONSENT_MODE?: string | undefined;
   readonly PUBLIC_GA4_MEASUREMENT_ID?: string | undefined;
   readonly PUBLIC_META_PIXEL_ID?: string | undefined;
+  readonly PUBLIC_OPENAI_PIXEL_ID?: string | undefined;
+  readonly PUBLIC_GTM_CONTAINER_ID?: string | undefined;
 };
 
 export type PublicAnalyticsConfig = {
   readonly consentMode: ConsentMode;
   readonly ga4MeasurementId: string | null;
   readonly metaPixelId: string | null;
+  readonly openaiPixelId: string | null;
+  readonly gtmContainerId: string | null;
 };
 
 // "G-" followed by letters and digits. Anything else (a Universal Analytics "UA-" id, a GTM container "GTM-", a
@@ -32,6 +36,12 @@ export type PublicAnalyticsConfig = {
 const GA4_ID = /^G-[A-Z0-9]{4,16}$/;
 // Pixel ids are all digits (15 or 16 today); the wider bounds avoid refusing a valid id and still refuse junk.
 const META_PIXEL_ID = /^\d{6,20}$/;
+
+// OpenAI (ChatGPT ads) pixel ids are 22 URL-safe characters today; the bounds allow for a longer id and still refuse
+// anything that could break out of a script argument.
+const OPENAI_PIXEL_ID = /^[A-Za-z0-9_-]{8,64}$/;
+// "GTM-" followed by letters and digits (Google's container ids are 6 to 8 characters after the prefix).
+const GTM_CONTAINER_ID = /^GTM-[A-Z0-9]{4,12}$/;
 
 function clean(value: string | undefined): string {
   return (value ?? '').trim();
@@ -55,11 +65,23 @@ export function parseMetaPixelId(value: string | undefined): string | null {
   return META_PIXEL_ID.test(id) ? id : null;
 }
 
+export function parseOpenaiPixelId(value: string | undefined): string | null {
+  const id = clean(value);
+  return OPENAI_PIXEL_ID.test(id) ? id : null;
+}
+
+export function parseGtmContainerId(value: string | undefined): string | null {
+  const id = clean(value).toUpperCase();
+  return GTM_CONTAINER_ID.test(id) ? id : null;
+}
+
 export function parseAnalyticsConfig(env: AnalyticsEnv): PublicAnalyticsConfig {
   return {
     consentMode: parseConsentMode(env.PUBLIC_CONSENT_MODE),
     ga4MeasurementId: parseGa4MeasurementId(env.PUBLIC_GA4_MEASUREMENT_ID),
     metaPixelId: parseMetaPixelId(env.PUBLIC_META_PIXEL_ID),
+    openaiPixelId: parseOpenaiPixelId(env.PUBLIC_OPENAI_PIXEL_ID),
+    gtmContainerId: parseGtmContainerId(env.PUBLIC_GTM_CONTAINER_ID),
   };
 }
 
@@ -81,6 +103,18 @@ export function rejectedAnalyticsEnvNames(env: AnalyticsEnv): string[] {
   ) {
     rejected.push('PUBLIC_META_PIXEL_ID');
   }
+  if (
+    clean(env.PUBLIC_OPENAI_PIXEL_ID) !== '' &&
+    parseOpenaiPixelId(env.PUBLIC_OPENAI_PIXEL_ID) === null
+  ) {
+    rejected.push('PUBLIC_OPENAI_PIXEL_ID');
+  }
+  if (
+    clean(env.PUBLIC_GTM_CONTAINER_ID) !== '' &&
+    parseGtmContainerId(env.PUBLIC_GTM_CONTAINER_ID) === null
+  ) {
+    rejected.push('PUBLIC_GTM_CONTAINER_ID');
+  }
   return rejected;
 }
 
@@ -91,8 +125,11 @@ export function configuredCategories(
   config: PublicAnalyticsConfig,
 ): readonly ConsentCategory[] {
   const categories: ConsentCategory[] = [];
-  if (config.ga4MeasurementId) categories.push('analytics');
-  if (config.metaPixelId) categories.push('marketing');
+  // The Tag Manager container counts as analytics: it loads only after that consent (see gtm.ts for what that implies).
+  if (config.ga4MeasurementId || config.gtmContainerId) {
+    categories.push('analytics');
+  }
+  if (config.metaPixelId || config.openaiPixelId) categories.push('marketing');
   return categories;
 }
 

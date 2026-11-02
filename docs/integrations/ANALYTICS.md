@@ -259,3 +259,17 @@ $1**Conditions from the security re-review (2026-10-24):** no GA4 or Meta id on 
 6. Run `tests/e2e/consent.spec.ts` on a server with placeholder ids and on the default server.
 
 Rollback: unset an id and that provider disappears (no script, no host, no checkbox) without a code change.
+
+## OpenAI pixel, Tag Manager and the lead form (CR-33, 2026-11-02)
+
+Built and unit-tested (`tests/unit/analytics/openai-gtm-lead.test.ts`); **not seen in a browser, in OpenAI's Ads Manager or in Tag Manager preview**. Two more consent-gated providers behind the same runtime, each off while its variable is empty.
+
+| Provider | Variable | Consent category | Hosts added to the policies | Notes |
+|---|---|---|---|---|
+| OpenAI (ChatGPT ads) pixel | `PUBLIC_OPENAI_PIXEL_ID` | marketing | script `bzrcdn.openai.com`, connect `bzr.openai.com` | Hosts and cookie names (`oppref`, `__oppref`, `__obref`, `__oaiq_consent`) were read from the pixel's own script (version 0.1.97), not from OpenAI documentation, which was unavailable (UNVERIFIED). `debug` is off (the supplied snippet had it on). `oaiq('consent', true/false)` follows the shopper's choice. Only `lead_created` is sent; no other OpenAI event name was supplied or confirmed |
+| Google Tag Manager | `PUBLIC_GTM_CONTAINER_ID` | analytics | the GA4 hosts (shared) | The supplied snippet never pushed `gtm.start`, so it would not have started a container; the adapter uses Google's bootstrap. Consent Mode defaults deny ad storage, ad user data and ad personalisation. Events are pushed in GA4 names, ecommerce under `ecommerce` |
+| Meta pixel | `PUBLIC_META_PIXEL_ID` | marketing | already built | Pixel id `1498209212365940` goes in the host environment, not in code. The supplied snippet fires `PageView` before consent and adds a `<noscript>` image; neither is used (consent first; a noscript image would bypass it). Now also sends `Lead` |
+
+**Cautions.** (1) GTM and GA4 together count every event twice unless the container has no GA4 tag: set one of them. (2) GTM loads on analytics consent, so any ad tag inside the container must be gated on Consent Mode types in Tag Manager or kept out; the adapter cannot see inside the container. (3) A tag in the container that calls a host the policy does not list is refused on purpose; each host needs the owner's approval. (4) Container triggers of their own (history change) still run on private pages; keep them out. (5) The Google wildcard exception in `hosts.ts` still needs the owner's written approval before any environment sets a GA4 or GTM id.
+
+**Lead form** (`components/home/LeadForm.tsx`, `lib/leads/lead-form.ts`): budget, visit window, name, phone, ZIP, validated in the browser. A valid submit fires one parameterless `generate_lead`, forwarded as OpenAI `lead_created` (type `customer_action`), Meta `Lead`, GA4 and GTM `generate_lead`. Owner decision: **the answers are not stored or sent anywhere**, so the confirmation promises no follow-up. Personal details never reach a pixel.

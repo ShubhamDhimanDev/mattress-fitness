@@ -6,7 +6,7 @@ import type {AnalyticsEvent} from '~/lib/analytics';
 import type {ConsentCategory} from '~/lib/analytics/config';
 import type {PageContext} from '~/lib/analytics/page-context';
 
-export type ProviderId = 'ga4' | 'meta';
+export type ProviderId = 'ga4' | 'meta' | 'openai' | 'gtm';
 
 export type ProviderFailureReason =
   'error' | 'timeout' | 'unavailable' | 'origin-refused';

@@ -89,6 +89,8 @@ describe('provider ids (REQ-ANL-001, REQ-ANL-002)', () => {
       consentMode: 'opt-in',
       ga4MeasurementId: null,
       metaPixelId: null,
+      openaiPixelId: null,
+      gtmContainerId: null,
     });
     expect(hasProviders(config)).toBe(false);
     expect(configuredCategories(config)).toEqual([]);

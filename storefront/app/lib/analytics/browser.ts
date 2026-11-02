@@ -20,7 +20,9 @@ import {
   readPageInput,
   type PageDecision,
 } from '~/lib/analytics/page-context';
+import {createGtmAdapter} from '~/lib/analytics/gtm';
 import {createMetaAdapter} from '~/lib/analytics/meta';
+import {createOpenaiAdapter} from '~/lib/analytics/openai';
 import {globalsOf, type ProviderAdapter} from '~/lib/analytics/adapter';
 import {createScriptLoader} from '~/lib/analytics/script-loader';
 
@@ -157,6 +159,26 @@ export function createBrowserAdapters(
     adapters.push(
       createMetaAdapter({
         pixelId: config.metaPixelId,
+        globals,
+        loadScript,
+        clearCookies,
+      }),
+    );
+  }
+  if (config.gtmContainerId) {
+    adapters.push(
+      createGtmAdapter({
+        containerId: config.gtmContainerId,
+        globals,
+        loadScript,
+        clearCookies,
+      }),
+    );
+  }
+  if (config.openaiPixelId) {
+    adapters.push(
+      createOpenaiAdapter({
+        pixelId: config.openaiPixelId,
         globals,
         loadScript,
         clearCookies,

@@ -22,8 +22,11 @@ export type EcommerceEventName =
   | 'begin_checkout'
   | 'search';
 
+/** GA4's recommended name for a submitted lead form. Carries no parameters: a lead's details never go to a provider. */
+export type LeadEventName = 'generate_lead';
+
 export type AnalyticsEventName =
-  'page_view' | EcommerceEventName | QuizEventName;
+  'page_view' | EcommerceEventName | QuizEventName | LeadEventName;
 
 export type AnalyticsParamValue = string | number;
 
