@@ -29,9 +29,9 @@ type ProductItemProps = {
 };
 
 // The `sizes` hint follows the listing grid: four columns from 1280 px, three from 1024 px, two below.
-const IMAGE_SIZES = '(min-width: 1280px) 22vw, (min-width: 1024px) 30vw, 46vw';
+const IMAGE_SIZES = '(min-width: 1024px) 30vw, (min-width: 768px) 46vw, 92vw';
 
-// At most two chips (feel, then type or the first benefit) so a card stays compact in a two-column phone grid.
+// At most two chips (feel, then type or the first benefit) so a card stays compact.
 const MAX_CHIPS = 2;
 
 /**
