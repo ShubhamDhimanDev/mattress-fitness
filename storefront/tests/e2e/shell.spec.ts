@@ -101,8 +101,8 @@ test.describe('REQ-NAV-001 shell: landmarks, skip link and title', () => {
     await expect(home).toHaveAttribute('href', '/');
     const logo = home.getByRole('img', {name: 'Mattress Fitness'});
     await expect(logo).toBeVisible();
-    await expect(logo).toHaveAttribute('width', '56');
-    await expect(logo).toHaveAttribute('height', '56');
+    await expect(logo).toHaveAttribute('width', '224');
+    await expect(logo).toHaveAttribute('height', '29');
     await expect(logo).toHaveAttribute('fetchpriority', 'high');
     // The image decoded (the file exists and is the small one, not the 543 kB original).
     expect(
@@ -110,7 +110,7 @@ test.describe('REQ-NAV-001 shell: landmarks, skip link and title', () => {
     ).toBeGreaterThan(0);
     expect(
       await logo.evaluate((img: HTMLImageElement) => img.currentSrc),
-    ).toMatch(/\/brand\/mattress-fitness-logo-(96|180)\.png$/);
+    ).toMatch(/\/brand\/mattress-fitness-wordmark-(256|512|1024)\.png$/);
     // Nothing is announced twice: the one image alt in the header is the logo's.
     await expect(
       page.getByRole('banner').getByRole('img', {name: 'Mattress Fitness'}),
