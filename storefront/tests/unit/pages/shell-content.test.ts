@@ -8,7 +8,6 @@ import {
   REASSURANCE_DRAFT,
   REASSURANCE_ITEMS,
   publishedLinks,
-  resolveSupportPhone,
   visibleQuickLinks,
 } from '~/lib/navigation';
 
@@ -92,36 +91,5 @@ describe('unsupplied claims (B-15)', () => {
         {a: 3, awaitingContent: false},
       ]),
     ).toEqual([{a: 1}, {a: 3, awaitingContent: false}]);
-  });
-});
-
-describe('support phone (B-15: never the invented number)', () => {
-  it.each([
-    ['(312) 555-0142', '(312) 555-0142', 'tel:+13125550142'],
-    ['312-555-0142', '(312) 555-0142', 'tel:+13125550142'],
-    ['+1 312 555 0142', '(312) 555-0142', 'tel:+13125550142'],
-  ])('formats the configured number %s', (raw, display, href) => {
-    expect(resolveSupportPhone(raw, false)).toEqual({display, href});
-    expect(resolveSupportPhone(raw, true)).toEqual({display, href});
-  });
-
-  it.each([
-    undefined,
-    null,
-    '',
-    '   ',
-    'call us',
-    '555-0142',
-    'tel:+1; DROP',
-    42,
-  ])('shows nothing in production for %j', (raw) => {
-    expect(resolveSupportPhone(raw, false)).toBeNull();
-  });
-
-  it('falls back to a clearly labelled placeholder only in development', () => {
-    const dev = resolveSupportPhone(undefined, true);
-    expect(dev?.display).toMatch(/placeholder/i);
-    expect(dev?.href).toBe('tel:+18005550100');
-    expect(resolveSupportPhone(undefined, false)).toBeNull();
   });
 });

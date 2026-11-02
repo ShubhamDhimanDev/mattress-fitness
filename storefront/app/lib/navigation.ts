@@ -6,35 +6,12 @@
 
 import {BRAND_NAME} from '~/lib/brand';
 import type {PublicChatConfig} from '~/lib/chat/config';
-import {normalizeUsPhone} from '~/lib/phone';
 
 /** The store name in titles, the copyright line and the logo's accessible name: one constant (brand.ts). */
 export const SITE_NAME = BRAND_NAME;
 
+/** The phone shown in the header, menu and footer: the store's own number, fixed in lib/business.ts. */
 export type SupportPhone = {display: string; href: string};
-
-/**
- * Contact number from fictional range 555-0100 to 555-0199, labelled as a placeholder. It is shown only in
- * development (see `resolveSupportPhone`) so layouts can be checked; it must never reach a shopper (B-15).
- */
-const DEV_PLACEHOLDER_PHONE: SupportPhone = {
-  display: '1-800-555-0100 (dev placeholder)',
-  href: 'tel:+18005550100',
-};
-
-/**
- * The support phone to show, or null to show none (REQ-CNT-001, B-15). The number is the client's, set in
- * `PUBLIC_SUPPORT_PHONE`; until it is configured, and whenever the value is not a usable US number, no phone
- * link is rendered anywhere. Only development falls back to a clearly labelled placeholder.
- */
-export function resolveSupportPhone(
-  raw: unknown,
-  isDev: boolean,
-): SupportPhone | null {
-  const parsed = normalizeUsPhone(raw);
-  if (parsed) return {display: parsed.display, href: `tel:${parsed.e164}`};
-  return isDev ? DEV_PLACEHOLDER_PHONE : null;
-}
 
 export type NavLinkItem = {
   kind: 'link';

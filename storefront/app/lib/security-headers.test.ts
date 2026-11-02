@@ -153,7 +153,7 @@ describe('buildReportOnlyCsp', () => {
         'https://checkout.example.com',
         'https://shop.example.com',
         'https://shopify.com',
-        // The footer's store map frame (lib/business.ts): the one third-party origin, in frame-src only.
+        // The home page's store map frame (lib/business.ts): the one third-party origin, in frame-src only.
         'https://www.openstreetmap.org',
       ]),
     );

@@ -83,7 +83,6 @@ These are not secrets but a wrong value breaks something quietly (DEPLOYMENT "Pr
 | Name | Holder | Note |
 |---|---|---|
 | `PUBLIC_SITE_URL` | Developer who deploys | The live origin; canonical links and sitemap. Update at cutover |
-| `PUBLIC_SUPPORT_PHONE` | Client's number `[client input needed]` | Or the Site settings entry in Shopify admin |
 | `PUBLIC_NAV_MENU_HANDLE` | Developer, after the client builds the menu | Wrong handle silently shows the fixed navigation |
 | `OFFER_CONFIG_JSON`, `OFFERS_ENABLED`, `PUBLIC_GIFT_PICKER_ENABLED` | Developer (developer-managed until P4-12) | Missing or invalid in production pauses checkout. The real rules are the client's (CLR-011) |
 | `TRUSTED_CLIENT_IP_HEADER` | Whoever runs the host | `x-real-ip` on the VPS; **never `oxygen-buyer-ip` on the VPS**. Unset: every shopper shares one lookup allowance |

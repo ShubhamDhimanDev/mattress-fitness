@@ -23,7 +23,7 @@ Coverage: **Covered** (a requirement matches the behaviour), **Partly** (part is
 | Order-tracking link | REQ-ACC-003 | Partly: the SOW tracking is by order number and email, limited to 60 days (SD-05, CR-11). What the reference's tracking page does is not observed | IN_PROGRESS: library only, no route or UI (P6-08); the footer link is hidden until the page exists (UXD-26) |
 | Contact link | REQ-CNT-001 (Contact page) | Covered | NOT_STARTED (P6-09); link hidden until the page exists |
 | Live chat | REQ-ANL-004 | Covered (default Shopify Inbox, Q-011) | NOT_STARTED (P7-03); needs a provider choice; hidden until configured |
-| Click-to-call phone | REQ-NAV-001 (support phone from admin or `PUBLIC_SUPPORT_PHONE`) | Covered | Built, hidden until the client supplies the number (B-15) |
+| Click-to-call phone | REQ-NAV-001 (the store's fixed phone, `lib/business.ts`) | Covered | Built; the number is the one the owner supplied 2026-11-02 (DEC-142) |
 | Product search | REQ-SRCH-001, REQ-SRCH-002 | Covered | IN_PROGRESS: combobox, results with filters; filters unverified (V-04) |
 | Account icon | REQ-ACC-001 | Covered | IN_PROGRESS: scaffold routes hardened; never run against Shopify (V-08) |
 | Cart | REQ-CART-001 | Covered | IN_PROGRESS: drawer and page; worked on a real Shopify cart for read and cart paths only |

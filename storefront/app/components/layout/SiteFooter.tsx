@@ -2,7 +2,6 @@ import {lazy, Suspense, useId, useState, type ComponentType} from 'react';
 import {Link} from 'react-router';
 import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
 import {FooterLogo} from '~/components/layout/BrandLogo';
-import {StoreMap} from '~/components/layout/StoreMap';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {cn} from '~/components/ui/cn';
 import {BRAND_TAGLINE} from '~/lib/brand';
@@ -163,7 +162,7 @@ export function SiteFooter({
           <FooterLogo />
           {/* The client's own tagline, plain text; the logo's alt is the name only, so nothing is read twice. */}
           <p className="text-base font-bold text-white">{BRAND_TAGLINE}</p>
-          {/* The store's address, phone and map (lib/business.ts), under the logo. */}
+          {/* The store's address and phone (lib/business.ts), under the logo. The map is on the home page. */}
           <address className="flex flex-col text-sm text-ink-300 not-italic">
             {BUSINESS_ADDRESS.lines.map((line) => (
               <span key={line}>{line}</span>
@@ -176,7 +175,6 @@ export function SiteFooter({
               {supportPhone.display}
             </a>
           ) : null}
-          <StoreMap linkClassName={LINK_CLASSES} />
           {signup ? (
             // The form is built for a light surface, so it sits on a white card inside the ink band.
             <div className="on-light w-full max-w-xl rounded-card bg-surface p-5 text-fg">
