@@ -35,7 +35,7 @@ type Held = LiveAnalytics & {readonly detach: () => void};
 let live: Held | null = null;
 
 function keyOf(config: PublicAnalyticsConfig): string {
-  return `${config.consentMode}|${config.ga4MeasurementId}|${config.metaPixelId}`;
+  return `${config.consentMode}|${config.ga4MeasurementId}|${config.metaPixelId}|${config.openaiPixelId}|${config.gtmContainerId}`;
 }
 
 export function acquireAnalytics(args: {

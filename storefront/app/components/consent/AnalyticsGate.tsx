@@ -16,7 +16,10 @@ import {
   type ReactNode,
 } from 'react';
 import type {ConsentRuntimeProps} from '~/components/consent/consent-context';
-import type {PublicAnalyticsConfig} from '~/lib/analytics/config';
+import {
+  hasProviders,
+  type PublicAnalyticsConfig,
+} from '~/lib/analytics/config';
 import {consentHandle, earlyViews, scheduleIdle} from '~/lib/analytics/gate';
 
 // Everything in this file is part of every route's JavaScript, which has a budget (scripts/perf). It imports no
@@ -110,8 +113,7 @@ export function AnalyticsGate({
   privacyPath,
   children,
 }: AnalyticsGateProps) {
-  const providers =
-    config.ga4MeasurementId !== null || config.metaPixelId !== null;
+  const providers = hasProviders(config);
   const nonce = useNonce();
   useSyncExternalStore(
     consentHandle.subscribe,

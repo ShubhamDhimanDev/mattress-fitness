@@ -6,7 +6,13 @@
 // resource type explicitly. The directive-by-directive reasoning and the rule for adding a third-party origin
 // are in docs/security/SECURITY_HEADERS.md.
 
-import {GA4_CSP, META_CSP, type ProviderCsp} from '~/lib/analytics/hosts';
+import {
+  GA4_CSP,
+  GTM_CSP,
+  META_CSP,
+  OPENAI_CSP,
+  type ProviderCsp,
+} from '~/lib/analytics/hosts';
 import {privatePathSection} from '~/lib/analytics/privacy';
 import {NO_CHAT_CSP, type ChatCsp} from '~/lib/chat/hosts';
 
@@ -153,15 +159,24 @@ export type ReportOnlyCspOptions = {
 export type AnalyticsCspInput = {
   readonly ga4?: boolean;
   readonly meta?: boolean;
+  readonly openai?: boolean;
+  readonly gtm?: boolean;
 };
 
 /** The hosts of the configured providers only, merged per directive. */
 export function analyticsCspHosts(
   input: AnalyticsCspInput | undefined,
 ): ProviderCsp {
-  const used = [input?.ga4 ? GA4_CSP : null, input?.meta ? META_CSP : null];
-  const pick = (key: keyof ProviderCsp): string[] =>
-    used.flatMap((provider) => (provider ? provider[key] : []));
+  const used = [
+    input?.ga4 ? GA4_CSP : null,
+    input?.gtm ? GTM_CSP : null,
+    input?.meta ? META_CSP : null,
+    input?.openai ? OPENAI_CSP : null,
+  ];
+  // GA4 and Tag Manager share hosts; a host listed twice is listed once.
+  const pick = (key: keyof ProviderCsp): string[] => [
+    ...new Set(used.flatMap((provider) => (provider ? provider[key] : []))),
+  ];
   return {script: pick('script'), img: pick('img'), connect: pick('connect')};
 }
 

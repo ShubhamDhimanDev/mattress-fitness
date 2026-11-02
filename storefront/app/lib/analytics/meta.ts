@@ -1,6 +1,6 @@
 // Meta (Facebook) pixel (REQ-ANL-002): the pure event mapping and a thin adapter around fbevents.js.
 //
-// Standard events only: PageView, ViewContent, AddToCart, InitiateCheckout, Search. Parameter names (`value`,
+// Standard events only: PageView, ViewContent, AddToCart, InitiateCheckout, Search, Lead. Parameter names (`value`,
 // `currency`, `content_ids`, `content_type`, `content_name`, `contents` with `id` and `quantity`, `num_items`,
 // `search_string`) are from Meta's "Conversion tracking" page (developers.facebook.com/docs/meta-pixel, read
 // 2026-10-23). Meta's documentation is silent on Content Security Policy hosts, and nothing here has been seen in
@@ -32,7 +32,12 @@ export const META_SCRIPT_URL = 'https://connect.facebook.net/en_US/fbevents.js';
 
 export type MetaCall = {
   readonly name:
-    'PageView' | 'ViewContent' | 'AddToCart' | 'InitiateCheckout' | 'Search';
+    | 'PageView'
+    | 'ViewContent'
+    | 'AddToCart'
+    | 'InitiateCheckout'
+    | 'Search'
+    | 'Lead';
   readonly params: Readonly<Record<string, unknown>>;
 };
 
@@ -103,6 +108,9 @@ export function toMetaCall(event: AnalyticsEvent): MetaCall | null {
         ? null
         : {name: 'Search', params: {search_string: term}};
     }
+    case 'generate_lead':
+      // No parameters: Meta's Lead event does not need the lead's details, and none are sent.
+      return {name: 'Lead', params: {}};
     case 'view_item_list':
     case 'select_item':
     case 'remove_from_cart':

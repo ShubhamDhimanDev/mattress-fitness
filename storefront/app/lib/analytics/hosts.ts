@@ -45,8 +45,22 @@ export const META_CSP: ProviderCsp = {
   connect: ['https://www.facebook.com', 'https://connect.facebook.net'],
 };
 
+// OpenAI (ChatGPT ads) pixel. Hosts read from the pixel's own script (oaiq.min.js, fetched 2026-11-02): it loads from
+// bzrcdn.openai.com and posts events (fetch and sendBeacon) to bzr.openai.com/v1/sdk/events. OpenAI publishes no
+// Content Security Policy guidance (UNVERIFIED); confirm in report-only with a real pixel id.
+export const OPENAI_CSP: ProviderCsp = {
+  script: ['https://bzrcdn.openai.com'],
+  img: [],
+  connect: ['https://bzr.openai.com'],
+};
+
+// Tag Manager needs the same Google hosts as GA4. Tags INSIDE a container that call other hosts are refused by the
+// policy on purpose: add a host only after the owner approves the tag that needs it.
+export const GTM_CSP: ProviderCsp = GA4_CSP;
+
 /** The only origins a provider script may be loaded from, whatever a caller passes. */
 export const PROVIDER_SCRIPT_ORIGINS: ReadonlySet<string> = new Set([
   ...GA4_CSP.script,
   ...META_CSP.script,
+  ...OPENAI_CSP.script,
 ]);

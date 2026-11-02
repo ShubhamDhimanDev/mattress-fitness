@@ -15,6 +15,7 @@ import {
 } from '~/components/home/ContentBlocks';
 import {HeroSection} from '~/components/home/HeroSection';
 import {OfferCards} from '~/components/home/OfferCards';
+import {LeadForm} from '~/components/home/LeadForm';
 import {VisitSection} from '~/components/home/VisitSection';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {SITE_NAME, SLEEP_QUIZ_LINK} from '~/lib/navigation';
@@ -99,6 +100,7 @@ export function HomeSections({home, signup = null}: HomeSectionsProps) {
           <Fragment key={groupId(group)}>{view}</Fragment>
         );
       })}
+      <LeadForm />
       <VisitSection />
     </div>
   );

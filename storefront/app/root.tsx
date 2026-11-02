@@ -16,7 +16,10 @@ import type {Route} from './+types/root';
 import {BRAND_HEAD_LINKS, BRAND_THEME_COLOR} from '~/lib/brand';
 import {BUSINESS_PHONE} from '~/lib/business';
 import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
-import {parseAnalyticsConfig} from '~/lib/analytics/config';
+import {
+  configuredCategories,
+  parseAnalyticsConfig,
+} from '~/lib/analytics/config';
 import {resolvePublicChatConfig} from '~/lib/chat/config';
 import {parseExtendBranding} from '~/lib/extend-branding';
 import {resolvePublicFinancingConfig} from '~/lib/financing/config';
@@ -151,7 +154,7 @@ export async function loader(args: Route.LoaderArgs) {
     env,
     {
       development: import.meta.env.DEV,
-      analyticsCategoryConfigured: analytics.ga4MeasurementId !== null,
+      analyticsCategoryConfigured: configuredCategories(analytics).includes('analytics'),
     },
     logWarn,
   );
@@ -160,7 +163,7 @@ export async function loader(args: Route.LoaderArgs) {
   // providers with what it needs, and then every slot renders nothing. Affirm follows the chat's consent rule.
   const financing = resolvePublicFinancingConfig(
     env,
-    {analyticsCategoryConfigured: analytics.ga4MeasurementId !== null},
+    {analyticsCategoryConfigured: configuredCategories(analytics).includes('analytics')},
     logWarn,
   );
 

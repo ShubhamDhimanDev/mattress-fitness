@@ -5,7 +5,10 @@ import type {EntryContext, RouterContextProvider} from 'react-router';
 import {createContentSecurityPolicy} from '~/lib/hydrogen/csp';
 import {errorFields, logError} from '~/lib/logging/logger';
 import {logRequestError} from '~/lib/logging/request-error';
-import {parseAnalyticsConfig} from '~/lib/analytics/config';
+import {
+  configuredCategories,
+  parseAnalyticsConfig,
+} from '~/lib/analytics/config';
 import {parseChatConfig} from '~/lib/chat/config';
 import {chatCspHosts} from '~/lib/chat/hosts';
 import {extendLogoOrigin, parseExtendBranding} from '~/lib/extend-branding';
@@ -45,12 +48,14 @@ export default async function handleRequest(
   const analyticsCsp = {
     ga4: analyticsConfig.ga4MeasurementId !== null,
     meta: analyticsConfig.metaPixelId !== null,
+    openai: analyticsConfig.openaiPixelId !== null,
+    gtm: analyticsConfig.gtmContainerId !== null,
   };
   // The same for the chat provider (P7-03): its documented hosts, only when one is configured and runnable here. The table
   // is empty today (no approved provider), so this changes nothing until a real adapter adds its hosts.
   const chatConfig = parseChatConfig(context.env, {
     development: import.meta.env.DEV,
-    analyticsCategoryConfigured: analyticsConfig.ga4MeasurementId !== null,
+    analyticsCategoryConfigured: configuredCategories(analyticsConfig).includes('analytics'),
   });
   const chatCsp = chatCspHosts(
     chatConfig.status === 'on' ? chatConfig.config.providerId : null,
@@ -58,7 +63,7 @@ export default async function handleRequest(
   // The financing provider's script host (Affirm only, P4-08) and the Extend logo's one image origin (REQ-EXT-004) ride
   // the same extra-sources object as the chat, so the enforced and the report-only policy cannot disagree.
   const financingConfig = parseFinancingConfig(context.env, {
-    analyticsCategoryConfigured: analyticsConfig.ga4MeasurementId !== null,
+    analyticsCategoryConfigured: configuredCategories(analyticsConfig).includes('analytics'),
   });
   const extraCsp = mergeCspHosts(
     chatCsp,

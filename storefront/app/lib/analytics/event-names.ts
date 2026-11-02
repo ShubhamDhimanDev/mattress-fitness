@@ -16,6 +16,7 @@ const NAMES: readonly AnalyticsEventName[] = [
   'quiz_start',
   'quiz_complete',
   'quiz_result_click',
+  'generate_lead',
 ];
 
 export const FORWARDED_EVENT_NAMES: ReadonlySet<string> = new Set(NAMES);
