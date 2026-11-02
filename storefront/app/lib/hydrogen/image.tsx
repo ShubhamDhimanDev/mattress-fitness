@@ -52,10 +52,13 @@ export function Image({
 }: ImageProps) {
   const url = data?.url ?? src;
   if (!url) return null;
-  const srcSet = widths
-    .filter((width) => !data?.width || width <= data.width * 2)
-    .map((width) => `${withWidth(url, width)} ${width}w`)
-    .join(', ');
+  // A path on our own origin (a bundled logo) is one file: the CDN `width` parameter would only add cache keys.
+  const srcSet = url.startsWith('/')
+    ? ''
+    : widths
+        .filter((width) => !data?.width || width <= data.width * 2)
+        .map((width) => `${withWidth(url, width)} ${width}w`)
+        .join(', ');
   return (
     <img
       {...rest}

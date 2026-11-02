@@ -8,8 +8,10 @@ import {
 import type {Route} from './+types/delivery';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {formatPageTitle} from '~/components/layout/documentTitle';
+import {SiteImage} from '~/components/ui/SiteImage';
 import {isSameOriginRequest, noStoreHeaders} from '~/lib/cart/http';
 import {parseZip} from '~/lib/delivery/zip';
+import {SITE_IMAGES} from '~/lib/site-images';
 import {readSmallForm} from '~/lib/delivery-runtime/form';
 import type {
   DeliveryError,
@@ -128,6 +130,13 @@ export default function DeliveryPage() {
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4 py-8">
+      <SiteImage
+        image={SITE_IMAGES.delivery}
+        aspectRatio="3/2"
+        sizes="(min-width: 640px) 36rem, 100vw"
+        loading="eager"
+        className="w-full rounded-hero object-cover object-top"
+      />
       <h1 className="type-display text-3xl md:text-4xl">
         Delivery to your ZIP code
       </h1>

@@ -15,6 +15,7 @@ import type {
   CatalogBrandPageQuery,
   CatalogBrandsIndexQuery,
 } from 'storefrontapi.generated';
+import {bundledBrandLogo} from '~/lib/brand-logos';
 import {cleanText} from '~/lib/catalog/text';
 import {normalizeFilterState, type FilterState} from '~/lib/filters';
 import {brandPath, normalizeBrandSlug} from '~/lib/shopify/brand-path';
@@ -154,7 +155,7 @@ export function mapBrandNode(
     handle,
     name,
     slug: handle,
-    logo: logoOf(node),
+    logo: logoOf(node) ?? bundledBrandLogo(handle, name),
     heroImage: imageFieldOf(node, BRAND_HERO_FIELD),
     about: richTextToParagraphs(fields[BRAND_FIELDS.about]),
     warranty: richTextToParagraphs(fields[BRAND_FIELDS.warranty]),
@@ -330,6 +331,12 @@ export async function loadBrandPage(
   };
 }
 
+/** A bundled logo is a path on our own origin; it is only usable in structured data with that origin in front. */
+function absoluteUrl(url: string, origin: string | null): string | null {
+  if (!url.startsWith('/')) return url;
+  return origin ? `${origin}${url}` : null;
+}
+
 /**
  * Brand structured data from the same fields the page shows (nothing is added that the page does not say).
  * `url` needs the site's absolute origin; without one it is left out rather than emitted as a relative path,
@@ -344,7 +351,9 @@ export function buildBrandJsonLd(
     '@type': 'Brand',
     name: brand.name,
     ...(origin ? {url: `${origin}${brandPath(brand.handle)}`} : {}),
-    ...(brand.logo ? {logo: brand.logo.url} : {}),
+    ...(brand.logo && absoluteUrl(brand.logo.url, origin)
+      ? {logo: absoluteUrl(brand.logo.url, origin)}
+      : {}),
     ...(brand.about.length > 0
       ? {description: brand.about.join(' ').slice(0, 1000)}
       : {}),

@@ -9,6 +9,7 @@ import type {
   CatalogHomeSectionsQuery,
 } from 'storefrontapi.generated';
 import {SIZES, matchCanonical, type Size} from '~/lib/catalog/attributes';
+import {bundledBrandLogo} from '~/lib/brand-logos';
 import {cleanText} from '~/lib/catalog/text';
 import {
   emptyFilterState,
@@ -208,7 +209,9 @@ function brandTilesFrom(
       name,
       to: slug ? brandPath(slug) : brandHref(collectionHandle, name),
       logo:
-        reference && 'image' in reference ? mapImage(reference.image) : null,
+        (reference && 'image' in reference
+          ? mapImage(reference.image)
+          : null) ?? bundledBrandLogo(slug, name),
     });
   }
   if (tiles.length > 0) return tiles.slice(0, MAX_BRAND_TILES);
@@ -222,7 +225,7 @@ function brandTilesFrom(
   return vendors.slice(0, MAX_BRAND_TILES).map((name) => ({
     name,
     to: brandHref(collectionHandle, name),
-    logo: null,
+    logo: bundledBrandLogo(name),
   }));
 }
 

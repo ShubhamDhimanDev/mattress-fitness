@@ -14,6 +14,7 @@ import {
   SLEEP_POSITIONS,
 } from '~/lib/catalog/attributes';
 import {cleanText} from '~/lib/catalog/text';
+import {bundledBrandLogo} from '~/lib/brand-logos';
 import {normalizeBrandSlug} from '~/lib/shopify/brand-path';
 import {BRAND_FIELDS, FAQ_FIELDS} from '~/lib/shopify/config';
 import {centsOf, fieldRecord, mapImage, mapMoney} from '~/lib/shopify/common';
@@ -128,9 +129,9 @@ function mapBrand(product: ProductSource): BrandView | null {
     // The metaobject's own handle is what the brand page is served by; the slug field is documented to equal it.
     handle: normalizeBrandSlug(reference.handle),
     logo:
-      logoReference && 'image' in logoReference
+      (logoReference && 'image' in logoReference
         ? mapImage(logoReference.image)
-        : null,
+        : null) ?? bundledBrandLogo(reference.handle, name),
     about: richTextToParagraphs(fields[BRAND_FIELDS.about]),
     warranty: richTextToParagraphs(fields[BRAND_FIELDS.warranty]),
   };

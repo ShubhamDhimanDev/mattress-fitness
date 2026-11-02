@@ -1,9 +1,11 @@
 import {AdminLinkAction} from '~/components/home/AdminLinkAction';
 import {buttonStyles} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
+import {SiteImage} from '~/components/ui/SiteImage';
 import {Image} from '~/lib/hydrogen/image';
 import {displayHeadingClass} from '~/lib/display-type';
 import {keyedText} from '~/lib/shopify/keys';
+import {SITE_IMAGES} from '~/lib/site-images';
 import type {BannerSection as BannerSectionData} from '~/lib/shopify/home-sections';
 
 type BannerSectionProps = {section: BannerSectionData};
@@ -17,13 +19,15 @@ type BannerSectionProps = {section: BannerSectionData};
 export function BannerSection({section}: BannerSectionProps) {
   const headingId = `${section.id}-heading`;
   const headingLink = section.link !== null && section.linkLabel === null;
+  // The financing block (the only type this component shows) falls back to the bundled couple photograph.
+  const picture = section.image !== null || section.type === 'financing';
 
   return (
     <section
       aria-labelledby={section.heading ? headingId : undefined}
       className={cn(
         'rounded-panel border border-line bg-paper px-4 py-8 md:px-12 md:py-10',
-        section.image && 'grid items-center gap-6 md:grid-cols-2',
+        picture && 'grid items-center gap-6 md:grid-cols-2',
       )}
     >
       <div className="flex flex-col items-start gap-3">
@@ -68,6 +72,13 @@ export function BannerSection({section}: BannerSectionProps) {
           aspectRatio="4/3"
           sizes="(min-width: 768px) 45vw, 100vw"
           loading="lazy"
+          className="w-full rounded-card object-cover"
+        />
+      ) : section.type === 'financing' ? (
+        <SiteImage
+          image={SITE_IMAGES.financing}
+          aspectRatio="4/3"
+          sizes="(min-width: 768px) 45vw, 100vw"
           className="w-full rounded-card object-cover"
         />
       ) : null}
