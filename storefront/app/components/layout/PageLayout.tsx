@@ -32,7 +32,7 @@ type PageLayoutProps = {
   fallbackNav?: readonly MainNavItem[] | null;
   /** The header and drawer utility links whose page exists (REQ-CNT-001). */
   utilityLinks?: readonly UtilityLink[];
-  /** The client's number (PUBLIC_SUPPORT_PHONE or site_settings), or null: no phone link is rendered without one (REQ-CNT-001). */
+  /** The store's number (lib/business.ts), or null: no phone link is rendered without one (REQ-CNT-001). */
   supportPhone?: SupportPhone | null;
   /** False when the deployment cannot save a ZIP; the header then offers no ZIP entry. */
   deliveryZipAvailable?: boolean;

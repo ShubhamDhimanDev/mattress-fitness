@@ -11,7 +11,6 @@ import {
   NO_SITE_SETTINGS,
   SITE_SETTINGS_FIELDS,
   SITE_SETTINGS_QUERY,
-  chooseSupportPhone,
   loadSiteSettings,
   mapSiteSettings,
   truncateCodePoints,
@@ -34,18 +33,17 @@ function entry(fields: Record<string, string | null>): Nodes {
 }
 
 describe('mapSiteSettings', () => {
-  it('reads the promotion message and the phone from the recorded entry', () => {
+  it('reads the promotion message from the recorded entry', () => {
     expect(mapSiteSettings(settingsFixture.settings.nodes)).toEqual({
       promo: {
         text: 'Free in-home delivery on every queen and king mattress',
         to: '/collections/mattresses',
         external: false,
       },
-      supportPhoneRaw: '(312) 555-0142',
     });
   });
 
-  it('returns nothing for no entry, an empty entry and empty fields (the bar and the phone stay hidden)', () => {
+  it('returns nothing for no entry, an empty entry and empty fields (the bar stays hidden)', () => {
     expect(mapSiteSettings([])).toEqual(NO_SITE_SETTINGS);
     expect(mapSiteSettings(entry({}))).toEqual(NO_SITE_SETTINGS);
     expect(
@@ -53,7 +51,6 @@ describe('mapSiteSettings', () => {
         entry({
           promo_bar_text: '',
           promo_bar_link: '/pages/x',
-          support_phone: null,
         }),
       ),
     ).toEqual(NO_SITE_SETTINGS);
@@ -141,58 +138,6 @@ describe('mapSiteSettings', () => {
       ...entry({promo_bar_text: 'Second'}),
     ];
     expect(mapSiteSettings(nodes).promo?.text).toBe('First');
-  });
-});
-
-describe('chooseSupportPhone', () => {
-  const admin = (value: string | null) => ({
-    promo: null,
-    supportPhoneRaw: value,
-  });
-
-  it.each([
-    [
-      'env wins over admin',
-      '(212) 555-0100',
-      '(312) 555-0142',
-      '(212) 555-0100',
-    ],
-    ['admin when env is empty', '', '(312) 555-0142', '(312) 555-0142'],
-    [
-      'admin when env is invalid',
-      'call us',
-      '+1 312 555 0142',
-      '(312) 555-0142',
-    ],
-    ['env alone', '2125550100', null, '(212) 555-0100'],
-    // The store's own number (lib/business.ts) is the last resort, never a placeholder.
-    ['neither: the store number', undefined, null, '(281) 758-5279'],
-    [
-      'an invalid admin number: the store number',
-      undefined,
-      '555-0142',
-      '(281) 758-5279',
-    ],
-  ])('%s', (_name, env, adminValue, expected) => {
-    expect(chooseSupportPhone(env, admin(adminValue)).display).toBe(expected);
-  });
-
-  it('builds a tel link from the validated number only', () => {
-    expect(chooseSupportPhone(undefined, admin('(312) 555-0142'))).toEqual({
-      display: '(312) 555-0142',
-      href: 'tel:+13125550142',
-    });
-    for (const hostile of [
-      'javascript:alert(1)',
-      '+44 20 7946 0958',
-      '312-555-0142 ext 5',
-      '<b>312</b>',
-    ]) {
-      // A hostile value is ignored and never reaches a tel: link: the store number shows instead.
-      expect(chooseSupportPhone(undefined, admin(hostile)).href).toBe(
-        'tel:+12817585279',
-      );
-    }
   });
 });
 

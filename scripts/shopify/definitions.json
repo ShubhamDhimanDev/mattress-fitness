@@ -144,7 +144,7 @@
       "fieldDefinitions": [
         { "key": "promo_bar_text", "name": "Promo bar text", "type": "single_line_text_field" },
         { "key": "promo_bar_link", "name": "Promo bar link", "type": "single_line_text_field", "description": "Relative path or https URL; validated by the storefront (T-08)." },
-        { "key": "support_phone", "name": "Support phone", "type": "single_line_text_field", "description": "US number shown in the site header, footer and menu, for example (312) 555-0100. Anything that is not a valid US number is ignored; the deployment setting PUBLIC_SUPPORT_PHONE overrides it when set." },
+        { "key": "support_phone", "name": "Support phone", "type": "single_line_text_field", "description": "No longer read by the storefront (DEC-142): the support phone is fixed in storefront/app/lib/business.ts. Safe to leave empty." },
         { "key": "haul_away_max", "name": "Haul-away maximum pieces", "type": "number_integer", "validations": [{ "name": "min", "value": 0 }], "description": "The same number is set by hand in the Shopify Flow condition; change both together." },
         { "key": "financing_copy", "name": "Financing copy", "type": "multi_line_text_field" },
         { "key": "extend_enabled", "name": "Extend enabled (mirror)", "type": "boolean", "description": "Non-secret mirror of the feature flag." }

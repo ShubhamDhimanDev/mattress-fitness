@@ -11,14 +11,9 @@
 
 import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {SiteSettingsQuery} from 'storefrontapi.generated';
-import {BUSINESS_PHONE} from '~/lib/business';
 import {cleanText} from '~/lib/catalog/text';
 import {errorFields, logError} from '~/lib/logging/logger';
-import {
-  resolveSupportPhone,
-  type PromoMessage,
-  type SupportPhone,
-} from '~/lib/navigation';
+import type {PromoMessage} from '~/lib/navigation';
 import {parseAdminLink} from '~/lib/shopify/admin-link';
 import {pricedCache} from '~/lib/shopify/cache';
 import {fieldRecord} from '~/lib/shopify/common';
@@ -26,7 +21,6 @@ import {fieldRecord} from '~/lib/shopify/common';
 export const SITE_SETTINGS_FIELDS = {
   promoBarText: 'promo_bar_text',
   promoBarLink: 'promo_bar_link',
-  supportPhone: 'support_phone',
 } as const;
 
 /** One line above the header: longer text would wrap into a block on a phone, so it is cut. */
@@ -54,13 +48,10 @@ export const SITE_SETTINGS_QUERY = `#graphql
 export type SiteSettings = {
   /** Null hides the promotion bar. */
   readonly promo: PromoMessage | null;
-  /** The raw admin value; validated by `chooseSupportPhone`, which also weighs the deployment setting. */
-  readonly supportPhoneRaw: string | null;
 };
 
 export const NO_SITE_SETTINGS: SiteSettings = {
   promo: null,
-  supportPhoneRaw: null,
 };
 
 type SettingsNodes = SiteSettingsQuery['settings']['nodes'];
@@ -95,32 +86,12 @@ export function mapSiteSettings(nodes: SettingsNodes): SiteSettings {
   const entry = nodes[0];
   if (!entry) return NO_SITE_SETTINGS;
   const fields = fieldRecord(entry.fields);
-  const phone = fields[SITE_SETTINGS_FIELDS.supportPhone];
-  return {
-    promo: promoFrom(fields),
-    supportPhoneRaw: phone === undefined ? null : phone,
-  };
-}
-
-/**
- * The phone to show. A valid number in `PUBLIC_SUPPORT_PHONE` wins (the deployment's explicit override), then
- * the admin value, then the store's own number from lib/business.ts (`resolveSupportPhone` owns the US-number
- * rules). An invalid override is ignored rather than hiding a valid admin number.
- */
-export function chooseSupportPhone(
-  envValue: unknown,
-  settings: SiteSettings,
-): SupportPhone {
-  return (
-    resolveSupportPhone(envValue, false) ??
-    resolveSupportPhone(settings.supportPhoneRaw, false) ??
-    BUSINESS_PHONE
-  );
+  return {promo: promoFrom(fields)};
 }
 
 /**
  * Reads the settings. A failed read must not take any page down (the root loader runs for every request): the
- * bar and the admin phone are simply absent, and only the error's class name is logged (T-05).
+ * bar is simply absent, and only the error's class name is logged (T-05).
  */
 export async function loadSiteSettings(
   storefront: Storefront,

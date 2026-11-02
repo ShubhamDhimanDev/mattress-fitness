@@ -14,6 +14,7 @@ import {
 } from 'react-router';
 import type {Route} from './+types/root';
 import {BRAND_HEAD_LINKS, BRAND_THEME_COLOR} from '~/lib/brand';
+import {BUSINESS_PHONE} from '~/lib/business';
 import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
 import {resolvePublicChatConfig} from '~/lib/chat/config';
@@ -38,10 +39,7 @@ import {loadCollectionHandles} from '~/lib/shopify/collection-handles-data';
 import {loadFooterPageLinks} from '~/lib/shopify/content-pages-data';
 import {publicSignupConfig} from '~/lib/signup/config';
 import {loadMainNav} from '~/lib/shopify/menu-data';
-import {
-  chooseSupportPhone,
-  loadSiteSettings,
-} from '~/lib/shopify/site-settings';
+import {loadSiteSettings} from '~/lib/shopify/site-settings';
 
 export type RootLoader = typeof loader;
 
@@ -198,11 +196,11 @@ export async function loader(args: Route.LoaderArgs) {
       chat: chat ?? false,
     }),
     ...delivery,
-    // The promotion bar and the phone come from the `site_settings` entry (P3B-13). The phone is shown only when
-    // valid: PUBLIC_SUPPORT_PHONE overrides the admin value; the store's own number (lib/business.ts) is the fallback
-    // (REQ-CNT-001). Nothing here is a price, and nothing keys on the shopper.
+    // The promotion bar comes from the `site_settings` entry (P3B-13). The phone is the store's own number, fixed in
+    // lib/business.ts (no environment variable or admin field overrides it). Nothing here is a price, and nothing
+    // keys on the shopper.
     promo: siteSettings.promo,
-    supportPhone: chooseSupportPhone(env.PUBLIC_SUPPORT_PHONE, siteSettings),
+    supportPhone: BUSINESS_PHONE,
     publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
     // Public identifiers and the consent mode (P7-01). Unset ids mean no provider: nothing loads (REQ-ANL-001/002).
     analytics,

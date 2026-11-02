@@ -101,7 +101,7 @@ const ENTRIES = [
   {
     type: 'site_settings',
     handle: 'site-settings',
-    fields: {promo_bar_text: 'Sample promotion: free delivery on orders over $999', promo_bar_link: '/collections/mattresses', support_phone: '1-800-555-0100', haul_away_max: 2},
+    fields: {promo_bar_text: 'Sample promotion: free delivery on orders over $999', promo_bar_link: '/collections/mattresses', haul_away_max: 2},
   },
 ];
 

@@ -1116,7 +1116,7 @@ test.describe('BA-10 layout fixes: utility bar breakpoint, cart page spacing, na
       await expect(help.getByRole('link', {name: 'Chat with us'})).toHaveCount(
         0,
       );
-      // The dev server shows a labelled placeholder; a store with PUBLIC_SUPPORT_PHONE shows its number (REQ-CNT-001).
+      // The phone is the store's fixed number (lib/business.ts, REQ-CNT-001).
       await expect(help.locator('a[href^="tel:"]')).toHaveCount(1);
     });
   }

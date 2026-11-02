@@ -1,6 +1,6 @@
 // The client's one store: address, phone and map position, as the owner supplied them (2026-11-02). Pure data, no
-// framework imports. The storefront shows them in the footer; the phone is also the fallback support number when
-// neither `PUBLIC_SUPPORT_PHONE` nor the admin `site_settings` value is set (lib/shopify/site-settings.ts).
+// framework imports. Fixed in code on purpose: the footer, header, menu and the home "Visit us" section all read
+// them from here, and no environment variable or admin field overrides them. Change them in this file.
 
 import type {SupportPhone} from '~/lib/navigation';
 
@@ -8,6 +8,7 @@ export const BUSINESS_ADDRESS = {
   lines: ['24324 Northwest Freeway, Suite 200', 'Cypress, TX 77429'],
 } as const;
 
+/** The one support number (header, mobile menu, footer and the home page). */
 export const BUSINESS_PHONE: SupportPhone = {
   display: '(281) 758-5279',
   href: 'tel:+12817585279',

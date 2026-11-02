@@ -206,9 +206,9 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
         header.getByRole('link', {name: 'Chat with us'}),
         'no chat provider is configured, so there is no chat link',
       ).toHaveCount(0);
-      // Development shows a labelled placeholder; a real number needs PUBLIC_SUPPORT_PHONE (REQ-CNT-001).
+      // The phone is the store's fixed number (lib/business.ts, REQ-CNT-001).
       await expect(
-        header.getByRole('link', {name: /555-0100 \(dev placeholder\)/}),
+        header.getByRole('link', {name: /\(281\) 758-5279/}),
       ).toBeVisible();
       await expect(header.getByRole('button', {name: 'Menu'})).toBeHidden();
     }

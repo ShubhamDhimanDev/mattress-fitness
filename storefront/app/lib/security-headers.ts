@@ -178,7 +178,7 @@ function compact(values: readonly (string | null)[]): string[] {
 const SHOPIFY_CDN = 'https://cdn.shopify.com';
 const SHOPIFY_TELEMETRY = 'https://monorail-edge.shopifysvc.com';
 const SHOPIFY_ACCOUNT = 'https://shopify.com';
-/** The footer's store map (lib/business.ts): the one third-party frame the site allows. No script of ours loads from it. */
+/** The home page's store map (lib/business.ts): the one third-party frame the site allows. No script of ours loads from it. */
 export const MAP_FRAME_ORIGIN = 'https://www.openstreetmap.org';
 
 /**
