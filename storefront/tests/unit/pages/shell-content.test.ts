@@ -63,7 +63,7 @@ describe('unsupplied claims (B-15)', () => {
     ];
     // Without page data only the links that need no Shopify page remain; /track-order still waits (P6-08 flag).
     const shown = visibleQuickLinks(draft, []);
-    expect(shown.map((l) => l.id)).toEqual(['account']);
+    expect(shown.map((l) => l.id)).toEqual([]);
     for (const to of [
       '/track-order',
       '/pages/delivery-and-shipping',

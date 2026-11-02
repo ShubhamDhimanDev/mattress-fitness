@@ -178,6 +178,8 @@ function compact(values: readonly (string | null)[]): string[] {
 const SHOPIFY_CDN = 'https://cdn.shopify.com';
 const SHOPIFY_TELEMETRY = 'https://monorail-edge.shopifysvc.com';
 const SHOPIFY_ACCOUNT = 'https://shopify.com';
+/** The footer's store map (lib/business.ts): the one third-party frame the site allows. No script of ours loads from it. */
+export const MAP_FRAME_ORIGIN = 'https://www.openstreetmap.org';
 
 /**
  * Extra directives for Hydrogen's ENFORCED policy (`createContentSecurityPolicy`), empty when no provider is
@@ -215,10 +217,14 @@ export function enforcedCspExtras(
     extras.imgSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...img];
   }
   if (script.length > 0 || connect.length > 0) extras.connectSrc = connect;
-  // Hydrogen sends no frame-src of its own (frames fall back to default-src); naming it replaces that fallback, so the base sources are repeated with the chat window's origin.
-  if (chat.frame.length > 0) {
-    extras.frameSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...chat.frame];
-  }
+  // Hydrogen sends no frame-src of its own (frames fall back to default-src); naming it replaces that fallback, so the base sources are repeated with the map's origin and the chat window's.
+  extras.frameSrc = [
+    "'self'",
+    SHOPIFY_CDN,
+    SHOPIFY_ACCOUNT,
+    MAP_FRAME_ORIGIN,
+    ...chat.frame,
+  ];
   return extras;
 }
 
@@ -227,7 +233,8 @@ export function enforcedCspExtras(
  * enforced version would block. Against Hydrogen's enforced policy it
  *   - starts from `default-src 'self'` and lists every resource type explicitly (no fallback to a list that also
  *     allows Shopify's account host for scripts),
- *   - bans plugins (`object-src`), frames (`frame-src`) and inline event handlers (`script-src-attr`),
+ *   - bans plugins (`object-src`) and inline event handlers (`script-src-attr`), and limits frames (`frame-src`) to the
+ *     store map,
  *   - allows inline `style=""` attributes only, not inline `<style>` elements (React sets style attributes;
  *     the stylesheet is a linked file),
  *   - restricts where forms may submit (`form-action`), which Hydrogen's policy does not.
@@ -286,10 +293,8 @@ export function buildReportOnlyCsp(
     ],
     [
       'frame-src',
-      // The same base sources as the enforced policy, so a chat window is not allowed in one and refused in the other.
-      chat.frame.length > 0
-        ? ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...chat.frame]
-        : ["'none'"],
+      // The same sources as the enforced policy, so a frame is not allowed in one and refused in the other.
+      ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, MAP_FRAME_ORIGIN, ...chat.frame],
     ],
     ['worker-src', ["'self'"]],
     ['manifest-src', ["'self'"]],

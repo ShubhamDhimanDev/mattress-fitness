@@ -155,57 +155,43 @@ describe('chooseSupportPhone', () => {
       'env wins over admin',
       '(212) 555-0100',
       '(312) 555-0142',
-      false,
       '(212) 555-0100',
     ],
-    ['admin when env is empty', '', '(312) 555-0142', false, '(312) 555-0142'],
+    ['admin when env is empty', '', '(312) 555-0142', '(312) 555-0142'],
     [
       'admin when env is invalid',
       'call us',
       '+1 312 555 0142',
-      false,
       '(312) 555-0142',
     ],
-    ['env alone', '2125550100', null, false, '(212) 555-0100'],
-    ['neither, in production', undefined, null, false, null],
+    ['env alone', '2125550100', null, '(212) 555-0100'],
+    // The store's own number (lib/business.ts) is the last resort, never a placeholder.
+    ['neither: the store number', undefined, null, '(281) 758-5279'],
     [
-      'an invalid admin number, in production',
+      'an invalid admin number: the store number',
       undefined,
       '555-0142',
-      false,
-      null,
+      '(281) 758-5279',
     ],
-    [
-      'neither, in development: the labelled placeholder',
-      undefined,
-      null,
-      true,
-      '1-800-555-0100 (dev placeholder)',
-    ],
-    [
-      'a valid admin number in development hides the placeholder',
-      undefined,
-      '(312) 555-0142',
-      true,
-      '(312) 555-0142',
-    ],
-  ])('%s', (_name, env, adminValue, isDev, expected) => {
-    expect(
-      chooseSupportPhone(env, admin(adminValue), isDev)?.display ?? null,
-    ).toBe(expected);
+  ])('%s', (_name, env, adminValue, expected) => {
+    expect(chooseSupportPhone(env, admin(adminValue)).display).toBe(expected);
   });
 
   it('builds a tel link from the validated number only', () => {
-    expect(
-      chooseSupportPhone(undefined, admin('(312) 555-0142'), false),
-    ).toEqual({display: '(312) 555-0142', href: 'tel:+13125550142'});
+    expect(chooseSupportPhone(undefined, admin('(312) 555-0142'))).toEqual({
+      display: '(312) 555-0142',
+      href: 'tel:+13125550142',
+    });
     for (const hostile of [
       'javascript:alert(1)',
       '+44 20 7946 0958',
       '312-555-0142 ext 5',
       '<b>312</b>',
     ]) {
-      expect(chooseSupportPhone(undefined, admin(hostile), false)).toBeNull();
+      // A hostile value is ignored and never reaches a tel: link: the store number shows instead.
+      expect(chooseSupportPhone(undefined, admin(hostile)).href).toBe(
+        'tel:+12817585279',
+      );
     }
   });
 });

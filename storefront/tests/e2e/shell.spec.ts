@@ -767,7 +767,7 @@ test.describe('REQ-NAV-001 mobile navigation drawer', () => {
 });
 
 test.describe('REQ-NAV-001 footer', () => {
-  test('has the link groups for support, sleep guide, about and shop by size, brand, comfort, type and price', async ({
+  test('has the link groups for support, sleep guide, about and shop by size, comfort, type and price (the Sleep guide sits where Shop by brand was)', async ({
     page,
     isMobile,
   }) => {
@@ -780,7 +780,6 @@ test.describe('REQ-NAV-001 footer', () => {
       'Sleep guide',
       'About',
       'Shop by size',
-      'Shop by brand',
       'Shop by comfort',
       'Shop by type',
       'Shop by price',
