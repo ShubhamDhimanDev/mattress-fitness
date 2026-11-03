@@ -1,6 +1,5 @@
 import {Button} from '~/components/ui/Button';
 import {CheckIcon} from '~/components/ui/Icons';
-import {BUSINESS_ADDRESS, BUSINESS_PHONE} from '~/lib/business';
 import {PRIMARY_COLLECTION_HANDLE} from '~/lib/shopify/config';
 
 // The brands and promises of the sale, as the owner's banner artwork listed them (2026-11-03). Fixed in code: the sale
@@ -33,7 +32,7 @@ export function PromoBanner() {
   return (
     <section
       aria-labelledby="sale-banner-title"
-      className="on-dark overflow-hidden rounded-hero bg-ink-900 bg-[radial-gradient(ellipse_at_top,var(--color-primary-900),var(--color-ink-900)_70%)] px-4 py-11 text-center text-white md:px-10 md:py-16"
+      className="on-dark -mb-5 overflow-hidden rounded-hero md:-mb-12 bg-ink-900 bg-[radial-gradient(ellipse_at_top,var(--color-primary-900),var(--color-ink-900)_70%)] px-4 py-11 text-center text-white md:px-10 md:py-16"
     >
       <h2
         id="sale-banner-title"
@@ -82,17 +81,7 @@ export function PromoBanner() {
         Shop Now
       </Button>
 
-      <p className="mt-8 text-base text-white/90">
-        {BUSINESS_ADDRESS.lines.join(', ')}
-        <br />
-        <a
-          href={BUSINESS_PHONE.href}
-          className="font-bold underline-offset-4 hover:underline"
-        >
-          {BUSINESS_PHONE.display}
-        </a>
-      </p>
-      <p className="mt-3 text-caption text-white/70">*T&amp;C apply.</p>
+      <p className="mt-6 text-caption text-white/70">*T&amp;C apply.</p>
     </section>
   );
 }
