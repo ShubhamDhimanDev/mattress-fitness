@@ -36,9 +36,9 @@ function readValues(form: HTMLFormElement): Record<LeadFormField, string> {
 }
 
 /**
- * "Plan your visit" on the home page (CR-33, DEC-144). The browser checks the answers first; a valid form posts to
- * /visit-request, which saves a Shopify customer tagged `visit-request` for the store team. The lead event
- * (no parameters) fires only after the server confirms the save. Without JavaScript the form posts there directly.
+ * "Plan your visit" on the home page (CR-33, DEC-145). The browser checks the answers first; a valid form posts to
+ * /visit-request, which emails the store team over SMTP. The lead event
+ * (no parameters) fires only after the server confirms the email was sent. Without JavaScript the form posts there directly.
  */
 export function LeadForm() {
   const fetcher = useFetcher<VisitRequestResponse>();
