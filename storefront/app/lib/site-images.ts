@@ -51,14 +51,4 @@ export const SITE_IMAGES = {
   ],
   /** Quiz intro page: a person asleep (the sleep-guide picture, IMG-17). */
   quizIntro: siteImage('quiz-sleeper', 800, 1600, 2400, 1612),
-  /**
-   * The Black Friday sale banner supplied by the owner (2026-11-03), a finished 1600 x 639 JPEG with its own text, brand
-   * logos, address and phone. One width only: it is the first thing on the page, so it loads eagerly.
-   */
-  blackFridayBanner: {
-    src: '/images/black-friday-1600.jpg',
-    srcSet: '/images/black-friday-1600.jpg 1600w',
-    width: 1600,
-    height: 639,
-  },
 } as const satisfies Record<string, SiteImage | readonly SiteImage[]>;
