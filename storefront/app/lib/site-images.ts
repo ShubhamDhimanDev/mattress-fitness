@@ -6,7 +6,7 @@
 //
 // These are FALLBACKS and fixed-page pictures. Where Shopify admin supplies an image (homepage blocks and cards), the
 // admin image wins; the storefront holds no content of its own beyond these (CLAUDE.md, architecture invariants).
-// Every image here is decorative mood photography, so it renders with an empty alt.
+// The photographs are decorative mood photography and render with an empty alt; the sale banner carries text and is the exception (its alt says what it says).
 
 export type SiteImage = {
   /** The larger file, also the fallback `src`. */
@@ -51,4 +51,14 @@ export const SITE_IMAGES = {
   ],
   /** Quiz intro page: a person asleep (the sleep-guide picture, IMG-17). */
   quizIntro: siteImage('quiz-sleeper', 800, 1600, 2400, 1612),
+  /**
+   * The Black Friday sale banner supplied by the owner (2026-11-03), a finished 1600 x 639 JPEG with its own text, brand
+   * logos, address and phone. One width only: it is the first thing on the page, so it loads eagerly.
+   */
+  blackFridayBanner: {
+    src: '/images/black-friday-1600.jpg',
+    srcSet: '/images/black-friday-1600.jpg 1600w',
+    width: 1600,
+    height: 639,
+  },
 } as const satisfies Record<string, SiteImage | readonly SiteImage[]>;

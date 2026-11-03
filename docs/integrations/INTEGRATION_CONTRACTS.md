@@ -1,6 +1,6 @@
 # Integration contracts and provider dependencies
 
-One row per external system. "Verified" means confirmed from a primary source on 2026-10-11 ([TECH_FEASIBILITY](../research/TECH_FEASIBILITY.md)); everything else is a plan, not a fact. Readiness of each is tracked in [READINESS_CHECKLIST](READINESS_CHECKLIST.md). Credentials: names only in [.env.example](../../.env.example); values live in the hosting platform's secret store and developers' ignored local files.
+One row per external system. "Verified" means confirmed from a primary source on 2026-10-11 ([TECH_FEASIBILITY](../research/TECH_FEASIBILITY.md)); everything else is a plan, not a fact. Readiness of each is tracked in [READINESS_CHECKLIST](READINESS_CHECKLIST.md). Credentials: names only in [.env.example](../../storefront/.env.example); values live in the hosting platform's secret store and developers' ignored local files.
 
 ## Contracts
 

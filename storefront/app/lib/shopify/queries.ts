@@ -194,13 +194,13 @@ export const HOME_QUERY = `#graphql
       id
       handle
       title
-      products(first: 12) {
+      products(first: 36) {
         nodes {
           ...CatalogProductCard
         }
       }
     }
-    fallbackProducts: products(first: 12, sortKey: BEST_SELLING) {
+    fallbackProducts: products(first: 36, sortKey: BEST_SELLING) {
       nodes {
         ...CatalogProductCard
       }

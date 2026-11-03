@@ -1,6 +1,6 @@
 // The "plan your visit" lead form (CR-33): the answer lists and the validation, pure so they are unit-tested.
 //
-// A valid submit is saved as a Shopify customer tagged `visit-request` (visit-request.ts, DEC-144) and fires the lead
+// A valid submit is emailed to the store team over SMTP (visit-request.ts, DEC-145) and fires the lead
 // events (OpenAI `lead_created`, Meta `Lead`, GA4 `generate_lead`) with no parameters. This file only holds the answer
 // lists and the validation, which the browser and the server both run.
 

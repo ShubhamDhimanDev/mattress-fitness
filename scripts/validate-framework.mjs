@@ -75,7 +75,7 @@ const AGENT_SECTIONS = [
 ];
 const SKILL_SECTIONS = ['## When to use', '## Steps', '## Outputs', '## Validation'];
 const REQUIRED_FILES = [
-  'CLAUDE.md', 'README.md', '.gitignore', '.env.example', '.mcp.json', '.claude/settings.json',
+  'CLAUDE.md', 'README.md', '.gitignore', 'storefront/.env.example', '.mcp.json', '.claude/settings.json',
   'docs/requirements/SCOPE_OF_WORK.md', 'docs/requirements/REQUIREMENTS.md',
   'docs/requirements/TRACEABILITY.md', 'docs/requirements/OPEN_QUESTIONS.md',
   'docs/requirements/SOW_DEVIATIONS.md', 'docs/requirements/CLIENT_QUESTION_PACK.md',
@@ -183,10 +183,10 @@ function checkRequiredFiles() {
       }
     }
   }
-  if (exists('.env.example')) {
-    read('.env.example').split(/\r?\n/).forEach((line, i) => {
+  if (exists('storefront/.env.example')) {
+    read('storefront/.env.example').split(/\r?\n/).forEach((line, i) => {
       if (!line.trim() || line.trim().startsWith('#')) return;
-      if (!/^[A-Z][A-Z0-9_]*=$/.test(line.trim())) err('.env.example', `line ${i + 1} must be NAME= with no value`);
+      if (!/^[A-Z][A-Z0-9_]*=$/.test(line.trim())) err('storefront/.env.example', `line ${i + 1} must be NAME= with no value`);
     });
   }
   if (exists('CLAUDE.md')) {

@@ -1,9 +1,8 @@
-// SERVER ONLY. Turns the posted "plan your visit" form into a typed request and the customer record we save for it
-// (CR-33, REQ-HOME-001). Pure: no I/O, no logging.
+// SERVER ONLY. Turns the posted "plan your visit" form into a typed request and the email the store team receives for it
+// (CR-33, REQ-HOME-001, DEC-145). Pure: no I/O, no logging.
 //
-// The store team finds these in Shopify admin under Customers, filtered by the tag `visit-request`. The tags carry the
-// answers so they can be filtered on; the note carries the same in words. A request is not marketing consent: the
-// customer is created without any consent, so it does not join an email or text list.
+// The request is emailed over SMTP (lead-mailer.ts) to the addresses in the environment. Nothing is stored by the
+// storefront or sent to Shopify.
 
 import {
   BUDGET_OPTIONS,
@@ -17,8 +16,6 @@ import {normalizeUsPhone} from '~/lib/phone';
 
 /** A field no person sees: a bot that fills every input fills this one. */
 export const VISIT_HONEYPOT_FIELD = 'website';
-
-export const VISIT_REQUEST_TAG = 'visit-request';
 
 export const VISIT_MESSAGES = {
   ok: 'Thank you. We have your request and will call you to confirm your visit.',
@@ -110,21 +107,28 @@ function labelOf(
   return options.find((option) => option.value === value)?.label ?? value;
 }
 
-/** Tags are built only from allow-listed values (validated above), so the shopper cannot inject one. */
-export function visitTags(request: VisitRequest): string[] {
-  return [
-    VISIT_REQUEST_TAG,
-    `visit-budget-${request.budget}`,
-    `visit-window-${request.visitWindow}`,
-    `visit-zip-${request.zip}`,
-  ];
+/** "+12125550100" as "(212) 555-0100"; anything else unchanged. */
+function displayPhone(e164: string): string {
+  const match = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(e164);
+  return match ? `(${match[1]}) ${match[2]}-${match[3]}` : e164;
 }
 
-export function visitNote(request: VisitRequest, date: Date): string {
+export const VISIT_EMAIL_SUBJECT = 'New visit request from the website';
+
+/** The plain-text body of the email. Every value was validated or taken from an allow-list in parseVisitForm. */
+export function visitEmailText(request: VisitRequest, date: Date): string {
+  const name = [request.firstName, request.lastName]
+    .filter((part): part is string => part !== null)
+    .join(' ');
   return [
-    `Visit request, ${date.toISOString().slice(0, 10)}`,
+    'A visitor asked to plan a store visit.',
+    '',
+    `Name: ${name}`,
+    `Phone: ${displayPhone(request.phone)}`,
+    `ZIP: ${request.zip}`,
     `Budget: ${labelOf(BUDGET_OPTIONS, request.budget)}`,
     `Can visit: ${labelOf(VISIT_WINDOW_OPTIONS, request.visitWindow)}`,
-    `ZIP: ${request.zip}`,
+    `Received: ${date.toISOString().slice(0, 16).replace('T', ' ')} UTC`,
+    '',
   ].join('\n');
 }

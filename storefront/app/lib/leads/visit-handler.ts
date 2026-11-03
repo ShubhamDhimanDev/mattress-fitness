@@ -1,18 +1,18 @@
-// SERVER ONLY. The request flow behind POST /visit-request, the home page's "plan your visit" form (CR-33, DEC-144, T-05, T-13).
+// SERVER ONLY. The request flow behind POST /visit-request, the home page's "plan your visit" form (CR-33, DEC-145, T-05, T-13).
 //
-// In order: POST only and same origin; not configured means "not available" (503) with no call and nothing faked; the
-// body is read with a size cap; the rate-limit gate runs before any Shopify call and fails closed; a filled honeypot gets
-// the normal "thank you" and nothing else; invalid input gets field messages; then ONE save to Shopify. Logs carry event
-// names and reason codes only, never a name, phone number, ZIP or token.
+// In order: POST only and same origin; not configured means "not available" (503) with nothing sent or faked; the body is
+// read with a size cap; the rate-limit gate runs before any email is sent and fails closed; a filled honeypot gets the
+// normal "thank you" and nothing else; invalid input gets field messages; then ONE email to the store team over SMTP.
+// Logs carry event names, setting NAMES and reason codes only, never a name, phone number, ZIP, address or password.
 
 import {isSameOriginRequest} from '~/lib/cart/http';
 import {readSmallForm} from '~/lib/delivery-runtime/form';
 import {readEnvString} from '~/lib/extend/env';
-import type {FetchLike} from '~/lib/extend/types';
 import {
-  createVisitCustomerClient,
-  type VisitCustomerClient,
-} from '~/lib/leads/customer-client';
+  createVisitMailer,
+  missingMailSettings,
+  type VisitMailer,
+} from '~/lib/leads/lead-mailer';
 import {
   parseVisitForm,
   VISIT_MESSAGES,
@@ -34,8 +34,10 @@ export type VisitHttpResult = {
 };
 
 export type VisitDeps = {
-  /** Null when the customer token or the shop domain is not configured. */
-  readonly client: VisitCustomerClient | null;
+  /** Null when the SMTP settings or the recipient are not configured. */
+  readonly mailer: VisitMailer | null;
+  /** Names (never values) of the settings that are missing or malformed, for the log. */
+  readonly missing: readonly string[];
   readonly gate: SignupGate;
   /** The deployment's trusted address header (TRUSTED_CLIENT_IP_HEADER), if any. */
   readonly addressHeader: string | null;
@@ -74,8 +76,11 @@ export async function handleVisitRequest(
     logWarn('visit_request.rejected', {reason: 'cross_origin'});
     return unavailable(403);
   }
-  if (deps.client === null) {
-    logWarn('visit_request.unavailable', {reason: 'not_configured'});
+  if (deps.mailer === null) {
+    logWarn('visit_request.unavailable', {
+      reason: 'not_configured',
+      missing: deps.missing.join(', '),
+    });
     return unavailable();
   }
 
@@ -89,7 +94,7 @@ export async function handleVisitRequest(
     address: caller.address,
     addressKnown: caller.source === 'header',
     email: null,
-    // Counted only for a number that would really be saved.
+    // Counted only for a number that would really be emailed.
     phone: parsed.status === 'ok' ? parsed.request.phone : null,
   });
   if (!gate.allowed) {
@@ -128,25 +133,25 @@ export async function handleVisitRequest(
     );
   }
 
-  const saved = await saveSafely(deps.client, parsed.request);
-  if (saved.status === 'failed') {
-    // `auth` is ours to fix (token or scope): alert on it.
-    logWarn('visit_request.upstream_failed', {reason: saved.reason});
+  const sent = await sendSafely(deps.mailer, parsed.request);
+  if (sent.status === 'failed') {
+    // `auth`, `tls_required` and `unsupported_runtime` are ours to fix (settings or host): alert on them.
+    logWarn('visit_request.send_failed', {reason: sent.reason});
     return unavailable();
   }
-  logInfo('visit_request.completed', {outcome: 'saved'});
+  logInfo('visit_request.completed', {outcome: 'sent'});
   return thankYou();
 }
 
-/** The client does not throw by contract; if a future one does, the shopper still gets "try again later". */
-async function saveSafely(
-  client: VisitCustomerClient,
-  request: Parameters<VisitCustomerClient['save']>[0],
-): ReturnType<VisitCustomerClient['save']> {
+/** The mailer does not throw by contract; if a future one does, the shopper still gets "try again later". */
+async function sendSafely(
+  mailer: VisitMailer,
+  request: Parameters<VisitMailer['send']>[0],
+): ReturnType<VisitMailer['send']> {
   try {
-    return await client.save(request);
+    return await mailer.send(request);
   } catch {
-    return {status: 'failed', reason: 'network'};
+    return {status: 'failed', reason: 'connect'};
   }
 }
 
@@ -170,10 +175,11 @@ export function resetVisitStateForTests(): void {
 
 export function visitDepsFromEnv(
   env: object,
-  fetchFn: FetchLike = (url, init) => fetch(url, init),
+  options: Pick<Parameters<typeof createVisitMailer>[0], 'send'> = {},
 ): VisitDeps {
   return {
-    client: createVisitCustomerClient({env, fetch: fetchFn}),
+    mailer: createVisitMailer({env, ...options}),
+    missing: missingMailSettings(env),
     gate: gateForInstance(),
     addressHeader: readEnvString(env, 'TRUSTED_CLIENT_IP_HEADER'),
   };

@@ -16,6 +16,7 @@ import {
 import {HeroSection} from '~/components/home/HeroSection';
 import {OfferCards} from '~/components/home/OfferCards';
 import {LeadForm} from '~/components/home/LeadForm';
+import {PromoBanner} from '~/components/home/PromoBanner';
 import {VisitSection} from '~/components/home/VisitSection';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {SITE_NAME, SLEEP_QUIZ_LINK} from '~/lib/navigation';
@@ -81,6 +82,8 @@ export function HomeSections({home, signup = null}: HomeSectionsProps) {
   return (
     <div className="flex flex-col gap-11 pt-4 md:gap-22 md:pt-6">
       {titleId === null ? <h1 className="sr-only">{SITE_NAME}</h1> : null}
+      {/* The sale banner sits above the hero. */}
+      <PromoBanner />
       {groups.map((group, position) => {
         const view = (
           <GroupView

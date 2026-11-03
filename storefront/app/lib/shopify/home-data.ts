@@ -300,7 +300,7 @@ export function buildHomeData(
   };
 }
 
-/** Three full rows on desktop; the query reads 12, a few more than this, so the pick has something to choose from. */
+/** Three full rows on desktop; the query reads more (36) so the pick has several brands to choose from. */
 export const HOME_FEATURED_COUNT = 9;
 
 /** Fisher-Yates on a copy; `random` is injectable so the order can be fixed in tests. */
@@ -321,8 +321,43 @@ export function shuffled<T>(
 }
 
 /**
- * The featured block shows a different random pick on each page load. Done per request in the loader, after the
- * (cached) catalog read, so the server and browser render the same order and nothing is cached per shopper.
+ * Picks `count` items spread across brands: brands are shuffled, then one random item is taken from each in turn, and
+ * the rounds repeat until `count` is reached. Mattresses of one brand look alike, so a plain random pick can show
+ * nine near-identical cards. Items without a brand count as one brand together.
+ */
+export function pickAcrossBrands<T>(
+  items: readonly T[],
+  brandOf: (item: T) => string,
+  count: number,
+  random: () => number = Math.random,
+): T[] {
+  const byBrand = new Map<string, T[]>();
+  for (const item of shuffled(items, random)) {
+    const brand = brandOf(item).trim().toLowerCase();
+    const group = byBrand.get(brand);
+    if (group) group.push(item);
+    else byBrand.set(brand, [item]);
+  }
+  const groups = shuffled([...byBrand.values()], random);
+  const picked: T[] = [];
+  for (let round = 0; picked.length < count; round++) {
+    let added = false;
+    for (const group of groups) {
+      const item = group[round];
+      if (item === undefined) continue;
+      picked.push(item);
+      added = true;
+      if (picked.length === count) break;
+    }
+    if (!added) break;
+  }
+  // Rounds fill the front with one of each brand first; shuffle so the same brands are not always at the top.
+  return shuffled(picked, random);
+}
+
+/**
+ * The featured block shows a different pick on each page load, spread across brands. Done per request in the loader,
+ * after the (cached) catalog read, so the server and browser render the same order and nothing is cached per shopper.
  */
 export function withRandomFeatured(
   home: HomeData,
@@ -333,9 +368,11 @@ export function withRandomFeatured(
     ...home,
     featured: {
       ...home.featured,
-      products: shuffled(home.featured.products, random).slice(
-        0,
+      products: pickAcrossBrands(
+        home.featured.products,
+        (product) => product.vendor,
         HOME_FEATURED_COUNT,
+        random,
       ),
     },
   };

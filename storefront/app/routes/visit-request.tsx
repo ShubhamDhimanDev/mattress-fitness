@@ -1,5 +1,5 @@
-// "Plan your visit" form submissions, POST only (CR-33, DEC-144, T-05, T-13). The flow is in app/lib/leads/visit-handler.ts:
-// same origin, rate limited, a honeypot, then one save of a tagged Shopify customer. GET answers 405 and reads nothing
+// "Plan your visit" form submissions, POST only (CR-33, DEC-145, T-05, T-13). The flow is in app/lib/leads/visit-handler.ts:
+// same origin, rate limited, a honeypot, then one email to the store team over SMTP. GET answers 405 and reads nothing
 // from the URL; the page is noindex.
 import {data, type HeadersFunction} from 'react-router';
 import type {Route} from './+types/visit-request';
