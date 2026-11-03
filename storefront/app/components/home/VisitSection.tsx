@@ -20,7 +20,7 @@ export function VisitSection() {
   return (
     <section
       aria-labelledby={HEADING_ID}
-      className="grid gap-8 rounded-hero bg-paper px-4 py-11 md:gap-12 md:px-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-center"
+      className="flex flex-col gap-8 rounded-hero bg-paper px-4 py-11 md:px-10 md:py-14"
     >
       <div className="flex min-w-0 flex-col items-start gap-5">
         <h2
@@ -57,7 +57,7 @@ export function VisitSection() {
         title={`Map showing the store at ${address}`}
         loading="lazy"
         referrerPolicy="no-referrer"
-        className="aspect-4/3 w-full rounded-hero border-0 bg-surface md:aspect-16/10"
+        className="aspect-4/3 w-full flex-1 rounded-hero border-0 bg-surface md:min-h-72"
       />
     </section>
   );

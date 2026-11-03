@@ -300,6 +300,47 @@ export function buildHomeData(
   };
 }
 
+/** Three full rows on desktop; the query reads 12, a few more than this, so the pick has something to choose from. */
+export const HOME_FEATURED_COUNT = 9;
+
+/** Fisher-Yates on a copy; `random` is injectable so the order can be fixed in tests. */
+export function shuffled<T>(
+  items: readonly T[],
+  random: () => number = Math.random,
+): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    const a = copy[i];
+    const b = copy[j];
+    if (a === undefined || b === undefined) continue;
+    copy[i] = b;
+    copy[j] = a;
+  }
+  return copy;
+}
+
+/**
+ * The featured block shows a different random pick on each page load. Done per request in the loader, after the
+ * (cached) catalog read, so the server and browser render the same order and nothing is cached per shopper.
+ */
+export function withRandomFeatured(
+  home: HomeData,
+  random: () => number = Math.random,
+): HomeData {
+  if (!home.featured) return home;
+  return {
+    ...home,
+    featured: {
+      ...home.featured,
+      products: shuffled(home.featured.products, random).slice(
+        0,
+        HOME_FEATURED_COUNT,
+      ),
+    },
+  };
+}
+
 export async function loadHome(storefront: Storefront): Promise<HomeData> {
   const [home, sections] = await Promise.all([
     storefront.query(HOME_QUERY, {
@@ -313,10 +354,12 @@ export async function loadHome(storefront: Storefront): Promise<HomeData> {
   const wantsFaqs = mapHomeSections(sections).some(
     (section) => section.kind === 'block' && section.type === 'faq',
   );
-  return buildHomeData(
-    home,
-    sections,
-    wantsFaqs ? await loadHomeFaqs(storefront) : [],
+  return withRandomFeatured(
+    buildHomeData(
+      home,
+      sections,
+      wantsFaqs ? await loadHomeFaqs(storefront) : [],
+    ),
   );
 }
 

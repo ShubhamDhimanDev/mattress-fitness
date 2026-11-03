@@ -1,9 +1,11 @@
 // The "plan your visit" lead form (CR-33): the answer lists and the validation, pure so they are unit-tested.
 //
-// Owner decision 2026-11-02: the form only fires the lead events (OpenAI `lead_created`, Meta `Lead`, GA4
-// `generate_lead`); the answers are NOT stored or sent anywhere. Nothing here is logged or tracked as a parameter.
+// A valid submit is saved as a Shopify customer tagged `visit-request` (visit-request.ts, DEC-144) and fires the lead
+// events (OpenAI `lead_created`, Meta `Lead`, GA4 `generate_lead`) with no parameters. This file only holds the answer
+// lists and the validation, which the browser and the server both run.
 
 import {normalizeZip} from '~/lib/delivery/zip';
+import {normalizeUsPhone} from '~/lib/phone';
 
 export const BUDGET_OPTIONS = [
   {value: 'under-1000', label: 'Under $1,000'},
@@ -24,11 +26,9 @@ export type LeadFormField = 'budget' | 'visitWindow' | 'name' | 'phone' | 'zip';
 export type LeadFormErrors = Partial<Record<LeadFormField, string>>;
 
 export type LeadFormResult =
-  | {readonly ok: true}
-  | {readonly ok: false; readonly errors: LeadFormErrors};
+  {readonly ok: true} | {readonly ok: false; readonly errors: LeadFormErrors};
 
 const MAX_NAME_LENGTH = 80;
-const US_PHONE_DIGITS = 10;
 
 function isOneOf(
   options: readonly {readonly value: string}[],
@@ -37,12 +37,9 @@ function isOneOf(
   return options.some((option) => option.value === value);
 }
 
-/** Ten digits, or eleven starting with the US country code; separators and a leading "+" are ignored. */
+/** A US (NANP) number typed any common way; the same check the server saves it with. */
 export function isUsPhone(input: string): boolean {
-  if (!/^[\d\s().+-]{1,25}$/.test(input)) return false;
-  const digits = input.replace(/\D/g, '');
-  if (digits.length === US_PHONE_DIGITS) return true;
-  return digits.length === US_PHONE_DIGITS + 1 && digits.startsWith('1');
+  return normalizeUsPhone(input) !== null;
 }
 
 export function validateLeadForm(

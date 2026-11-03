@@ -100,8 +100,11 @@ export function HomeSections({home, signup = null}: HomeSectionsProps) {
           <Fragment key={groupId(group)}>{view}</Fragment>
         );
       })}
-      <LeadForm />
-      <VisitSection />
+      {/* Plan your visit and Visit our store share one row on desktop, at equal height. */}
+      <div className="grid gap-11 lg:grid-cols-2 lg:gap-6">
+        <LeadForm />
+        <VisitSection />
+      </div>
     </div>
   );
 }
