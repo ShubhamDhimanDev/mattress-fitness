@@ -44,7 +44,8 @@ export type VisitCustomerClient = {
   save(request: VisitRequest): Promise<SaveVisitResult>;
 };
 
-const CREATE_MUTATION = `#graphql
+// Admin API documents: no `#graphql` marker, which would make codegen validate them against the Storefront schema.
+const CREATE_MUTATION = `
   mutation VisitRequestCreate($input: CustomerInput!) {
     customerCreate(input: $input) {
       customer {
@@ -57,7 +58,7 @@ const CREATE_MUTATION = `#graphql
   }
 `;
 
-const FIND_QUERY = `#graphql
+const FIND_QUERY = `
   query VisitRequestFind($query: String!) {
     customers(first: 1, query: $query) {
       nodes {
@@ -67,7 +68,7 @@ const FIND_QUERY = `#graphql
   }
 `;
 
-const TAGS_MUTATION = `#graphql
+const TAGS_MUTATION = `
   mutation VisitRequestTags($id: ID!, $tags: [String!]!) {
     tagsAdd(id: $id, tags: $tags) {
       userErrors {
