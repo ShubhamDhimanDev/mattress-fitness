@@ -14,6 +14,20 @@ export const BUSINESS_PHONE: SupportPhone = {
   href: 'tel:+12817585279',
 };
 
+/** The store's social pages, as the owner supplied them (2026-11-04). The footer shows one icon link for each. */
+export const SOCIAL_LINKS = [
+  {
+    id: 'instagram',
+    label: 'Instagram',
+    href: 'https://www.instagram.com/mattressfitnesss/',
+  },
+  {
+    id: 'facebook',
+    label: 'Facebook',
+    href: 'https://www.facebook.com/people/Mattress-Fitness/61594713239805/',
+  },
+] as const;
+
 /** Where the store is on the map (WGS 84). */
 export const BUSINESS_POSITION = {
   lat: 29.95610189349137,

@@ -438,7 +438,7 @@
    * steps. From lg the header scrolls away and needs no offset. */
   @variant max-lg {
     html {
-      scroll-padding-top: calc(var(--spacing) * 20);
+      scroll-padding-top: calc(var(--spacing) * 32);
     }
   }
 }

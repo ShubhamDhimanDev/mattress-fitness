@@ -5,9 +5,14 @@ import {FooterLogo} from '~/components/layout/BrandLogo';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {cn} from '~/components/ui/cn';
 import {BRAND_TAGLINE} from '~/lib/brand';
-import {BUSINESS_ADDRESS} from '~/lib/business';
+import {BUSINESS_ADDRESS, SOCIAL_LINKS} from '~/lib/business';
 import type {SignupPublicConfig} from '~/lib/signup/shared';
-import {ChevronDownIcon, PhoneIcon} from '~/components/ui/Icons';
+import {
+  ChevronDownIcon,
+  FacebookIcon,
+  InstagramIcon,
+  PhoneIcon,
+} from '~/components/ui/Icons';
 import {
   FOOTER_SHOP_GROUPS,
   NO_FOOTER_LINKS,
@@ -154,8 +159,8 @@ export function SiteFooter({
 }) {
   const groups = splitFooterGroups(links.supportGroups);
   return (
-    // Ink band with the round logo, the client's tagline, the link groups and the legal row (CR-31). No social icons: the
-    // providers, wording and URLs do not exist yet (REQ-CNT-001, B-15). The signup block exists only when configured.
+    // Ink band with the round logo, the client's tagline, the link groups and the legal row (CR-31). The social icons link
+    // to the owner's Instagram and Facebook pages (lib/business.ts). The signup block exists only when configured.
     <footer className="on-dark mt-auto bg-surface-inverse text-white">
       <div className="mx-auto grid max-w-page gap-10 px-4 pt-12 pb-8 md:px-10 md:pt-16 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,3fr)] lg:gap-12">
         <div className="flex flex-col items-start gap-4">
@@ -175,6 +180,25 @@ export function SiteFooter({
               {supportPhone.display}
             </a>
           ) : null}
+          <ul className="flex items-center gap-1">
+            {SOCIAL_LINKS.map((link) => (
+              <li key={link.id}>
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${link.label} (opens in a new tab)`}
+                  className="inline-flex size-touch items-center justify-center rounded-choice text-white hover:bg-ink-700"
+                >
+                  {link.id === 'instagram' ? (
+                    <InstagramIcon />
+                  ) : (
+                    <FacebookIcon />
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
           {signup ? (
             // The form is built for a light surface, so it sits on a white card inside the ink band.
             <div className="on-light w-full max-w-xl rounded-card bg-surface p-5 text-fg">
