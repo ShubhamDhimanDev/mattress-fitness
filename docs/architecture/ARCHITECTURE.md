@@ -298,7 +298,7 @@ The client store is on **Shopify Basic**: no Functions or checkout extensions of
 
 ## 11. Configuration and flags (as built)
 
-Names only; values live in the hosting secret store ([.env.example](../../.env.example), [DEPLOYMENT](../deployment/DEPLOYMENT.md)).
+Names only; values live in the hosting secret store ([.env.example](../../storefront/.env.example), [DEPLOYMENT](../deployment/DEPLOYMENT.md)).
 
 | Name                                                                                                      | Kind            | Effect                                                                                                                                                      |
 | --------------------------------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
