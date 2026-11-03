@@ -30,15 +30,20 @@ export function ReassuranceStrip({
 
   return (
     <div className="border-b border-line bg-surface text-fg">
-      <ul className="mx-auto flex max-w-page flex-col items-start gap-1 px-4 py-2 md:flex-row md:items-center md:justify-between md:gap-6 md:px-10 md:py-3">
+      {/* On a phone the promises sit side by side in one row, icon above a short centred caption; from 768 px each is
+          an icon beside its text, spread across the page. */}
+      <ul className="mx-auto grid auto-cols-fr grid-flow-col max-w-page items-start gap-2 px-2 py-3 md:flex md:items-center md:justify-between md:gap-6 md:px-10">
         {shown.map((item) => {
           const Icon = ICONS[item.icon];
           return (
             <li
               key={item.id}
-              className="flex min-h-touch items-center gap-3 text-sm font-extrabold tracking-tight uppercase md:text-base"
+              className="flex min-h-touch flex-col items-center gap-1 text-center text-xs leading-tight font-extrabold tracking-tight uppercase md:flex-row md:gap-3 md:text-left md:text-base md:leading-normal"
             >
-              <Icon className="size-8 text-primary-500" strokeWidth={1.5} />
+              <Icon
+                className="size-7 text-primary-500 md:size-8"
+                strokeWidth={1.5}
+              />
               <span>{item.text}</span>
             </li>
           );

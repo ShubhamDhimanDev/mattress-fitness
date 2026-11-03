@@ -109,27 +109,33 @@ export function SiteHeader({
       <UtilityBar supportPhone={supportPhone} links={utilityLinks} />
 
       <div className="sticky top-0 z-30 border-b border-line bg-surface lg:static">
-        <div className="relative mx-auto flex max-w-page items-center gap-1 px-4 py-2 md:gap-3 md:px-10 lg:gap-5 lg:py-3">
-          <div className="lg:hidden">
+        {/* Three columns with the logo in the middle at every width: the menu button (the search from lg) on the left;
+            the ZIP chip (from xl), account and cart on the right. Below lg the search drops to its own full-width row. */}
+        <div className="relative mx-auto grid max-w-page grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2 px-3 py-2 sm:px-4 md:gap-x-4 md:px-10 lg:py-3">
+          <div className="col-start-1 row-start-1 lg:hidden">
             <MobileMenuButton />
           </div>
-          <HeaderLogo />
-          <div className="hidden lg:block">{zipControl('chip')}</div>
-          <div className="min-w-0 flex-1">
+          <div className="col-start-2 row-start-1">
+            <HeaderLogo />
+          </div>
+          <div className="col-span-3 row-start-2 lg:col-span-1 lg:col-start-1 lg:row-start-1">
             <HeaderSearch />
           </div>
-          <AccountLink isLoggedIn={isLoggedIn} />
-          <CartButton cart={cart} />
+          <div className="col-start-3 row-start-1 flex items-center justify-end gap-1 md:gap-3">
+            <div className="hidden xl:block">{zipControl('chip')}</div>
+            <AccountLink isLoggedIn={isLoggedIn} />
+            <CartButton cart={cart} />
+          </div>
         </div>
       </div>
 
-      {/* The delivery ZIP and the quiz link for phones and tablets; this row scrolls away under the sticky one. */}
-      <div className="border-b border-line bg-paper lg:hidden">
+      {/* The delivery ZIP and the quiz link for phones, tablets and small laptops; this row scrolls away under the sticky one. */}
+      <div className="border-b border-line bg-paper xl:hidden">
         <div className="mx-auto flex max-w-page items-center gap-4 px-4 md:px-10">
           {zipControl('strip')}
           <Link
             to={SLEEP_QUIZ_LINK.to}
-            className="inline-flex min-h-touch shrink-0 items-center text-caption font-extrabold text-primary-700 underline underline-offset-4 hover:text-primary-800"
+            className="inline-flex min-h-touch shrink-0 items-center lg:hidden text-caption font-extrabold text-primary-700 underline underline-offset-4 hover:text-primary-800"
           >
             {SLEEP_QUIZ_LINK.label}
           </Link>
