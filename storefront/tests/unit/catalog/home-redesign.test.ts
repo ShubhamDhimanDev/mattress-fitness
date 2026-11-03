@@ -12,6 +12,7 @@ import {
 import {
   HOME_FEATURED_COUNT,
   mapGeneralFaqs,
+  pickAcrossBrands,
   shuffled,
   withRandomFeatured,
   type HomeData,
@@ -406,10 +407,45 @@ describe('random featured products (REQ-HOME-001)', () => {
       featured: {
         title: 'x',
         handle: 'x',
-        products: ids.map((id) => ({id: String(id)})),
+        products: ids.map((id) => ({
+          id: String(id),
+          vendor: `Brand ${id % 3}`,
+        })),
       },
     } as unknown as HomeData;
     const picked = withRandomFeatured(home).featured?.products ?? [];
     expect(picked).toHaveLength(HOME_FEATURED_COUNT);
+  });
+
+  it('pickAcrossBrands takes one of each brand before repeating a brand', () => {
+    // 10 items of brand A, 1 of B, 1 of C: a plain random pick of 3 would almost always be all A.
+    const items = [
+      ...Array.from({length: 10}, (_, i) => ({id: i, brand: 'A'})),
+      {id: 10, brand: 'B'},
+      {id: 11, brand: 'c '},
+    ];
+    for (const r of [0.1, 0.5, 0.9]) {
+      const picked = pickAcrossBrands(
+        items,
+        (item) => item.brand,
+        3,
+        () => r,
+      );
+      expect(
+        new Set(picked.map((item) => item.brand.trim().toLowerCase())),
+      ).toEqual(new Set(['a', 'b', 'c']));
+    }
+  });
+
+  it('pickAcrossBrands fills up from the brands that have more, and never repeats an item', () => {
+    const items = [
+      {id: 1, brand: 'A'},
+      {id: 2, brand: 'A'},
+      {id: 3, brand: 'A'},
+      {id: 4, brand: 'B'},
+    ];
+    const picked = pickAcrossBrands(items, (item) => item.brand, 10);
+    expect(picked).toHaveLength(4);
+    expect(new Set(picked.map((item) => item.id)).size).toBe(4);
   });
 });
