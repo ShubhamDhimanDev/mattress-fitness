@@ -9,7 +9,13 @@ import {
   mapHomeSections,
   type SectionNode,
 } from '~/lib/shopify/home-sections';
-import {mapGeneralFaqs} from '~/lib/shopify/home-data';
+import {
+  HOME_FEATURED_COUNT,
+  mapGeneralFaqs,
+  shuffled,
+  withRandomFeatured,
+  type HomeData,
+} from '~/lib/shopify/home-data';
 import {BED_SHAPES, bedBoxStyle} from '~/lib/shopify/home-sizes';
 
 // REQ-HOME-001 / CR-31: the redesigned home blocks (highlighted heading, finder, bed shapes, new block types, offers row).
@@ -375,5 +381,35 @@ describe('general FAQ entries for the home faq block', () => {
   it('is empty for no entries', () => {
     expect(mapGeneralFaqs(null)).toEqual([]);
     expect(mapGeneralFaqs([])).toEqual([]);
+  });
+});
+
+describe('random featured products (REQ-HOME-001)', () => {
+  const ids = Array.from({length: 12}, (_, i) => i);
+
+  it('shuffled keeps every item and leaves the input alone', () => {
+    const input = [...ids];
+    const out = shuffled(input, () => 0.3);
+    expect(input).toEqual(ids);
+    expect([...out].sort((a, b) => a - b)).toEqual(ids);
+    expect(out).not.toEqual(ids);
+  });
+
+  it('shuffled gives different orders for different random values', () => {
+    expect(shuffled(ids, () => 0.1)).not.toEqual(shuffled(ids, () => 0.9));
+  });
+
+  it('withRandomFeatured limits the pick and passes a home without a featured block through', () => {
+    const none = {featured: null} as unknown as HomeData;
+    expect(withRandomFeatured(none)).toBe(none);
+    const home = {
+      featured: {
+        title: 'x',
+        handle: 'x',
+        products: ids.map((id) => ({id: String(id)})),
+      },
+    } as unknown as HomeData;
+    const picked = withRandomFeatured(home).featured?.products ?? [];
+    expect(picked).toHaveLength(HOME_FEATURED_COUNT);
   });
 });

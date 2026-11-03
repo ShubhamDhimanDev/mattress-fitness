@@ -39,11 +39,15 @@ export function SizeTiles({
       <h2 id={headingId} className={headingClass(text, H2)}>
         {text}
       </h2>
-      {/* On a phone the tiles scroll sideways and snap; from `md` they are a grid. The list is a scroll region whose
-          items are links, so the keyboard reaches every tile. The padding leaves room for the focus ring. */}
-      <ul className="mt-6 -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 py-2 md:mt-9 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible lg:grid-cols-6">
+      {/* On a phone the tiles scroll sideways and snap; from `md` they wrap and grow to fill each row, so a store with
+          fewer sizes than columns leaves no empty cells. The list is a scroll region whose items are links, so the
+          keyboard reaches every tile. The padding leaves room for the focus ring. */}
+      <ul className="mt-6 -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 py-2 md:mt-9 md:flex-wrap md:gap-4 md:overflow-visible">
         {tiles.map((size) => (
-          <li key={size.label} className="w-32 shrink-0 snap-start md:w-auto">
+          <li
+            key={size.label}
+            className="w-32 shrink-0 snap-start md:w-auto md:flex-1 md:basis-[30%] lg:basis-32"
+          >
             <Link
               to={size.to}
               className={cn(
@@ -110,7 +114,7 @@ export function FeaturedProducts({
         ) : null}
       </div>
       <ul className="mt-6 grid grid-cols-1 gap-3 md:mt-9 md:grid-cols-3 md:gap-6">
-        {featured.products.slice(0, 8).map((product, index) => (
+        {featured.products.map((product, index) => (
           <li key={product.id}>
             <ProductItem
               product={product}
