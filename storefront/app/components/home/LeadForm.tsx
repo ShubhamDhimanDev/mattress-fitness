@@ -1,4 +1,5 @@
-import {useState, type FormEvent} from 'react';
+import {useEffect, useRef, useState, type FormEvent} from 'react';
+import {useFetcher} from 'react-router';
 import {Button} from '~/components/ui/Button';
 import {Input} from '~/components/ui/Input';
 import {Select} from '~/components/ui/Select';
@@ -10,50 +11,67 @@ import {
   type LeadFormErrors,
   type LeadFormField,
 } from '~/lib/leads/lead-form';
+import {
+  VISIT_HONEYPOT_FIELD,
+  type VisitRequestResponse,
+} from '~/lib/leads/visit-request';
 
 const HEADING_ID = 'lead-heading';
 
-const EMPTY: Record<LeadFormField, string> = {
-  budget: '',
-  visitWindow: '',
-  name: '',
-  phone: '',
-  zip: '',
-};
+const NO_ERRORS: LeadFormErrors = {};
+
+function readValues(form: HTMLFormElement): Record<LeadFormField, string> {
+  const data = new FormData(form);
+  const get = (name: string): string => {
+    const value = data.get(name);
+    return typeof value === 'string' ? value : '';
+  };
+  return {
+    budget: get('budget'),
+    visitWindow: get('visitWindow'),
+    name: get('name'),
+    phone: get('phone'),
+    zip: get('zip'),
+  };
+}
 
 /**
- * "Plan your visit" on the home page (CR-33). A valid submit fires the lead event to whichever pixels the shopper
- * allowed, with no parameters, and nothing else: the answers are not stored or sent anywhere (owner decision
- * 2026-11-02), so the confirmation promises nothing about a follow-up.
+ * "Plan your visit" on the home page (CR-33, DEC-144). The browser checks the answers first; a valid form posts to
+ * /visit-request, which saves a Shopify customer tagged `visit-request` for the store team. The lead event
+ * (no parameters) fires only after the server confirms the save. Without JavaScript the form posts there directly.
  */
 export function LeadForm() {
-  const [values, setValues] = useState(EMPTY);
-  const [errors, setErrors] = useState<LeadFormErrors>({});
-  const [done, setDone] = useState(false);
+  const fetcher = useFetcher<VisitRequestResponse>();
+  const [clientErrors, setClientErrors] = useState<LeadFormErrors | null>(null);
+  const tracked = useRef<VisitRequestResponse | null>(null);
 
-  function set(field: LeadFormField) {
-    return (event: {currentTarget: {value: string}}) => {
-      setValues((current) => ({...current, [field]: event.currentTarget.value}));
-    };
-  }
+  const busy = fetcher.state !== 'idle';
+  // While a resubmission is in flight the previous answer is stale.
+  const answer = busy ? undefined : fetcher.data;
+  const serverErrors = answer?.status === 'invalid' ? answer.errors : NO_ERRORS;
+  const errors = clientErrors ?? serverErrors;
+
+  useEffect(() => {
+    if (answer?.status === 'ok' && tracked.current !== answer) {
+      tracked.current = answer;
+      track({name: 'generate_lead', params: {}});
+    }
+  }, [answer]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const result = validateLeadForm(values);
+    const result = validateLeadForm(readValues(event.currentTarget));
     if (!result.ok) {
-      setErrors(result.errors);
+      event.preventDefault();
+      setClientErrors(result.errors);
       return;
     }
-    setErrors({});
-    track({name: 'generate_lead', params: {}});
-    setValues(EMPTY);
-    setDone(true);
+    setClientErrors(null);
   }
 
   return (
     <section
       aria-labelledby={HEADING_ID}
-      className="grid gap-8 rounded-hero bg-surface-muted px-4 py-11 md:px-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-start lg:gap-12"
+      className="flex flex-col gap-8 rounded-hero bg-surface-muted px-4 py-11 md:px-10 md:py-14"
     >
       <div className="flex flex-col gap-3">
         <h2
@@ -67,68 +85,105 @@ export function LeadForm() {
           right beds ready to try.
         </p>
       </div>
-      {done ? (
+      {answer?.status === 'ok' ? (
         <p role="status" className="text-lead font-bold">
-          Thank you. Your request has been noted.
+          {answer.message}
         </p>
       ) : (
-        <form
+        <fetcher.Form
+          method="post"
+          action="/visit-request"
           onSubmit={onSubmit}
           noValidate
+          // The answer is all the page needs: no loader re-runs for a visit request.
+          defaultShouldRevalidate={false}
           className="grid gap-4 sm:grid-cols-2"
         >
+          {/* A field no person sees: a bot that fills every input fills this one, and the server drops the request. */}
+          <div aria-hidden="true" className="sr-only">
+            <label>
+              Leave this field empty
+              <input
+                type="text"
+                name={VISIT_HONEYPOT_FIELD}
+                tabIndex={-1}
+                autoComplete="off"
+                defaultValue=""
+              />
+            </label>
+          </div>
           <Select
+            name="budget"
             label="What's your budget for a new mattress?"
             options={BUDGET_OPTIONS}
             placeholder="Choose a budget"
             required
-            value={values.budget}
-            onChange={set('budget')}
+            defaultValue=""
             error={errors.budget}
             className="sm:col-span-2"
           />
           <Select
+            name="visitWindow"
             label="When can you visit our store?"
             options={VISIT_WINDOW_OPTIONS}
             placeholder="Choose a time"
             required
-            value={values.visitWindow}
-            onChange={set('visitWindow')}
+            defaultValue=""
             error={errors.visitWindow}
             className="sm:col-span-2"
           />
           <Input
+            name="name"
             label="Name"
             autoComplete="name"
+            maxLength={80}
             required
-            value={values.name}
-            onChange={set('name')}
             error={errors.name}
             className="sm:col-span-2"
           />
           <Input
+            name="phone"
             label="Phone number"
             type="tel"
             inputMode="tel"
             autoComplete="tel"
+            maxLength={25}
             required
-            value={values.phone}
-            onChange={set('phone')}
             error={errors.phone}
           />
           <Input
+            name="zip"
             label="ZIP code"
             inputMode="numeric"
             autoComplete="postal-code"
+            maxLength={10}
             required
-            value={values.zip}
-            onChange={set('zip')}
             error={errors.zip}
           />
-          <Button type="submit" size="lg" className="sm:col-span-2">
+          {answer &&
+          (answer.status === 'unavailable' ||
+            answer.status === 'rate_limited') ? (
+            <p
+              role="alert"
+              className="text-sm font-bold text-error-fg sm:col-span-2"
+            >
+              {answer.message}
+            </p>
+          ) : null}
+          <p className="text-caption text-fg-muted sm:col-span-2">
+            We use these details only to arrange your visit. This is not a
+            sign-up for marketing messages.
+          </p>
+          <Button
+            type="submit"
+            size="lg"
+            loading={busy}
+            loadingLabel="Sending your request"
+            className="sm:col-span-2"
+          >
             Request a visit
           </Button>
-        </form>
+        </fetcher.Form>
       )}
     </section>
   );
