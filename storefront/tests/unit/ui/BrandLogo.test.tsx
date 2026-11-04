@@ -84,12 +84,12 @@ describe('HeaderLogo', () => {
     expect(img).toHaveAttribute('height', '29');
   });
 
-  it('renders the wordmark 128 px wide on phones, 160 from md and 224 from lg, keeping its aspect ratio', () => {
+  it('renders the wordmark 288 px wide below lg and 368 px from lg, keeping its aspect ratio', () => {
     renderIn(<HeaderLogo />);
     const img = screen.getByRole('img', {name: BRAND_NAME});
     const classes = img.className.split(' ').filter(Boolean);
     expect(classes).toEqual(
-      expect.arrayContaining(['h-auto', 'w-32', 'md:w-40', 'lg:w-56']),
+      expect.arrayContaining(['h-auto', 'w-72', 'lg:w-92']),
     );
   });
 

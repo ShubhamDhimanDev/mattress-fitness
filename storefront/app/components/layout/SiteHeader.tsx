@@ -109,19 +109,23 @@ export function SiteHeader({
       <UtilityBar supportPhone={supportPhone} links={utilityLinks} />
 
       <div className="sticky top-0 z-30 border-b border-line bg-surface lg:static">
-        {/* Three columns with the logo in the middle at every width: the menu button (the search from lg) on the left;
-            the ZIP chip (from xl), account and cart on the right. Below lg the search drops to its own full-width row. */}
-        <div className="relative mx-auto grid max-w-page grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2 px-3 py-2 sm:px-4 md:gap-x-4 md:px-10 lg:py-3">
-          <div className="col-start-1 row-start-1 lg:hidden">
+        {/* From sm (640 px): three columns with the logo in the middle: the menu button on the left; the ZIP chip (from
+            xl), account and cart on the right; below lg the search has its own full-width row. Below sm the 288 px logo
+            leaves no room beside it, so it takes the first row alone and the second row holds menu, search, account and
+            cart (the same two rows of height as before). */}
+        <div className="relative mx-auto grid max-w-page grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:px-4 md:gap-x-4 md:px-10 lg:py-3">
+          <div className="col-start-1 row-start-2 sm:row-start-1 lg:hidden">
             <MobileMenuButton />
           </div>
-          <div className="col-start-2 row-start-1">
+          <div className="col-span-3 row-start-1 justify-self-center sm:col-span-1 sm:col-start-2">
             <HeaderLogo />
           </div>
-          <div className="col-span-3 row-start-2 lg:col-span-1 lg:col-start-1 lg:row-start-1">
+          {/* From lg a compact copy of the search sits in the navigation row, left of the quiz button. Only one is
+              displayed at a time (the hidden one is out of the accessibility tree). */}
+          <div className="col-start-2 row-start-2 sm:col-span-3 sm:col-start-1 lg:hidden">
             <HeaderSearch />
           </div>
-          <div className="col-start-3 row-start-1 flex items-center justify-end gap-1 md:gap-3">
+          <div className="col-start-3 row-start-2 flex items-center justify-end gap-1 sm:row-start-1 md:gap-3">
             <div className="hidden xl:block">{zipControl('chip')}</div>
             <AccountLink isLoggedIn={isLoggedIn} />
             <CartButton cart={cart} />
@@ -143,7 +147,7 @@ export function SiteHeader({
       </div>
 
       <div className="relative hidden border-b border-line lg:block">
-        <MainNav items={navItems} />
+        <MainNav items={navItems} trailing={<HeaderSearch compact />} />
       </div>
 
       <ReassuranceStrip />

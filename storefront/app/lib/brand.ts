@@ -31,14 +31,14 @@ export function wordmarkPath(width: 256 | 512 | 1024): string {
 const WORDMARK_SRCSET = `${wordmarkPath(256)} 256w, ${wordmarkPath(512)} 512w, ${wordmarkPath(1024)} 1024w`;
 
 /**
- * Header logo: shown at 128 CSS px on phones, 160 from 768 px and 224 from 1024 px (classes in BrandLogo), so the
+ * Header logo: shown at 288 CSS px below 1024 px and 368 from 1024 px (classes in BrandLogo), so the
  * width descriptors let the browser pick the file. The explicit width and height (the largest size) reserve the
  * space, so the logo causes no layout shift (CLS).
  */
 export const HEADER_LOGO = {
   src: wordmarkPath(512),
   srcSet: WORDMARK_SRCSET,
-  sizes: '(min-width: 1024px) 224px, (min-width: 768px) 160px, 128px',
+  sizes: '(min-width: 1024px) 368px, 288px',
   width: 224,
   height: 29,
 } as const;

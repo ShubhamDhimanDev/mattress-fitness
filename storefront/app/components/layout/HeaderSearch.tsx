@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import {useFetcher, useLocation, useNavigate} from 'react-router';
+import {cn} from '~/components/ui/cn';
 import {SearchIcon} from '~/components/ui/Icons';
 import {LazyBoundary, usePanelStatus} from '~/components/layout/LazyPanel';
 import {suggestionsPanel} from '~/components/layout/lazyPanels';
@@ -36,7 +37,7 @@ const SuggestionGroupsPanel = suggestionsPanel.Panel;
  * Suggestions are an enhancement: below two characters or after any API failure the panel only offers the
  * plain "view all results" option, so the field never blocks a search (REQ-SRCH-001, NFR-013).
  */
-export function HeaderSearch() {
+export function HeaderSearch({compact = false}: {compact?: boolean}) {
   const inputId = useId();
   const listboxId = useId();
   const statusId = useId();
@@ -219,7 +220,11 @@ export function HeaderSearch() {
         aria-label="Site search"
         // The outlined pill (CR-31). The input draws no ring of its own: the pill shows the focus ring while the input has
         // keyboard focus, so one clear outline surrounds the whole field (WCAG 2.4.7); the button keeps the global ring.
-        className="flex h-13 w-full items-center rounded-pill border-2 border-ink-900 bg-surface pr-0 pl-3 md:pr-1 md:pl-4 has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus"
+        className={cn(
+          'flex w-full items-center rounded-pill border-2 border-ink-900 bg-surface has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus',
+          // The compact field sits in the navigation row beside the quiz button (from lg): a 44 px pill, not the 52 px one.
+          compact ? 'h-11 pr-1 pl-3' : 'h-13 pr-0 pl-3 md:pr-1 md:pl-4',
+        )}
       >
         {({fetchResults, goToSearch, inputRef}) => (
           <>
@@ -265,7 +270,10 @@ export function HeaderSearch() {
                 setExpanded(true);
               }}
               onKeyDown={onKeyDown}
-              className="h-full min-h-touch min-w-0 flex-1 bg-transparent pr-1 text-base md:pr-2 font-medium text-fg outline-none"
+              className={cn(
+                'h-full min-w-0 flex-1 bg-transparent pr-1 font-medium text-fg outline-none',
+                compact ? 'text-sm' : 'min-h-touch text-base md:pr-2',
+              )}
             />
             <button
               type="submit"
@@ -273,7 +281,10 @@ export function HeaderSearch() {
               aria-label="Search"
               // On a phone the field needs the room beside the menu, logo, account and cart: a decorative magnifier
               // stands in and the keyboard's search key submits (enterKeyHint="search").
-              className="inline-flex size-11 shrink-0 items-center max-md:hidden justify-center rounded-pill bg-primary-500 text-white motion-safe:transition-colors hover:bg-primary-600 active:bg-primary-700"
+              className={cn(
+                'inline-flex shrink-0 items-center justify-center rounded-pill bg-primary-500 text-white motion-safe:transition-colors hover:bg-primary-600 active:bg-primary-700',
+                compact ? 'size-8' : 'size-11 max-md:hidden',
+              )}
             >
               <SearchIcon />
             </button>
@@ -305,7 +316,11 @@ export function HeaderSearch() {
                 tabIndex: 0,
               }
             : {role: 'presentation'})}
-          className="absolute inset-x-0 top-full z-40 mt-2 max-h-[70dvh] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-lift"
+          // The compact field is narrow, so its panel keeps a readable width and hangs from the field's right edge.
+          className={cn(
+            'absolute top-full z-40 mt-2 max-h-[70dvh] overflow-y-auto rounded-card border border-line bg-surface p-4 shadow-lift',
+            compact ? 'right-0 w-[min(26rem,90vw)]' : 'inset-x-0',
+          )}
           // Keep focus in the text field when the panel is pressed (a click would otherwise blur it first).
           onMouseDown={(event) => event.preventDefault()}
         >
