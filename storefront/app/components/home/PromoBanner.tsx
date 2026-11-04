@@ -1,20 +1,24 @@
+import {Link} from 'react-router';
 import {Button} from '~/components/ui/Button';
 import {CheckIcon} from '~/components/ui/Icons';
 import {PRIMARY_COLLECTION_HANDLE} from '~/lib/shopify/config';
+import {brandPath} from '~/lib/shopify/brand-path';
 
 // The brands and promises of the sale, as the owner's banner artwork listed them (2026-11-03). Fixed in code: the sale
-// is the client's own campaign and no Shopify content drives it.
+// is the client's own campaign and no Shopify content drives it. Each handle is that brand's page, `/brands/<handle>`
+// (the seeded `brand` entries, scripts/setup/seed-entries.mjs); written out, not derived from the name, so a pill never
+// points at a guessed address.
 const SALE_BRANDS = [
-  'Serta',
-  'Beautyrest',
-  'Aireloom',
-  'Molecule',
-  'Casper',
-  'Brooklyn Bedding',
-  'Sealy',
-  'Tempur-Pedic',
-  'Helix',
-  'Stearns & Foster',
+  {name: 'Serta', handle: 'serta'},
+  {name: 'Beautyrest', handle: 'beautyrest'},
+  {name: 'Aireloom', handle: 'aireloom'},
+  {name: 'Molecule', handle: 'molecule'},
+  {name: 'Casper', handle: 'casper'},
+  {name: 'Brooklyn Bedding', handle: 'brooklyn-bedding'},
+  {name: 'Sealy', handle: 'sealy'},
+  {name: 'Tempur-Pedic', handle: 'tempur-pedic'},
+  {name: 'Helix', handle: 'helix'},
+  {name: 'Stearns & Foster', handle: 'stearns-and-foster'},
 ] as const;
 
 const SALE_PERKS = [
@@ -49,11 +53,14 @@ export function PromoBanner() {
         className="mx-auto mt-6 flex max-w-4xl flex-wrap justify-center gap-2.5 md:mt-8"
       >
         {SALE_BRANDS.map((brand) => (
-          <li
-            key={brand}
-            className="rounded-pill border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-semibold"
-          >
-            {brand}
+          <li key={brand.handle}>
+            <Link
+              to={brandPath(brand.handle)}
+              prefetch="intent"
+              className="flex min-h-11 items-center rounded-pill border border-white/30 bg-white/10 px-4 text-sm font-semibold transition-colors hover:border-white hover:bg-white hover:text-ink-900"
+            >
+              {brand.name}
+            </Link>
           </li>
         ))}
       </ul>
