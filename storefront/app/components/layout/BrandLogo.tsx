@@ -28,7 +28,7 @@ export function HeaderLogo() {
         loading="eager"
         decoding="async"
         {...HIGH_PRIORITY}
-        className="h-auto w-28 min-[400px]:w-32 md:w-40 lg:w-56"
+        className="h-auto w-72 lg:w-92"
       />
     </Link>
   );

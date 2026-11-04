@@ -1,10 +1,12 @@
 import {
+  Fragment,
   useEffect,
   useRef,
   useState,
   type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
+  type ReactNode,
 } from 'react';
 import {NavLink, useLocation} from 'react-router';
 import {NavAnchor} from '~/components/layout/NavAnchor';
@@ -16,6 +18,8 @@ import type {MainNavItem, NavMenuItem} from '~/lib/navigation';
 
 type MainNavProps = {
   items: readonly MainNavItem[];
+  /** A control shown at the row's right end, directly left of the emphasised (quiz) button. */
+  trailing?: ReactNode;
 };
 
 // Bold sentence-case labels (CR-31). The heading class `type-display` is not used here: its tight tracking is too
@@ -32,7 +36,7 @@ const topClasses =
  *  - Escape closes the open panel and returns focus to its button. Tabbing out or clicking away closes it.
  *  - A mouse opens a panel on hover; the panel is a child of the item, so moving onto it keeps it open.
  */
-export function MainNav({items}: MainNavProps) {
+export function MainNav({items, trailing}: MainNavProps) {
   const navRef = useRef<HTMLElement>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const focusFirstLinkOnOpen = useRef(false);
@@ -189,6 +193,12 @@ export function MainNav({items}: MainNavProps) {
       <ul className="mx-auto flex max-w-page items-center px-4 md:px-10">
         {items.map((item) => {
           if (item.kind === 'link') {
+            const trailingItem =
+              item.emphasis && trailing ? (
+                <li key="trailing" className="ml-auto mr-3 w-44 xl:w-56">
+                  {trailing}
+                </li>
+              ) : null;
             // The emphasised item (the sleep quiz) is the red button at the row's right end; the rest are plain links.
             const linkClasses = item.emphasis
               ? buttonStyles({variant: 'primary', size: 'sm'})
@@ -197,31 +207,35 @@ export function MainNav({items}: MainNavProps) {
                   'min-h-13 aria-[current=page]:text-primary-700 aria-[current=page]:underline aria-[current=page]:underline-offset-4',
                 );
             return (
-              <li
-                key={item.id}
-                className={item.emphasis ? 'ml-auto' : undefined}
-              >
-                {item.external ? (
-                  <NavAnchor
-                    to={item.to}
-                    external
-                    data-nav-top={item.id}
-                    onKeyDown={(event) => onTopKeyDown(event, item)}
-                    className={linkClasses}
-                  >
-                    {item.label}
-                  </NavAnchor>
-                ) : (
-                  <NavLink
-                    to={item.to}
-                    data-nav-top={item.id}
-                    onKeyDown={(event) => onTopKeyDown(event, item)}
-                    className={linkClasses}
-                  >
-                    {item.label}
-                  </NavLink>
-                )}
-              </li>
+              <Fragment key={item.id}>
+                {trailingItem}
+                <li
+                  className={
+                    item.emphasis && !trailingItem ? 'ml-auto' : undefined
+                  }
+                >
+                  {item.external ? (
+                    <NavAnchor
+                      to={item.to}
+                      external
+                      data-nav-top={item.id}
+                      onKeyDown={(event) => onTopKeyDown(event, item)}
+                      className={linkClasses}
+                    >
+                      {item.label}
+                    </NavAnchor>
+                  ) : (
+                    <NavLink
+                      to={item.to}
+                      data-nav-top={item.id}
+                      onKeyDown={(event) => onTopKeyDown(event, item)}
+                      className={linkClasses}
+                    >
+                      {item.label}
+                    </NavLink>
+                  )}
+                </li>
+              </Fragment>
             );
           }
 
