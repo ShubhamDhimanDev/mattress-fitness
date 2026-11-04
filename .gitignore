@@ -46,3 +46,5 @@ scripts/catalog/brand-catalog/images/
 
 # Owner-supplied original photos and logos (2 to 9 MB each); the optimised copies live in storefront/public/images and storefront/public/brand-logos
 mattress fitness images/
+
+.product-sheets/
