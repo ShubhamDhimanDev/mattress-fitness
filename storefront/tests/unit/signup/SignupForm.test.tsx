@@ -396,7 +396,6 @@ describe('submitting (REQ-ANL-003)', () => {
 describe('mounting: nothing when off, a lazy form when on (NFR-002, NFR-013)', () => {
   const NO_HOME_FIELDS: Omit<HomeData, 'sections'> = {
     featured: null,
-    sizeTiles: [],
     brandTiles: [],
     collectionTiles: [],
     finder: null,

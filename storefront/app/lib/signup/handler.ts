@@ -40,6 +40,7 @@ import {
   type SubscribeResult,
 } from '~/lib/signup/klaviyo-client';
 import {validateSignupEmail} from '~/lib/signup/email';
+import {createSmtpSubscriber} from '~/lib/signup/smtp-subscriber';
 import {createSignupGate, type SignupGate} from '~/lib/signup/limiter';
 import {parseSignupForm, type SignupInput} from '~/lib/signup/request';
 import {
@@ -260,6 +261,7 @@ export function signupDepsFromEnv(
 ): SignupDeps {
   const config: SignupServerConfig = readSignupConfig(env, options);
   return {
+    // Klaviyo when configured; otherwise the SMTP email to the store team (CR-34); otherwise off.
     client:
       config.status === 'ready'
         ? createKlaviyoClient({
@@ -267,7 +269,7 @@ export function signupDepsFromEnv(
             listId: config.listId,
             fetch: fetchFn,
           })
-        : null,
+        : createSmtpSubscriber({env}),
     sms: config.status === 'ready' && config.sms,
     gate: gateForInstance(),
     addressHeader: readEnvString(env, 'TRUSTED_CLIENT_IP_HEADER'),

@@ -14,6 +14,7 @@
 
 import {readEnvString} from '~/lib/extend/env';
 import {SMS_CONSENT} from '~/lib/signup/consent';
+import {smtpSignupAvailable} from '~/lib/signup/smtp-subscriber';
 import type {SignupPublicConfig} from '~/lib/signup/shared';
 
 export const KLAVIYO_ENV = {
@@ -78,12 +79,16 @@ export function readSignupConfig(
   };
 }
 
-/** `null` when the signup is off: the page then renders nothing at all. */
+/**
+ * `null` when the signup is off: the page then renders nothing at all. On with Klaviyo, or with the SMTP settings alone
+ * (signups are then emailed to the store team, no text-message option).
+ */
 export function publicSignupConfig(
   env: object,
   privacyHref: string | null,
   options: SignupConfigOptions,
 ): SignupPublicConfig | null {
   const config = readSignupConfig(env, options);
-  return config.status === 'ready' ? {sms: config.sms, privacyHref} : null;
+  if (config.status === 'ready') return {sms: config.sms, privacyHref};
+  return smtpSignupAvailable(env) ? {sms: false, privacyHref} : null;
 }
