@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import {existsSync} from 'node:fs';
+import {resolve} from 'node:path';
 import {act, cleanup, render, screen} from '@testing-library/react';
 import {RouterProvider, createMemoryRouter} from 'react-router';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
@@ -6,6 +8,7 @@ import {
   NewsletterModal,
   shouldShowNewsletter,
 } from '~/components/signup/NewsletterModal';
+import {SITE_IMAGES} from '~/lib/site-images';
 
 // REQ-ANL-003 / CR-34: the newsletter pop-up on the home page, in jsdom. The signup form inside it is covered by
 // SignupForm.test.tsx and the server side by newsletter-server.test.ts. Not seen in a browser: no layout or axe claim.
@@ -85,6 +88,25 @@ describe('the pop-up', () => {
       await vi.advanceTimersByTimeAsync(10_000);
     });
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it("shows the owner's photograph beside the form in a wider dialog, hidden on a phone", async () => {
+    renderModal();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6100);
+    });
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.className).toContain('max-w-dialog-wide');
+    const photo = dialog.querySelector('img');
+    expect(photo).not.toBeNull();
+    // Decoration: empty alt, a shipped file, and not drawn below the md breakpoint.
+    expect(photo).toHaveAttribute('alt', '');
+    expect(photo?.getAttribute('src')).toBe(SITE_IMAGES.newsletterSleeper.src);
+    expect(photo?.className).toContain('hidden');
+    expect(photo?.className).toContain('md:block');
+    expect(
+      existsSync(resolve('public', `.${SITE_IMAGES.newsletterSleeper.src}`)),
+    ).toBe(true);
   });
 
   it('closes with the close button and stays closed', async () => {

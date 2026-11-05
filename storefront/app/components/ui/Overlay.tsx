@@ -86,6 +86,8 @@ type OverlayProps = {
   /** Element to focus on open; defaults to the first tabbable element in the panel. */
   initialFocusRef?: RefObject<HTMLElement | null>;
   closeOnBackdrop?: boolean;
+  /** A centred dialog that is wider, for content with a picture beside it. Ignored by the drawers. */
+  wide?: boolean;
   children: ReactNode;
 };
 
@@ -138,6 +140,7 @@ function OverlayContent({
   placement,
   initialFocusRef,
   closeOnBackdrop = true,
+  wide = false,
   children,
 }: OverlayContentProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -236,7 +239,11 @@ function OverlayContent({
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         tabIndex={-1}
-        className={PANEL[placement]}
+        className={
+          wide && placement === 'center'
+            ? PANEL.center.replace('max-w-dialog', 'max-w-dialog-wide')
+            : PANEL[placement]
+        }
       >
         {children}
       </div>
