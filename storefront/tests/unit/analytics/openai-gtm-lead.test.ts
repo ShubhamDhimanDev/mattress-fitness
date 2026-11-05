@@ -16,7 +16,7 @@ import {
   OPENAI_SCRIPT_URL,
   toOpenaiCall,
 } from '~/lib/analytics/openai';
-import {analyticsCspHosts} from '~/lib/security-headers';
+import {analyticsCspHosts, enforcedCspExtras} from '~/lib/security-headers';
 import {validateLeadForm} from '~/lib/leads/lead-form';
 
 // CR-33: OpenAI pixel, Tag Manager and the lead form event. UNVERIFIED against the providers' own tooling.
@@ -200,5 +200,33 @@ describe('lead form validation', () => {
         'zip',
       ]);
     }
+  });
+});
+
+describe('Tag Manager containers that hold Google Ads tags', () => {
+  it('get the Google Ads hosts and the Tag Manager frame, only when a container id is set', () => {
+    const gtm = analyticsCspHosts({gtm: true});
+    expect(gtm.script).toEqual(
+      expect.arrayContaining([
+        'https://www.googletagmanager.com',
+        'https://www.googleadservices.com',
+        'https://www.google.com',
+      ]),
+    );
+    expect(gtm.connect).toEqual(
+      expect.arrayContaining([
+        'https://googleads.g.doubleclick.net',
+        'https://pagead2.googlesyndication.com',
+      ]),
+    );
+    expect(gtm.frame).toEqual(['https://www.googletagmanager.com']);
+    expect(analyticsCspHosts({ga4: true}).script).not.toContain(
+      'https://www.googleadservices.com',
+    );
+    const enforced = enforcedCspExtras({gtm: true});
+    expect(enforced.frameSrc).toContain('https://www.googletagmanager.com');
+    expect(enforcedCspExtras({ga4: true}).frameSrc).not.toContain(
+      'https://www.googletagmanager.com',
+    );
   });
 });
