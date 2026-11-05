@@ -5,7 +5,6 @@ import {
   BrandTiles,
   CategoryTiles,
   FeaturedProducts,
-  SizeTiles,
 } from '~/components/home/CatalogSections';
 import {
   FaqBlock,
@@ -15,6 +14,7 @@ import {
 } from '~/components/home/ContentBlocks';
 import {HeroSection} from '~/components/home/HeroSection';
 import {OfferCards} from '~/components/home/OfferCards';
+import {SaleOffers} from '~/components/home/SaleOffers';
 import {LeadForm} from '~/components/home/LeadForm';
 import {PromoBanner} from '~/components/home/PromoBanner';
 import {VisitSection} from '~/components/home/VisitSection';
@@ -95,10 +95,13 @@ export function HomeSections({home, signup = null}: HomeSectionsProps) {
         );
         // The hero and the assurance row under it are one unit, closer together than the sections below.
         return position === heroGroup ? (
-          <div key={groupId(group)} className="flex flex-col gap-4 md:gap-6">
-            {view}
-            <AssuranceBlock />
-          </div>
+          <Fragment key={groupId(group)}>
+            <div className="flex flex-col gap-4 md:gap-6">
+              {view}
+              <AssuranceBlock />
+            </div>
+            <SaleOffers />
+          </Fragment>
         ) : (
           <Fragment key={groupId(group)}>{view}</Fragment>
         );
@@ -197,14 +200,6 @@ function SectionView({
       }
     case 'catalog':
       switch (section.type) {
-        case 'shop-by-size':
-          return (
-            <SizeTiles
-              id={section.id}
-              heading={section.heading}
-              tiles={home.sizeTiles}
-            />
-          );
         case 'featured':
           return (
             <FeaturedProducts

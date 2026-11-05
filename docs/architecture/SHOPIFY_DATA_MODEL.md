@@ -50,7 +50,7 @@ Sale pricing uses the variant's compare-at price. Gift-with-purchase and bundle 
 | `type` value                                       | Content it uses                             | Behaviour                                                                             |
 | -------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `hero`, `promo-banner`, `financing`                | heading, body, image, link and `link_label` | Shows the content entered in admin                                                    |
-| `shop-by-size`, `featured`, `brands`, `categories` | heading, order and enabled only             | Fills itself from the catalog; body, image and link are not used                      |
+| `featured`, `brands`, `categories` | heading, order and enabled only             | Fills itself from the catalog; body, image and link are not used                      |
 | `signup`                                           | none yet                                    | Reserved for the email and text-message signup (P7-02); shows nothing until it exists |
 
 - `link_label` is optional text for the button. Left empty, the heading itself becomes the link. It exists so a link never needs generic wording such as "Learn more" (added in P3B-13).

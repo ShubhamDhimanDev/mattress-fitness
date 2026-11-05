@@ -29,7 +29,7 @@ import {
   pageLinks,
   searchStateFor,
 } from '~/lib/shopify/search-data';
-import {buildHomeData, loadHome, sizeTileHref} from '~/lib/shopify/home-data';
+import {buildHomeData, loadHome} from '~/lib/shopify/home-data';
 
 // Integration of the query modules against responses recorded on bedding.mock.shop (P3B-01).
 
@@ -329,16 +329,6 @@ describe('home (REQ-HOME-001)', () => {
     const data = buildHomeData(recorded<CatalogHomeQuery>(home));
     expect(data.featured?.title).toBe('Best sellers');
     expect(data.featured?.products.length).toBeGreaterThan(0);
-    // Sizes come from the products' Size options, in the standard order, linking into the first collection.
-    expect(data.sizeTiles.map((t) => t.label)).toEqual([
-      'Twin',
-      'Full',
-      'Queen',
-      'King',
-    ]);
-    expect(data.sizeTiles[0].to).toBe(
-      `/collections/${home.collections.nodes[0].handle}?size=twin`,
-    );
     expect(data.brandTiles.map((b) => b.name)).toEqual(['CloudHaven Linens']);
     expect(data.collectionTiles).toHaveLength(4);
   });
@@ -353,9 +343,6 @@ describe('home (REQ-HOME-001)', () => {
     expect(data.featured).toBeNull();
     expect(data.brandTiles).toEqual([]);
     expect(data.collectionTiles).toEqual([]);
-    // With no size data the six regular sizes are offered, linking to the collections index.
-    expect(data.sizeTiles).toHaveLength(6);
-    expect(data.sizeTiles[0].to).toBe('/collections?size=twin');
   });
 
   it("REQ-HOME-001: leaves Shopify's built-in frontpage collection out of the category tiles", () => {
@@ -420,7 +407,6 @@ describe('home (REQ-HOME-001)', () => {
         logo: null,
       },
     ]);
-    expect(data.sizeTiles[0].to).toBe('/collections/mattresses?size=twin');
   });
 
   it('loads through the storefront with the 60 s priced cache (cards carry price)', async () => {
@@ -428,11 +414,5 @@ describe('home (REQ-HOME-001)', () => {
     await loadHome(storefront);
     expect(calls[0].cache).toEqual(PRICED);
     expect(calls[0].variables).toMatchObject({primaryHandle: 'mattresses'});
-  });
-
-  it('builds a size link the collection filter codec understands', () => {
-    expect(sizeTileHref('mattresses', 'California King')).toBe(
-      '/collections/mattresses?size=california-king',
-    );
   });
 });

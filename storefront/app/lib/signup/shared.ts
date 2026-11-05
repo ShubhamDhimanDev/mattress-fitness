@@ -1,8 +1,8 @@
 // Shapes and texts shared by the signup form (browser) and the signup route (server) (REQ-ANL-003).
 // Nothing here is secret and nothing here imports server code, so the lazy form chunk can use it.
 
-/** Where on the site the form sits. Sent as a hidden field; the server accepts only these two (never free text). */
-export const SIGNUP_SURFACES = ['footer', 'home'] as const;
+/** Where on the site the form sits. Sent as a hidden field; the server accepts only these (never free text). */
+export const SIGNUP_SURFACES = ['footer', 'home', 'modal'] as const;
 export type SignupSurface = (typeof SIGNUP_SURFACES)[number];
 
 export function isSignupSurface(value: unknown): value is SignupSurface {

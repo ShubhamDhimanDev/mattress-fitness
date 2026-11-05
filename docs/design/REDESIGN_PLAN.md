@@ -82,7 +82,7 @@ Warm, natural-light bedroom photography with one red accent object in some shots
 1. Hero: highlighted headline, short line, finder card (size chips, feel, brand, quiz tab), large photo with two floating cards (free delivery; the "try in store"/"find a store" card was removed 2026-10-28, DEC-141). *Existing `hero` banner; the finder card is new.*
 2. Trust strip, four items. *Existing `ReassuranceStrip` / `HOME_ASSURANCE_ITEMS`; items still shown only when their content exists (B-15).*
 3. **Brands showcase** (new look, section 4.2): full-width red band, 12 brand tiles, "See all brands" and "Compare mattresses". *Existing `brands` catalog block.*
-4. Shop by size: six bed-size tiles drawn in the page (no photos). *Existing `shop-by-size`.*
+4. ~~Shop by size: six bed-size tiles.~~ *Removed 2026-11-05 (DEC-147): the block type `shop-by-size` no longer exists; sizes are chosen in the hero finder.*
 5. Best sellers: eight product cards. *Existing `featured`.*
 6. Shop by feel and type: dark band, six tiles with the cut-away images. *Existing `categories` block, restyled.*
 7. Latest offers: three solid-colour cards (gift, bundle, delivery). *Existing `promo-banner`, up to three in a row; today one per block.*

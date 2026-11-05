@@ -17,7 +17,6 @@ import {
   withRandomFeatured,
   type HomeData,
 } from '~/lib/shopify/home-data';
-import {BED_SHAPES, bedBoxStyle} from '~/lib/shopify/home-sizes';
 
 // REQ-HOME-001 / CR-31: the redesigned home blocks (highlighted heading, finder, bed shapes, new block types, offers row).
 
@@ -102,31 +101,6 @@ describe('splitHighlight (REQ-HOME-001, T-07)', () => {
   it('gives an empty list for empty input and a plain heading without markers', () => {
     expect(splitHighlight('')).toEqual([]);
     expect(plainHeading('Find [[fits you.]]')).toBe('Find fits you.');
-  });
-});
-
-describe('bed shapes', () => {
-  it('uses the same dimensions as the catalog sizes', () => {
-    for (const size of SIZES) {
-      const shape = BED_SHAPES[size];
-      expect(shape).toBeDefined();
-      const catalog = SIZE_DIMENSIONS[size]
-        .replaceAll('"', '')
-        .replace(/ x /g, ' x ');
-      if (size !== 'Split California King') {
-        expect(`${shape.dimensions}`.replace(' in', '')).toBe(catalog);
-      }
-    }
-  });
-
-  it('draws the queen narrower and shorter than the king, in the real proportions', () => {
-    expect(BED_SHAPES.Queen.widthInches).toBeLessThan(
-      BED_SHAPES.King.widthInches,
-    );
-    expect(bedBoxStyle(BED_SHAPES.Queen).aspectRatio).toBe('60 / 80');
-    expect(bedBoxStyle(BED_SHAPES['California King']).height).toBe('100%');
-    expect(BED_SHAPES.Twin.pillows).toBe(1);
-    expect(BED_SHAPES.Queen.pillows).toBe(2);
   });
 });
 

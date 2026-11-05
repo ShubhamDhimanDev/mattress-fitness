@@ -124,7 +124,7 @@ test('homepage_section fixes its section types and promo_tile its grid position 
   const definition = (/** @type {string} */ type) => spec.metaobjectDefinitions.find((candidate) => candidate.type === type);
   const field = (/** @type {string} */ type, /** @type {string} */ key) => definition(type).fieldDefinitions.find((candidate) => candidate.key === key);
   // The storefront lists the same values in HOMEPAGE_SECTION_TYPES (tests/unit/catalog/home-sections.test.ts).
-  assert.deepEqual(field('homepage_section', 'type').validations, [{ name: 'choices', value: ['hero', 'promo-banner', 'shop-by-size', 'featured', 'brands', 'categories', 'financing', 'signup', 'quiz-band', 'setup-cards', 'how-it-works', 'faq'] }]);
+  assert.deepEqual(field('homepage_section', 'type').validations, [{ name: 'choices', value: ['hero', 'promo-banner', 'featured', 'brands', 'categories', 'financing', 'signup', 'quiz-band', 'setup-cards', 'how-it-works', 'faq'] }]);
   assert.deepEqual(definition('homepage_section').fieldDefinitions.map((candidate) => candidate.key), ['type', 'heading', 'body', 'image', 'link', 'link_label', 'order', 'enabled', 'cards']);
   assert.equal(field('homepage_section', 'link_label').required, undefined, 'the label is optional: without it the heading is the link');
   // The cards of the setup and how-it-works blocks (CR-31): a list of homepage_card entries, declared before the section.

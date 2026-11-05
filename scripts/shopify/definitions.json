@@ -91,7 +91,7 @@
       "displayNameKey": "heading",
       "storefrontAccess": "PUBLIC_READ",
       "fieldDefinitions": [
-        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "shop-by-size", "featured", "brands", "categories", "financing", "signup", "quiz-band", "setup-cards", "how-it-works", "faq"] }], "description": "Section kind. hero, promo-banner, financing, quiz-band and faq use heading, body, image and link; setup-cards and how-it-works use Cards; shop-by-size, featured, brands, categories and signup need only heading, order, enabled." },
+        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["hero", "promo-banner", "featured", "brands", "categories", "financing", "signup", "quiz-band", "setup-cards", "how-it-works", "faq"] }], "description": "Section kind. hero, promo-banner, financing, quiz-band and faq use heading, body, image and link; setup-cards and how-it-works use Cards; featured, brands, categories and signup need only heading, order, enabled." },
         { "key": "heading", "name": "Heading", "type": "single_line_text_field", "description": "In hero, quiz-band, setup-cards, how-it-works and faq, write [[a phrase]] in double square brackets to highlight it in red. Other types show the plain text." },
         { "key": "body", "name": "Body", "type": "multi_line_text_field" },
         { "key": "image", "name": "Image", "type": "file_reference", "validations": [{ "name": "file_type_options", "value": ["Image"] }] },

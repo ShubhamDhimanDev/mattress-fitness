@@ -23,9 +23,10 @@ export type SignupFormProps = {
   /**
    * `stack` (default) is the plain column used in the footer. `band` is the home page's red band (CR-31): the text sits
    * on the red in white and the form, its messages and the privacy note sit together on a white card, so field errors and
-   * the consent sentence keep their dark-on-white contrast. Behaviour and wording are the same in both.
+   * the consent sentence keep their dark-on-white contrast. Behaviour and wording are the same in both. `bare` has no
+   * heading or intro of its own: the newsletter dialog (CR-34) supplies them.
    */
-  readonly layout?: 'stack' | 'band';
+  readonly layout?: 'stack' | 'band' | 'bare';
 };
 
 const NO_ERRORS: SignupFieldErrors = {};
@@ -47,6 +48,7 @@ export function SignupForm({
   layout = 'stack',
 }: SignupFormProps) {
   const band = layout === 'band';
+  const bare = layout === 'bare';
   const headingId = useId();
   const fetcher = useFetcher<SignupResponse>();
   const formRef = useRef<HTMLFormElement>(null);
@@ -108,21 +110,25 @@ export function SignupForm({
       }
     >
       {/* `contents` in the column layout keeps the original flat structure (heading, text, form, status as siblings). */}
-      <div className={band ? 'flex flex-col gap-3' : 'contents'}>
-        <h2
-          id={headingId}
-          className={
-            band
-              ? 'type-display text-3xl text-white md:text-4xl'
-              : 'text-xl font-bold text-fg'
-          }
-        >
-          Get sleep tips and offers
-        </h2>
-        <p className={band ? 'text-lg text-white' : 'text-base text-fg-muted'}>
-          Join our email list for new arrivals, offers and sleep advice.
-        </p>
-      </div>
+      {bare ? null : (
+        <div className={band ? 'flex flex-col gap-3' : 'contents'}>
+          <h2
+            id={headingId}
+            className={
+              band
+                ? 'type-display text-3xl text-white md:text-4xl'
+                : 'text-xl font-bold text-fg'
+            }
+          >
+            Get sleep tips and offers
+          </h2>
+          <p
+            className={band ? 'text-lg text-white' : 'text-base text-fg-muted'}
+          >
+            Join our email list for new arrivals, offers and sleep advice.
+          </p>
+        </div>
+      )}
       <div
         className={
           band
@@ -138,7 +144,8 @@ export function SignupForm({
           defaultShouldRevalidate={false}
           onSubmit={onSubmit}
           ref={formRef}
-          aria-labelledby={headingId}
+          aria-labelledby={bare ? undefined : headingId}
+          aria-label={bare ? 'Newsletter signup' : undefined}
           className="flex flex-col gap-3"
         >
           <input type="hidden" name={SIGNUP_FIELDS.surface} value={surface} />
