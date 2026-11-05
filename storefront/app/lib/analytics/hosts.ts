@@ -25,6 +25,8 @@ export type ProviderCsp = {
   readonly script: readonly string[];
   readonly img: readonly string[];
   readonly connect: readonly string[];
+  /** Frames the provider's tags open (Tag Manager's own helper frame). Omitted means none. */
+  readonly frame?: readonly string[];
 };
 
 export const GA4_CSP: ProviderCsp = {
@@ -54,9 +56,44 @@ export const OPENAI_CSP: ProviderCsp = {
   connect: ['https://bzr.openai.com'],
 };
 
-// Tag Manager needs the same Google hosts as GA4. Tags INSIDE a container that call other hosts are refused by the
-// policy on purpose: add a host only after the owner approves the tag that needs it.
-export const GTM_CSP: ProviderCsp = GA4_CSP;
+// Tag Manager needs the same Google hosts as GA4, plus the Google Ads hosts: the live container (GTM-PQXJ6C4K, read
+// 2026-11-05) holds Google Ads tags for AW-18473942295 (conversion linker and marking, enhanced-conversion data,
+// auto events). Without these hosts the enforced policy refused them and Tag Assistant reported "Content Security
+// Policy of your site blocks some resources". The list is Google's "Google Ads" and "Google Ads User Data" rows of
+// the same CSP guide (read 2026-11-05), limited to the US: Google's per-country `www.google.<TLD>` hosts are NOT
+// listed (the store is US-only, NFR-008); add one only if report-only shows it blocked.
+//
+// `www.google.com` as a script source is Google's own instruction for the Ads tags but is a wider script origin than
+// the rest of this list (it also serves Google-run JSONP-style endpoints). It is added only when a Tag Manager
+// container id is set, and the nonce policy still blocks every inline script. For the owner's approval with the
+// wildcard exception above. Tags INSIDE a container that call other hosts are refused by the policy on purpose: add
+// a host only after the owner approves the tag that needs it.
+const GOOGLE_ADS_CSP: ProviderCsp = {
+  script: ['https://www.googleadservices.com', 'https://www.google.com'],
+  img: [
+    'https://www.googleadservices.com',
+    'https://googleads.g.doubleclick.net',
+    'https://pagead2.googlesyndication.com',
+    'https://www.google.com',
+  ],
+  connect: [
+    'https://www.googleadservices.com',
+    'https://googleads.g.doubleclick.net',
+    'https://pagead2.googlesyndication.com',
+    'https://www.google.com',
+    'https://ad.doubleclick.net',
+  ],
+  frame: ['https://www.googletagmanager.com'],
+};
+
+const unique = (values: readonly string[]): string[] => [...new Set(values)];
+
+export const GTM_CSP: ProviderCsp = {
+  script: unique([...GA4_CSP.script, ...GOOGLE_ADS_CSP.script]),
+  img: unique([...GA4_CSP.img, ...GOOGLE_ADS_CSP.img]),
+  connect: unique([...GA4_CSP.connect, ...GOOGLE_ADS_CSP.connect]),
+  frame: GOOGLE_ADS_CSP.frame ?? [],
+};
 
 /** The only origins a provider script may be loaded from, whatever a caller passes. */
 export const PROVIDER_SCRIPT_ORIGINS: ReadonlySet<string> = new Set([

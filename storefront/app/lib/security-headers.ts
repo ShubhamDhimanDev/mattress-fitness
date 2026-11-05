@@ -174,10 +174,16 @@ export function analyticsCspHosts(
     input?.openai ? OPENAI_CSP : null,
   ];
   // GA4 and Tag Manager share hosts; a host listed twice is listed once.
-  const pick = (key: keyof ProviderCsp): string[] => [
+  const pick = (key: 'script' | 'img' | 'connect'): string[] => [
     ...new Set(used.flatMap((provider) => (provider ? provider[key] : []))),
   ];
-  return {script: pick('script'), img: pick('img'), connect: pick('connect')};
+  const frame = [...new Set(used.flatMap((provider) => provider?.frame ?? []))];
+  return {
+    script: pick('script'),
+    img: pick('img'),
+    connect: pick('connect'),
+    frame,
+  };
 }
 
 function httpsHost(value: string | undefined): string | null {
@@ -238,6 +244,7 @@ export function enforcedCspExtras(
     SHOPIFY_CDN,
     SHOPIFY_ACCOUNT,
     MAP_FRAME_ORIGIN,
+    ...(hosts.frame ?? []),
     ...chat.frame,
   ];
   return extras;
@@ -273,6 +280,7 @@ export function buildReportOnlyCsp(
     script: [...analyticsHosts.script, ...chat.script],
     img: [...analyticsHosts.img, ...chat.img],
     connect: [...analyticsHosts.connect, ...chat.connect],
+    frame: [...(analyticsHosts.frame ?? []), ...chat.frame],
   };
 
   const directives: ReadonlyArray<readonly [string, readonly string[]]> = [
@@ -309,7 +317,13 @@ export function buildReportOnlyCsp(
     [
       'frame-src',
       // The same sources as the enforced policy, so a frame is not allowed in one and refused in the other.
-      ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, MAP_FRAME_ORIGIN, ...chat.frame],
+      [
+        "'self'",
+        SHOPIFY_CDN,
+        SHOPIFY_ACCOUNT,
+        MAP_FRAME_ORIGIN,
+        ...(provider.frame ?? []),
+      ],
     ],
     ['worker-src', ["'self'"]],
     ['manifest-src', ["'self'"]],
