@@ -12,6 +12,8 @@ type DialogProps = {
   children: ReactNode;
   closeLabel?: string;
   initialFocusRef?: RefObject<HTMLElement | null>;
+  /** Wider panel, for content with a photograph beside it. */
+  wide?: boolean;
 };
 
 /** Centred modal for short tasks (ZIP entry, confirmations). Same focus and Escape behaviour as Drawer. */
@@ -23,6 +25,7 @@ export function Dialog({
   children,
   closeLabel = 'Close',
   initialFocusRef,
+  wide,
 }: DialogProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -34,6 +37,7 @@ export function Dialog({
       describedBy={description ? descriptionId : undefined}
       placement="center"
       initialFocusRef={initialFocusRef}
+      wide={wide}
     >
       <div className="flex shrink-0 items-start justify-between gap-4 pt-4 pr-2 pl-4">
         <div className="pt-2">

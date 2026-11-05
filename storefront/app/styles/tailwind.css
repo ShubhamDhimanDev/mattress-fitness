@@ -250,6 +250,7 @@
   --container-prose: 42rem;
   --container-drawer: 27.5rem; /* 440 */
   --container-dialog: 30rem; /* 480 */
+  --container-dialog-wide: 46rem; /* 736: a dialog with a photograph beside its content */
   --spacing-touch: 2.75rem; /* 44 px minimum target */
 
   /* ---------- Motion (all shortened to near zero by prefers-reduced-motion below) ---------- */

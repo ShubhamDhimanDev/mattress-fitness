@@ -1,5 +1,7 @@
 import {lazy, Suspense, useEffect, useState, type ComponentType} from 'react';
 import {Dialog} from '~/components/ui/Dialog';
+import {SiteImage} from '~/components/ui/SiteImage';
+import {SITE_IMAGES} from '~/lib/site-images';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
 import type {SignupPublicConfig} from '~/lib/signup/shared';
 
@@ -75,10 +77,21 @@ export function NewsletterModal({config}: {config: SignupPublicConfig}) {
       title="Get discount coupons in your inbox"
       description="Join our email list and we will send you discount coupons, offers and sleep advice."
       closeLabel="Close newsletter sign-up"
+      wide
     >
-      <Suspense fallback={null}>
-        <SignupForm config={config} surface="modal" layout="bare" />
-      </Suspense>
+      {/* The photograph is decoration, so it is left out below `md` to keep the form in view on a phone. */}
+      <div className="grid gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-stretch">
+        <SiteImage
+          image={SITE_IMAGES.newsletterSleeper}
+          aspectRatio="351 / 503"
+          sizes="(min-width: 768px) 280px, 0px"
+          loading="lazy"
+          className="hidden h-full w-full rounded-card object-cover md:block"
+        />
+        <Suspense fallback={null}>
+          <SignupForm config={config} surface="modal" layout="bare" />
+        </Suspense>
+      </div>
     </Dialog>
   );
 }
