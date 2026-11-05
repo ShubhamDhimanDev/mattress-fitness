@@ -69,26 +69,50 @@ const PERCENT_OFFERS: readonly PercentOffer[] = [
   {brand: 'Sealy', handle: 'sealy', percent: 60},
 ];
 
-type Spotlight = {
+type Banner = {
   readonly brand: string;
   readonly handle: string;
+  readonly heading: string;
+  readonly text: string;
   readonly image: SiteImageData;
   readonly alt: string;
+  /** Photo on the right and a dark panel, or photo on the left and a light panel. */
+  readonly dark: boolean;
+  /** Which part of a wide photograph stays in view when it is cropped to the banner. */
+  readonly focus?: 'object-left';
 };
 
-// Brands whose photographs came with no offer wording: shown as a plain "shop this brand" card, with no price or claim.
-const SPOTLIGHTS: readonly Spotlight[] = [
+// Wide banners: the photograph beside a text panel, so the picture is never stretched under the words. The first is the
+// owner's free-base offer; the other two are brands whose photographs came with no offer, so they say what the brand
+// sells (checked against the catalog) and make no price or discount claim.
+const BANNERS: readonly Banner[] = [
+  {
+    brand: 'Sealy',
+    handle: 'sealy',
+    heading: 'Free adjustable base',
+    text: 'on select Sealy styles',
+    image: SITE_IMAGES.offerAdjustable,
+    alt: 'A couple talking while sitting on a split adjustable bed',
+    dark: true,
+  },
   {
     brand: 'Casper',
     handle: 'casper',
+    heading: 'Casper',
+    text: 'Mattresses, pillows and sheets.',
     image: SITE_IMAGES.offerCasper,
     alt: 'Two friends laughing on a mattress in a bright bedroom',
+    dark: false,
+    focus: 'object-left',
   },
   {
     brand: 'Helix',
     handle: 'helix',
+    heading: 'Helix',
+    text: 'Hybrid mattresses in plush, medium and firm feels.',
     image: SITE_IMAGES.offerHelix,
     alt: 'A hybrid mattress on a wooden bed frame in a calm bedroom',
+    dark: true,
   },
 ];
 
@@ -112,7 +136,7 @@ function PhotoOfferCard({offer}: {offer: PhotoOffer}) {
             </span>
           ) : null}
         </p>
-        <h3 className="type-display mt-2 text-5xl md:text-6xl">
+        <h3 className="type-display mt-2 text-5xl">
           Save <span className="text-xl align-middle md:text-2xl">up to</span>{' '}
           {offer.amount}
         </h3>
@@ -154,15 +178,15 @@ function PercentTile({offer}: {offer: PercentOffer}) {
       <span aria-hidden="true" className={cn('absolute inset-0', SPARKLE)} />
       <div className="relative flex flex-col items-center gap-3">
         <p className="font-display text-3xl font-extrabold">{offer.brand}</p>
-        <p className="type-display flex items-center gap-2 text-7xl leading-none md:text-8xl">
-          <span className="text-2xl leading-tight uppercase md:text-3xl">
+        <p className="type-display flex items-center gap-2 text-display leading-none">
+          <span className="text-lg leading-tight uppercase">
             Up
             <br />
             to
           </span>
-          {offer.percent}%
+          <span>{offer.percent}%</span>
         </p>
-        <p className="type-display text-6xl leading-none md:text-7xl">Off</p>
+        <p className="type-display text-display leading-none uppercase">Off</p>
         <Link
           to={brandPath(offer.handle)}
           prefetch="intent"
@@ -176,33 +200,59 @@ function PercentTile({offer}: {offer: PercentOffer}) {
   );
 }
 
-function SpotlightCard({item}: {item: Spotlight}) {
+function SplitBanner({banner}: {banner: Banner}) {
   return (
-    <li className="relative overflow-hidden rounded-panel">
-      <SiteImage
-        image={item.image}
-        aspectRatio="16 / 10"
-        alt={item.alt}
-        sizes="(min-width: 768px) 50vw, 100vw"
-        className="w-full object-cover"
-      />
-      <div className="on-dark absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-ink-900/80 px-5 py-4 text-white">
-        <p className="font-display text-2xl font-extrabold">{item.brand}</p>
-        <Button to={brandPath(item.handle)} prefetch="intent" variant="white">
-          Shop {item.brand}
+    <div
+      className={cn(
+        'grid overflow-hidden rounded-panel md:grid-cols-2',
+        banner.dark
+          ? 'on-dark bg-ink-900 text-white'
+          : 'border border-line bg-paper text-ink-900',
+      )}
+    >
+      <div
+        className={cn(
+          'flex flex-col items-start justify-center gap-3 p-6 md:p-12',
+          // Photo on the right for the dark panel, on the left for the light one.
+          banner.dark ? 'md:order-1' : 'md:order-2',
+        )}
+      >
+        <h3 className="type-display text-5xl">{banner.heading}</h3>
+        <p className="text-lg font-bold md:text-xl">{banner.text}</p>
+        <Button
+          to={brandPath(banner.handle)}
+          prefetch="intent"
+          size="lg"
+          variant={banner.dark ? 'primary' : 'dark'}
+        >
+          Shop {banner.brand}
         </Button>
       </div>
-    </li>
+      <SiteImage
+        image={banner.image}
+        aspectRatio="4 / 3"
+        alt={banner.alt}
+        sizes="(min-width: 768px) 50vw, 100vw"
+        className={cn(
+          'h-full w-full object-cover',
+          banner.focus,
+          banner.dark ? 'md:order-2' : 'md:order-1',
+        )}
+      />
+    </div>
   );
 }
 
 /**
  * Brand offers under the hero: three photo cards ("Save up to ... on adjustable sets" and a gift), three gold percentage
- * tiles, a free-base banner and two plain brand cards. All text is markup; none of it is read from Shopify.
+ * tiles, and three wide banners (free base, Casper, Helix). All text is markup; none of it is read from Shopify.
  */
 export function SaleOffers() {
   return (
-    <section aria-labelledby={HEADING_ID} className="flex flex-col gap-6 md:gap-8">
+    <section
+      aria-labelledby={HEADING_ID}
+      className="flex flex-col gap-6 md:gap-8"
+    >
       <h2 id={HEADING_ID} className="type-display text-3xl md:text-heading">
         Brand offers
       </h2>
@@ -219,30 +269,9 @@ export function SaleOffers() {
         ))}
       </ul>
 
-      <div className="on-dark relative overflow-hidden rounded-panel bg-ink-900 text-white">
-        <SiteImage
-          image={SITE_IMAGES.offerAdjustable}
-          aspectRatio="21 / 9"
-          alt="A couple talking while sitting on a split adjustable bed"
-          sizes="100vw"
-          className="w-full object-cover opacity-70"
-        />
-        <div className="absolute inset-0 flex flex-col items-start justify-center gap-3 bg-gradient-to-r from-ink-900/80 to-transparent p-6 md:p-12">
-          <h3 className="type-display max-w-md text-4xl md:text-6xl">
-            Free adjustable base
-          </h3>
-          <p className="text-lg font-bold md:text-xl">on select Sealy styles</p>
-          <Button to={brandPath('sealy')} prefetch="intent" size="lg">
-            Shop Sealy
-          </Button>
-        </div>
-      </div>
-
-      <ul className="grid gap-4 md:grid-cols-2 md:gap-6">
-        {SPOTLIGHTS.map((item) => (
-          <SpotlightCard key={item.handle} item={item} />
-        ))}
-      </ul>
+      {BANNERS.map((banner) => (
+        <SplitBanner key={banner.handle} banner={banner} />
+      ))}
 
       <p className="text-caption text-fg-muted">*T&amp;C apply.</p>
     </section>

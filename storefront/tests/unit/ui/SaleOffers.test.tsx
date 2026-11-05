@@ -46,6 +46,23 @@ describe('SaleOffers: the offer text is markup, not part of a picture', () => {
     expect(screen.getByText('*T&C apply.')).toBeInTheDocument();
   });
 
+  it('says something on the brand banners that have no offer, without a price or discount', () => {
+    renderOffers();
+    expect(
+      screen.getByRole('heading', {level: 3, name: 'Casper'}),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Mattresses, pillows and sheets.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {level: 3, name: 'Helix'}),
+    ).toBeInTheDocument();
+    const text =
+      screen.getByRole('region', {name: 'Brand offers'}).textContent ?? '';
+    // Only the owner's offers carry a dollar amount: three headings, three gifts.
+    expect((text.match(/\$\d/g) ?? []).length).toBe(6);
+  });
+
   it('does not offer a brand the store does not carry', () => {
     renderOffers();
     expect(screen.queryByText(/purple/i)).toBeNull();
