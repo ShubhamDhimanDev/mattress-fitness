@@ -76,15 +76,13 @@ type Banner = {
   readonly text: string;
   readonly image: SiteImageData;
   readonly alt: string;
-  /** Photo on the right and a dark panel, or photo on the left and a light panel. */
-  readonly dark: boolean;
-  /** Which part of a wide photograph stays in view when it is cropped to the banner. */
-  readonly focus?: 'object-left';
+  /**
+   * Where the words sit. `left`: white text over a dark fade from the left edge. `right`: dark text over the light wall
+   * of the photograph, with a soft light fade behind it.
+   */
+  readonly side: 'left' | 'right';
 };
 
-// Wide banners: the photograph beside a text panel, so the picture is never stretched under the words. The first is the
-// owner's free-base offer; the other two are brands whose photographs came with no offer, so they say what the brand
-// sells (checked against the catalog) and make no price or discount claim.
 const BANNERS: readonly Banner[] = [
   {
     brand: 'Sealy',
@@ -93,7 +91,7 @@ const BANNERS: readonly Banner[] = [
     text: 'on select Sealy styles',
     image: SITE_IMAGES.offerAdjustable,
     alt: 'A couple talking while sitting on a split adjustable bed',
-    dark: true,
+    side: 'left',
   },
   {
     brand: 'Casper',
@@ -102,8 +100,7 @@ const BANNERS: readonly Banner[] = [
     text: 'Mattresses, pillows and sheets.',
     image: SITE_IMAGES.offerCasper,
     alt: 'Two friends laughing on a mattress in a bright bedroom',
-    dark: false,
-    focus: 'object-left',
+    side: 'right',
   },
   {
     brand: 'Helix',
@@ -112,7 +109,7 @@ const BANNERS: readonly Banner[] = [
     text: 'Hybrid mattresses in plush, medium and firm feels.',
     image: SITE_IMAGES.offerHelix,
     alt: 'A hybrid mattress on a wooden bed frame in a calm bedroom',
-    dark: true,
+    side: 'left',
   },
 ];
 
@@ -200,52 +197,56 @@ function PercentTile({offer}: {offer: PercentOffer}) {
   );
 }
 
-function SplitBanner({banner}: {banner: Banner}) {
+function PhotoBanner({banner}: {banner: Banner}) {
+  const left = banner.side === 'left';
   return (
     <div
       className={cn(
-        'grid overflow-hidden rounded-panel md:grid-cols-2',
-        banner.dark
-          ? 'on-dark bg-ink-900 text-white'
-          : 'border border-line bg-paper text-ink-900',
+        'relative aspect-[4/3] overflow-hidden rounded-panel md:aspect-[21/9]',
+        left ? 'on-dark text-white' : 'text-ink-900',
       )}
     >
+      <SiteImage
+        image={banner.image}
+        aspectRatio="21 / 9"
+        alt={banner.alt}
+        sizes="100vw"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* The fade sits behind the words only, so the rest of the photograph stays at full brightness. */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          'absolute inset-0',
+          left
+            ? 'bg-gradient-to-t from-ink-900/80 via-ink-900/20 to-transparent md:bg-gradient-to-r md:from-ink-900/80 md:via-ink-900/40 md:to-transparent'
+            : 'bg-gradient-to-t from-paper/90 via-paper/30 to-transparent md:bg-gradient-to-l md:from-paper/90 md:via-paper/40 md:to-transparent',
+        )}
+      />
       <div
         className={cn(
-          'flex flex-col items-start justify-center gap-3 p-6 md:p-12',
-          // Photo on the right for the dark panel, on the left for the light one.
-          banner.dark ? 'md:order-1' : 'md:order-2',
+          'absolute inset-0 flex flex-col justify-end gap-2 p-6 md:justify-center md:gap-3 md:p-12',
+          left ? 'items-start' : 'items-start md:items-end md:text-right',
         )}
       >
-        <h3 className="type-display text-5xl">{banner.heading}</h3>
+        <h3 className="type-display text-4xl md:text-5xl">{banner.heading}</h3>
         <p className="text-lg font-bold md:text-xl">{banner.text}</p>
         <Button
           to={brandPath(banner.handle)}
           prefetch="intent"
           size="lg"
-          variant={banner.dark ? 'primary' : 'dark'}
+          variant={left ? 'primary' : 'dark'}
         >
           Shop {banner.brand}
         </Button>
       </div>
-      <SiteImage
-        image={banner.image}
-        aspectRatio="4 / 3"
-        alt={banner.alt}
-        sizes="(min-width: 768px) 50vw, 100vw"
-        className={cn(
-          'h-full w-full object-cover',
-          banner.focus,
-          banner.dark ? 'md:order-2' : 'md:order-1',
-        )}
-      />
     </div>
   );
 }
 
 /**
  * Brand offers under the hero: three photo cards ("Save up to ... on adjustable sets" and a gift), three gold percentage
- * tiles, and three wide banners (free base, Casper, Helix). All text is markup; none of it is read from Shopify.
+ * tiles, and three full-photo banners with the words on top (free base, Casper, Helix). All text is markup; none of it is read from Shopify.
  */
 export function SaleOffers() {
   return (
@@ -270,7 +271,7 @@ export function SaleOffers() {
       </ul>
 
       {BANNERS.map((banner) => (
-        <SplitBanner key={banner.handle} banner={banner} />
+        <PhotoBanner key={banner.handle} banner={banner} />
       ))}
 
       <p className="text-caption text-fg-muted">*T&amp;C apply.</p>
