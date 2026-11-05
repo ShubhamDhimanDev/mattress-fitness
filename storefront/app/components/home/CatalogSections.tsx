@@ -1,15 +1,13 @@
 import {Link} from 'react-router';
 import {ProductItem} from '~/components/ProductItem';
 import {Button} from '~/components/ui/Button';
-import {cardStyles} from '~/components/ui/Card';
 import {cn} from '~/components/ui/cn';
 import {displayHeadingClass} from '~/lib/display-type';
 import {Image} from '~/lib/hydrogen/image';
 import {COMPARE_PATH} from '~/lib/pages/compare-view';
-import {bedBoxStyle} from '~/lib/shopify/home-sizes';
 import type {HomeData} from '~/lib/shopify/home-data';
 
-// The four home blocks whose content comes from the catalog (REQ-HOME-001, CR-31). Each is left out when its data
+// The three home blocks whose content comes from the catalog (REQ-HOME-001, CR-31). Each is left out when its data
 // is missing, so a new or half-configured store still gets a working page; the heading can be replaced from
 // the `homepage_section` entry in admin.
 
@@ -24,68 +22,6 @@ const H2 = 'text-3xl md:text-heading';
 // Section headings use the display type unless the admin text is long (lib/display-type.ts).
 function headingClass(text: string, extra: string): string {
   return cn(displayHeadingClass(text), extra);
-}
-
-export function SizeTiles({
-  id,
-  heading,
-  tiles,
-}: SectionProps & {tiles: HomeData['sizeTiles']}) {
-  if (tiles.length === 0) return null;
-  const headingId = `${id}-heading`;
-  const text = heading ?? 'Shop by size';
-  return (
-    <section aria-labelledby={headingId}>
-      <h2 id={headingId} className={headingClass(text, H2)}>
-        {text}
-      </h2>
-      {/* On a phone the tiles scroll sideways and snap; from `md` they wrap and grow to fill each row, so a store with
-          fewer sizes than columns leaves no empty cells. The list is a scroll region whose items are links, so the
-          keyboard reaches every tile. The padding leaves room for the focus ring. */}
-      <ul className="mt-6 -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 py-2 md:mt-9 md:flex-wrap md:gap-4 md:overflow-visible">
-        {tiles.map((size) => (
-          <li
-            key={size.label}
-            className="w-32 shrink-0 snap-start md:w-auto md:flex-1 md:basis-[30%] lg:basis-32"
-          >
-            <Link
-              to={size.to}
-              className={cn(
-                cardStyles({interactive: true, padding: 'none'}),
-                'flex h-full flex-col items-center gap-3 px-2 pt-5 pb-4 md:pt-6',
-              )}
-            >
-              {/* The bed is drawn from the real width and length; the text below carries the meaning. */}
-              <span
-                aria-hidden="true"
-                className="flex h-24 items-end justify-center md:h-28"
-              >
-                <span
-                  style={bedBoxStyle(size.shape)}
-                  className="flex flex-col rounded-sm border-2 border-ink-900 bg-paper p-1"
-                >
-                  <span className="flex gap-1">
-                    {Array.from({length: size.shape.pillows}, (_, pillow) => (
-                      <span
-                        key={`pillow-${pillow}`}
-                        className="h-2 flex-1 rounded-sm bg-line"
-                      />
-                    ))}
-                  </span>
-                </span>
-              </span>
-              <span className="text-base font-extrabold text-fg">
-                {size.label}
-              </span>
-              <span className="text-caption text-fg-muted">
-                {size.shape.dimensions}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
 }
 
 export function FeaturedProducts({

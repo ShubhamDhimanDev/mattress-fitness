@@ -57,7 +57,7 @@ export function PromoBanner() {
             <Link
               to={brandPath(brand.handle)}
               prefetch="intent"
-              className="flex min-h-11 items-center rounded-pill border border-white/30 bg-white/10 px-4 text-sm font-semibold transition-colors hover:border-white hover:bg-white hover:text-ink-900"
+              className="flex min-h-11 items-center rounded-pill border border-white/30 bg-white/10 px-4 text-sm font-semibold motion-safe:transition-colors hover:border-white hover:bg-white hover:text-ink-900"
             >
               {brand.name}
             </Link>

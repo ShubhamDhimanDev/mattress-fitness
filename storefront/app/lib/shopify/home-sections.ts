@@ -4,7 +4,7 @@
 //
 // Three kinds of block:
 //  - banners (hero, promo-banner, financing) carry their own heading, text, image and link from admin;
-//  - catalog blocks (shop-by-size, featured, brands, categories) take their content from the catalog and
+//  - catalog blocks (featured, brands, categories) take their content from the catalog and
 //    only borrow the heading, position and visibility from admin;
 //  - content blocks (quiz-band, setup-cards, how-it-works, faq, CR-31) carry heading, text, image and
 //    link like a banner, and the first three also a list of `homepage_card` entries. A block with nothing to show is
@@ -25,7 +25,6 @@ import type {ImageView} from '~/lib/shopify/types';
 export const HOMEPAGE_SECTION_TYPES = [
   'hero',
   'promo-banner',
-  'shop-by-size',
   'featured',
   'brands',
   'categories',
@@ -69,8 +68,7 @@ export const MAX_BLOCK_CARDS = 6;
 export const MAX_SETUP_CARDS = 3;
 
 export type BannerType = 'hero' | 'promo-banner' | 'financing';
-export type CatalogSectionType =
-  'shop-by-size' | 'featured' | 'brands' | 'categories';
+export type CatalogSectionType = 'featured' | 'brands' | 'categories';
 export type BlockType = 'quiz-band' | 'setup-cards' | 'how-it-works' | 'faq';
 
 /** Heading types that may carry a `[[highlighted phrase]]` (home-highlight.ts); every other heading is stored plain. */
@@ -183,10 +181,7 @@ function bannerType(type: HomepageSectionType): BannerType | null {
 }
 
 function catalogType(type: HomepageSectionType): CatalogSectionType | null {
-  return type === 'shop-by-size' ||
-    type === 'featured' ||
-    type === 'brands' ||
-    type === 'categories'
+  return type === 'featured' || type === 'brands' || type === 'categories'
     ? type
     : null;
 }
@@ -435,12 +430,6 @@ export function groupHomeSections(
  */
 export const PLACEHOLDER_HOME_SECTIONS: readonly HomeSection[] = [
   {kind: 'placeholder-hero', id: 'home-placeholder-hero'},
-  {
-    kind: 'catalog',
-    id: 'home-placeholder-size',
-    type: 'shop-by-size',
-    heading: null,
-  },
   {
     kind: 'catalog',
     id: 'home-placeholder-featured',

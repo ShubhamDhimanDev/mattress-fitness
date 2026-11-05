@@ -49,6 +49,13 @@ export const SITE_IMAGES = {
     siteImage('setup-base', 640, 1280, 2400, 1612),
     siteImage('setup-bedding', 640, 1280, 2400, 1612),
   ],
+  /** Brand offers under the home hero (CR-35): the owner's supplied sale photographs, cropped to the picture alone. */
+  offerStearns: siteImage('offer-stearns', 222, 443, 443, 355),
+  offerBeautyrestBlack: siteImage('offer-beautyrest-black', 222, 443, 443, 390),
+  offerTempur: siteImage('offer-tempur', 222, 443, 443, 378),
+  offerCasper: siteImage('offer-casper', 450, 900, 900, 449),
+  offerHelix: siteImage('offer-helix', 234, 468, 468, 369),
+  offerAdjustable: siteImage('offer-adjustable', 312, 623, 623, 369),
   /** Quiz intro page: a person asleep (the sleep-guide picture, IMG-17). */
   quizIntro: siteImage('quiz-sleeper', 800, 1600, 2400, 1612),
 } as const satisfies Record<string, SiteImage | readonly SiteImage[]>;

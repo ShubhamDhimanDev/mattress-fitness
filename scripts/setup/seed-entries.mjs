@@ -59,7 +59,6 @@ const ENTRIES = [
     fields: {type: 'hero', heading: 'Find the mattress that [[fits you.]]', body: 'Sample text: browse by size, comfort and brand, or take the sleep quiz.', link: '/quiz', link_label: 'Take the sleep quiz', order: 1, enabled: true},
   },
   {type: 'homepage_section', handle: 'home-brands', fields: {type: 'brands', heading: 'Shop the brands you trust', order: 2, enabled: true}},
-  {type: 'homepage_section', handle: 'home-shop-by-size', fields: {type: 'shop-by-size', heading: 'Shop by size', order: 3, enabled: true}},
   {type: 'homepage_section', handle: 'home-featured', fields: {type: 'featured', heading: 'Best sellers', order: 4, enabled: true}},
   {type: 'homepage_section', handle: 'home-categories', fields: {type: 'categories', heading: 'Shop by feel and type', order: 5, enabled: true}},
   // Three consecutive promo banners show as one row of offer cards. Sample wording only: no real offer, price or end date.

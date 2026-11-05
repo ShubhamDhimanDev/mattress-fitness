@@ -27,7 +27,6 @@ import {
   mapHomeSections,
   type HomeSection,
 } from '~/lib/shopify/home-sections';
-import {BED_SHAPES, type BedShape} from '~/lib/shopify/home-sizes';
 import {mapFaqs} from '~/lib/shopify/product';
 import {HOME_QUERY} from '~/lib/shopify/queries';
 import type {FaqView, ImageView, ProductCardView} from '~/lib/shopify/types';
@@ -41,15 +40,8 @@ const GENERAL_FAQ_SCOPE = 'general';
 const FAQ_SCOPE_FIELD = 'scope';
 /** Shopify's built-in "Home page" list (`frontpage`) is an internal collection, not a category a shopper would browse (seen on the real store). */
 const INTERNAL_COLLECTION_HANDLES: ReadonlySet<string> = new Set(['frontpage']);
-/** Sizes offered as tiles when the catalog has no size data yet: the six regular sizes. */
+/** Sizes offered in the hero finder when the catalog has no size data yet: the six regular sizes. */
 const DEFAULT_SIZE_TILES: readonly Size[] = SIZES.slice(0, 6);
-
-export type SizeTile = {
-  readonly label: string;
-  readonly to: string;
-  /** The real width and length for the drawn bed. */
-  readonly shape: BedShape;
-};
 
 export type BrandTile = {
   readonly name: string;
@@ -139,7 +131,6 @@ export type HomeData = {
     readonly handle: string | null;
     readonly products: readonly ProductCardView[];
   } | null;
-  readonly sizeTiles: readonly SizeTile[];
   readonly brandTiles: readonly BrandTile[];
   readonly collectionTiles: readonly CollectionTile[];
   /** The hero's finder card; null when there is nothing to choose from (the card is then left out). */
@@ -150,19 +141,6 @@ export type HomeData = {
   readonly sections: readonly HomeSection[];
   readonly sectionsSource: 'admin' | 'placeholder';
 };
-
-/** `/collections/<handle>?size=queen`: a link the collection page understands through the filter codec. */
-export function sizeTileHref(collectionHandle: string | null, size: Size) {
-  const base = collectionHandle
-    ? `/collections/${collectionHandle}`
-    : '/collections';
-  const state = toggleSelection(emptyFilterState(), {
-    kind: 'value',
-    dimension: 'size',
-    value: size,
-  });
-  return `${base}?${serializeFilterParams(state).toString()}`;
-}
 
 function brandHref(collectionHandle: string | null, name: string): string {
   const base = collectionHandle
@@ -272,11 +250,6 @@ export function buildHomeData(
             handle: usedFallback ? null : (primary?.handle ?? null),
             products,
           },
-    sizeTiles: sizeList.map((size) => ({
-      label: size,
-      to: sizeTileHref(collectionHandle, size),
-      shape: BED_SHAPES[size],
-    })),
     brandTiles,
     finder: buildFinder(
       collectionHandle,

@@ -19,31 +19,13 @@ test.describe('REQ-HOME-001 home page', () => {
     expect(response?.status()).toBe(200);
 
     await expect(page.getByRole('heading', {level: 1})).toHaveCount(1);
-    const sizes = page.getByRole('region', {name: 'Shop by size'});
-    await expect(sizes).toBeVisible();
-    // Tiles link to a collection with the size filter in the URL (REQ-COL-002 codec).
-    await expect(sizes.getByRole('link').first()).toHaveAttribute(
-      'href',
-      /^\/collections\/[^?]+\?size=/,
-    );
-    // Each tile names the size and its real dimensions (CR-31).
-    await expect(sizes.getByRole('link').first()).toContainText(/\d+ x \d+ in/);
+    // The home page has no "Shop by size" block (removed 2026-11-05); sizes are chosen in the hero finder (next test).
+    await expect(
+      page.getByRole('region', {name: 'Shop by size'}),
+    ).toHaveCount(0);
     // The "Buy with confidence" block is absent until the client supplies its claims (REQ-CNT-001, B-15);
     // the reassurance test below covers that.
     expect(ourErrors(errors), 'console errors on the home page').toEqual([]);
-  });
-
-  test('a size tile opens the collection with that size filtered', async ({
-    page,
-  }) => {
-    await gotoReady(page, '/');
-    await page
-      .getByRole('region', {name: 'Shop by size'})
-      .getByRole('link')
-      .first()
-      .click();
-    await expect(page).toHaveURL(/\/collections\/[^?]+\?size=/);
-    await expect(page.getByRole('heading', {level: 1})).toHaveCount(1);
   });
 
   test('the hero finder goes to the collection with only known filter values (CR-31)', async ({

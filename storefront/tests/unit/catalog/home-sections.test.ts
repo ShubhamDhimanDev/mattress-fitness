@@ -222,7 +222,7 @@ describe('home data sections', () => {
 
   it('uses the admin layout when entries exist', () => {
     const data = buildHomeData(typed, [
-      node('a', {...ON, type: 'shop-by-size', order: '1', heading: 'Sizes'}),
+      node('a', {...ON, type: 'brands', order: '1', heading: 'Brands'}),
     ]);
     expect(data.sectionsSource).toBe('admin');
     expect(data.sections).toHaveLength(1);

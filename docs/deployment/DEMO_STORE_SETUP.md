@@ -105,7 +105,7 @@ Open these and expect no error page. On a store with a single product and no `ma
 
 | Page                                           | What to see                                                                      |
 | ---------------------------------------------- | -------------------------------------------------------------------------------- |
-| `/`                                            | Home with the shop-by-size tiles and featured products                            |
+| `/`                                            | Home with the hero finder and featured products                                |
 | `/collections/mattresses` (or `/collections/all`) | Product grid, sort, the filter drawer                                          |
 | a product page                                 | Gallery, size picker, price, **Add to cart**; no protection panel                 |
 | Add to cart, then open the cart                | Drawer with the line, quantity stepper and **Checkout**                           |
