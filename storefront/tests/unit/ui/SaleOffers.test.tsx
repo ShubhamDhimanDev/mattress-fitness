@@ -42,7 +42,9 @@ describe('SaleOffers: the offer text is markup, not part of a picture', () => {
     expect(
       screen.getByRole('heading', {level: 3, name: 'Free adjustable base'}),
     ).toBeInTheDocument();
-    expect(screen.getByText('on select Sealy styles')).toBeInTheDocument();
+    expect(
+      screen.getByText('on Aireloom, Kingsdown and Molecule mattresses'),
+    ).toBeInTheDocument();
     expect(screen.getByText('*T&C apply.')).toBeInTheDocument();
   });
 
@@ -74,6 +76,21 @@ describe('SaleOffers: the offer text is markup, not part of a picture', () => {
     expect(ticker?.textContent).toMatch(/Beautyrest: up to 70% off/);
   });
 
+  it('sends the free-base banner to Aireloom, Kingsdown and Molecule, and to no other brand', () => {
+    renderOffers();
+    const banner = screen
+      .getByRole('heading', {level: 3, name: 'Free adjustable base'})
+      .closest('div')?.parentElement;
+    const hrefs = within(banner as HTMLElement)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+    expect(hrefs).toEqual([
+      '/brands/aireloom',
+      '/brands/kingsdown',
+      '/brands/molecule',
+    ]);
+  });
+
   it('does not offer a brand the store does not carry', () => {
     renderOffers();
     expect(screen.queryByText(/purple/i)).toBeNull();
@@ -87,9 +104,12 @@ describe('SaleOffers: links and pictures', () => {
     const hrefs = within(section)
       .getAllByRole('link')
       .map((link) => link.getAttribute('href'));
-    expect(hrefs.length).toBeGreaterThanOrEqual(9);
+    expect(hrefs.length).toBeGreaterThanOrEqual(11);
     const allowed = [
       'stearns-and-foster',
+      'aireloom',
+      'kingsdown',
+      'molecule',
       'beautyrest',
       'tempur-pedic',
       'serta',

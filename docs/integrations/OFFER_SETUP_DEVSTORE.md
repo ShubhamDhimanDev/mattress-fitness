@@ -83,6 +83,10 @@ Why "over $999" is expressed by the product list and not by a minimum amount: Sh
 
 Shopify does **not** add the free item to the cart (help page). Our server adds it when the shopper picks it, and the cart gate pauses checkout if Shopify prices it above $0. There is no picker flag any more (ADR-0013): the gift is offered as soon as this discount is active, so create it last, after the entries in section 3.
 
+### 4.1a Black Friday gift: free Twin baselogic Platform with Aireloom, Kingsdown or Molecule (owner request 2026-11-06)
+
+Same shape as 4.1. Customer buys: minimum quantity 1 of the active mattresses of **Aireloom, Kingsdown and Molecule only**. Customer gets: quantity 1 of the **Twin** variant of `serta-baselogic-platform` (chosen by variant, so no other size is free), Free, maximum uses per order 1. `scripts/setup/free-base-offer.mjs` creates it (dry run by default, `--live` to create; it needs `read_products` and `write_discounts`). Shopify allows at most 100 products in one discount's "buys" (create and update alike), so the script makes **two** discounts with the same gift: "Free adjustable base with Aireloom and Molecule" (51 mattresses) and "Free adjustable base with Kingsdown" (93). Run on the demo store (`ENV_FILE=storefront/.env.demo`) on 2026-11-06; both were created, but that a cart earns the gift, and how two discounts behave in a cart with mattresses of both groups, is UNVERIFIED (V-03, V-30). The buys list is a snapshot of those brands' mattresses; rerun it when they add mattresses. The home banner (`SaleOffers.tsx`) promises this gift, so the discount must be active before the page goes live.
+
 ### 4.2 Bundle: automatic "Amount off products"
 
 Sources: Shopify help "Amount off products" (read 2026-10-23).
