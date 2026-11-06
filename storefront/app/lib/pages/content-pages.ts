@@ -11,7 +11,7 @@
 import type {FooterGroupId, FooterPageLink} from '~/lib/navigation';
 
 /** The shop policies Shopify keeps under Settings > Policies that have a registry page. */
-export type PolicyField = 'privacyPolicy' | 'termsOfService';
+export type PolicyField = 'privacyPolicy' | 'termsOfService' | 'refundPolicy';
 
 export type ContentPage = {
   /** The handle the page is expected to have in Shopify (the URL is `/pages/<handle>`). */
@@ -29,7 +29,7 @@ export type ContentPage = {
    */
   readonly policy?: {
     readonly field: PolicyField;
-    readonly urlHandle: 'privacy-policy' | 'terms-of-service';
+    readonly urlHandle: 'privacy-policy' | 'terms-of-service' | 'refund-policy';
   };
   /** The FAQ page may carry FAQPage markup, when its text has a question and answer structure. */
   readonly faq?: true;
@@ -130,6 +130,15 @@ export const CONTENT_PAGES: readonly ContentPage[] = [
     policy: {field: 'privacyPolicy', urlHandle: 'privacy-policy'},
   },
   {
+    // The owner's copied returns text (docs/content/policies, DEC-152) lives in Settings > Policies > Refund policy.
+    handle: 'refund-policy',
+    title: 'Refund policy',
+    label: 'Refund policy',
+    group: 'legal',
+    order: 15,
+    policy: {field: 'refundPolicy', urlHandle: 'refund-policy'},
+  },
+  {
     handle: 'terms',
     title: 'Terms of service',
     label: 'Terms',
@@ -138,11 +147,19 @@ export const CONTENT_PAGES: readonly ContentPage[] = [
     policy: {field: 'termsOfService', urlHandle: 'terms-of-service'},
   },
   {
-    handle: 'accessibility',
-    title: 'Accessibility',
-    label: 'Accessibility',
+    // The page handle the owner's copied text is published under (docs/content/policies/README.md).
+    handle: 'website-accessibility',
+    title: 'Website accessibility',
+    label: 'Website accessibility',
     group: 'legal',
     order: 30,
+  },
+  {
+    handle: 'submission-policy',
+    title: 'Submission policy',
+    label: 'Submission policy',
+    group: 'legal',
+    order: 40,
   },
 ];
 

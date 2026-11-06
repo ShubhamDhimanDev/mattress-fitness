@@ -44,11 +44,14 @@ export const CONTENT_PAGES_QUERY = `#graphql
     page10: page(handle: "comfort-guarantee") { body }
     page11: page(handle: "price-guarantee") { body }
     page12: page(handle: "privacy-policy") { body }
-    page13: page(handle: "terms") { body }
-    page14: page(handle: "accessibility") { body }
+    page13: page(handle: "refund-policy") { body }
+    page14: page(handle: "terms") { body }
+    page15: page(handle: "website-accessibility") { body }
+    page16: page(handle: "submission-policy") { body }
     blog0: blog(handle: "journal") { handle articles(first: 1) { nodes { id } } }
     shop {
       privacyPolicy { id }
+      refundPolicy { id }
       termsOfService { id }
     }
   }
@@ -99,6 +102,7 @@ export function availabilityFrom(
   if (isRecord(shop)) {
     if (isRecord(shop.privacyPolicy)) policies.add('privacyPolicy');
     if (isRecord(shop.termsOfService)) policies.add('termsOfService');
+    if (isRecord(shop.refundPolicy)) policies.add('refundPolicy');
   }
   return Object.freeze({
     pages: readOnlySet(pages),

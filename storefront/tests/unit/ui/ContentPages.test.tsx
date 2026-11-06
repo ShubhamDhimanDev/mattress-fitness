@@ -215,6 +215,53 @@ describe('REQ-CNT-001 footer links to Shopify pages', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('lists every policy page that exists in a separate Policies list under the Sleep guide', async () => {
+    const element = await footer(
+      footerPageLinks({
+        pages: new Set(['website-accessibility', 'submission-policy']),
+        policies: new Set<'privacyPolicy' | 'termsOfService' | 'refundPolicy'>([
+          'privacyPolicy',
+          'refundPolicy',
+          'termsOfService',
+        ]),
+        blogs: new Set(),
+      }),
+    );
+    // The phone accordion button names the list it controls; the same list is the desktop column's second block.
+    const toggle = within(element).getByRole('button', {name: 'Policies'});
+    const list = document.getElementById(
+      toggle.getAttribute('aria-controls') ?? '',
+    );
+    expect(list).not.toBeNull();
+    if (!list) return;
+    expect(
+      within(list)
+        .getAllByRole('link')
+        .map((link) => [link.textContent, link.getAttribute('href')]),
+    ).toEqual([
+      ['Privacy policy', '/policies/privacy-policy'],
+      ['Refund policy', '/policies/refund-policy'],
+      ['Terms', '/policies/terms-of-service'],
+      ['Website accessibility', '/pages/website-accessibility'],
+      ['Submission policy', '/pages/submission-policy'],
+    ]);
+    // Same column as the Sleep guide, after its list: the Sleep guide's links are not in the Policies list and the reverse.
+    const sleepToggle = within(element).getByRole('button', {
+      name: 'Sleep guide',
+    });
+    const column = sleepToggle.closest('div.md\\:flex');
+    expect(column).not.toBeNull();
+    expect(column).toContainElement(list);
+    expect(within(list).queryByRole('link', {name: 'Sleep quiz'})).toBeNull();
+  });
+
+  it('shows no Policies heading when no policy page exists', async () => {
+    const element = await footer(available([]).filter(() => false));
+    expect(
+      within(element).queryByRole('button', {name: 'Policies'}),
+    ).not.toBeInTheDocument();
+  });
+
   it('puts a page link in its registry order inside the group', async () => {
     const element = await footer(
       available(['size-guide', 'comfort-guide', 'adjustable-base-guide']),
