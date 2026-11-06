@@ -46,7 +46,18 @@ function setup() {
 
 afterEach(() => {
   document.head.innerHTML = '';
+  document.body.innerHTML = '';
 });
+
+/** Lets the MutationObserver deliver its records. */
+const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+function openOverlay(): HTMLElement {
+  const host = document.createElement('div');
+  host.setAttribute('data-overlay-host', '');
+  document.body.appendChild(host);
+  return host;
+}
 
 describe('REQ-ANL-004 tawk.to adapter', () => {
   it('builds the documented address from the two ids', () => {
@@ -127,5 +138,65 @@ describe('REQ-ANL-004 tawk.to adapter', () => {
     const {provider} = setup();
     void provider.load();
     expect(() => provider.unload?.()).not.toThrow();
+  });
+});
+
+describe('REQ-ANL-004 the widget gets out of the way of drawers and dialogs', () => {
+  it('hides while a drawer is open and shows again when it closes', async () => {
+    const {provider, target} = setup();
+    const loading = provider.load();
+    const api = vendorLoads(target);
+    await loading;
+    const host = openOverlay();
+    await flush();
+    expect(api.hideWidget).toHaveBeenCalledTimes(1);
+    host.remove();
+    await flush();
+    expect(api.showWidget).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays hidden until the last of two overlays closes', async () => {
+    const {provider, target} = setup();
+    const loading = provider.load();
+    const api = vendorLoads(target);
+    await loading;
+    const first = openOverlay();
+    await flush();
+    const second = openOverlay();
+    await flush();
+    first.remove();
+    await flush();
+    expect(api.showWidget).not.toHaveBeenCalled();
+    second.remove();
+    await flush();
+    expect(api.showWidget).toHaveBeenCalledTimes(1);
+    expect(api.hideWidget).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides at once when the widget finishes loading while a drawer is already open', async () => {
+    openOverlay();
+    const {provider, target} = setup();
+    const loading = provider.load();
+    const api = vendorLoads(target);
+    await loading;
+    expect(api.hideWidget).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing about overlays before the widget has loaded or after consent is withdrawn', async () => {
+    const {provider, target} = setup();
+    const loading = provider.load();
+    openOverlay();
+    await flush();
+    const api = vendorLoads(target);
+    await loading;
+    api.hideWidget.mockClear();
+    provider.unload?.();
+    expect(api.hideWidget).toHaveBeenCalledTimes(1); // the withdrawal's own hide
+    api.hideWidget.mockClear();
+    document.body.innerHTML = '';
+    openOverlay();
+    await flush();
+    expect(api.hideWidget).not.toHaveBeenCalled();
+    expect(api.showWidget).not.toHaveBeenCalled();
   });
 });

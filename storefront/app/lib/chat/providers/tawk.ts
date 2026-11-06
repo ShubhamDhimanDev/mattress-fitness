@@ -8,6 +8,11 @@
 // script and the cookies tawk.to already set stay until the shopper leaves the page or clears them. A later grant reuses
 // the loaded script and calls `start`, so the script is never added twice.
 //
+// While a drawer or dialog of ours is open (the cart, the menu, the newsletter pop-up: `[data-overlay-host]` in the body, see
+// ~/components/ui/Overlay) the widget is hidden, and shown again when the last one closes. The vendor's iframes sit above
+// everything on the page, so an open widget covered the cart's checkout button and the bubble drew over the cart lines
+// (owner report 2026-11-06). Watching the DOM keeps the drawers unaware of chat, and works for any overlay added later.
+//
 // The widget draws its window in iframes created by script; those iframes inherit this page's Content-Security-Policy, so
 // the policy must allow tawk.to's stylesheets and fonts too (style-src, font-src: ~/lib/chat/hosts). Without them the
 // window rendered unstyled (owner report 2026-11-06).
@@ -49,6 +54,35 @@ export function createTawkProvider(
   let script: HTMLScriptElement | null = null;
   let ready = false;
   let pending: Promise<void> | null = null;
+  // True while the widget is hidden because one of our overlays is open (not because consent was withdrawn).
+  let suppressed = false;
+  let observer: MutationObserver | null = null;
+
+  const overlayOpen = (): boolean =>
+    doc.querySelector('[data-overlay-host]') !== null;
+
+  function syncWithOverlays(): void {
+    if (!ready) return;
+    const next = overlayOpen();
+    if (next === suppressed) return;
+    suppressed = next;
+    method(target, next ? 'hideWidget' : 'showWidget')?.();
+  }
+
+  function watchOverlays(): void {
+    if (observer !== null || typeof MutationObserver === 'undefined') return;
+    if (!doc.body) return;
+    // Overlays add and remove a host element directly under <body>, so the direct children are all that is watched.
+    observer = new MutationObserver(syncWithOverlays);
+    observer.observe(doc.body, {childList: true});
+    syncWithOverlays();
+  }
+
+  function stopWatching(): void {
+    observer?.disconnect();
+    observer = null;
+    suppressed = false;
+  }
 
   // Only a consent withdrawal hides the widget. The vendor's bubble stays on the page once it has loaded (owner report
   // 2026-11-06: hiding it in `onLoad` made it flash for half a second and vanish); our "Chat with us" call-out opens the
@@ -64,6 +98,7 @@ export function createTawkProvider(
       api['onLoad'] = () => {
         ready = true;
         pending = null;
+        watchOverlays();
         resolve();
       };
       Reflect.set(target, 'Tawk_API', api);
@@ -98,6 +133,7 @@ export function createTawkProvider(
         }
         start({showWidget: true});
         ready = true;
+        watchOverlays();
         return Promise.resolve();
       }
       pending = inject();
@@ -114,6 +150,7 @@ export function createTawkProvider(
       maximize();
     },
     unload() {
+      stopWatching();
       hide();
       method(target, 'shutdown')?.();
       ready = false;
