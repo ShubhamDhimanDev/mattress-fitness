@@ -308,10 +308,14 @@ function PhotoBanner({banner, half}: {banner: Banner; half?: boolean}) {
   return (
     <div
       className={cn(
-        'reveal group relative overflow-hidden rounded-panel',
+        // A flex column with the words in the flow: the box keeps the photograph's ratio as its MINIMUM height and grows with the
+        // words, so a banner with several buttons (the free base) is never cut off at the top on a phone.
+        'reveal group relative flex flex-col justify-end overflow-hidden rounded-panel',
+        // A minimum height, not an aspect ratio, on a phone: the box is clipped (overflow-hidden), and a clipped box does not
+        // grow to fit its words, so the free-base banner's three buttons pushed its heading out of sight.
         half
-          ? 'aspect-[4/3] md:aspect-auto md:min-h-96'
-          : 'aspect-[4/3] md:aspect-[21/9]',
+          ? 'min-h-64 md:min-h-96'
+          : 'min-h-64 md:aspect-[21/9] md:min-h-0 md:justify-center',
         left ? 'on-dark text-white' : 'text-ink-900',
       )}
     >
@@ -328,7 +332,10 @@ function PhotoBanner({banner, half}: {banner: Banner; half?: boolean}) {
         className={cn(
           'absolute inset-0',
           left
-            ? 'bg-gradient-to-t from-ink-900/80 via-ink-900/20 to-transparent'
+            ? half
+              ? 'bg-gradient-to-t from-ink-900/80 via-ink-900/20 to-transparent'
+              : // The wide banner's words fill the whole box on a phone, so the dark fade covers all of it.
+                'bg-gradient-to-t from-ink-900/85 via-ink-900/55 to-ink-900/30'
             : 'bg-gradient-to-t from-paper/90 via-paper/30 to-transparent',
           !half &&
             (left
@@ -339,11 +346,11 @@ function PhotoBanner({banner, half}: {banner: Banner; half?: boolean}) {
       {banner.percent ? <PercentStamp percent={banner.percent} /> : null}
       <div
         className={cn(
-          'absolute inset-0 flex flex-col justify-end gap-2 p-6',
+          'relative flex flex-col gap-2 p-6',
           half
             ? 'items-start md:gap-3 md:p-8'
             : cn(
-                'md:justify-center md:gap-3 md:p-12',
+                'md:gap-3 md:p-12',
                 left ? 'items-start' : 'items-start md:items-end md:text-right',
               ),
         )}
@@ -356,7 +363,8 @@ function PhotoBanner({banner, half}: {banner: Banner; half?: boolean}) {
               key={link.handle}
               to={brandPath(link.handle)}
               prefetch="intent"
-              size="lg"
+              // Several brands on one banner get the smaller button, so three of them fit in two rows on a phone.
+              size={banner.links.length > 1 ? 'md' : 'lg'}
               variant={left ? 'primary' : 'dark'}
             >
               Shop {link.brand}

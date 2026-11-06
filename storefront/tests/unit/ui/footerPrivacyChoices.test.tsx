@@ -49,10 +49,8 @@ describe('footer privacy choices (NFR-011)', () => {
     const store = renderFooter({PUBLIC_GA4_MEASUREMENT_ID: 'G-ABCD1234'});
     const button = await screen.findByRole('button', {name: 'Privacy choices'});
     expect(button).toHaveAttribute('type', 'button');
-    // In the bottom row's list, beside the legal links, at the 44 px touch size.
-    expect(button.closest('ul')).toContainElement(
-      screen.getByRole('link', {name: 'Terms'}),
-    );
+    // In the bottom row, beside the copyright line, at the 44 px touch size. The policy links are in the Policies list above it.
+    expect(button.closest('div')).toHaveTextContent(/All rights reserved/);
     expect(button).toHaveClass('min-h-touch');
 
     expect(store.getSnapshot().preferencesOpen).toBe(false);

@@ -40,6 +40,9 @@ const SignupForm = lazy(
 const LINK_CLASSES =
   'inline-flex min-h-touch items-center text-sm text-ink-300 hover:text-white hover:underline';
 
+/** A footer column: a group, and optionally a second group stacked under it (see `FooterGroups`). */
+type FooterColumn = FooterGroup & {readonly below?: FooterGroup | undefined};
+
 /**
  * Footer link groups. Below 768 px each group is a collapsible section (a button inside a heading); from
  * 768 px every group is open and its heading is plain text. The links are always in the HTML, so crawlers
@@ -50,7 +53,7 @@ export function FooterGroups({
   groups,
   className,
 }: {
-  groups: readonly FooterGroup[];
+  groups: readonly FooterColumn[];
   className: string;
 }) {
   const baseId = useId();
@@ -66,41 +69,69 @@ export function FooterGroups({
 
   return (
     <div className={className}>
-      {groups.map((group) => {
-        const open = openIds.includes(group.id);
-        const listId = `${baseId}-${group.id}`;
-        return (
-          <div key={group.id} className="border-b border-ink-700 md:border-b-0">
-            <h2 className="hidden pb-2 text-base font-extrabold text-white md:block">
-              {group.heading}
-            </h2>
-            <h2 className="md:hidden">
-              <button
-                type="button"
-                aria-expanded={open}
-                aria-controls={listId}
-                onClick={() => toggle(group.id)}
-                className="group flex min-h-14 w-full items-center justify-between text-left text-base font-extrabold text-white"
-              >
-                {group.heading}
-                <ChevronDownIcon className="size-5 motion-safe:transition-transform group-aria-expanded:rotate-180" />
-              </button>
-            </h2>
-            <ul
-              id={listId}
-              className={cn('pb-2 md:pb-0', !open && 'max-md:hidden')}
-            >
-              {group.links.map((link) => (
-                <li key={link.to}>
-                  <Link to={link.to} className={LINK_CLASSES}>
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
+      {groups.map((group) => (
+        <div key={group.id} className="md:flex md:flex-col md:gap-6">
+          <GroupBlock
+            group={group}
+            baseId={baseId}
+            open={openIds.includes(group.id)}
+            onToggle={toggle}
+          />
+          {/* A second block in the same column, with its own heading (the Policies list under the Sleep guide). It is its own
+              section on a phone, and on a wide screen it starts where the first block ends. */}
+          {group.below ? (
+            <GroupBlock
+              group={group.below}
+              baseId={baseId}
+              open={openIds.includes(group.below.id)}
+              onToggle={toggle}
+            />
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** One heading and its list: a collapsible section below 768 px, plain open text from there. */
+function GroupBlock({
+  group,
+  baseId,
+  open,
+  onToggle,
+}: {
+  group: FooterGroup;
+  baseId: string;
+  open: boolean;
+  onToggle: (id: string) => void;
+}) {
+  const listId = `${baseId}-${group.id}`;
+  return (
+    <div className="border-b border-ink-700 md:border-b-0">
+      <h2 className="hidden pb-2 text-base font-extrabold text-white md:block">
+        {group.heading}
+      </h2>
+      <h2 className="md:hidden">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => onToggle(group.id)}
+          className="group flex min-h-14 w-full items-center justify-between text-left text-base font-extrabold text-white"
+        >
+          {group.heading}
+          <ChevronDownIcon className="size-5 motion-safe:transition-transform group-aria-expanded:rotate-180" />
+        </button>
+      </h2>
+      <ul id={listId} className={cn('pb-2 md:pb-0', !open && 'max-md:hidden')}>
+        {group.links.map((link) => (
+          <li key={link.to}>
+            <Link to={link.to} className={LINK_CLASSES}>
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -126,22 +157,28 @@ function QuickLinks({links}: {links: readonly FooterQuickLink[]}) {
 
 /**
  * The Sleep guide group takes the place of "Shop by brand" in the shop-by row (the brands are in the main menu and on
- * /brands); the support row keeps the rest. Without a Sleep guide group the brand column is simply dropped.
+ * /brands); the support row keeps the rest. Without a Sleep guide group the brand column is simply dropped. The Policies
+ * list (one link per policy page that exists) goes under the Sleep guide, which is the shortest column and leaves the space
+ * (owner request 2026-11-06); with no Sleep guide it becomes a column of its own.
  */
-function splitFooterGroups(supportGroups: readonly FooterGroup[]): {
+function splitFooterGroups(
+  supportGroups: readonly FooterGroup[],
+  policies: FooterGroup | null,
+): {
   support: readonly FooterGroup[];
-  shop: readonly FooterGroup[];
+  shop: readonly FooterColumn[];
 } {
   const sleepGuide = supportGroups.find((group) => group.id === 'sleep-guide');
+  const shop: FooterColumn[] = FOOTER_SHOP_GROUPS.flatMap((group) =>
+    group.id === 'mattresses-brand'
+      ? sleepGuide
+        ? [{...sleepGuide, below: policies ?? undefined}]
+        : []
+      : [group],
+  );
   return {
     support: supportGroups.filter((group) => group.id !== 'sleep-guide'),
-    shop: FOOTER_SHOP_GROUPS.flatMap((group) =>
-      group.id === 'mattresses-brand'
-        ? sleepGuide
-          ? [sleepGuide]
-          : []
-        : [group],
-    ),
+    shop: sleepGuide || policies === null ? shop : [...shop, policies],
   };
 }
 
@@ -157,7 +194,13 @@ export function SiteFooter({
   /** The email signup (P7-02), or null when it is not configured: then nothing is rendered and no code is requested. */
   signup?: SignupPublicConfig | null;
 }) {
-  const groups = splitFooterGroups(links.supportGroups);
+  // Every policy page that exists, one link each: the legal links the root loader built (privacy, refund, terms, website
+  // accessibility, submission policy). They are listed here, under the Sleep guide, and not in the bottom row.
+  const policies: FooterGroup | null =
+    links.legal.length > 0
+      ? {id: 'policies', heading: 'Policies', links: [...links.legal]}
+      : null;
+  const groups = splitFooterGroups(links.supportGroups, policies);
   return (
     // Ink band with the round logo, the client's tagline, the link groups and the legal row (CR-31). The social icons link
     // to the owner's Instagram and Facebook pages (lib/business.ts). The signup row exists only when configured.
@@ -234,13 +277,6 @@ export function SiteFooter({
             &copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
           </p>
           <ul className="flex flex-wrap items-center gap-x-6">
-            {links.legal.map((link) => (
-              <li key={link.to}>
-                <Link to={link.to} className={LINK_CLASSES}>
-                  {link.label}
-                </Link>
-              </li>
-            ))}
             {/* Withdrawal of consent must be as easy as giving it (NFR-011). The button renders nothing while no analytics id is set and until the consent chunk has loaded (its store comes from `useSyncExternalStore` with a server snapshot, so the server HTML and the hydrating render agree), so `empty:hidden` removes its list item and leaves no stray gap. The button's own colours are for a light surface; the important modifiers re-colour it for the ink band. */}
             <li className="empty:hidden">
               <PrivacyChoicesButton className="text-ink-300! hover:text-white!" />

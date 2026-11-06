@@ -699,6 +699,8 @@ export type ContentPagesQuery = {
   page12?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
   page13?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
   page14?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page15?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
+  page16?: StorefrontAPI.Maybe<Pick<StorefrontAPI.Page, 'body'>>;
   blog0?: StorefrontAPI.Maybe<
     Pick<StorefrontAPI.Blog, 'handle'> & {
       articles: {nodes: Array<Pick<StorefrontAPI.Article, 'id'>>};
@@ -706,6 +708,7 @@ export type ContentPagesQuery = {
   >;
   shop: {
     privacyPolicy?: StorefrontAPI.Maybe<Pick<StorefrontAPI.ShopPolicy, 'id'>>;
+    refundPolicy?: StorefrontAPI.Maybe<Pick<StorefrontAPI.ShopPolicy, 'id'>>;
     termsOfService?: StorefrontAPI.Maybe<Pick<StorefrontAPI.ShopPolicy, 'id'>>;
   };
 };
@@ -1857,7 +1860,7 @@ interface GeneratedQueryTypes {
     return: CollectionHandlesQuery;
     variables: CollectionHandlesQueryVariables;
   };
-  '#graphql\n  query ContentPages($country: CountryCode, $language: LanguageCode)\n    @inContext(country: $country, language: $language) {\n    page0: page(handle: "contact") { body }\n    page1: page(handle: "delivery-and-shipping") { body }\n    page2: page(handle: "financing") { body }\n    page3: page(handle: "warranty-and-returns") { body }\n    page4: page(handle: "faq") { body }\n    page5: page(handle: "size-guide") { body }\n    page6: page(handle: "comfort-guide") { body }\n    page7: page(handle: "mattress-types-guide") { body }\n    page8: page(handle: "adjustable-base-guide") { body }\n    page9: page(handle: "about") { body }\n    page10: page(handle: "comfort-guarantee") { body }\n    page11: page(handle: "price-guarantee") { body }\n    page12: page(handle: "privacy-policy") { body }\n    page13: page(handle: "terms") { body }\n    page14: page(handle: "accessibility") { body }\n    blog0: blog(handle: "journal") { handle articles(first: 1) { nodes { id } } }\n    shop {\n      privacyPolicy { id }\n      termsOfService { id }\n    }\n  }\n': {
+  '#graphql\n  query ContentPages($country: CountryCode, $language: LanguageCode)\n    @inContext(country: $country, language: $language) {\n    page0: page(handle: "contact") { body }\n    page1: page(handle: "delivery-and-shipping") { body }\n    page2: page(handle: "financing") { body }\n    page3: page(handle: "warranty-and-returns") { body }\n    page4: page(handle: "faq") { body }\n    page5: page(handle: "size-guide") { body }\n    page6: page(handle: "comfort-guide") { body }\n    page7: page(handle: "mattress-types-guide") { body }\n    page8: page(handle: "adjustable-base-guide") { body }\n    page9: page(handle: "about") { body }\n    page10: page(handle: "comfort-guarantee") { body }\n    page11: page(handle: "price-guarantee") { body }\n    page12: page(handle: "privacy-policy") { body }\n    page13: page(handle: "refund-policy") { body }\n    page14: page(handle: "terms") { body }\n    page15: page(handle: "website-accessibility") { body }\n    page16: page(handle: "submission-policy") { body }\n    blog0: blog(handle: "journal") { handle articles(first: 1) { nodes { id } } }\n    shop {\n      privacyPolicy { id }\n      refundPolicy { id }\n      termsOfService { id }\n    }\n  }\n': {
     return: ContentPagesQuery;
     variables: ContentPagesQueryVariables;
   };

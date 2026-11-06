@@ -33,13 +33,13 @@ import {
   formatLongDate,
 } from '~/lib/pages/content-pages-blog';
 
-// REQ-CNT-001: the 15 pages, one stable URL each, linked only when the Shopify page exists with content.
+// REQ-CNT-001: the 17 pages (the 15 of the scope of work plus the owner's refund and submission policies, DEC-152), one stable URL each, linked only when the Shopify page exists with content.
 // REQ-CNT-002: blog helpers (dates, neighbours, paths).
 
 function available(
   partial: Partial<{
     pages: string[];
-    policies: Array<'privacyPolicy' | 'termsOfService'>;
+    policies: Array<'privacyPolicy' | 'termsOfService' | 'refundPolicy'>;
     blogs: string[];
   }>,
 ): ContentAvailability {
@@ -59,13 +59,12 @@ function registered(handle: string) {
 const ALL_HANDLES = CONTENT_PAGES.map((page) => page.handle);
 
 describe('REQ-CNT-001 the registry', () => {
-  it('lists exactly the 15 pages of the scope of work, once each', () => {
-    expect(CONTENT_PAGES).toHaveLength(15);
-    expect(new Set(ALL_HANDLES).size).toBe(15);
+  it('lists exactly the 17 pages, once each', () => {
+    expect(CONTENT_PAGES).toHaveLength(17);
+    expect(new Set(ALL_HANDLES).size).toBe(17);
     expect([...ALL_HANDLES].sort()).toEqual(
       [
         'about',
-        'accessibility',
         'adjustable-base-guide',
         'comfort-guarantee',
         'comfort-guide',
@@ -76,9 +75,12 @@ describe('REQ-CNT-001 the registry', () => {
         'mattress-types-guide',
         'price-guarantee',
         'privacy-policy',
+        'refund-policy',
         'size-guide',
+        'submission-policy',
         'terms',
         'warranty-and-returns',
+        'website-accessibility',
       ].sort(),
     );
   });
@@ -99,7 +101,9 @@ describe('REQ-CNT-001 the registry', () => {
     const groupOf = (handle: string) => contentPageByHandle(handle)?.group;
     expect(groupOf('privacy-policy')).toBe('legal');
     expect(groupOf('terms')).toBe('legal');
-    expect(groupOf('accessibility')).toBe('legal');
+    expect(groupOf('refund-policy')).toBe('legal');
+    expect(groupOf('website-accessibility')).toBe('legal');
+    expect(groupOf('submission-policy')).toBe('legal');
     expect(groupOf('faq')).toBe('support');
     expect(groupOf('size-guide')).toBe('sleep-guide');
     expect(groupOf('about')).toBe('about');
@@ -114,14 +118,16 @@ describe('REQ-CNT-001 the registry', () => {
     }
   });
 
-  it('marks only privacy and terms as policy-type, with the Shopify policy URL handles', () => {
+  it('marks only privacy, refund and terms as policy-type, with the Shopify policy URL handles', () => {
     const policies = CONTENT_PAGES.filter((page) => page.policy);
     expect(policies.map((page) => page.handle)).toEqual([
       'privacy-policy',
+      'refund-policy',
       'terms',
     ]);
     expect(policies.map((page) => page.policy?.urlHandle)).toEqual([
       'privacy-policy',
+      'refund-policy',
       'terms-of-service',
     ]);
   });
@@ -307,15 +313,18 @@ describe('REQ-CNT-001 merging page links into the footer groups', () => {
       [],
       footerPageLinks(
         available({
-          policies: ['privacyPolicy', 'termsOfService'],
-          pages: ['accessibility'],
+          policies: ['privacyPolicy', 'refundPolicy', 'termsOfService'],
+          pages: ['website-accessibility', 'submission-policy'],
         }),
       ),
     );
+    // Privacy, refund, terms, then the two pages, in the registry's order.
     expect(links.map((link) => link.to)).toEqual([
       '/policies/privacy-policy',
+      '/policies/refund-policy',
       '/policies/terms-of-service',
-      '/pages/accessibility',
+      '/pages/website-accessibility',
+      '/pages/submission-policy',
     ]);
   });
 
