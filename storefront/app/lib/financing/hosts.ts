@@ -54,12 +54,14 @@ export function extendLogoCspHosts(logoOrigin: string | null): ChatCsp {
 /** Several sources merged per directive, duplicates removed. */
 export function mergeCspHosts(...parts: readonly ChatCsp[]): ChatCsp {
   const join = (key: keyof ChatCsp): string[] => [
-    ...new Set(parts.flatMap((part) => part[key])),
+    ...new Set(parts.flatMap((part) => part[key] ?? [])),
   ];
   return {
     script: join('script'),
     img: join('img'),
     connect: join('connect'),
     frame: join('frame'),
+    style: join('style'),
+    font: join('font'),
   };
 }

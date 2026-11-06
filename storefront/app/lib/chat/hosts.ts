@@ -14,6 +14,9 @@ export type ChatCsp = {
   readonly connect: readonly string[];
   /** Chat windows are usually an iframe; the policies otherwise send `frame-src 'none'`. */
   readonly frame: readonly string[];
+  /** Stylesheets. A script-made iframe (about:blank) inherits the page's policy, so the widget's own CSS needs a source here. */
+  readonly style?: readonly string[] | undefined;
+  readonly font?: readonly string[] | undefined;
 };
 
 export const NO_CHAT_CSP: ChatCsp = {
@@ -28,16 +31,22 @@ export const NO_CHAT_CSP: ChatCsp = {
 // tawk.to documents only wildcard hosts (`*.tawk.to`; the widget uses several tawk.to subdomains), so this entry is the
 // exception to the no-wildcard rule and needs the owner's written approval, recorded in docs/security/SECURITY_HEADERS.md.
 // Taken from that list: script-src, connect-src (https and wss), frame-src and img-src (`*.tawk.to`, `tawk.link`).
+// Added 2026-11-06 after the chat window showed with no styling: style-src and font-src (`*.tawk.to`, and `data:` fonts).
+// The widget's window is an iframe that script creates on our page (about:blank), and such a frame INHERITS this page's
+// policy, so its stylesheet and fonts from tawk.to were refused. Not verified in a browser from here (no store or tawk.to
+// ids in this checkout): check the console for "Content Security Policy" lines after loading.
 // NOT added, though the article lists them: `cdn.jsdelivr.net`, `s3.amazonaws.com` (broad third-party hosts, only for
-// some images), `fonts.googleapis.com`, `fonts.gstatic.com`, and the style-src, font-src and form-action entries: the
-// widget draws in tawk.to's own frame, which has its own policy. If the report-only policy shows a violation, add
-// only that host here and say where it was seen.
+// some images), `fonts.googleapis.com`, `fonts.gstatic.com` and the form-action entry. If the report-only policy still
+// shows a violation, add only that host here and say where it was seen (without Google Fonts the text falls back to a
+// system font, which is acceptable).
 export const CHAT_CSP: Readonly<Partial<Record<ChatProviderId, ChatCsp>>> = {
   tawk: {
     script: ['https://*.tawk.to'],
     img: ['https://*.tawk.to', 'https://tawk.link'],
     connect: ['https://*.tawk.to', 'wss://*.tawk.to'],
     frame: ['https://*.tawk.to'],
+    style: ['https://*.tawk.to'],
+    font: ['https://*.tawk.to', 'data:'],
   },
 };
 

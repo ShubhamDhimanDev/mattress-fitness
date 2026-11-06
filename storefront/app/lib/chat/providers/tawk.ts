@@ -1,14 +1,16 @@
 // The tawk.to adapter (REQ-ANL-004, P7-03; the owner chose tawk.to on 2026-10-28). It loads the vendor's widget script
 // from `https://embed.tawk.to/<propertyId>/<widgetId>` (the address in the "Widget Code" the tawk.to dashboard shows),
-// keeps the vendor's own bubble hidden, and shows and maximises the widget only when our "Chat with us" call-out asks.
+// leaves the vendor's own bubble visible, and our "Chat with us" call-out maximises the same widget.
 //
-// Methods used, all from https://developer.tawk.to/jsapi/ (read 2026-10-28): the `onLoad` and `onChatMinimized`
-// callbacks, `showWidget`, `hideWidget`, `maximize`, `start` and `shutdown`. NOT documented, so not used: removing the
+// Methods used, all from https://developer.tawk.to/jsapi/ (read 2026-10-28): the `onLoad` callback, `showWidget`,
+// `hideWidget`, `maximize`, `start` and `shutdown`. NOT documented, so not used: removing the
 // widget or the script from the page. `unload` therefore hides the widget and closes its connection (`shutdown`); the
 // script and the cookies tawk.to already set stay until the shopper leaves the page or clears them. A later grant reuses
 // the loaded script and calls `start`, so the script is never added twice.
 //
-// UNVERIFIED in a browser: that `onLoad` fires with this build's CSP, and how `maximize` behaves right after `showWidget`.
+// The widget draws its window in iframes created by script; those iframes inherit this page's Content-Security-Policy, so
+// the policy must allow tawk.to's stylesheets and fonts too (style-src, font-src: ~/lib/chat/hosts). Without them the
+// window rendered unstyled (owner report 2026-11-06).
 
 import type {TawkIds} from '~/lib/chat/config';
 import type {ChatProvider} from '~/lib/chat/provider';
@@ -48,7 +50,9 @@ export function createTawkProvider(
   let ready = false;
   let pending: Promise<void> | null = null;
 
-  // The widget starts hidden; only our call-out shows it, and minimising it hands the shopper back to that call-out.
+  // Only a consent withdrawal hides the widget. The vendor's bubble stays on the page once it has loaded (owner report
+  // 2026-11-06: hiding it in `onLoad` made it flash for half a second and vanish); our "Chat with us" call-out opens the
+  // same window.
   const hide = (): void => {
     method(target, 'hideWidget')?.();
   };
@@ -58,12 +62,10 @@ export function createTawkProvider(
       // Must exist before the script runs: the vendor reads the callbacks from it.
       const api: Record<string, unknown> = readApi(target) ?? {};
       api['onLoad'] = () => {
-        hide();
         ready = true;
         pending = null;
         resolve();
       };
-      api['onChatMinimized'] = hide;
       Reflect.set(target, 'Tawk_API', api);
       Reflect.set(target, 'Tawk_LoadStart', new Date());
 
@@ -94,8 +96,7 @@ export function createTawkProvider(
         if (start === null) {
           return Promise.reject(new Error('tawk.to cannot be started again'));
         }
-        start({showWidget: false});
-        hide();
+        start({showWidget: true});
         ready = true;
         return Promise.resolve();
       }

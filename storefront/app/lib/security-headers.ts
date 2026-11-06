@@ -219,6 +219,8 @@ export function enforcedCspExtras(
   imgSrc?: string[];
   connectSrc?: string[];
   frameSrc?: string[];
+  styleSrc?: string[];
+  fontSrc?: string[];
 } {
   const hosts = analyticsCspHosts(input);
   const script = [...hosts.script, ...chat.script];
@@ -229,7 +231,17 @@ export function enforcedCspExtras(
     imgSrc?: string[];
     connectSrc?: string[];
     frameSrc?: string[];
+    styleSrc?: string[];
+    fontSrc?: string[];
   } = {};
+  // Stylesheets and fonts of a script-made frame (the chat window) follow this page's policy. Styles are appended to
+  // Hydrogen's own list; naming font-src replaces the fallback to default-src, so the base sources are repeated.
+  const style = chat.style ?? [];
+  const font = chat.font ?? [];
+  if (style.length > 0) extras.styleSrc = [...style];
+  if (font.length > 0) {
+    extras.fontSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...font];
+  }
   if (script.length > 0) {
     extras.scriptSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, ...script];
   }
@@ -294,13 +306,14 @@ export function buildReportOnlyCsp(
       [
         "'self'",
         SHOPIFY_CDN,
+        ...(chat.style ?? []),
         ...dev,
         ...(options.development ? ["'unsafe-inline'"] : []),
       ],
     ],
     ['style-src-attr', ["'unsafe-inline'"]],
     ['img-src', ["'self'", 'data:', SHOPIFY_CDN, ...provider.img, ...dev]],
-    ['font-src', ["'self'", SHOPIFY_CDN, ...dev]],
+    ['font-src', ["'self'", SHOPIFY_CDN, ...(chat.font ?? []), ...dev]],
     ['media-src', ["'self'", SHOPIFY_CDN, ...dev]],
     [
       'connect-src',

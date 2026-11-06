@@ -16,6 +16,7 @@ export type CspDirectives = {
   scriptSrc?: Sources;
   imgSrc?: Sources;
   frameSrc?: Sources;
+  fontSrc?: Sources;
 };
 
 type DirectiveName = keyof CspDirectives;
