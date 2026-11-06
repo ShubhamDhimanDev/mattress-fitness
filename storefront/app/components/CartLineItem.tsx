@@ -435,7 +435,12 @@ function GiftLine(props: CartLineItemProps) {
       aria-busy={pending || undefined}
       className={cn(aside && 'my-4')}
     >
-      <div className="grid grid-cols-[calc(var(--spacing)*18)_minmax(0,1fr)_auto] items-center gap-x-3 md:grid-cols-[calc(var(--spacing)*24)_minmax(0,1fr)_auto] md:gap-x-5">
+      {/*
+        Two columns (picture, then the words with the price underneath) in every layout, so the name gets the whole width. A price
+        with its struck-through value is wide, and beside the name it squeezed the name onto two or three lines, in the drawer and
+        in the page's narrower cart column alike.
+      */}
+      <div className="grid grid-cols-[calc(var(--spacing)*18)_minmax(0,1fr)] items-start gap-x-3 md:grid-cols-[calc(var(--spacing)*24)_minmax(0,1fr)] md:gap-x-5">
         <LineMedia
           image={merchandise.image}
           sizes="96px"
@@ -451,17 +456,14 @@ function GiftLine(props: CartLineItemProps) {
           {promotions[0] ? (
             <p className="text-sm text-fg-muted">{promotions[0].title}</p>
           ) : null}
-        </div>
-        <div className="text-right">
           <Price
             price={line.cost?.totalAmount ?? merchandise.price}
             compareAt={value}
             size="md"
-            className="justify-end"
           />
         </div>
       </div>
-      <div className="mt-2 flex items-center justify-between gap-4">
+      <div className="mt-3 flex items-center justify-between gap-4">
         <LineQuantity line={line} title={product.title} />
         <RemoveButton
           lineId={id}
