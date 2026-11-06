@@ -6,8 +6,7 @@ dont have"). Recorded as DEC-152 in `progress/DECISIONS.md`. The text is another
 should read it before it goes live.
 
 Source pages (read 2026-11-06): `/pages/privacy-policy`, `/warranty-and-return-policy`, `/pages/website-accessibility`,
-`/pages/submission-policy`. Nothing is published yet: the site reads policies from Shopify, and nothing here was sent to the
-store. Paste each file in Shopify admin and check the page in the storefront.
+`/pages/submission-policy`. The development store was seeded on 2026-11-06 (see below); production has not been written. Paste each file in Shopify admin and check the page in the storefront.
 
 | File | Where it goes in Shopify admin | Shows on the storefront at |
 |---|---|---|
