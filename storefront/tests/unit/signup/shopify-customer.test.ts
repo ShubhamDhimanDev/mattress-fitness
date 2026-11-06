@@ -8,8 +8,8 @@ import {
   signupDepsFromEnv,
 } from '~/lib/signup/handler';
 import type {KlaviyoClient} from '~/lib/signup/klaviyo-client';
+import {resetAdminTokenProvidersForTests} from '~/lib/shopify/admin-token';
 import {
-  CUSTOMERS_TOKEN_ENV,
   SUBSCRIBE_TAG,
   createShopifyCustomerSubscriber,
   shopifyCustomerSignupAvailable,
@@ -18,12 +18,29 @@ import {
 // REQ-ANL-003 / CR-34: every signup also becomes a Shopify customer tagged `subscribe`. No network: fetch is injected. The
 // token and the address are fictional.
 
-afterEach(() => resetSignupStateForTests());
+afterEach(() => {
+  resetSignupStateForTests();
+  resetAdminTokenProvidersForTests();
+});
 
 const ENV = {
   PUBLIC_STORE_DOMAIN: 'demo-shop.myshopify.com',
-  [CUSTOMERS_TOKEN_ENV]: 'shpat_fictional_token_123',
+  ADMIN_CLIENT_ID: 'fictional-client-id',
+  ADMIN_CLIENT_SECRET: 'fictional-client-secret',
 };
+
+/** Answers the app's token request itself, so the wrapped fetch (and the call counts in the tests) see only Admin API calls. */
+function withToken(inner: FetchLike): FetchLike {
+  return (url, init) =>
+    url.endsWith('/oauth/access_token')
+      ? Promise.resolve(
+          Response.json({
+            access_token: 'shpat_fictional_token_123',
+            expires_in: 86399,
+          }),
+        )
+      : inner(url, init);
+}
 const NOW = new Date('2026-11-06T10:00:00Z');
 const REQUEST = {
   email: 'shopper@example.com',
@@ -40,7 +57,7 @@ type Sent = {
 /** Answers the nth call with the nth body; records what was sent. */
 function scripted(...bodies: readonly unknown[]) {
   const sent: Sent[] = [];
-  const fetchFn: FetchLike = (_url, init) => {
+  const fetchFn: FetchLike = withToken((_url, init) => {
     const body: unknown = JSON.parse(init.body ?? '{}');
     sent.push({
       query: Reflect.get(body as object, 'query') as string,
@@ -57,7 +74,7 @@ function scripted(...bodies: readonly unknown[]) {
         headers: {'content-type': 'application/json'},
       }),
     );
-  };
+  });
   return {sent, fetchFn};
 }
 
@@ -82,7 +99,7 @@ const OK_CONSENT = {
 };
 
 describe('configuration', () => {
-  it('is off without the store domain or the customers token, and never reuses the order token', () => {
+  it('is off without the store domain or the client id and secret, and never reuses the order token', () => {
     expect(shopifyCustomerSignupAvailable({})).toBe(false);
     expect(
       shopifyCustomerSignupAvailable({
@@ -213,11 +230,11 @@ describe('creating and tagging the customer', () => {
     const seen: FetchInit[] = [];
     const client = createShopifyCustomerSubscriber({
       env: ENV,
-      fetch: (url, init) => {
+      fetch: withToken((url, init) => {
         urls.push(url);
         seen.push(init);
         return Promise.resolve(Response.json(NONE));
-      },
+      }),
     });
     await client?.subscribe(REQUEST);
     expect(urls[0]).toMatch(
@@ -239,7 +256,7 @@ describe('failures never throw and never leak', () => {
   ] as const)('maps HTTP %s to %s', async (status, reason) => {
     const client = createShopifyCustomerSubscriber({
       env: ENV,
-      fetch: () => Promise.resolve(new Response('', {status})),
+      fetch: withToken(() => Promise.resolve(new Response('', {status}))),
     });
     expect(await client?.subscribe(REQUEST)).toEqual({
       status: 'failed',
@@ -259,7 +276,7 @@ describe('failures never throw and never leak', () => {
   it('turns a network error and an unreadable body into a failure', async () => {
     const down = createShopifyCustomerSubscriber({
       env: ENV,
-      fetch: () => Promise.reject(new Error('boom')),
+      fetch: withToken(() => Promise.reject(new Error('boom'))),
     });
     expect(await down?.subscribe(REQUEST)).toEqual({
       status: 'failed',
@@ -267,7 +284,9 @@ describe('failures never throw and never leak', () => {
     });
     const junk = createShopifyCustomerSubscriber({
       env: ENV,
-      fetch: () => Promise.resolve(new Response('not json', {status: 200})),
+      fetch: withToken(() =>
+        Promise.resolve(new Response('not json', {status: 200})),
+      ),
     });
     expect((await junk?.subscribe(REQUEST))?.status).toBe('failed');
   });

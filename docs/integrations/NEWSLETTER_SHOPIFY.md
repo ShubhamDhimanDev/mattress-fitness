@@ -17,10 +17,14 @@ took the signup; the one that failed is logged (`signup.destination_failed`, rea
 
 ## Setup (owner / developer)
 
-1. In the Shopify admin (or Dev Dashboard) create a custom app with Admin API scopes `write_customers` and `read_customers`
-   only. Do not add these to the read_orders token: the two credentials stay separate.
-2. Put its Admin API access token in the server environment as `SHOPIFY_CUSTOMERS_ADMIN_API_ACCESS_TOKEN` (name only in
-   `storefront/.env.example`; never in a file or a log). `PUBLIC_STORE_DOMAIN` must be the `<shop>.myshopify.com` domain.
+1. In the Shopify Dev Dashboard create an app (legacy custom apps can no longer be created) with Admin API scopes
+   `write_customers` and `read_customers` **only**, release a version and install it on the store. Do not reuse the setup app
+   or the read_orders credential: the server's token carries every scope its app has.
+2. Put the app's **client id and secret** in the server environment as `ADMIN_CLIENT_ID` and `ADMIN_CLIENT_SECRET` (names only
+   in `storefront/.env.example`; never in a file or a log), and set `PUBLIC_STORE_DOMAIN` to the `<shop>.myshopify.com` domain.
+   The server fetches its own Admin token from them (`app/lib/shopify/admin-token.ts`, the client credentials grant, about
+   24 hours), keeps it in memory, renews it five minutes early, and retries once with a new one if Shopify answers 401. Nothing
+   to copy by hand and nothing to renew.
 3. Filter in Shopify admin: Customers, then "Tagged with" `subscribe`.
 
 Without the token no customer is created and nothing is faked; with only the token set the signup form still shows.

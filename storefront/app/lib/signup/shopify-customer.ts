@@ -3,9 +3,10 @@
 // subscribed to email marketing. It has the same `subscribe` contract as the Klaviyo and SMTP clients, so every check in
 // handler.ts (same origin, rate limit, honeypot, explicit unticked consent) runs before it.
 //
-// Uses the Shopify ADMIN GraphQL API (the Storefront API cannot create a customer without a password). The token is its own
-// `write_customers` token (SHOPIFY_CUSTOMERS_ADMIN_API_ACCESS_TOKEN), never the read_orders token of the order lookup, and
-// server-only. Nothing is faked: without it there is no client.
+// Uses the Shopify ADMIN GraphQL API (the Storefront API cannot create a customer without a password). The credential is
+// the Dev Dashboard app's ADMIN_CLIENT_ID and ADMIN_CLIENT_SECRET, from which the server fetches and renews its own 24-hour
+// token (~/lib/shopify/admin-token.ts); there is no hand-copied token. Server-only. Nothing is faked: without them there is
+// no client.
 //
 // Steps: look the address up; if the customer exists, add the tag and mark the email subscribed; if not, create the customer
 // with the tag and the subscribed consent in one call. The mutations and fields below follow Shopify's Admin GraphQL
@@ -13,9 +14,15 @@
 // UNVERIFIED against the client's store and API version 2026-10: needs a run against the development store (see
 // docs/integrations/NEWSLETTER_SHOPIFY.md). Logs carry reason codes only, never an address.
 
-import {adminConfigFromEnv} from '~/lib/extend/admin-client';
+import {readShopDomain} from '~/lib/extend/admin-client';
 import {readCappedBody} from '~/lib/extend/capped-body';
 import type {FetchLike} from '~/lib/extend/types';
+import {ADMIN_API_VERSION} from '~/lib/extend/admin-order';
+import {
+  readClientCredentials,
+  sharedAdminTokenProvider,
+  type AdminTokenProvider,
+} from '~/lib/shopify/admin-token';
 import type {
   KlaviyoClient,
   SubscribeFailure,
@@ -24,7 +31,6 @@ import type {
 
 /** The tag the store team filters by. */
 export const SUBSCRIBE_TAG = 'subscribe';
-export const CUSTOMERS_TOKEN_ENV = 'SHOPIFY_CUSTOMERS_ADMIN_API_ACCESS_TOKEN';
 
 const TIMEOUT_MS = 6000;
 const MAX_RESPONSE_BYTES = 200_000;
@@ -54,9 +60,24 @@ export const CONSENT_MUTATION = `mutation SignupEmailConsent($input: CustomerEma
   }
 }`;
 
-/** True when the store domain and the customers token are present and well formed. Decides whether the signup is on. */
+type Auth = {
+  readonly store: string;
+  readonly provider: AdminTokenProvider;
+};
+
+function authFromEnv(env: object, fetchFn: FetchLike | undefined): Auth | null {
+  const store = readShopDomain(env);
+  const credentials = readClientCredentials(env);
+  if (store === null || credentials === null) return null;
+  return {
+    store,
+    provider: sharedAdminTokenProvider(store, credentials, fetchFn),
+  };
+}
+
+/** True when the store domain (<shop>.myshopify.com) and the app's client id and secret are present and well formed. Decides whether the signup is on. */
 export function shopifyCustomerSignupAvailable(env: object): boolean {
-  return adminConfigFromEnv(env, CUSTOMERS_TOKEN_ENV).status === 'ready';
+  return readShopDomain(env) !== null && readClientCredentials(env) !== null;
 }
 
 type Call =
@@ -81,28 +102,62 @@ export function createShopifyCustomerSubscriber(options: {
   readonly fetch?: FetchLike;
   readonly now?: () => Date;
 }): KlaviyoClient | null {
-  const admin = adminConfigFromEnv(options.env, CUSTOMERS_TOKEN_ENV);
-  if (admin.status !== 'ready') return null;
+  const auth = authFromEnv(options.env, options.fetch);
+  if (auth === null) return null;
+  const {provider} = auth;
   const fetchFn: FetchLike = options.fetch ?? ((url, init) => fetch(url, init));
   const now = options.now ?? (() => new Date());
-  const endpoint = `https://${admin.store}/admin/api/${admin.apiVersion}/graphql.json`;
+  const endpoint = `https://${auth.store}/admin/api/${ADMIN_API_VERSION}/graphql.json`;
+
+  /** The request headers, or the reason there are none (the app's token could not be fetched). */
+  async function headers(): Promise<
+    | {readonly status: 'ok'; readonly value: Record<string, string>}
+    | {readonly status: 'failed'; readonly reason: SubscribeFailure}
+  > {
+    const token = await provider.get();
+    if (token.status !== 'ok') {
+      // A refusal means our id, secret or installation is wrong (ours to fix); anything else is an outage.
+      return {
+        status: 'failed',
+        reason: token.reason === 'auth' ? 'auth' : 'server',
+      };
+    }
+    return {
+      status: 'ok',
+      value: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-Shopify-Access-Token': token.token,
+      },
+    };
+  }
 
   async function call(
     query: string,
     variables: Readonly<Record<string, unknown>>,
+    retried = false,
   ): Promise<Call> {
+    const credential = await headers();
+    if (credential.status !== 'ok') {
+      return {status: 'failed', reason: credential.reason};
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
       const response = await fetchFn(endpoint, {
         method: 'POST',
-        headers: admin.status === 'ready' ? admin.headers() : {},
+        headers: credential.value,
         body: JSON.stringify({query, variables}),
         signal: controller.signal,
         redirect: 'error',
       });
       if (response.status === 401 || response.status === 403) {
         await response.body?.cancel();
+        // A fetched token can be revoked (the app was reinstalled): forget it and try once with a new one.
+        if (!retried) {
+          provider.invalidate();
+          return call(query, variables, true);
+        }
         return {status: 'failed', reason: 'auth'};
       }
       if (response.status === 429) {
