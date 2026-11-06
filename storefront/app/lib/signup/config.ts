@@ -14,6 +14,7 @@
 
 import {readEnvString} from '~/lib/extend/env';
 import {SMS_CONSENT} from '~/lib/signup/consent';
+import {shopifyCustomerSignupAvailable} from '~/lib/signup/shopify-customer';
 import {smtpSignupAvailable} from '~/lib/signup/smtp-subscriber';
 import type {SignupPublicConfig} from '~/lib/signup/shared';
 
@@ -90,5 +91,7 @@ export function publicSignupConfig(
 ): SignupPublicConfig | null {
   const config = readSignupConfig(env, options);
   if (config.status === 'ready') return {sms: config.sms, privacyHref};
-  return smtpSignupAvailable(env) ? {sms: false, privacyHref} : null;
+  return smtpSignupAvailable(env) || shopifyCustomerSignupAvailable(env)
+    ? {sms: false, privacyHref}
+    : null;
 }

@@ -14,7 +14,8 @@ describe('focus ring on white cards inside dark bands', () => {
   });
 
   it.each([
-    ['components/layout/SiteFooter.tsx', 'on-light w-full max-w-xl'],
+    // The footer's signup uses the band layout, whose white card is the one in SignupForm.
+    ['components/layout/SiteFooter.tsx', 'surface="footer" layout="band"'],
     ['components/signup/SignupForm.tsx', "'on-light flex flex-col"],
   ])('%s resets the ring on its white card', (path, snippet) => {
     expect(read(path)).toContain(snippet);
