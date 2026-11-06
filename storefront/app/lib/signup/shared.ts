@@ -9,6 +9,11 @@ export function isSignupSurface(value: unknown): value is SignupSurface {
   return SIGNUP_SURFACES.some((surface) => surface === value);
 }
 
+/** The saving the welcome-email promo code gives, in the wording of the form and the email. Must equal the discount in Shopify. */
+export const PROMO_PERCENT = 15;
+/** The Shopify discount code (Discounts in admin) that every signup is emailed. Created by scripts/setup/newsletter-promo-code.mjs. */
+export const PROMO_CODE = 'WELCOME15';
+
 /** The form field names, in one place so the form, the parser and the tests cannot drift apart. */
 export const SIGNUP_FIELDS = {
   email: 'email',
@@ -33,6 +38,8 @@ export const CONSENT_GIVEN = 'yes';
 export type SignupPublicConfig = {
   /** The optional text-message fields are offered. */
   readonly sms: boolean;
+  /** Every signup is emailed a promo code, so the form may say so. False or absent: it promises nothing. */
+  readonly promo?: boolean;
   /** The privacy policy page, when it exists (the footer's list of legal links decides), else null. */
   readonly privacyHref: string | null;
 };

@@ -101,7 +101,12 @@ describe('the signup is on with SMTP alone (CR-34)', () => {
       publicSignupConfig(SMTP_ENV, '/policies/privacy-policy', {
         allowUnapprovedSms: true,
       }),
-    ).toEqual({sms: false, privacyHref: '/policies/privacy-policy'});
+      // SMTP also turns the welcome email (promo code) on, so the form may promise the code.
+    ).toEqual({
+      sms: false,
+      promo: true,
+      privacyHref: '/policies/privacy-policy',
+    });
   });
 
   it('gives the handler a client only when something is configured, and no SMS', () => {

@@ -3,12 +3,12 @@ import {Dialog} from '~/components/ui/Dialog';
 import {SiteImage} from '~/components/ui/SiteImage';
 import {SITE_IMAGES} from '~/lib/site-images';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
-import type {SignupPublicConfig} from '~/lib/signup/shared';
+import {PROMO_PERCENT, type SignupPublicConfig} from '~/lib/signup/shared';
 
 // Newsletter pop-up for the home page (CR-34): it asks for an email address so the team can send discount coupons. It
 // reuses the signup form as is, so the explicit consent box, the honeypot, the rate limit and the "thank you" that does
-// not reveal who is already subscribed all stay. No amount or promise is written here: the offer itself is decided and
-// sent by the team.
+// not reveal who is already subscribed all stay. The promo-code promise is written only when the server says the welcome email is on
+// (`config.promo`); otherwise the team sends the coupon by hand and no amount is promised.
 //
 // Shown once, a few seconds after the page loads, then not again for two weeks on that browser. The date is kept in
 // localStorage, which may be blocked or empty (private window): then the pop-up simply shows each visit and nothing breaks.
@@ -74,8 +74,16 @@ export function NewsletterModal({config}: {config: SignupPublicConfig}) {
     <Dialog
       open={open}
       onClose={() => setOpen(false)}
-      title="Get discount coupons in your inbox"
-      description="Join our email list and we will send you discount coupons, offers and sleep advice."
+      title={
+        config.promo
+          ? `Save up to ${PROMO_PERCENT}% off`
+          : 'Get discount coupons in your inbox'
+      }
+      description={
+        config.promo
+          ? 'Join our email list and we will email you a promo code right away, plus offers and sleep advice.'
+          : 'Join our email list and we will send you discount coupons, offers and sleep advice.'
+      }
       closeLabel="Close newsletter sign-up"
       wide
     >

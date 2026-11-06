@@ -20,6 +20,8 @@ import type {
 /** Fixed ASCII subject, so a shopper's input never reaches a header. */
 export const SIGNUP_EMAIL_SUBJECT =
   'New newsletter signup (send the discount coupon)';
+/** When the welcome email already carries the code, the team is not asked to send one by hand. */
+export const SIGNUP_EMAIL_SUBJECT_AUTOMATIC = 'New newsletter signup';
 
 type Send = (config: SmtpConfig, raw: string) => ReturnType<typeof sendMail>;
 
@@ -29,7 +31,11 @@ export function smtpSignupAvailable(env: object): boolean {
 }
 
 /** What the team reads. The address was validated by the signup form handler before it gets here. */
-export function signupEmailText(request: SubscribeRequest, date: Date): string {
+export function signupEmailText(
+  request: SubscribeRequest,
+  date: Date,
+  couponSentAutomatically = false,
+): string {
   return [
     'A shopper asked for discount coupons and marketing emails.',
     '',
@@ -41,7 +47,9 @@ export function signupEmailText(request: SubscribeRequest, date: Date): string {
     EMAIL_CONSENT.text,
     `Wording version: ${EMAIL_CONSENT.version}`,
     '',
-    'Send the coupon from your mail tool and keep this email as the consent record.',
+    couponSentAutomatically
+      ? 'The shopper was emailed the promo code automatically. Keep this email as the consent record.'
+      : 'Send the coupon from your mail tool and keep this email as the consent record.',
   ].join('\n');
 }
 
@@ -62,7 +70,10 @@ export function createSmtpSubscriber(options: {
   readonly send?: Send;
   readonly now?: () => Date;
   readonly newId?: () => string;
+  /** True when the shopper is emailed the promo code by the welcome email. */
+  readonly couponSentAutomatically?: boolean;
 }): KlaviyoClient | null {
+  const automatic = options.couponSentAutomatically === true;
   const read = readSmtpConfig(options.env);
   if (read.status !== 'ready') return null;
   const {config} = read;
@@ -78,8 +89,10 @@ export function createSmtpSubscriber(options: {
           from: config.from,
           to: config.to,
           cc: config.cc,
-          subject: SIGNUP_EMAIL_SUBJECT,
-          text: signupEmailText(request, date),
+          subject: automatic
+            ? SIGNUP_EMAIL_SUBJECT_AUTOMATIC
+            : SIGNUP_EMAIL_SUBJECT,
+          text: signupEmailText(request, date, automatic),
           date,
           id: newId(),
         });

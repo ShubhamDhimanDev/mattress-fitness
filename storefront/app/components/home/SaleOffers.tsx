@@ -73,11 +73,10 @@ const PERCENT_OFFERS: readonly PercentOffer[] = [
   {brand: 'Sealy', handle: 'sealy', percent: 60},
 ];
 
-// PLACEHOLDER AMOUNTS (2026-11-06): the owner asked for a "--% off" stamp on the Casper and Helix banners but has not given
-// the figures. These two numbers are examples so the layout can be reviewed; the owner must confirm or replace them, and each
-// must exist as a real discount in Shopify admin, before the page goes live.
-const CASPER_PERCENT = 30;
-const HELIX_PERCENT = 25;
+// The owner's figures (2026-11-06): Casper up to 35%, Helix up to 30%. Like every amount here they are not checked against
+// Shopify; each must exist as a real discount in Shopify admin before the page goes live.
+const CASPER_PERCENT = 35;
+const HELIX_PERCENT = 30;
 
 type BrandLink = {readonly brand: string; readonly handle: string};
 
