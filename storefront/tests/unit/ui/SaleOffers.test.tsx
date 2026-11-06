@@ -61,9 +61,9 @@ describe('SaleOffers: the offer text is markup, not part of a picture', () => {
     ).toBeInTheDocument();
     const text =
       screen.getByRole('region', {name: 'Brand offers'}).textContent ?? '';
-    // The stamps are text (placeholder figures until the owner confirms them, see SaleOffers.tsx).
+    // The stamps are text: the owner's figures (Casper 35%, Helix 30%).
+    expect(screen.getByText('35%')).toBeInTheDocument();
     expect(screen.getByText('30%')).toBeInTheDocument();
-    expect(screen.getByText('25%')).toBeInTheDocument();
     // Only the owner's offers carry a dollar amount: three headings, three gifts.
     expect((text.match(/\$\d/g) ?? []).length).toBe(6);
   });
