@@ -16,6 +16,7 @@ import {readEnvString} from '~/lib/extend/env';
 import {SMS_CONSENT} from '~/lib/signup/consent';
 import {shopifyCustomerSignupAvailable} from '~/lib/signup/shopify-customer';
 import {smtpSignupAvailable} from '~/lib/signup/smtp-subscriber';
+import {welcomeEmailAvailable} from '~/lib/signup/welcome-email';
 import type {SignupPublicConfig} from '~/lib/signup/shared';
 
 export const KLAVIYO_ENV = {
@@ -90,8 +91,10 @@ export function publicSignupConfig(
   options: SignupConfigOptions,
 ): SignupPublicConfig | null {
   const config = readSignupConfig(env, options);
-  if (config.status === 'ready') return {sms: config.sms, privacyHref};
+  const promo = welcomeEmailAvailable(env);
+  if (config.status === 'ready')
+    return {sms: config.sms, ...(promo ? {promo} : {}), privacyHref};
   return smtpSignupAvailable(env) || shopifyCustomerSignupAvailable(env)
-    ? {sms: false, privacyHref}
+    ? {sms: false, ...(promo ? {promo} : {}), privacyHref}
     : null;
 }

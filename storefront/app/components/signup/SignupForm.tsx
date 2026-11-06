@@ -7,6 +7,7 @@ import {EMAIL_CONSENT, SMS_CONSENT} from '~/lib/signup/consent';
 import {precheckSignup} from '~/lib/signup/precheck';
 import {
   CONSENT_GIVEN,
+  PROMO_PERCENT,
   SIGNUP_FIELDS,
   SIGNUP_MESSAGES,
   type SignupFieldErrors,
@@ -125,7 +126,9 @@ export function SignupForm({
           <p
             className={band ? 'text-lg text-white' : 'text-base text-fg-muted'}
           >
-            Join our email list for new arrivals, offers and sleep advice.
+            {config.promo
+              ? `Join our email list and we will email you a promo code for up to ${PROMO_PERCENT}% off, plus new arrivals, offers and sleep advice.`
+              : 'Join our email list for new arrivals, offers and sleep advice.'}
           </p>
         </div>
       )}

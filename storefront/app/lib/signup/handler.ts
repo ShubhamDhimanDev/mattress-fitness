@@ -43,6 +43,10 @@ import {validateSignupEmail} from '~/lib/signup/email';
 import {combineSubscribers} from '~/lib/signup/combined-subscriber';
 import {createShopifyCustomerSubscriber} from '~/lib/signup/shopify-customer';
 import {createSmtpSubscriber} from '~/lib/signup/smtp-subscriber';
+import {
+  createWelcomeEmailSubscriber,
+  welcomeEmailAvailable,
+} from '~/lib/signup/welcome-email';
 import {createSignupGate, type SignupGate} from '~/lib/signup/limiter';
 import {parseSignupForm, type SignupInput} from '~/lib/signup/request';
 import {
@@ -263,8 +267,8 @@ export function signupDepsFromEnv(
 ): SignupDeps {
   const config: SignupServerConfig = readSignupConfig(env, options);
   return {
-    // Klaviyo when configured; otherwise the SMTP email to the store team (CR-34); and, whenever the customers token is
-    // set, also a Shopify customer tagged `subscribe`. Off only when none of them is configured.
+    // Klaviyo when configured; otherwise the SMTP email to the store team (CR-34); whenever the customers token is
+    // set, also a Shopify customer tagged `subscribe`, and whenever SMTP and a promo code are set, the welcome email. Off only when none of them is configured.
     client: combineSubscribers(
       config.status === 'ready'
         ? createKlaviyoClient({
@@ -272,8 +276,13 @@ export function signupDepsFromEnv(
             listId: config.listId,
             fetch: fetchFn,
           })
-        : createSmtpSubscriber({env}),
+        : createSmtpSubscriber({
+            env,
+            couponSentAutomatically: welcomeEmailAvailable(env),
+          }),
       createShopifyCustomerSubscriber({env, fetch: fetchFn}),
+      // The shopper's own email with the promo code (owner request 2026-11-06); off without the SMTP settings.
+      createWelcomeEmailSubscriber({env}),
     ),
     sms: config.status === 'ready' && config.sms,
     gate: gateForInstance(),

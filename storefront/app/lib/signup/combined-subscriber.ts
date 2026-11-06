@@ -1,7 +1,7 @@
-// SERVER ONLY. Runs the signup's destinations together: the main one (Klaviyo, or the SMTP email to the team) and the Shopify
-// customer with the `subscribe` tag. Both get every signup. The shopper sees "thank you" when at least one took it, and
-// the one that failed is logged by reason code so the team can fix it; only when both fail does the shopper see "try again
-// later". Null when nothing is configured: nothing is faked.
+// SERVER ONLY. Runs the signup's destinations together: the main one (Klaviyo, or the SMTP email to the team), the Shopify
+// customer with the `subscribe` tag, and the welcome email with the promo code. All get every signup. The shopper sees
+// "thank you" when at least one took it, and each that failed is logged by reason code so the team can fix it; only when
+// all fail does the shopper see "try again later". Null when nothing is configured: nothing is faked.
 
 import {logWarn} from '~/lib/logging/logger';
 import type {
@@ -21,33 +21,40 @@ async function attempt(
   }
 }
 
+/** Names for the log line, in the order the clients are passed: the main destination, the Shopify customer, the welcome email. */
+const DESTINATIONS = ['main', 'shopify_customer', 'welcome_email'] as const;
+
 export function combineSubscribers(
-  main: KlaviyoClient | null,
-  shopify: KlaviyoClient | null,
+  ...clients: readonly (KlaviyoClient | null)[]
 ): KlaviyoClient | null {
-  if (main === null) return shopify;
-  if (shopify === null) return main;
+  const present = clients.flatMap((client, index) =>
+    client === null
+      ? []
+      : [{client, name: DESTINATIONS[index] ?? `destination_${index}`}],
+  );
+  const only = present[0];
+  if (only === undefined) return null;
+  if (present.length === 1) return only.client;
   return {
     async subscribe(request) {
-      const [first, second] = await Promise.all([
-        attempt(main, request),
-        attempt(shopify, request),
-      ]);
-      if (first.status === 'failed') {
-        logWarn('signup.destination_failed', {
-          destination: 'main',
-          reason: first.reason,
-        });
+      const results = await Promise.all(
+        present.map(async ({client, name}) => ({
+          name,
+          result: await attempt(client, request),
+        })),
+      );
+      for (const {name, result} of results) {
+        if (result.status === 'failed') {
+          logWarn('signup.destination_failed', {
+            destination: name,
+            reason: result.reason,
+          });
+        }
       }
-      if (second.status === 'failed') {
-        logWarn('signup.destination_failed', {
-          destination: 'shopify_customer',
-          reason: second.reason,
-        });
-      }
-      return first.status === 'accepted' || second.status === 'accepted'
+      const failed = results.find(({result}) => result.status === 'failed');
+      return results.some(({result}) => result.status === 'accepted')
         ? {status: 'accepted'}
-        : first;
+        : (failed?.result ?? {status: 'failed', reason: 'unexpected'});
     },
   };
 }
