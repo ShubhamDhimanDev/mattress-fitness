@@ -12,6 +12,7 @@ const SALE_BRANDS = [
   {name: 'Serta', handle: 'serta'},
   {name: 'Beautyrest', handle: 'beautyrest'},
   {name: 'Aireloom', handle: 'aireloom'},
+  {name: 'Kingsdown', handle: 'kingsdown'},
   {name: 'Molecule', handle: 'molecule'},
   {name: 'Casper', handle: 'casper'},
   {name: 'Brooklyn Bedding', handle: 'brooklyn-bedding'},

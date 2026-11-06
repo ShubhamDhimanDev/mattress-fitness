@@ -79,9 +79,11 @@ const PERCENT_OFFERS: readonly PercentOffer[] = [
 const CASPER_PERCENT = 30;
 const HELIX_PERCENT = 25;
 
+type BrandLink = {readonly brand: string; readonly handle: string};
+
 type Banner = {
-  readonly brand: string;
-  readonly handle: string;
+  /** One button per brand: a banner may cover several brands, each going to its own page. */
+  readonly links: readonly BrandLink[];
   readonly heading: string;
   readonly text: string;
   readonly image: SiteImageData;
@@ -96,11 +98,17 @@ type Banner = {
   readonly percent?: number;
 };
 
+// Black Friday gift (owner request 2026-11-06): a free adjustable base with these three brands only. The base is the Twin
+// baselogic Platform (serta-baselogic-platform); the Shopify discount that makes it free is created by
+// scripts/setup/free-base-offer.mjs and must be active before this goes live.
 const WIDE_BANNER: Banner = {
-  brand: 'Sealy',
-  handle: 'sealy',
+  links: [
+    {brand: 'Aireloom', handle: 'aireloom'},
+    {brand: 'Kingsdown', handle: 'kingsdown'},
+    {brand: 'Molecule', handle: 'molecule'},
+  ],
   heading: 'Free adjustable base',
-  text: 'on select Sealy styles',
+  text: 'on Aireloom, Kingsdown and Molecule mattresses',
   image: SITE_IMAGES.offerAdjustable,
   alt: 'A couple talking while sitting on a split adjustable bed',
   side: 'left',
@@ -108,8 +116,7 @@ const WIDE_BANNER: Banner = {
 
 const HALF_BANNERS: readonly Banner[] = [
   {
-    brand: 'Casper',
-    handle: 'casper',
+    links: [{brand: 'Casper', handle: 'casper'}],
     heading: 'Casper',
     text: 'Mattresses, pillows and sheets.',
     image: SITE_IMAGES.offerCasper,
@@ -118,8 +125,7 @@ const HALF_BANNERS: readonly Banner[] = [
     percent: CASPER_PERCENT,
   },
   {
-    brand: 'Helix',
-    handle: 'helix',
+    links: [{brand: 'Helix', handle: 'helix'}],
     heading: 'Helix',
     text: 'Hybrid mattresses in plush, medium and firm feels.',
     image: SITE_IMAGES.offerHelix,
@@ -160,9 +166,11 @@ function DealTicker() {
       (offer) => `${offer.brand}: up to ${offer.percent}% off`,
     ),
     ...HALF_BANNERS.flatMap((banner) =>
-      banner.percent ? [`${banner.brand}: up to ${banner.percent}% off`] : [],
+      banner.percent && banner.links[0]
+        ? [`${banner.links[0].brand}: up to ${banner.percent}% off`]
+        : [],
     ),
-    'Free adjustable base on select Sealy',
+    'Free adjustable base on Aireloom, Kingsdown and Molecule',
     'Free gift with adjustable sets',
   ];
   const line = (
@@ -343,14 +351,19 @@ function PhotoBanner({banner, half}: {banner: Banner; half?: boolean}) {
       >
         <h3 className="type-display text-4xl md:text-5xl">{banner.heading}</h3>
         <p className="text-lg font-bold md:text-xl">{banner.text}</p>
-        <Button
-          to={brandPath(banner.handle)}
-          prefetch="intent"
-          size="lg"
-          variant={left ? 'primary' : 'dark'}
-        >
-          Shop {banner.brand}
-        </Button>
+        <div className="flex flex-wrap gap-2 md:gap-3">
+          {banner.links.map((link) => (
+            <Button
+              key={link.handle}
+              to={brandPath(link.handle)}
+              prefetch="intent"
+              size="lg"
+              variant={left ? 'primary' : 'dark'}
+            >
+              Shop {link.brand}
+            </Button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -358,7 +371,7 @@ function PhotoBanner({banner, half}: {banner: Banner; half?: boolean}) {
 
 /**
  * Brand offers under the hero: a moving ticker of every deal, the gold percentage tiles (a swipeable row on a phone), three
- * photo cards ("Save up to ... on adjustable sets" and a gift), the free-base banner and a Casper and a Helix banner side by
+ * photo cards ("Save up to ... on adjustable sets" and a gift), the free-base banner (Aireloom, Kingsdown, Molecule) and a Casper and a Helix banner side by
  * side, each with a "--% off" stamp. All text is markup; none of it is read from Shopify.
  */
 export function SaleOffers() {
@@ -389,7 +402,7 @@ export function SaleOffers() {
 
       <div className="grid gap-4 md:grid-cols-2 md:gap-6">
         {HALF_BANNERS.map((banner) => (
-          <PhotoBanner key={banner.handle} banner={banner} half />
+          <PhotoBanner key={banner.heading} banner={banner} half />
         ))}
       </div>
 
