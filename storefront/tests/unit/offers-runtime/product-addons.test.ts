@@ -15,6 +15,8 @@ import {
 import {
   CONFIG,
   GID,
+  OFFLINE_ENV,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -43,7 +45,7 @@ const RULES = {
     pillows: CONFIG.rules.matchingAddOns.pillows,
   },
 };
-const ENV = {OFFER_CONFIG_JSON: JSON.stringify({...CONFIG, rules: RULES})};
+const ENV = offerEnv({...CONFIG, rules: RULES});
 
 function item(
   variantId: string,
@@ -107,30 +109,31 @@ describe('itemsForSize (REQ-ADD-001: changing the size swaps the offered variant
 });
 
 describe('productHasAddOns (rules only, no Shopify read)', () => {
-  it('is true for a mattress product with foundation relations', () => {
-    expect(productHasAddOns(ENV, GID.mattress)).toBe(true);
+  it('is true for a mattress product with foundation relations', async () => {
+    expect(await productHasAddOns(ENV, GID.mattress)).toBe(true);
   });
 
   it.each([
     ['a product with no relation', ENV, GID.other],
-    ['offers switched off', {...ENV, OFFERS_ENABLED: 'false'}, GID.mattress],
-    ['no configuration', {}, GID.mattress],
-    ['an unreadable configuration', {OFFER_CONFIG_JSON: '{nope'}, GID.mattress],
-  ])('is false for %s', (_name, env, productId) => {
-    expect(productHasAddOns(env, productId)).toBe(false);
+    ['no Admin token', OFFLINE_ENV, GID.mattress],
+    [
+      'rules Shopify could not be read for',
+      offerEnv({}, 'invalid'),
+      GID.mattress,
+    ],
+  ])('is false for %s', async (_name, env, productId) => {
+    expect(await productHasAddOns(env, productId)).toBe(false);
   });
 
-  it('is false for a product that has only pillow relations (cart only)', () => {
-    const env = {
-      OFFER_CONFIG_JSON: JSON.stringify({
-        ...CONFIG,
-        rules: {
-          ...CONFIG.rules,
-          matchingAddOns: {pillows: CONFIG.rules.matchingAddOns.pillows},
-        },
-      }),
-    };
-    expect(productHasAddOns(env, GID.mattress)).toBe(false);
+  it('is false for a product that has only pillow relations (cart only)', async () => {
+    const env = offerEnv({
+      ...CONFIG,
+      rules: {
+        ...CONFIG.rules,
+        matchingAddOns: {pillows: CONFIG.rules.matchingAddOns.pillows},
+      },
+    });
+    expect(await productHasAddOns(env, GID.mattress)).toBe(false);
   });
 });
 
@@ -190,8 +193,7 @@ describe('loadProductAddOns (REQ-ADD-001, REQ-CAT-007)', () => {
 
   it.each([
     ['a product that is not a mattress with add-ons', ENV, GID.other],
-    ['offers switched off', {...ENV, OFFERS_ENABLED: 'false'}, GID.mattress],
-    ['no configuration', {}, GID.mattress],
+    ['no Admin token', OFFLINE_ENV, GID.mattress],
   ])('offers nothing, and reads nothing, for %s', async (_name, env, id) => {
     const {storefront, calls} = fakeStorefront(storefrontResponder());
     expect(await listed(loadProductAddOns(storefront, env, id))).toEqual([]);

@@ -106,7 +106,7 @@ export function readProductAddOnsAnswer(
 }
 
 // Dev-only test hook (see products.$handle.tsx): the e2e spec opts a page into the add-on slot with this cookie, because
-// the dev server has no OFFER_CONFIG_JSON. A pure function so the multi-cookie header case is tested (as for Extend).
+// the dev server has no Admin token to read the offer rules with. A pure function so the multi-cookie header case is tested (as for Extend).
 const DEV_ADDONS_COOKIE = /(?:^|;\s*)e2e_addons_expected=1(?:;|$)/;
 
 export function hasDevAddOnsCookie(cookieHeader: string): boolean {

@@ -14,6 +14,7 @@ import {
   FakeCart,
   GID,
   MATTRESS_LINE,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -74,10 +75,7 @@ const RULES = {
     ],
   },
 };
-const ENV = {
-  OFFER_CONFIG_JSON: JSON.stringify({...CONFIG, rules: RULES}),
-  PUBLIC_GIFT_PICKER_ENABLED: 'true',
-};
+const ENV = offerEnv({...CONFIG, rules: RULES});
 
 class PartialCart extends FakeCart {
   override addLines(lines: CartLineAddInput[]) {

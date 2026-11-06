@@ -115,7 +115,7 @@ test('the data model fields that other work packages depend on are present', () 
   assert.equal(settings.storefrontAccess, 'PUBLIC_READ');
   assert.ok(!fields('site_settings').includes('free_delivery_threshold'), 'free-delivery threshold has one source: delivery_zone.free_over');
   const offerType = spec.metaobjectDefinitions.find((definition) => definition.type === 'offer_rule').fieldDefinitions.find((field) => field.key === 'type');
-  assert.deepEqual(offerType.validations[0].value, ['comfort_protector', 'haul_away', 'matching_protector', 'pillow', 'bedding', 'gift', 'bundle']);
+  assert.deepEqual(offerType.validations[0].value, ['comfort_protector', 'haul_away', 'matching_protector', 'pillow', 'bedding', 'gift', 'bundle', 'foundation']);
   const postal = spec.metaobjectDefinitions.find((definition) => definition.type === 'delivery_zone').fieldDefinitions.find((field) => field.key === 'postal_codes');
   assert.equal(postal.validations[0].value, 3000, 'matches the Local delivery limit (F-28)');
 });

@@ -92,7 +92,7 @@ describe('parseOptions', () => {
 describe('buildEnvFile and run', () => {
   it('writes only the demo variables and nothing for any third-party service', () => {
     const text = buildEnvFile(
-      {domain: 'a.myshopify.com', token: TOKEN, noOffers: false},
+      {domain: 'a.myshopify.com', token: TOKEN},
       {session: 'x'.repeat(64), delivery: 'y'.repeat(64)},
     );
     const names = text
@@ -109,13 +109,6 @@ describe('buildEnvFile and run', () => {
     for (const word of THIRD_PARTY) {
       assert.ok(!names.some((n) => n.includes(word)), word);
     }
-  });
-
-  it('adds OFFERS_ENABLED=false only on request', () => {
-    const base = {domain: 'a.myshopify.com', token: TOKEN};
-    const s = {session: 'x'.repeat(64), delivery: 'y'.repeat(64)};
-    assert.ok(!buildEnvFile({...base, noOffers: false}, s).includes('OFFERS_ENABLED'));
-    assert.ok(buildEnvFile({...base, noOffers: true}, s).includes('OFFERS_ENABLED=false'));
   });
 
   it('generates two different 64 character secrets and never prints them', () => {

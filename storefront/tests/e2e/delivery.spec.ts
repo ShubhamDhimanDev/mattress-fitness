@@ -14,8 +14,8 @@ import {
 } from './helpers/catalog';
 
 // P3B-11 (ZIP cookie, server-side read), P5B-03 (product-page promise): REQ-NAV-003, REQ-DEL-001,
-// REQ-DEL-002, T-05. Needs a delivery zone in the server configuration, so it runs against a dev server
-// started with OFFER_CONFIG_JSON that has a `zone` (see DEV_DATA.md, "Delivery ZIP"). The zone used here
+// REQ-DEL-002, T-05. Needs a delivery zone read from Shopify (the delivery_zone metaobject and an Admin token), so it runs
+// against a store that has one (see DEV_DATA.md, "Delivery ZIP"). The zone used here
 // covers 606* and 60007. Without a zone the page says nothing about delivery (by design), and this spec
 // skips with that reason instead of passing vacuously.
 //
@@ -36,7 +36,7 @@ async function zoneIsConfigured(page: Page): Promise<boolean> {
 test.beforeEach(async ({page}) => {
   test.skip(
     !(await zoneIsConfigured(page)),
-    'no delivery zone in the server configuration (OFFER_CONFIG_JSON); see DEV_DATA.md',
+    'no delivery zone read from Shopify (delivery_zone metaobject and Admin token); see DEV_DATA.md',
   );
 });
 

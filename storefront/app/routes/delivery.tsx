@@ -46,13 +46,16 @@ function respond(
   });
 }
 
-function failure(
+async function failure(
   env: object,
   zip: string | null,
   error: DeliveryError,
   status: number,
 ) {
-  return respond({delivery: deliveryViewForEnv(env, zip), error}, {status});
+  return respond(
+    {delivery: await deliveryViewForEnv(env, zip), error},
+    {status},
+  );
 }
 
 /**
@@ -62,7 +65,7 @@ function failure(
 export async function loader({request, context}: Route.LoaderArgs) {
   const zip = await readDeliveryZip(request, context.env);
   return respond({
-    delivery: deliveryViewForEnv(context.env, zip),
+    delivery: await deliveryViewForEnv(context.env, zip),
     error: null,
   });
 }
@@ -77,16 +80,16 @@ export async function action({request, context}: Route.ActionArgs) {
   const {env} = context;
   const current = await readDeliveryZip(request, env);
   if (!isSameOriginRequest(request)) {
-    return failure(env, current, 'save-failed', 403);
+    return await failure(env, current, 'save-failed', 403);
   }
   // Production without a usable signing secret: nothing can be kept, so say so before reading the body.
   if (!deliveryZipSavingAvailable(env)) {
-    return failure(env, null, 'save-failed', 503);
+    return await failure(env, null, 'save-failed', 503);
   }
   const read = await readSmallForm(request);
   // An oversized or unreadable body is refused with a fixed message before anything is parsed further.
   if (read.status !== 'ok') {
-    return failure(
+    return await failure(
       env,
       current,
       'save-failed',
@@ -97,7 +100,7 @@ export async function action({request, context}: Route.ActionArgs) {
   const intent = form.get('intent');
 
   if (intent !== 'save' && intent !== 'clear') {
-    return failure(env, current, 'save-failed', 400);
+    return await failure(env, current, 'save-failed', 400);
   }
 
   let cookie: string | null;
@@ -107,17 +110,17 @@ export async function action({request, context}: Route.ActionArgs) {
     cookie = await clearDeliveryZipHeader(request, env);
   } else {
     const parsed = parseZip(form.get('zip'));
-    if (!parsed.ok) return failure(env, current, 'invalid-zip', 400);
+    if (!parsed.ok) return await failure(env, current, 'invalid-zip', 400);
     zip = parsed.zip;
     cookie = await saveDeliveryZipHeader(parsed.zip, request, env);
   }
   // No secret to sign with: say so rather than pretend the ZIP was kept.
-  if (cookie === null) return failure(env, current, 'save-failed', 503);
+  if (cookie === null) return await failure(env, current, 'save-failed', 503);
 
   const responseHeaders = noStoreHeaders();
   responseHeaders.append('Set-Cookie', cookie);
   return respond(
-    {delivery: deliveryViewForEnv(env, zip), error: null},
+    {delivery: await deliveryViewForEnv(env, zip), error: null},
     {headers: responseHeaders},
   );
 }

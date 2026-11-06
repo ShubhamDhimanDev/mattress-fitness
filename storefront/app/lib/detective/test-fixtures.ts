@@ -1,5 +1,5 @@
 // TEST ONLY. Synthetic orders and rules for the detective tests (P5B-05). Never imported by application code.
-// Ids are Shopify-shaped GIDs because that is what the Admin API returns and what OFFER_CONFIG_JSON validates. All
+// Ids are Shopify-shaped GIDs because that is what the Admin API returns and what the offer-rule parser validates. All
 // personal data below is invented; the tests assert that none of it, and no ZIP, ever appears in a result.
 
 import type {DetectiveFacts, DetectiveOrder} from '~/lib/detective/types';

@@ -64,7 +64,7 @@ export async function chooseDelivery(
     return rejectedStep('unverified');
   }
   const applies = offers.view.deliveryChoice !== null;
-  const zone = loadDeliveryZone(runtime.env);
+  const zone = await loadDeliveryZone(runtime.env);
   const allowed =
     applies &&
     mayChoose(
@@ -78,7 +78,10 @@ export async function chooseDelivery(
     );
   if (!allowed) return rejectedStep('delivery-choice-unavailable');
   if (choice === 'pickup') {
-    const haulIds = haulAwayLineIds(cart, loadHaulAwayVariantId(runtime.env));
+    const haulIds = haulAwayLineIds(
+      cart,
+      await loadHaulAwayVariantId(runtime.env),
+    );
     if (haulIds.length > 0) {
       const removed = await runtime.cart.removeLines(haulIds);
       if (failed(removed)) return rejectedStep('record-failed');
@@ -147,7 +150,7 @@ export async function declineHaulAway(
   // Mirror of acceptHaulAway: a recorded decline next to a service line would contradict the order.
   if (
     haul.currentQuantity > 0 ||
-    haulAwayLineIds(cart, loadHaulAwayVariantId(runtime.env)).length > 0
+    haulAwayLineIds(cart, await loadHaulAwayVariantId(runtime.env)).length > 0
   ) {
     return rejectedStep('haul-away-in-cart');
   }

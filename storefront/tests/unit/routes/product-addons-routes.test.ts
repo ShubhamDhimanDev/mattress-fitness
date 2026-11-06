@@ -14,6 +14,7 @@ import {
   FakeCart,
   GID,
   MATTRESS_LINE,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -41,7 +42,7 @@ const RULES = {
     ],
   },
 };
-const ENV = {OFFER_CONFIG_JSON: JSON.stringify({...CONFIG, rules: RULES})};
+const ENV = offerEnv({...CONFIG, rules: RULES});
 
 function args(request: Request, context: object) {
   // Route.*Args are framework-generated; only request, context and params are used (test-only narrowing, as in cart-routes.test.ts).
@@ -331,8 +332,8 @@ describe('add-on from the product page through /cart (REQ-ADD-001, T-01)', () =>
 
 describe('product loader flag addOnsExpected (REQ-ADD-001)', () => {
   const PRODUCT_ID = productJson.product.id;
-  const withRule = (mattressProductId: string) => ({
-    OFFER_CONFIG_JSON: JSON.stringify({
+  const withRule = (mattressProductId: string) =>
+    offerEnv({
       ...CONFIG,
       rules: {
         ...CONFIG.rules,
@@ -347,8 +348,7 @@ describe('product loader flag addOnsExpected (REQ-ADD-001)', () => {
           ],
         },
       },
-    }),
-  });
+    });
 
   function run(env: Record<string, string>, cookie = '') {
     const {storefront} = fakeStorefront((call) => {
@@ -390,11 +390,8 @@ describe('product loader flag addOnsExpected (REQ-ADD-001)', () => {
     expect((await run({}, 'e2e_addons_expected=0')).addOnsExpected).toBe(false);
   });
 
-  it('is false with the offers switched off', async () => {
-    expect(
-      (await run({...withRule(PRODUCT_ID), OFFERS_ENABLED: 'false'}))
-        .addOnsExpected,
-    ).toBe(false);
+  it('is false when Shopify could not be read for the rules (fail open)', async () => {
+    expect((await run(offerEnv({}, 'invalid'))).addOnsExpected).toBe(false);
   });
 
   it('makes no extra Shopify read (the list is asked for after load)', async () => {

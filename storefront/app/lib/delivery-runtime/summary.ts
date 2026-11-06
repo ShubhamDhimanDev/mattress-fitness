@@ -24,7 +24,7 @@ export async function loadDeliverySummary(
   const zip = await readDeliveryZip(request, env);
   return {
     deliverySeed: {
-      delivery: deliveryViewForEnv(env, zip),
+      delivery: await deliveryViewForEnv(env, zip),
       error: null,
     },
     deliveryZipAvailable: deliveryZipSavingAvailable(env),

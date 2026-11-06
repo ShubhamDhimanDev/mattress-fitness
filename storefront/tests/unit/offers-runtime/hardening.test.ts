@@ -19,7 +19,8 @@ import {
   pickOffersView,
   readOffersView,
 } from '~/lib/offers-runtime/client';
-import {parseOfferConfig, readOfferConfig} from '~/lib/offers-runtime/config';
+import {parseOfferConfig} from '~/lib/offers-runtime/config';
+import {loadOfferConfig} from '~/lib/offers-runtime/shopify-rules';
 import {withAttribute} from '~/lib/offers-runtime/step-attributes';
 import {CONFIG, ENV, GID} from '~/lib/offers-runtime/test-fixtures';
 import type {BlockReason} from '~/lib/offers-runtime/messages';
@@ -221,19 +222,11 @@ describe('offer configuration (seam for P4-12)', () => {
     expect(loaded.config.zone?.postalCodes).toEqual(['606*', '60007']);
   });
 
-  it('missing, oversized or broken JSON degrades to no offers', () => {
-    expect(readOfferConfig({}).status).toBe('none');
-    expect(readOfferConfig({OFFER_CONFIG_JSON: '  '}).status).toBe('none');
-    expect(readOfferConfig({OFFER_CONFIG_JSON: '{nope'}).status).toBe(
-      'invalid',
-    );
-    expect(
-      readOfferConfig({OFFER_CONFIG_JSON: 'x'.repeat(100_001)}).status,
-    ).toBe('invalid');
-    expect(
-      readOfferConfig({OFFER_CONFIG_JSON: '[]'}).config.rules.gifts,
-    ).toEqual([]);
-    expect(readOfferConfig(ENV).status).toBe('ok');
+  it('a missing token, a non-object answer or an unreadable store degrades to no offers', async () => {
+    expect((await loadOfferConfig({})).status).toBe('none');
+    expect(parseOfferConfig([]).status).toBe('invalid');
+    expect(parseOfferConfig([]).config.rules.gifts).toEqual([]);
+    expect((await loadOfferConfig(ENV)).status).toBe('ok');
   });
 
   it('drops a malformed rule instead of half applying it', () => {

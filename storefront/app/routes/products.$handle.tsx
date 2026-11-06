@@ -119,11 +119,13 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   const {product} = result;
   // Reviews (REQ-PDP-005): free when no provider is configured; otherwise a short-deadline read of the aggregate, after the
   // product is known so an unknown handle never reaches the provider.
-  const reviews = await loadReviewsPageState(
-    context.env,
-    product.handle,
-    import.meta.env.DEV,
-  );
+  // The offer-rule questions share that wait: the rules are cached for a minute and never reject, so they cost the page
+  // nothing once warm.
+  const [reviews, hasAddOns, hasBundle] = await Promise.all([
+    loadReviewsPageState(context.env, product.handle, import.meta.env.DEV),
+    productHasAddOns(context.env, product.id),
+    productHasBundle(context.env, product.id),
+  ]);
   // Never the request's Host (P-L2); null outside development without PUBLIC_SITE_URL: no absolute URL is then emitted.
   const siteOrigin = resolveSiteOrigin({
     env: context.env,
@@ -144,15 +146,15 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
     protection,
     // Whether the offer rules relate foundations, bases or frames to this product (P4-03): rules only, no Shopify read,
     // the same for every shopper. The slot asks for the list itself after load (/api/product-addons). The e2e cookie
-    // opts a page in during development only, because the dev server has no offer configuration.
+    // opts a page in during development only, because the dev server has no Admin token to read offer rules with.
     addOnsExpected:
       (import.meta.env.DEV &&
         hasDevAddOnsCookie(request.headers.get('Cookie') ?? '')) ||
-      productHasAddOns(context.env, product.id),
+      hasAddOns,
     // Whether a bundle rule makes this product the anchor of a "Frequently bought together" set (P4-06): rules only, no
     // Shopify read, the same for every shopper. The card asks for the set itself after load (/api/product-bundle) and
     // renders nothing when no size has a complete set in stock. False = the card is not mounted and costs nothing.
-    bundleExpected: productHasBundle(context.env, product.id),
+    bundleExpected: hasBundle,
     canonical: siteOrigin ? `${siteOrigin}/products/${product.handle}` : null,
     // Reviews: the section exists only with a provider; the aggregate (stars, rating markup) only when it has real reviews.
     reviewsEnabled: reviews.enabled,

@@ -7,7 +7,7 @@
 //   node scripts/detective/report.mjs --store shop.myshopify.com --since 2026-10-01
 //   node scripts/detective/report.mjs --store shop.myshopify.com --offer-config-file offers.json --json --out report.json
 //
-// It judges against the CURRENT offer rules and delivery zone (OFFER_CONFIG_JSON, or --offer-config-file), so an order
+// It judges against the CURRENT offer rules and delivery zone (read from Shopify: active automatic Buy X get Y discounts and the offer_rule and delivery_zone metaobjects; or a raw --offer-config-file), so an order
 // placed under an older haul-away maximum can show a difference that is not a defect; the runbook says how to read it.
 //
 // Safety: it only reads. The Admin client is created without mutation rights, so no Shopify write is possible; the only
@@ -50,7 +50,7 @@ Reads orders only; nothing is written to Shopify. --out writes the report to a n
 Exit codes: 0 every order judged and clean (or only accepted unjudged reasons); 1 a violation was found or the Shopify read
 failed; 2 usage; 3 store refused; 4 no violation, but some order could not be fully judged. --accept-unjudged (repeatable or
 comma separated; only: ${ACCEPTABLE_UNJUDGED.join(', ')}) stops that reason alone from raising 4; it is still counted and printed.
-Environment: SHOPIFY_ADMIN_API_ACCESS_TOKEN, SHOPIFY_ALLOWED_STORES, and OFFER_CONFIG_JSON unless --offer-config-file is given.`;
+Environment: SHOPIFY_ADMIN_API_ACCESS_TOKEN (also needs read_discounts, read_metaobjects and read_products to read the rules) and SHOPIFY_ALLOWED_STORES.`;
 
 /** @param {number} days @param {() => number} now */
 function defaultSince(days, now) {
@@ -58,9 +58,10 @@ function defaultSince(days, now) {
 }
 
 /**
- * Offer rules and zone, from a file or the environment, parsed by the storefront's own parser. A missing or unreadable
- * configuration stops the report: without rules every order would be "not judged", which says nothing.
- * @param {{ file?: string, env: Record<string, string | undefined> }} options
+ * Offer rules and zone, from a file or from Shopify through the storefront's own loader (so the report and the cart see
+ * the same rules). A missing or unreadable configuration stops the report: without rules every order would be "not
+ * judged", which says nothing.
+ * @param {{ file?: string, store: string, token: string, fetch: typeof fetch }} options
  * @param {Awaited<ReturnType<typeof loadDetectiveLibs>>} libs
  */
 export async function readRules(options, libs) {
@@ -73,13 +74,16 @@ export async function readRules(options, libs) {
       return { ok: false, error: 'The offer configuration file could not be read as JSON.' };
     }
   } else {
-    load = libs.readOfferConfig({ OFFER_CONFIG_JSON: options.env.OFFER_CONFIG_JSON });
+    load = await libs.loadOfferConfig(
+      { PUBLIC_STORE_DOMAIN: options.store, SHOPIFY_ADMIN_API_ACCESS_TOKEN: options.token },
+      { fetch: options.fetch },
+    );
   }
   if (load.status !== 'ok') {
     return {
       ok: false,
       error: load.status === 'none'
-        ? 'No offer rules: set OFFER_CONFIG_JSON or pass --offer-config-file. Without them no order can be judged.'
+        ? 'No offer rules could be read from Shopify (check the store domain and the Admin token) and no --offer-config-file was given. Without them no order can be judged.'
         : `The offer rules are not usable (${load.warnings.join('; ') || 'invalid'}).`,
     };
   }
@@ -264,7 +268,10 @@ export async function main(argv, io = {}) {
   }
 
   const libs = await loadDetectiveLibs();
-  const rules = await readRules({ file: typeof v['offer-config-file'] === 'string' ? v['offer-config-file'] : undefined, env }, libs);
+  const rules = await readRules(
+    { file: typeof v['offer-config-file'] === 'string' ? v['offer-config-file'] : undefined, store: String(store), token: token.token, fetch: fetchFn },
+    libs,
+  );
   if (!rules.ok) {
     err(rules.error);
     return EXIT_USAGE;

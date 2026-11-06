@@ -12,13 +12,13 @@ import {loadDeliveryZone} from '~/lib/delivery-runtime/zone';
  * variable name inside `deliveryZipSavingAvailable`; nothing about the ZIP is logged here. Development keeps the
  * normal answer so the mock stores stay usable (saving there still answers with the fixed error).
  */
-export function deliveryViewForEnv(
+export async function deliveryViewForEnv(
   env: object,
   zip: unknown,
   production: boolean = import.meta.env.PROD,
-): DeliveryView {
+): Promise<DeliveryView> {
   if (!deliveryZipSavingAvailable(env, production)) {
     return {status: 'service-unavailable'};
   }
-  return deliveryViewFor(loadDeliveryZone(env), zip);
+  return deliveryViewFor(await loadDeliveryZone(env), zip);
 }

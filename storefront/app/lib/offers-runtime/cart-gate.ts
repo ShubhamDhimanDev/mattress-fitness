@@ -13,7 +13,7 @@ import {bundleCompletions} from '~/lib/offers/bundles';
 import {giftLinesNotFree, type LineTotals} from '~/lib/offers/gift-price';
 import type {CartLike, OfferRules} from '~/lib/offers/types';
 import {toCartLike} from '~/lib/shopify/cart-mapper';
-import {giftPickerEnabled, offerRulesOf} from './config';
+import {offerRulesOf} from './shopify-rules';
 import {loadOfferedVariants} from './facts';
 import {giftNotFreeReason} from './messages';
 import {
@@ -182,7 +182,7 @@ export async function revalidateCartGate(
   options: GateOptions = {},
 ): Promise<GateResult> {
   const offers = await revalidateCartOffers(runtime, current);
-  const rules = offerRulesOf(runtime.env);
+  const rules = await offerRulesOf(runtime.env);
   const {cart, check, view} = offers;
   // No cart, or one that could not be judged (no repairs, no offers, checkout already withheld): nothing to add.
   if (!cart || !check || !view) return {...offers, rules};
@@ -197,13 +197,10 @@ export async function revalidateCartGate(
     options.bundles === false
       ? []
       : await bundleViews(runtime, cart, mapped, rules);
-  // The gift picker waits for V-03 (config.ts giftPickerEnabled). The price check above still judges any gift line that
-  // is already in the cart, so a gift added some other way is never waved through.
-  const gifts = giftPickerEnabled(runtime.env) ? view.gifts : [];
   return {
     ...offers,
     rules,
     check: notFree.length > 0 ? {...check, status: 'blocked', blocked} : check,
-    view: {...view, blocked, bundles, gifts},
+    view: {...view, blocked, bundles},
   };
 }

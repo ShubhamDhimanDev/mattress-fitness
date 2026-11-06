@@ -23,6 +23,8 @@ import {
   FakeCart,
   GID,
   MATTRESS_LINE,
+  OFFLINE_ENV,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -86,11 +88,7 @@ const RULES = {
     ],
   },
 };
-const ENV = {
-  OFFER_CONFIG_JSON: JSON.stringify({...CONFIG, rules: RULES}),
-  // The gift picker is off by default until V-03 (m2); these tests exercise it switched on.
-  PUBLIC_GIFT_PICKER_ENABLED: 'true',
-};
+const ENV = offerEnv({...CONFIG, rules: RULES});
 
 function runtime(
   fake: FakeCart,
@@ -228,25 +226,16 @@ describe('addGift (REQ-CART-002, REQ-PROMO-001)', () => {
     expect(addCalls(fake)).toEqual([]);
   });
 
-  it('fails closed in production without the offer configuration (cannot tell a gift from an ordinary line)', async () => {
+  it('fails open when the offer rules cannot be read: nothing is offered, so nothing is added', async () => {
     const fake = new FakeCart([MATTRESS_LINE]);
-    const result = await addGift(
-      runtime(fake, {env: {}}),
-      fake.snapshot(),
-      input(GID.gift),
-    );
-    expect(rejectedCode(result)).toBe('unverified');
-    expect(addCalls(fake)).toEqual([]);
-  });
-
-  it('with the offers switched off nothing is offered, so nothing is added', async () => {
-    const fake = new FakeCart([MATTRESS_LINE]);
-    const result = await addGift(
-      runtime(fake, {env: {...ENV, OFFERS_ENABLED: 'false'}}),
-      fake.snapshot(),
-      input(GID.gift),
-    );
-    expect(rejectedCode(result)).toBe('gift-not-offered');
+    for (const env of [OFFLINE_ENV, offerEnv({}, 'invalid')]) {
+      const result = await addGift(
+        runtime(fake, {env}),
+        fake.snapshot(),
+        input(GID.gift),
+      );
+      expect(rejectedCode(result)).toBe('gift-not-offered');
+    }
     expect(addCalls(fake)).toEqual([]);
   });
 
@@ -442,12 +431,12 @@ describe('addAddOn (REQ-CART-003, REQ-ADD-001)', () => {
     expect(addCalls(fake)).toHaveLength(1);
   });
 
-  it('fails closed in production without the offer configuration', async () => {
+  it('fails open without readable offer rules: nothing is offered, so nothing is added', async () => {
     const fake = new FakeCart([MATTRESS_LINE]);
     const result = await addAddOn(runtime(fake, {env: {}}), fake.snapshot(), {
       variantId: GID.pillowVariant,
     });
-    expect(rejectedCode(result)).toBe('unverified');
+    expect(rejectedCode(result)).toBe('addon-not-offered');
     expect(addCalls(fake)).toEqual([]);
   });
 
@@ -515,12 +504,10 @@ describe('bundles in the cart view (REQ-ADD-002, REQ-PROMO-002)', () => {
         },
       ],
     };
-    const env = {
-      OFFER_CONFIG_JSON: JSON.stringify({
-        ...CONFIG,
-        rules: {...RULES, bundles: [queenOnly]},
-      }),
-    };
+    const env = offerEnv({
+      ...CONFIG,
+      rules: {...RULES, bundles: [queenOnly]},
+    });
     const fake = new FakeCart([KING_MATTRESS]);
     const gate = await revalidateCartGate(
       runtime(fake, {env}),
@@ -604,16 +591,13 @@ describe('bundles in the cart view (REQ-ADD-002, REQ-PROMO-002)', () => {
   });
 
   it('M1: a rule without a discount title shows no figure, whatever Shopify reports', async () => {
-    const env = {
-      ...ENV,
-      OFFER_CONFIG_JSON: JSON.stringify({
-        ...CONFIG,
-        rules: {
-          ...RULES,
-          bundles: [{...BUNDLE_RULE, discountTitle: undefined}],
-        },
-      }),
-    };
+    const env = offerEnv({
+      ...CONFIG,
+      rules: {
+        ...RULES,
+        bundles: [{...BUNDLE_RULE, discountTitle: undefined}],
+      },
+    });
     const fake = new FakeCart([
       {
         ...MATTRESS_LINE,
@@ -748,14 +732,14 @@ describe('addBundle (REQ-ADD-002)', () => {
     expect(addCalls(fake)).toEqual([]);
   });
 
-  it('fails closed in production without the offer configuration', async () => {
+  it('fails open without readable offer rules: no bundle is offered, so nothing is added', async () => {
     const fake = new FakeCart([MATTRESS_LINE]);
     const result = await addBundle(
       runtime(fake, {env: {}}),
       fake.snapshot(),
       input(),
     );
-    expect(rejectedCode(result)).toBe('unverified');
+    expect(rejectedCode(result)).toBe('bundle-not-offered');
     expect(addCalls(fake)).toEqual([]);
   });
 
@@ -791,52 +775,28 @@ describe('addBundle (REQ-ADD-002)', () => {
   });
 });
 
-describe('the gift picker waits for V-03 (flag PUBLIC_GIFT_PICKER_ENABLED)', () => {
-  const without = (extra: object = {}) => ({
-    OFFER_CONFIG_JSON: ENV.OFFER_CONFIG_JSON,
-    ...extra,
+describe('gifts come from Shopify discounts, with no flag (ADR-0013)', () => {
+  it('offers the gift whenever a gift rule exists', async () => {
+    const fake = new FakeCart([MATTRESS_LINE]);
+    const gate = await revalidateCartGate(runtime(fake), fake.snapshot());
+    expect(gate.view?.gifts.length).toBeGreaterThan(0);
   });
 
-  it.each([
-    ['unset', without()],
-    ['false', without({PUBLIC_GIFT_PICKER_ENABLED: 'false'})],
-    ['not exactly "true"', without({PUBLIC_GIFT_PICKER_ENABLED: 'yes'})],
-  ])(
-    'with the flag %s no gift is offered and none can be added',
-    async (_n, env) => {
-      const fake = new FakeCart([MATTRESS_LINE]);
-      const gate = await revalidateCartGate(
-        runtime(fake, {env}),
-        fake.snapshot(),
-      );
-      expect(gate.view?.gifts).toEqual([]);
-      const result = await addGift(runtime(fake, {env}), fake.snapshot(), {
-        ruleId: GIFT_RULE.id,
-        variantId: GID.gift,
-      });
-      expect(rejectedCode(result)).toBe('gift-not-offered');
-      expect(addCalls(fake)).toEqual([]);
-    },
-  );
-
-  it('add-ons and bundles are unaffected by the flag', async () => {
+  it('offers nothing, and does not pause checkout, when no rules could be read', async () => {
     const fake = new FakeCart([MATTRESS_LINE]);
     const gate = await revalidateCartGate(
-      runtime(fake, {env: without()}),
+      runtime(fake, {env: OFFLINE_ENV}),
       fake.snapshot(),
     );
-    expect(gate.view?.addOns.length).toBeGreaterThan(0);
-    expect(gate.view?.bundles).toHaveLength(1);
+    expect(gate.view?.gifts).toEqual([]);
+    expect(gate.view?.blocked.map((r) => r.code)).not.toContain('unverified');
   });
 
-  it('a gift already in the cart is still price-checked with the flag off (K-M1)', async () => {
+  it('a gift already in the cart is price-checked (K-M1)', async () => {
     const fake = new FakeCart([MATTRESS_LINE]);
     fake.giftDiscountLive = false;
     await fake.addLines([{merchandiseId: GID.gift, quantity: 1}]);
-    const gate = await revalidateCartGate(
-      runtime(fake, {env: without()}),
-      fake.snapshot(),
-    );
+    const gate = await revalidateCartGate(runtime(fake), fake.snapshot());
     expect(gate.view?.blocked.map((r) => r.code)).toContain('gift-not-free');
   });
 });

@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -28,6 +29,28 @@ const OFFER_CONFIG = JSON.stringify({
   },
   zone: { name: 'Metro', postalCodes: '606*', feeCents: 14900 },
 });
+
+/** The default rules for the harness: a raw configuration file, which the report accepts instead of reading Shopify. */
+const RULES_FILE = path.join(mkdtempSync(path.join(os.tmpdir(), 'detective-default-rules-')), 'offers.json');
+writeFileSync(RULES_FILE, OFFER_CONFIG);
+
+/** The Admin answers the rule queries get when a test reads the rules from Shopify itself. */
+function shopifyRuleAnswer(query) {
+  if (query.includes('OfferGiftDiscounts')) return { data: { discountNodes: { nodes: [] } } };
+  if (query.includes('OfferRuleEntries')) {
+    const field = (key, value) => ({ key, value });
+    return {
+      data: {
+        rules: { nodes: [{ id: 'gid://shopify/Metaobject/1', fields: [field('name', 'Haul'), field('type', 'haul_away'), field('products', '["gid://shopify/Product/62"]'), field('max_quantity', '3')] }] },
+        zones: { nodes: [{ fields: [field('name', 'Metro'), field('postal_codes', '606*'), field('fee', '{"amount":"149.0","currency_code":"USD"}')] }] },
+      },
+    };
+  }
+  if (query.includes('OfferRuleProducts')) {
+    return { data: { nodes: [{ id: 'gid://shopify/Product/62', title: 'Haul', variants: { nodes: [{ id: 'gid://shopify/ProductVariant/621', title: 'Default Title', selectedOptions: [{ name: 'Title', value: 'Default Title' }] }] } }] } };
+  }
+  return null;
+}
 
 /** The Admin client waits for its cost bucket to refill; tests must not. */
 const NO_WAIT = { now: () => 0, sleep: () => Promise.resolve() };
@@ -67,12 +90,14 @@ function orderNode(id, { lines = [lineNode()], zip = '60645', attributes = [{ ke
 }
 
 /** Shopify Admin scripted as pages of order nodes; every request body is kept. */
-function harness(pages, overrides = {}) {
+function harness(pages, overrides = {}, { rules = 'file' } = {}) {
   const requests = [];
   const queue = [...pages];
   const fetchFn = (url, init) => {
     assert.ok(String(url).startsWith(`https://${STORE}/`), 'only the shop host is called');
     const body = JSON.parse(init.body);
+    const ruleAnswer = rules === 'shopify' ? shopifyRuleAnswer(body.query) : null;
+    if (ruleAnswer !== null) return Promise.resolve(new Response(JSON.stringify(ruleAnswer)));
     requests.push(body);
     const next = queue.shift();
     if (next === undefined) return Promise.resolve(new Response(JSON.stringify({ data: { orders: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] } } })));
@@ -81,8 +106,8 @@ function harness(pages, overrides = {}) {
   };
   const lines = [];
   const errors = [];
-  const env = { SHOPIFY_ADMIN_API_ACCESS_TOKEN: ADMIN_TOKEN, SHOPIFY_ALLOWED_STORES: STORE, OFFER_CONFIG_JSON: OFFER_CONFIG, ...overrides };
-  const run = (argv) => main(argv, { env, fetch: fetchFn, out: (t) => lines.push(t), err: (t) => errors.push(t), logWrite: () => {}, now: () => Date.parse('2026-10-14T00:00:00Z'), clock: NO_WAIT });
+  const env = { SHOPIFY_ADMIN_API_ACCESS_TOKEN: ADMIN_TOKEN, SHOPIFY_ALLOWED_STORES: STORE, ...overrides };
+  const run = (argv) => main(rules === 'file' && !argv.includes('--offer-config-file') ? [...argv, '--offer-config-file', RULES_FILE] : argv, { env, fetch: fetchFn, out: (t) => lines.push(t), err: (t) => errors.push(t), logWrite: () => {}, now: () => Date.parse('2026-10-14T00:00:00Z'), clock: NO_WAIT });
   return { run, lines, errors, requests, text: () => [...lines, ...errors].join('\n') };
 }
 
@@ -108,8 +133,8 @@ function orderedShopify(allOrders, overrides = {}) {
   };
   const lines = [];
   const errors = [];
-  const env = { SHOPIFY_ADMIN_API_ACCESS_TOKEN: ADMIN_TOKEN, SHOPIFY_ALLOWED_STORES: STORE, OFFER_CONFIG_JSON: OFFER_CONFIG, ...overrides };
-  const run = (argv) => main(argv, { env, fetch: fetchFn, out: (t) => lines.push(t), err: (t) => errors.push(t), logWrite: () => {}, now: () => Date.parse('2026-10-14T00:00:00Z'), clock: NO_WAIT });
+  const env = { SHOPIFY_ADMIN_API_ACCESS_TOKEN: ADMIN_TOKEN, SHOPIFY_ALLOWED_STORES: STORE, ...overrides };
+  const run = (argv) => main(argv.includes('--offer-config-file') ? argv : [...argv, '--offer-config-file', RULES_FILE], { env, fetch: fetchFn, out: (t) => lines.push(t), err: (t) => errors.push(t), logWrite: () => {}, now: () => Date.parse('2026-10-14T00:00:00Z'), clock: NO_WAIT });
   return { run, lines, errors, requests, text: () => [...lines, ...errors].join('\n') };
 }
 
@@ -356,33 +381,38 @@ test('--out writes the same ids-and-codes report to a new file and never overwri
   }
 });
 
-test('offer rules can come from a file; a missing, unreadable or invalid configuration stops the run before any Shopify call', async () => {
+test('offer rules can come from a file; an unreadable file stops the run before any order is read', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'detective-rules-'));
   try {
     const file = path.join(dir, 'offers.json');
     await writeFile(file, OFFER_CONFIG);
-    const fromFile = harness([{ nodes: [orderNode(2, { lines: [lineNode(), haul(2, 9)] })] }], { OFFER_CONFIG_JSON: '' });
+    const fromFile = harness([{ nodes: [orderNode(2, { lines: [lineNode(), haul(2, 9)] })] }]);
     assert.equal(await fromFile.run([...base, '--offer-config-file', file]), EXIT_FAILED);
     assert.match(fromFile.text(), /haul-away-over-max/);
-
-    const none = harness([], { OFFER_CONFIG_JSON: '' });
-    assert.equal(await none.run(base), EXIT_USAGE);
-    assert.match(none.text(), /No offer rules/);
-    assert.equal(none.requests.length, 0);
-
-    const invalid = harness([], { OFFER_CONFIG_JSON: '[1,2]' });
-    assert.equal(await invalid.run(base), EXIT_USAGE);
-    assert.equal(invalid.requests.length, 0);
-
-    const notJson = harness([], { OFFER_CONFIG_JSON: '{nope' });
-    assert.equal(await notJson.run(base), EXIT_USAGE);
 
     const missingFile = harness([]);
     assert.equal(await missingFile.run([...base, '--offer-config-file', path.join(dir, 'absent.json')]), EXIT_USAGE);
     assert.equal(missingFile.requests.length, 0);
+
+    await writeFile(file, '{nope');
+    const notJson = harness([]);
+    assert.equal(await notJson.run([...base, '--offer-config-file', file]), EXIT_USAGE);
+    assert.equal(notJson.requests.length, 0);
+
+    await writeFile(file, '[1,2]');
+    const invalid = harness([]);
+    assert.equal(await invalid.run([...base, '--offer-config-file', file]), EXIT_USAGE);
+    assert.equal(invalid.requests.length, 0);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('without a file the rules are read from Shopify (discounts and metaobjects), the same way the cart reads them', async () => {
+  const fromShopify = harness([{ nodes: [orderNode(2, { lines: [lineNode(), haul(2, 9)] })] }], {}, { rules: 'shopify' });
+  assert.equal(await fromShopify.run(base), EXIT_FAILED);
+  assert.match(fromShopify.text(), /haul-away-over-max/);
+  assert.ok(!fromShopify.text().includes(ADMIN_TOKEN), 'the token never reaches the output');
 });
 
 test('guards: unknown store, empty allow-list, missing token, bad limit, bad date and unknown flag', async () => {

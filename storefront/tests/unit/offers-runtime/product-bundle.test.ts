@@ -29,6 +29,8 @@ import {
   FakeCart,
   GID,
   MATTRESS_LINE,
+  OFFLINE_ENV,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -58,12 +60,10 @@ const RULE: BundleRule = {
     },
   ],
 };
-const ENV = {
-  OFFER_CONFIG_JSON: JSON.stringify({
-    ...CONFIG,
-    rules: {...CONFIG.rules, comfortGuarantee: undefined, bundles: [RULE]},
-  }),
-};
+const ENV = offerEnv({
+  ...CONFIG,
+  rules: {...CONFIG.rules, comfortGuarantee: undefined, bundles: [RULE]},
+});
 
 function runtime(
   fake: FakeCart,
@@ -145,15 +145,15 @@ describe('bundle companions per size (REQ-ADD-002)', () => {
 });
 
 describe('productHasBundle / loadProductBundle (REQ-ADD-002, REQ-CAT-008)', () => {
-  it('is true for the anchor product only, with no Shopify read', () => {
-    expect(productHasBundle(ENV, GID.mattress)).toBe(true);
+  it('is true for the anchor product only, with no Shopify read', async () => {
+    expect(await productHasBundle(ENV, GID.mattress)).toBe(true);
     // A companion's own page does not show the card.
-    expect(productHasBundle(ENV, GID.foundation)).toBe(false);
-    expect(productHasBundle(ENV, GID.other)).toBe(false);
-    expect(productHasBundle({}, GID.mattress)).toBe(false);
-    expect(
-      productHasBundle({...ENV, OFFERS_ENABLED: 'false'}, GID.mattress),
-    ).toBe(false);
+    expect(await productHasBundle(ENV, GID.foundation)).toBe(false);
+    expect(await productHasBundle(ENV, GID.other)).toBe(false);
+    expect(await productHasBundle(OFFLINE_ENV, GID.mattress)).toBe(false);
+    expect(await productHasBundle(offerEnv({}, 'invalid'), GID.mattress)).toBe(
+      false,
+    );
   });
 
   it('lists one set per size with Shopify variants and quantities, and reads once', async () => {
@@ -339,12 +339,10 @@ describe('addProductBundle (REQ-ADD-002, T-01)', () => {
         },
       ],
     };
-    const env = {
-      OFFER_CONFIG_JSON: JSON.stringify({
-        ...CONFIG,
-        rules: {...CONFIG.rules, bundles: [queenOnly]},
-      }),
-    };
+    const env = offerEnv({
+      ...CONFIG,
+      rules: {...CONFIG.rules, bundles: [queenOnly]},
+    });
     const fake = new FakeCart([]);
     const result = await addProductBundle(
       runtime(fake, {env}),
@@ -355,14 +353,14 @@ describe('addProductBundle (REQ-ADD-002, T-01)', () => {
     expect(addCalls(fake)).toEqual([]);
   });
 
-  it('fails closed in production without the offer configuration', async () => {
+  it('fails open without readable offer rules: no bundle is offered, so nothing is added', async () => {
     const fake = new FakeCart([]);
     const result = await addProductBundle(
-      runtime(fake, {env: {}}),
+      runtime(fake, {env: OFFLINE_ENV}),
       null,
       input(),
     );
-    expect(codeOf(result)).toBe('unverified');
+    expect(codeOf(result)).toBe('bundle-not-offered');
     expect(addCalls(fake)).toEqual([]);
   });
 

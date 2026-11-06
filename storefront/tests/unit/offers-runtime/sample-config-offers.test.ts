@@ -5,7 +5,7 @@ import {evaluateOffers} from '~/lib/offers/evaluate';
 import {makeCart, makeContext} from '~/lib/offers/test-fixtures';
 import {revalidateCartGate} from '~/lib/offers-runtime/cart-gate';
 import type {OfferRuntime} from '~/lib/offers-runtime/server';
-import {FakeCart} from '~/lib/offers-runtime/test-fixtures';
+import {FakeCart, offerEnv} from '~/lib/offers-runtime/test-fixtures';
 import {
   HAUL_HANDLE,
   loadExampleConfig,
@@ -81,10 +81,7 @@ function giftLine(size: SampleSize, totalCents: number): Spec {
   return line('sample-gift-pillow', size, {totalCents});
 }
 
-const ENV = {
-  OFFER_CONFIG_JSON: minifiedExampleConfig(),
-  PUBLIC_GIFT_PICKER_ENABLED: 'true',
-};
+const ENV = offerEnv(JSON.parse(minifiedExampleConfig()));
 
 function runtime(
   fake: FakeCart,
@@ -156,18 +153,16 @@ describe("gift with purchase (DEC-082): one free pillow of the shopper's choice 
     expect(view.gifts).toEqual([]);
   });
 
-  it('is not offered while the picker switch is off, and a gift already in the cart is still judged', async () => {
-    const off = {OFFER_CONFIG_JSON: minifiedExampleConfig()};
-    const free = await judge(
-      [line('luxe-hybrid', 'Queen'), giftLine('Queen', 0)],
-      {env: off},
-    );
-    expect(free.view.gifts).toEqual([]);
+  it('a gift already in the cart is judged: free passes, charged blocks checkout', async () => {
+    const free = await judge([
+      line('luxe-hybrid', 'Queen'),
+      giftLine('Queen', 0),
+    ]);
     expect(free.view.blocked).toEqual([]);
-    const charged = await judge(
-      [line('luxe-hybrid', 'Queen'), giftLine('Queen', 5900)],
-      {env: off},
-    );
+    const charged = await judge([
+      line('luxe-hybrid', 'Queen'),
+      giftLine('Queen', 5900),
+    ]);
     expect(charged.view.blocked.map((reason) => reason.code)).toEqual([
       'gift-not-free',
     ]);

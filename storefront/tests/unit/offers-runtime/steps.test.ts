@@ -234,7 +234,7 @@ describe('size swap reads the line again (stale snapshot)', () => {
     expect(fake.calls).toEqual([]);
   });
 
-  it('is refused in production when the offer rules are missing (a gift would look like a regular line)', async () => {
+  it('fails open in production when the offer rules cannot be read: the swap goes through (ADR-0013)', async () => {
     const fake = new FakeCart([MATTRESS_LINE]);
     const {storefront} = fakeStorefront(storefrontResponder());
     const result = await swapLineSize(
@@ -242,8 +242,8 @@ describe('size swap reads the line again (stale snapshot)', () => {
       fake.snapshot(),
       {lineId: MATTRESS_LINE.id, merchandiseId: GID.mattressKing},
     );
-    expect(result).toMatchObject({status: 'rejected', code: 'unverified'});
-    expect(fake.calls).toEqual([]);
+    expect(result).toMatchObject({status: 'ok'});
+    expect(fake.calls).toHaveLength(1);
   });
 });
 

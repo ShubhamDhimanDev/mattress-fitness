@@ -25,12 +25,8 @@ import type {CartLike, OfferRules} from '~/lib/offers/types';
 import {toCartLike} from '~/lib/shopify/cart-mapper';
 import {isSizeSwap, swapChoicesFor} from './sizes';
 import {withAttribute} from './step-attributes';
-import {
-  readOfferConfig,
-  rulesNeedCollections,
-  EMPTY_OFFER_CONFIG,
-  type OfferConfig,
-} from './config';
+import {rulesNeedCollections, type OfferConfig} from './config';
+import {loadOfferConfig} from './shopify-rules';
 import {buildOfferContext} from './context';
 import {
   loadOfferedVariants,
@@ -106,9 +102,9 @@ export type CartHandlerLike = {
 export type OfferRuntime = {
   readonly storefront: Storefront;
   readonly cart: CartHandlerLike;
-  /** The request-context env (ADR-0004); only OFFER_CONFIG_JSON is read. */
+  /** The request-context env (ADR-0004); the store domain and the read-only Admin token are read for the offer rules. */
   readonly env: object;
-  /** Production fails closed when the offer rules are missing; dev and mock stores run with offers off. */
+  /** Only changes how loudly a rules problem is logged: an error in production, a note on dev and mock stores. */
   readonly production: boolean;
   /**
    * The shopper's saved delivery ZIP, read by the route from the signed cookie (delivery-runtime/zip-cookie).
@@ -205,10 +201,9 @@ export function resetOfferConfigLogsForTests(): void {
 
 /**
  * The configuration is judged on every cart, product and checkout request, so an unchanged problem is logged
- * once per isolate, not once per request (RS-01: 106 error lines in one session hid real errors). Only
- * production treats it as an error, because only production pauses checkout for it; a dev or mock store with
- * no configuration is "offers off by design" and gets one info line. Value-free: the status and the names of
- * dropped entries only (T-05).
+ * once per isolate, not once per request (RS-01: 106 error lines in one session hid real errors). Production logs
+ * it as an error because offers are then silently off; a dev or mock store with no Admin token is "offers off by
+ * design" and gets one info line. Value-free: the status and the names of dropped entries only (T-05).
  */
 function logConfigProblemOnce(
   production: boolean,
@@ -223,31 +218,17 @@ function logConfigProblemOnce(
   else logWarn('offers.config_problem', fields);
 }
 
-export type ConfigGate = {
-  readonly unverified: boolean;
-  readonly config: OfferConfig;
-};
-
 /**
- * Loads the offer configuration and decides whether the cart can be judged at all. In production a missing
- * or unreadable configuration is UNVERIFIED, not "offers off": the rules are what tell a gift, protector or
- * service line from an ordinary one, so without them nothing may be repaired and checkout is paused. Only a
- * non-production environment (dev server, mock store) may run with no configuration. Logged by name only.
+ * Loads the offer rules and delivery zone from Shopify (shopify-rules.ts). The choice is FAIL OPEN (owner, 2026-11-06): if
+ * Shopify cannot be read and nothing good was ever loaded, there are simply no offers and the cart and checkout keep
+ * working; the last good rules are kept while Shopify is unreachable. The problem is logged by name only, once (T-05).
  */
-export function loadConfig(runtime: OfferRuntime): ConfigGate {
-  // "Offers off" is a decision someone makes (OFFERS_ENABLED=false), never something a broken or missing
-  // setting can cause by itself. In production the default is "required".
-  if (Reflect.get(runtime.env, 'OFFERS_ENABLED') === 'false') {
-    return {unverified: false, config: EMPTY_OFFER_CONFIG};
-  }
-  const loaded = readOfferConfig(runtime.env);
+export async function loadConfig(runtime: OfferRuntime): Promise<OfferConfig> {
+  const loaded = await loadOfferConfig(runtime.env);
   if (loaded.status !== 'ok' || loaded.warnings.length > 0) {
     logConfigProblemOnce(runtime.production, loaded);
   }
-  return {
-    unverified: runtime.production && loaded.status !== 'ok',
-    config: loaded.config,
-  };
+  return loaded.config;
 }
 
 type Prepared =
@@ -266,9 +247,7 @@ async function prepareRuntime(
   runtime: OfferRuntime,
   cart: CartApiQueryFragment,
 ): Promise<Prepared> {
-  const gate = loadConfig(runtime);
-  if (gate.unverified) return {status: 'unverified'};
-  const {rules, zone} = gate.config;
+  const {rules, zone} = await loadConfig(runtime);
   const needsCollections = rulesNeedCollections(rules);
   const loadedFacts = await loadProductFacts(
     runtime.storefront,
@@ -518,13 +497,11 @@ export async function swapLineSize(
   const line = current?.lines.nodes.find((node) => node.id === change.lineId);
   const productId = line?.merchandise?.product?.id;
   if (!current || !line || !productId) return rejectedStep('cart-gone');
-  const gate = loadConfig(runtime);
-  // Without the rules a gift or protector would look like an ordinary line and be swapped.
-  if (gate.unverified) return rejectedStep('unverified');
+  const config = await loadConfig(runtime);
   const mapped = toCartLike(current).lines.find((node) => node.id === line.id);
   if (
     !mapped ||
-    classifyLine(mapped, buildRuleIndex(gate.config.rules)) !== 'regular'
+    classifyLine(mapped, buildRuleIndex(config.rules)) !== 'regular'
   ) {
     return rejectedStep('not-changeable');
   }

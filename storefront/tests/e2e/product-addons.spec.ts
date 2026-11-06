@@ -18,13 +18,13 @@ import {
 // bases and frames). NOT YET RUN: written as code for the QA agent, who runs it with the browsers.
 //
 // What a mock store cannot do: bedding.mock.shop and mock.shop answer no `nodes(ids)` lookups and the dev server has no
-// OFFER_CONFIG_JSON, so the server never lists add-ons there. This spec therefore (a) opts the page in with the
+// Admin token to read the offer rules with, so the server never lists add-ons there. This spec therefore (a) opts the page in with the
 // development-only cookie `e2e_addons_expected=1` (the loader honours it only under `import.meta.env.DEV`) and (b)
 // answers `/api/product-addons` at the network layer, like protection.spec.ts does for Extend. The real list, the real
 // prices and the real add-to-cart success path need the development store and a foundation rule (P4-12, V-02); until
 // then they are covered against fakes in tests/unit/offers-runtime/product-addon-steps.test.ts and
 // tests/unit/routes/product-addons-routes.test.ts. Run with E2E_ADDONS_RULES=on against a server whose
-// OFFER_CONFIG_JSON relates these ids to real variants to expect the success path in the add test below.
+// offer_rule metaobjects (read from Shopify) relate these ids to real variants to expect the success path in the add test below.
 
 const RULES_ON = process.env.E2E_ADDONS_RULES === 'on';
 const VARIANT_ID = /^gid:\/\/shopify\/ProductVariant\/\d+$/;

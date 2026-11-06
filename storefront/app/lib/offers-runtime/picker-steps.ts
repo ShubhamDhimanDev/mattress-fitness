@@ -199,10 +199,7 @@ export async function addAddOn(
   input: AddAddOnInput,
   create?: CartCreator,
 ): Promise<PickerResult> {
-  const config = loadConfig(runtime);
-  // Without the rules a gift or protector would look like an ordinary line: nothing is offered (fail closed).
-  if (config.unverified) return rejection('unverified');
-  const {rules} = config.config;
+  const {rules} = await loadConfig(runtime);
   return input.mattressVariantId === undefined
     ? addForCartMattress(runtime, current, rules, input.variantId)
     : addWithMattress(
@@ -440,9 +437,7 @@ export async function addProductBundle(
   input: AddProductBundleInput,
   create?: CartCreator,
 ): Promise<PickerResult> {
-  const config = loadConfig(runtime);
-  if (config.unverified) return rejection('unverified');
-  const {rules} = config.config;
+  const {rules} = await loadConfig(runtime);
   const rule = rules.bundles.find((bundle) => bundle.id === input.bundleId);
   if (!rule) return rejection('bundle-not-offered');
 

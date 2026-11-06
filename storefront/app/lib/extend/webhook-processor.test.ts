@@ -58,6 +58,9 @@ function extendConfig(orderSync?: string) {
 
 type Call = {url: string; operation: string | null; init: FetchInit};
 
+/** The processor asks for the detective configuration when it needs it (it is loaded from Shopify). */
+const providerOf = (config: DetectiveConfig) => () => Promise.resolve(config);
+
 type Options = {
   extend?: ReturnType<typeof extendConfig>;
   detective?: DetectiveConfig | undefined;
@@ -112,8 +115,8 @@ function harness(options: Options = {}) {
     ...('detective' in options
       ? options.detective === undefined
         ? {}
-        : {detective: options.detective}
-      : {detective: READY}),
+        : {detective: providerOf(options.detective)}
+      : {detective: providerOf(READY)}),
   };
   return {
     deps,

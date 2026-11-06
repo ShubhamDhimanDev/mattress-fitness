@@ -21,6 +21,7 @@ import {
   FakeCart,
   GID,
   MATTRESS_LINE,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -29,7 +30,7 @@ import {
 
 const ORIGIN = 'http://localhost:3000';
 const ENV = {
-  OFFER_CONFIG_JSON: JSON.stringify({
+  ...offerEnv({
     ...CONFIG,
     rules: {...CONFIG.rules, comfortGuarantee: undefined, gifts: []},
   }),

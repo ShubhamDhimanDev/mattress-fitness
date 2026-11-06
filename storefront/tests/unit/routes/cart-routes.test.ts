@@ -392,13 +392,12 @@ describe('checkout gate (REQ-PRE-006, REQ-CHK-001)', () => {
     });
   });
 
-  it('production without offer rules pauses checkout instead of passing the cart on', async () => {
+  it('production without readable offer rules fails open: the cart is passed on, not paused (ADR-0013)', async () => {
     vi.stubEnv('PROD', true);
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const {context} = contextFor(new FakeCart([OTHER, {...GIFT}]), {});
     const result = await stepsLoader(args(get(), context));
-    expect(result).not.toBeInstanceOf(Response);
-    expect(unwrap(result).data.state).toBe('blocked');
+    expect(locationOf(result)).toBe(CHECKOUT);
   });
 
   it('an emptied cart (a gift-only permalink) is never sent to Shopify (O-L3)', async () => {

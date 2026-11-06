@@ -15,6 +15,7 @@ import {
   ENV as OFFER_ENV,
   FakeCart,
   GID,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -175,10 +176,10 @@ describe('GET /delivery (P5B-03, REQ-DEL-002)', () => {
     expect(JSON.stringify(outside.data)).not.toMatch(/White-glove/);
   });
 
-  it('claims nothing when offers are switched off (the gate then runs on the empty configuration)', async () => {
+  it('claims nothing when Shopify could not be read for the rules (no zone is known)', async () => {
     const {context} = contextFor(new FakeCart([]), {
-      ...ENV,
-      OFFERS_ENABLED: 'false',
+      DELIVERY_COOKIE_SECRET: ENV.DELIVERY_COOKIE_SECRET,
+      ...offerEnv({}, 'invalid'),
     });
     const result = unwrap(
       await deliveryLoader(args(await withZip(IN_ZONE, '/delivery'), context)),
@@ -363,7 +364,7 @@ describe('POST /delivery (P3B-11, REQ-NAV-003)', () => {
 
   it('fails visibly, not silently, when it cannot sign the cookie', async () => {
     const {context} = contextFor(new FakeCart([]), {
-      OFFER_CONFIG_JSON: ENV.OFFER_CONFIG_JSON,
+      PUBLIC_STORE_DOMAIN: ENV.PUBLIC_STORE_DOMAIN,
     });
     const result = await deliveryAction(args(save(IN_ZONE), context));
     expect(unwrap(result)).toMatchObject({
@@ -379,7 +380,7 @@ describe('POST /delivery (P3B-11, REQ-NAV-003)', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
       const {context} = contextFor(new FakeCart([]), {
-        OFFER_CONFIG_JSON: ENV.OFFER_CONFIG_JSON,
+        PUBLIC_STORE_DOMAIN: ENV.PUBLIC_STORE_DOMAIN,
         DELIVERY_COOKIE_SECRET: 'x'.repeat(31),
       });
       const result = await deliveryAction(args(save(IN_ZONE), context));

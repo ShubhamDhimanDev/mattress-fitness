@@ -327,8 +327,8 @@ test.describe('REQ-NAV-001 header: utility bar, search, account and cart', () =>
 });
 
 // REQ-NAV-003 / P3B-11: the header ZIP is the server-side one (signed cookie, /delivery), shared with the
-// product-page and cart delivery check. Saving needs a delivery zone in the server configuration
-// (OFFER_CONFIG_JSON, see DEV_DATA.md "Delivery ZIP"); without one the server cannot say anything about a ZIP, so
+// product-page and cart delivery check. Saving needs a delivery zone read from Shopify
+// (the delivery_zone metaobject and an Admin token, see DEV_DATA.md "Delivery ZIP"); without one the server cannot say anything about a ZIP, so
 // the header shows none. The two tests below cover each case and skip when the server is configured the other way.
 async function zoneIsConfigured(page: Page): Promise<boolean> {
   const response = await page.request.get('/delivery');
@@ -377,7 +377,7 @@ test.describe('REQ-NAV-003 delivery ZIP entry', () => {
   }) => {
     test.skip(
       !(await zoneIsConfigured(page)),
-      'no delivery zone in the server configuration (OFFER_CONFIG_JSON); see DEV_DATA.md',
+      'no delivery zone read from Shopify (delivery_zone metaobject and Admin token); see DEV_DATA.md',
     );
     const dialog = await openZipDialog(page);
     const zip = dialog.getByRole('textbox', {name: 'ZIP code'});

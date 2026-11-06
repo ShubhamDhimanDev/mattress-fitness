@@ -104,7 +104,7 @@ function processorFor(options: {syncReadStatus?: number} = {}) {
     now: () => Date.now(),
     log: (event) => logs.push(event),
     random: () => 0,
-    detective: READY,
+    detective: () => Promise.resolve(READY),
   };
   const detective = () =>
     logs

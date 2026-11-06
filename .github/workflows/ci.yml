@@ -146,11 +146,9 @@ jobs:
           SESSION_SECRET=ci-placeholder-session-secret-0123456789abcdef
           DELIVERY_COOKIE_SECRET=ci-placeholder-delivery-cookie-secret-0123456789
           EOF
-          # Same store plus one delivery zone (placeholder wording and ZIPs, not client data): delivery.spec.
-          {
-            cat .env.ci
-            echo 'OFFER_CONFIG_JSON={"zone":{"name":"Test metro","postalCodes":"606*, 60007","feeCents":14900,"freeOverCents":99900,"promise":{"inHome":"Free in-home delivery and setup for your area.","parcel":"","pickup":""}}}'
-          } > .env.ci-delivery
+          # The delivery zone now comes from the store's delivery_zone metaobject (ADR-0013), which mock.shop does not have:
+          # delivery.spec skips with that reason. The file stays so the run's wiring does not change.
+          cp .env.ci .env.ci-delivery
           # Same store plus the Extend flag pointed at the local mock (scripts/mocks/extend-mock.mjs, port 4010).
           {
             cat .env.ci
