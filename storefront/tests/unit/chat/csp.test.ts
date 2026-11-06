@@ -39,9 +39,35 @@ describe('REQ-ANL-004 chat CSP: nothing by default', () => {
     expect(tawk.script).toEqual(['https://*.tawk.to']);
     expect(tawk.connect).toEqual(['https://*.tawk.to', 'wss://*.tawk.to']);
     expect(tawk.frame).toEqual(['https://*.tawk.to']);
+    // The window is a script-made iframe that inherits our policy, so its stylesheet and fonts need a source too.
+    expect(tawk.style).toEqual(['https://*.tawk.to']);
+    expect(tawk.font).toEqual(['https://*.tawk.to', 'data:']);
     for (const host of Object.values(tawk).flat()) {
-      expect(host).toMatch(/^(https|wss):\/\/(\*\.)?tawk\.(to|link)$/);
+      expect(host).toMatch(
+        /^(?:(https|wss):\/\/(\*\.)?tawk\.(to|link)|data:)$/,
+      );
     }
+  });
+
+  it('tawk.to styles and fonts reach both policies: styles appended to Hydrogen, font-src with the Shopify base repeated', () => {
+    const tawk = chatCspHosts('tawk');
+    const enforced = enforcedCspExtras(undefined, tawk);
+    expect(enforced.styleSrc).toEqual(['https://*.tawk.to']);
+    expect(enforced.fontSrc).toEqual([
+      "'self'",
+      'https://cdn.shopify.com',
+      'https://shopify.com',
+      'https://*.tawk.to',
+      'data:',
+    ]);
+    const report = buildReportOnlyCsp({...base, chat: tawk});
+    expect(directive(report, 'style-src')).toContain('https://*.tawk.to');
+    expect(directive(report, 'font-src')).toEqual(
+      expect.arrayContaining(['https://*.tawk.to', 'data:']),
+    );
+    // No provider: no style-src or font-src extras.
+    expect(enforcedCspExtras(undefined).styleSrc).toBeUndefined();
+    expect(enforcedCspExtras(undefined).fontSrc).toBeUndefined();
   });
 
   it('with no chat hosts both policies are byte-for-byte what they were', () => {

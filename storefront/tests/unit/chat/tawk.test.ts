@@ -7,7 +7,7 @@ import {
 } from '~/lib/chat/providers/tawk';
 
 // REQ-ANL-004, NFR-013, T-10: the tawk.to adapter adds one script from the documented address, keeps the vendor's bubble
-// hidden, opens only on request, fails cleanly, and on withdrawal hides and disconnects without adding a second script.
+// visible, opens on request, fails cleanly, and on withdrawal hides and disconnects without adding a second script.
 
 const IDS = {propertyId: 'prop123', widgetId: 'wid456'};
 
@@ -66,18 +66,18 @@ describe('REQ-ANL-004 tawk.to adapter', () => {
     expect(document.querySelectorAll(`#${TAWK_SCRIPT_ID}`)).toHaveLength(1);
   });
 
-  it('on load it hides the vendor bubble and is ready', async () => {
+  it('on load it leaves the vendor bubble visible (no flash-then-vanish) and is ready', async () => {
     const {provider, target} = setup();
     const loading = provider.load();
     const api = vendorLoads(target);
     await loading;
-    expect(api.hideWidget).toHaveBeenCalledTimes(1);
+    expect(api.hideWidget).not.toHaveBeenCalled();
     expect(provider.isReady()).toBe(true);
     await provider.load();
     expect(document.querySelectorAll(`#${TAWK_SCRIPT_ID}`)).toHaveLength(1);
   });
 
-  it('opens by showing then maximising, and minimising hands the shopper back to our call-out', async () => {
+  it('opens by showing then maximising, and minimising leaves the bubble in place', async () => {
     const {provider, target} = setup();
     const loading = provider.load();
     const api = vendorLoads(target);
@@ -85,9 +85,10 @@ describe('REQ-ANL-004 tawk.to adapter', () => {
     provider.open();
     expect(api.showWidget).toHaveBeenCalledTimes(1);
     expect(api.maximize).toHaveBeenCalledTimes(1);
-    api.hideWidget.mockClear();
-    api.onChatMinimized();
-    expect(api.hideWidget).toHaveBeenCalledTimes(1);
+    expect(api.hideWidget).not.toHaveBeenCalled();
+    expect(
+      Reflect.get(Reflect.get(target, 'Tawk_API') as object, 'onChatMinimized'),
+    ).toBeUndefined();
   });
 
   it('open throws when the vendor methods are missing, so the controller can say so', () => {
@@ -112,11 +113,12 @@ describe('REQ-ANL-004 tawk.to adapter', () => {
     const api = vendorLoads(target);
     await loading;
     provider.unload?.();
+    expect(api.hideWidget).toHaveBeenCalledTimes(1);
     expect(api.shutdown).toHaveBeenCalledTimes(1);
     expect(provider.isReady()).toBe(false);
 
     await provider.load();
-    expect(api.start).toHaveBeenCalledWith({showWidget: false});
+    expect(api.start).toHaveBeenCalledWith({showWidget: true});
     expect(provider.isReady()).toBe(true);
     expect(document.querySelectorAll(`#${TAWK_SCRIPT_ID}`)).toHaveLength(1);
   });
