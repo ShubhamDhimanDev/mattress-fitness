@@ -29,7 +29,7 @@ You do not have to switch anything off by hand. Each service is off because its 
 | Affirm / financing messages           | `PUBLIC_AFFIRM_PUBLIC_KEY`                                              | Not set. (Shop Pay Installments, if you turn it on in Shopify, is Shopify's own and appears in checkout, not here.)    |
 | Maps                                  | `PUBLIC_MAPS_API_KEY`                                                   | Not set: store pages show an address block and a link, no map.                                                          |
 | Reviews (Judge.me)                    | `JUDGEME_PRIVATE_API_TOKEN`                                             | Not set: no reviews area.                                                                                               |
-| Offers engine                         | `OFFER_CONFIG_JSON`, `OFFERS_ENABLED`, `PUBLIC_GIFT_PICKER_ENABLED`     | First-party, not third-party. With none set in development there are no offers. `--no-offers` also writes `OFFERS_ENABLED=false`. |
+| Offers engine | none (ADR-0013) | First-party, not third-party. Offers and the delivery zone are read from Shopify with the Admin token (`SHOPIFY_ADMIN_API_ACCESS_TOKEN`), which `.env.demo` does not hold, so a demo build shows no offers. There is no `--no-offers` option any more. |
 
 Checkout, payments and customer accounts are Shopify's own and are not third-party services in this sense.
 
@@ -117,8 +117,8 @@ Then, in the browser's network tab, confirm nothing is requested from Extend, Kl
 ## What does not work in a demo
 
 - **Customer sign-in and the account area.** Shopify's customer account login needs the Customer Account API variables and a public tunnel (the Hydrogen CLI's `--customer-account-push` option _(verify)_); leave them unset and the account pages show a fixed error page. Not needed to browse or check out.
-- **Delivery ZIP and the delivery promise.** They stay empty until a delivery zone is configured through `OFFER_CONFIG_JSON` (an example is in `storefront/DEV_DATA.md`). Saving a ZIP needs `DELIVERY_COOKIE_SECRET`, which the script already generates.
-- **Haul-away, gifts, bundles and add-on offers.** Need the offer rules and, on a real store, matching products and discounts (not covered here).
+- **Delivery ZIP and the delivery promise.** They stay empty until a `delivery_zone` entry exists in Shopify and the server has an Admin token to read it (ADR-0013; `storefront/DEV_DATA.md`). Saving a ZIP needs `DELIVERY_COOKIE_SECRET`, which the script already generates.
+- **Haul-away, gifts, bundles and add-on offers.** Need `offer_rule` entries, gift discounts and an Admin token on the server (not covered here; [OFFER_SETUP_DEVSTORE](../integrations/OFFER_SETUP_DEVSTORE.md)).
 - **Stores, quiz and compare** use sample data until their Shopify readers exist. Reviews, pickup and analytics are not built.
 - **Checkout** is Shopify's hosted checkout. On a development store use Shopify's test payment method; do not enter a real card _(verify the test method on your store)_.
 
@@ -135,7 +135,7 @@ Then, in the browser's network tab, confirm nothing is requested from Extend, Kl
 | Filters show only price or nothing                                   | Search & Discovery is not installed or filters are not enabled (B7). The mock store returns no filter groups at all.              |
 | ZIP will not save ("We could not save your ZIP code")                | `DELIVERY_COOKIE_SECRET` missing or shorter than 32 characters. The script generates a good one; do not hand-edit it down.        |
 | `apply-definitions` exits 3                                          | `SHOPIFY_ALLOWED_STORES` does not list the store, or the Admin token is not set in the shell.                                      |
-| You see an offers-paused message at checkout in a production build   | A production build treats missing `OFFER_CONFIG_JSON` as a configuration fault. Set `OFFERS_ENABLED=false` (`--no-offers`) for an offers-free demo build. |
+| A production build shows no offers and no delivery zone | Working as designed without an Admin token: offers are read from Shopify (ADR-0013), and with none they are off (fail open, checkout is not paused). Give the server `SHOPIFY_ADMIN_API_ACCESS_TOKEN` with the `read_discounts`, `read_metaobjects` and `read_products` scopes to see them. |
 
 ## Turning the real services on later
 

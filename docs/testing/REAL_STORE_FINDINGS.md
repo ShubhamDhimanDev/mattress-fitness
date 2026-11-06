@@ -5,7 +5,7 @@ First evidence from a **real Shopify development store** (`mattressfitness-1iakx
 ## What was run
 
 - **Build:** `git archive c758620 storefront` into a scratch copy outside the repository (other agents were restyling `app/` during the session, which changed the live tree and made it serve a mixed state; the scratch copy removed that). The scratch copy differs from the commit only by a `server.fs.allow` line in its `vite.config.ts` (needed because its `node_modules` is a junction to the real one). Brand and header work committed or uncommitted after `c758620` was **not** under test.
-- **Server:** `npm run dev -- --port 6100 --disable-version-check --env-file .env.demo` (own server, stopped afterwards). The env file was never read; it holds the store domain, the public token and two generated secrets (no OFFER_CONFIG_JSON, so offers are off).
+- **Server:** `npm run dev -- --port 6100 --disable-version-check --env-file .env.demo` (own server, stopped afterwards). The env file was never read; it holds the store domain, the public token and two generated secrets (no Admin token and no offer variable, so offers are off; at the time `OFFER_CONFIG_JSON` was the switch, ADR-0013 replaced it).
 - **Spec:** `storefront/tests/e2e/real-store.spec.ts`, skipped with a stated reason unless `E2E_REAL_STORE=1` (verified: 43 skipped without it).
   `E2E_REAL_STORE=1 E2E_PORT=6100 E2E_ENV_FILE=.env.demo npx playwright test tests/e2e/real-store.spec.ts`
   Observations print as `[real-store] ...` lines.
@@ -51,7 +51,7 @@ No Blocker or Major found. Everything below is Minor or an observation.
 
 | ID | Grade | Finding | Repro and proposed fix |
 |---|---|---|---|
-| RS-01 | Minor | The server logs `{"level":"error","event":"offers.config_problem","status":"none"}` on **every** cart, product and checkout request when `OFFER_CONFIG_JSON` is unset (106 lines in one session). The demo guide says "no offers" is a valid setup, so an error line per request is noise that hides real errors | Start with the demo env file and open `/cart`. Log `status:'none'` once at info level, or not at all when `OFFERS_ENABLED=false` **Fixed 2026-10-22 (not yet re-verified on the real store):** logged once per isolate; error only in production, one `offers.config_absent` info line in development; unit tests `tests/unit/offers-runtime/config-logging.test.ts` |
+| RS-01 | Minor | The server logs `{"level":"error","event":"offers.config_problem","status":"none"}` on **every** cart, product and checkout request when `OFFER_CONFIG_JSON` was unset (106 lines in one session; the variable no longer exists, the same once-per-isolate logging now covers a missing Admin token). The demo guide says "no offers" is a valid setup, so an error line per request is noise that hides real errors | Start with the demo env file and open `/cart`. Log `status:'none'` once at info level, or not at all when `OFFERS_ENABLED=false` **Fixed 2026-10-22 (not yet re-verified on the real store):** logged once per isolate; error only in production, one `offers.config_absent` info line in development; unit tests `tests/unit/offers-runtime/config-logging.test.ts` |
 | RS-02 | Minor | After "Add to cart" the drawer lists the line while the subtotal still shows `-` for about 1 second (1047 ms and 1017 ms measured, then `$193.00`). A shopper may read it as a missing price | Add to cart, read the drawer Subtotal at once. Show a placeholder or skeleton marked busy, or keep the optimistic subtotal from the line price |
 | RS-03 | Minor (observation) | Hydrogen logged `sendShopifyAnalytics request is unsuccessful TypeError: Failed to fetch` to the server terminal four times, in the runs that navigate away straight after a cart event (the checkout tests). Not seen on a plain add; the console-error assertion passed there. Probably an aborted request on page unload; not reproduced in isolation | Add to cart, click Checkout at once |
 | RS-04 | Observation | React Router prints a full stack trace at error level (`x-forwarded-host header does not match origin header`) for each expected cross-site POST rejection | Expected hostile-test noise; no action unless production logging is noisy |
@@ -68,7 +68,7 @@ No Blocker or Major found. Everything below is Minor or an observation.
 | fail | `catalog.spec` "the gallery is keyboard operable" | **Needs richer data**: no product with several images |
 | fail (once) | `compare.spec` "a bare /compare restores the last selection from this device" | **Not a real-store defect**: compare uses built-in sample data. Failed under 4 parallel workers on a cold server (second checkbox click did not register in 5 s); **passed 2 of 2 alone on the real store and passed on bedding.mock.shop**. Treat as a load-related flake to watch; not explained further |
 | skip | `cart.spec` size swap | Needs richer data (one size) |
-| skip | `shell.spec` ZIP with a delivery zone | No `OFFER_CONFIG_JSON` zone in the demo env (stated skip) |
+| skip | `shell.spec` ZIP with a delivery zone | No delivery zone in the demo store (stated skip; the zone is now a `delivery_zone` entry, ADR-0013) |
 | skip x5 | `shell.spec` mobile drawer tests | By design in the desktop project |
 | fail (all) | `a11y-audit.spec` route audit | **Needs richer data** (`catalogOf` wants a two-size product) |
 
@@ -81,7 +81,7 @@ Everything else in catalog, cart, search, home, shell, compare, stores, quiz, br
 3. **Metaobject and metafield definitions** with `scripts/shopify/apply-definitions.mjs` (needs an Admin API token in the shell only), plus a few entries (`brand`, `homepage_section`, `promo_tile`, `site_settings`, `custom.*` on products), then re-check V-05.
 4. **Search and Discovery filters** for size, brand, comfort, type (V-04); today only price filtering is proven.
 5. **Online Store password**: remove it (or provide a store without it) so checkout totals can be compared with the cart (V-20 "cart total equals checkout total"). Until then that check is BLOCKED.
-6. An `OFFER_CONFIG_JSON` (or the metaobject reader) and matching products to exercise gifts, add-ons, haul-away and the `nodes(ids)` variant lookups; nested lines (V-02), gift pricing (V-03) and cart attributes were **not** touched.
+6. `offer_rule` and `delivery_zone` entries and a Buy X get Y gift discount (read through the Admin token, ADR-0013; at the time this was `OFFER_CONFIG_JSON`) and matching products to exercise gifts, add-ons, haul-away and the `nodes(ids)` variant lookups; nested lines (V-02), gift pricing (V-03) and cart attributes were **not** touched.
 7. Shop policies and pages (`about`, `faq`) if the footer should link to real content.
 
 ## Not covered by this run

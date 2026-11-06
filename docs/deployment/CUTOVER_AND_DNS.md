@@ -155,7 +155,7 @@ Also check after cutover that `robots.txt` and `/sitemap.xml` answer 200, that c
 
 **Rollback ladder (try the smallest first):**
 
-1. **Config-only** (edit `/etc/mattressfitness/env`, `sudo systemctl restart mattressfitness`): `PUBLIC_EXTEND_ENABLED=false`; clear `PUBLIC_GIFT_PICKER_ENABLED`; unset an analytics id; `OFFERS_ENABLED=false` only on purpose (it removes all offers). Or deactivate a discount in Shopify admin.
+1. **Config-only** (edit `/etc/mattressfitness/env`, `sudo systemctl restart mattressfitness`): `PUBLIC_EXTEND_ENABLED=false`; unset an analytics id. Offers have no variables (ADR-0013): end or deactivate a gift discount, or disable an `offer_rule` entry, in Shopify admin (live within about a minute).
 2. **Release rollback** (VPS_RUNBOOK section 11): move `current` to `previous`, restart, healthz, smoke test. Not rehearsed.
 3. **DNS rollback:** restore the records saved at step 3 of section 7. With the short TTL set in advance this takes about the TTL (5 minutes) `[assumed]`; shoppers on resolvers that ignore TTLs may take longer. The old site must still be running (it is retained, section 7 step 10). If the Shopify callback and webhook addresses were changed in step 13, change them back.
 4. **Take-down page:** if neither works, serve a maintenance answer from nginx (not prepared; write it during rehearsal).
