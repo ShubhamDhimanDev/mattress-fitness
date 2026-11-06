@@ -14,6 +14,8 @@ import {
   FakeCart,
   GID,
   MATTRESS_LINE,
+  OFFLINE_ENV,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -48,7 +50,7 @@ const RULES = {
     ],
   },
 };
-const ENV = {OFFER_CONFIG_JSON: JSON.stringify({...CONFIG, rules: RULES})};
+const ENV = offerEnv({...CONFIG, rules: RULES});
 
 function setup(
   fake: FakeCart,
@@ -224,21 +226,13 @@ describe('addAddOn from the product page (REQ-ADD-001)', () => {
       expect(addCalls(fake)).toEqual([]);
     });
 
-    it('fails closed in production without the offer configuration', async () => {
+    it('fails open when the offer rules cannot be read: nothing is related, so nothing is added', async () => {
       const fake = new FakeCart([]);
-      const {runtime} = setup(fake, {env: {}});
-      const result = await addAddOn(runtime, null, FROM_PRODUCT);
-      expect(code(result)).toBe('unverified');
-      expect(addCalls(fake)).toEqual([]);
-    });
-
-    it('with the offers switched off nothing is related, so nothing is added', async () => {
-      const fake = new FakeCart([]);
-      const {runtime} = setup(fake, {
-        env: {...ENV, OFFERS_ENABLED: 'false'},
-      });
-      const result = await addAddOn(runtime, null, FROM_PRODUCT);
-      expect(code(result)).toBe('addon-not-offered');
+      for (const env of [OFFLINE_ENV, offerEnv({}, 'invalid')]) {
+        const {runtime} = setup(fake, {env});
+        const result = await addAddOn(runtime, null, FROM_PRODUCT);
+        expect(code(result)).toBe('addon-not-offered');
+      }
       expect(addCalls(fake)).toEqual([]);
     });
 

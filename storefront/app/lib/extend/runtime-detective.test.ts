@@ -1,21 +1,29 @@
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {
   adminDetectiveHaulNode,
   adminDetectiveLineNode,
   adminDetectiveOrderNode,
 } from '~/lib/detective/test-fixtures';
 import {resetExtendSharedForTests, webhookDepsFor} from '~/lib/extend/runtime';
+import {
+  EMPTY_OFFER_CONFIG,
+  parseOfferConfig,
+} from '~/lib/offers-runtime/config';
+import {
+  primeOfferConfigForTests,
+  resetOfferConfigCacheForTests,
+} from '~/lib/offers-runtime/shopify-rules';
 
-// P5B-05: the real wiring. webhookDepsFor must hand the detective the same OFFER_CONFIG_JSON the cart gate reads,
+// P5B-05: the real wiring. webhookDepsFor must hand the detective the same rules and zone the cart gate loads from Shopify,
 // so a deployment that has the webhook route also has the check, whatever EXTEND_ORDER_SYNC is.
 
 const ADMIN_TOKEN = 'fixture-admin-token-not-real';
-const OFFER_CONFIG = JSON.stringify({
+const OFFER_CONFIG = {
   rules: {
     haulAway: {variantId: 'gid://shopify/ProductVariant/621', maxPieces: 3},
   },
   zone: {name: 'Metro', postalCodes: '606*', feeCents: 14900},
-});
+};
 
 const BASE_ENV = {
   PUBLIC_STORE_DOMAIN: 'test-shop.myshopify.com',
@@ -31,7 +39,24 @@ const action = {
   intent: 'report',
 } as const;
 
+/** The rules the loader holds for the store, so the only fetch the test sees is the order read. */
+const CONFIGURED_ENV = {...BASE_ENV};
+const UNCONFIGURED_ENV = {
+  ...BASE_ENV,
+  PUBLIC_STORE_DOMAIN: 'unconfigured-shop.myshopify.com',
+};
+
+beforeEach(() => {
+  primeOfferConfigForTests(CONFIGURED_ENV, parseOfferConfig(OFFER_CONFIG));
+  primeOfferConfigForTests(UNCONFIGURED_ENV, {
+    status: 'none',
+    config: EMPTY_OFFER_CONFIG,
+    warnings: [],
+  });
+});
+
 afterEach(() => {
+  resetOfferConfigCacheForTests();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   resetExtendSharedForTests();
@@ -61,11 +86,11 @@ function stubShopify(zip: string) {
 }
 
 describe('P5B-05 webhook route wiring', () => {
-  it('with Extend sync off, the processor still reads the order and logs the violation from OFFER_CONFIG_JSON', async () => {
+  it('with Extend sync off, the processor still reads the order and logs the violation from the rules loaded from Shopify', async () => {
     const bodies = stubShopify('90210');
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const deps = webhookDepsFor({
-      env: {...BASE_ENV, OFFER_CONFIG_JSON: OFFER_CONFIG},
+      env: CONFIGURED_ENV,
       production: false,
     });
     expect(await deps.process(action)).toEqual({status: 'done'});
@@ -82,7 +107,7 @@ describe('P5B-05 webhook route wiring', () => {
     stubShopify('60645');
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const deps = webhookDepsFor({
-      env: {...BASE_ENV, OFFER_CONFIG_JSON: OFFER_CONFIG},
+      env: CONFIGURED_ENV,
       production: false,
     });
     await deps.process(action);
@@ -91,10 +116,10 @@ describe('P5B-05 webhook route wiring', () => {
     expect(logged).not.toContain('detective.violation');
   });
 
-  it('without OFFER_CONFIG_JSON it makes no Admin call and says the order was not judged', async () => {
+  it('without readable offer rules it makes no order read and says the order was not judged', async () => {
     const bodies = stubShopify('60645');
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const deps = webhookDepsFor({env: BASE_ENV, production: false});
+    const deps = webhookDepsFor({env: UNCONFIGURED_ENV, production: false});
     await deps.process(action);
     expect(bodies).toHaveLength(0);
     expect(warn.mock.calls.map((call) => String(call[0])).join('\n')).toContain(

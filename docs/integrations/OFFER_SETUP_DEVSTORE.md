@@ -1,8 +1,8 @@
 # Offer setup on the development store (P4-12 interim, PLACEHOLDER rules)
 
-**Status: every step below is UNVERIFIED.** Nothing in this list has been run on a Shopify store; the development store `mattressfitness-1iakxuvz.myshopify.com` has one product and no discount (REAL_STORE_FINDINGS). The Shopify admin screens are described from Shopify's help pages read on 2026-10-23 and the labels may differ; correct this page with what you find.
+**Status: every step below is UNVERIFIED.** Nothing in this list has been run on a Shopify store (rewritten 2026-11-06 for ADR-0013: the rules are now read from Shopify, there is no configuration file or environment variable, and V-30 is the first run of that reader); the development store `mattressfitness-1iakxuvz.myshopify.com` has one product and no discount (REAL_STORE_FINDINGS). The Shopify admin screens are described from Shopify's help pages read on 2026-10-23 and the labels may differ; correct this page with what you find.
 
-> **DEVELOPMENT STORE ONLY. `storefront/offer-config.example.json` and everything on this page must NEVER be used in production or on the client's live store.** The offers, thresholds, titles and ids are placeholders; production rules come from the client (CLR-011, Q-020) and are set in the host environment. The example file carries the same warning in its `_WARNING_DEV_STORE_ONLY` note key (the parser ignores keys that start with an underscore).
+> **DEVELOPMENT STORE ONLY. Everything on this page must NEVER be used in production or on the client's live store.** The offers, thresholds, titles and entries are placeholders; production rules come from the client (CLR-011, Q-020) and are made in the client's Shopify admin. `storefront/offer-config.example.json` is no longer a setting: it is only a unit-test fixture of the raw rule shape (its `_WARNING_DEV_STORE_ONLY` note key stays; the parser ignores keys that start with an underscore).
 
 **The rules are made up.** DEC-082 (owner decision 2026-10-23, still pending the client's real rules, CLR-011, Q-020): the gift is one free pillow of the shopper's choice with a queen-or-larger mattress over $999; the bundle is mattress + protector + pillow with a 10% automatic discount. They exist only for the development store and the tests. Never show them to shoppers as a real promotion, and never copy them to the client's store.
 
@@ -12,8 +12,8 @@ Files this page works with:
 | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `scripts/catalog/sample/mattresses.csv`                                                      | the older made-up sheet (14 models). It supplies `cloudmere-hybrid`, used here for the add-on, protector and bundle rules only (it is NOT in the gift rule, see 4)               |
 | `scripts/catalog/sample/offer-products.csv` and `offer-images.txt`                           | added for this task: 2 queen-or-larger mattresses and the 5 accessory products (7 models, 32 size rows); passes `node scripts/catalog/validate.mjs` with 0 errors and 0 warnings |
-| `storefront/offer-config.example.json`                                                       | the example `OFFER_CONFIG_JSON`, with fake ids. The key `_placeholder` and the keys `_idScheme` and `_products` are notes: the parser ignores unknown keys                       |
-| `storefront/tests/unit/offers-runtime/sample-config.test.ts`, `sample-config-offers.test.ts` | prove the sheets, the example configuration, the parser and the offer code agree (57 tests)                                                                                      |
+| `storefront/offer-config.example.json` | a unit-test fixture of the raw rule shape with fake ids (not read at run time; `OFFER_CONFIG_JSON` no longer exists). The keys `_placeholder`, `_idScheme` and `_products` are notes: the parser ignores unknown keys |
+| `storefront/tests/unit/offers-runtime/sample-config.test.ts`, `sample-config-offers.test.ts` | prove the sheets, the fixture, the parser and the offer code agree |
 
 ## 1. What the sample catalog holds
 
@@ -46,33 +46,18 @@ Needs the written go-ahead for the target store and an Admin token in your shell
 7. Create the service by hand: product "Recycle and disposal service", one variant, price $49.00, tag `offer-only`, Active, in the channel, no inventory tracking (or stock enough). Admin guide section 4.1 says never to add options to it.
 8. Check, for each product, that the option is named exactly **Size** and the size values are the sheet's words (the rules match them).
 
-## 3. Put the real ids into the configuration (UNVERIFIED)
+## 3. Read the rules from Shopify: definitions, entries and token (UNVERIFIED)
 
-The example holds fake ids in the scheme `gid://shopify/Product/7001` and `gid://shopify/ProductVariant/70014` (product number times 10 plus the size position: Twin 1, Twin XL 2, Full 3, Queen 4, King 5, California King 6, Split California King 7). The fake product numbers are:
+There is no configuration file, no `OFFER_CONFIG_JSON` and no `.env.offers` any more (ADR-0013, DEC-153). The storefront reads the rules from Shopify with the read-only Admin token (`SHOPIFY_ADMIN_API_ACCESS_TOKEN`), caches them for 60 seconds, and shows no offers when it has no token or cannot read Shopify. The old git-ignored `storefront/.offer-config.local.json` is obsolete and not read; delete it when convenient.
 
-| Handle                         | Product              | Handle               | Product |
-| ------------------------------ | -------------------- | -------------------- | ------- |
-| `luxe-hybrid`                  | 7001                 | `sample-protector`   | 7102    |
-| `luxe-foam`                    | 7002                 | `sample-pillow`      | 7103    |
-| `cloudmere-hybrid`             | 7003                 | `sample-gift-pillow` | 7104    |
-| `sample-foundation`            | 7101                 | `sample-sheets`      | 7105    |
-| `recycle-and-disposal-service` | 7106 (variant 71061) |                      |         |
+1. **Token scopes.** The app behind the token needs `read_discounts`, `read_metaobjects` and `read_products` (besides `read_orders` for the order reads). Add them in the Dev Dashboard, release the app version, and reinstall or approve the new scopes on the dev store. For the local dev server, put the token in the shell-only way the walkthrough uses ([LOCAL_DEV_WALKTHROUGH](../deployment/LOCAL_DEV_WALKTHROUGH.md) section 3); `PUBLIC_STORE_DOMAIN` must be the `<shop>.myshopify.com` domain. The Storefront token stays the public one.
+2. **Definitions.** `definitions.json` gained the `foundation` choice and the `discount_title` field on `offer_rule`, and the `fee` and `promise_pickup` fields on `delivery_zone`. Run `apply-definitions.mjs` again (dry run first, then `--live` with the owner's go-ahead) so the store has them.
+3. **Entries.** Run `bash scripts/setup/with-admin-token.sh node scripts/setup/demo-offers.mjs` (needs `write_metaobjects`). Besides the tags and the haul-away product it upserts, by handle, the placeholder `offer_rule` entries (comfort protector for `luxe-hybrid`; haul-away with Maximum quantity 2; foundation, pillow, bedding and a bundle titled `Sleep set 10% off (placeholder)` for each of `luxe-hybrid`, `luxe-foam`, `cloudmere-hybrid`) and the `delivery_zone` entry (ZIPs `60601, 60602, 60603, 60645`, fee $149.00, free over $999.00, three promise lines). Or create the same entries by hand in Content > Metaobjects (ADMIN_GUIDE section 4.0).
+4. **Check what the reader sees** without a browser: start the dev server with the token, open a `luxe-hybrid` page and `/delivery`; with no entries or no token the page says nothing about add-ons or delivery. A dropped entry is named (never its values) in the log line `offers.config_problem`.
+5. **Then** create the gift discount (4.1) and the bundle discount (4.2). Do the gift last: it is offered as soon as it is active.
 
-1. Copy `storefront/offer-config.example.json` to a **git-ignored** file, for example `storefront/.offer-config.local.json` (the `.env.*` pattern is ignored; check with `git check-ignore -v <file>` before saving real ids; the ids are not secrets but the file is not part of the repository).
-2. For every product and variant look up the real id (admin URL ends with the product number; the variant id is on the variant page) and replace each fake id. Do it with an exact-match search, one id at a time; a variant keeps its id when you edit it, but deleting and re-creating it breaks the rule (admin guide section 1).
-3. Keep the notes. Change `_placeholder` only to say which ids are now real.
-4. Check: `cd storefront && node -e "const t=require('node:fs').readFileSync('.offer-config.local.json','utf8');JSON.parse(t);console.log('valid json',t.length)"`. The parser drops a rule with a malformed id silently (a log line names the dropped entry), so also start the server and read the `offers.config_problem` log: there should be none.
+Field values the reader expects (from Shopify's Admin API): a reference list such as Offered products arrives as a JSON array of product ids, a single reference as one id, and a money field as JSON `{"amount":"149.0","currency_code":"USD"}`. If an entry is dropped, compare with this first (V-30).
 
-### Setting `OFFER_CONFIG_JSON` without committing it
-
-The variable holds one line of JSON, at most 100,000 characters (the example is 9,973 characters minified). It is not secret, but keep it out of the repository.
-
-- **Local dev server** (DEV_DATA.md): write a git-ignored env file next to the others, from the file you made in 3, without printing it:
-  `node -e "const fs=require('node:fs');const j=JSON.stringify(JSON.parse(fs.readFileSync('.offer-config.local.json','utf8')));fs.appendFileSync('.env.offers','OFFER_CONFIG_JSON='+j+'\n')"`
-  then start with `npm run dev -- --port 3800 --mode offers`. `.env.offers` must also carry the four base variables and `DELIVERY_COOKIE_SECRET` (32 or more characters) as in `.env.demo`, plus `PUBLIC_GIFT_PICKER_ENABLED=true` **only for the V-03 test**.
-  The env-file loader's treatment of quotes and of a very long line is UNVERIFIED: if the value does not arrive, the server logs `offers.config_absent`.
-- **Production or the VPS**: the single line goes in the host's env file (`deploy/mattressfitness.env.example` shows `OFFER_CONFIG_JSON='<ONE_LINE_JSON>'`). Never commit the filled file. A missing or invalid value pauses checkout in production (DEC-030); `OFFERS_ENABLED=false` is the only "offers off" switch.
-- Replace the fake `zone` with the real ZIP list, fee, free-over amount and approved wording when the client supplies them (Q-008, CLR-009). Until then it stays marked placeholder and the promise texts say so.
 
 ## 4. Discounts to create in Shopify admin (UNVERIFIED)
 
@@ -80,21 +65,23 @@ Count the active automatic discounts first (the cap of 25 is from secondary sour
 
 ### 4.1 Gift: automatic "Buy X get Y"
 
+The storefront reads this discount directly (ADR-0013): active, automatic, Buy X get Y, customer buys a minimum quantity of 1 of specific products or collections, customer gets specific products Free (100%). Any other shape is skipped and logged. **Open finding (V-03, 2026-10-26, [LOCAL_DEV_WALKTHROUGH](../deployment/LOCAL_DEV_WALKTHROUGH.md) 7d):** this form did not combine with the bundle's discount on the same mattress line, and the setup that worked was an Amount off products 100% discount on the gift pillow alone, which the reader does not read. Run V-30 with this form and with the bundle active, and bring the result to the owner before anything is copied to the client's store.
+
 Sources: Shopify help "Buy X get Y" (read 2026-10-23).
 
 | Field                  | Value                                                                                                                                                                                                                         |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Method                 | Automatic discount                                                                                                                                                                                                            |
 | Title                  | `Free pillow with a queen or larger mattress (placeholder)`. The storefront does not match this title for gifts (it checks that the gift line costs $0), but it is what shoppers see on the line, and it equals the rule name |
-| Customer buys          | Minimum quantity of items: 1, any items from Products: `luxe-hybrid`, `luxe-foam`. **Do not add `cloudmere-hybrid`**                                                                                                          |
+| Customer buys          | Minimum quantity of items: 1 (the only form the reader accepts), any items from Products: `luxe-hybrid`, `luxe-foam`. **Do not add `cloudmere-hybrid`**                                                                                                          |
 | Customer gets          | Quantity 1, any items from Products: `sample-gift-pillow` (both sizes), at a discounted value: **Free**                                                                                                                       |
-| Maximum uses per order | Set to 1. It must equal `maxQuantity` (1) in the rule: a second unit would be charged in full                                                                                                                                 |
+| Maximum uses per order | Set to 1. The storefront offers at most "Customer gets" quantity times this number (unset counts as 1): a unit above what Shopify discounts would be charged in full                                                                                                                                 |
 | Combinations           | Allow combining with Product discounts (so the bundle discount can apply to the mattress on the same order). UNVERIFIED how two automatic discounts combine                                                                   |
 | Active dates           | Start now, no end                                                                                                                                                                                                             |
 
-Why "over $999" is expressed by the product list and not by a minimum amount: Shopify chooses products or collections, never variants, so "queen or larger" can only be true for a product that has no smaller size. `luxe-hybrid` and `luxe-foam` were made up that way (their cheapest size is $1,199 sale price). `cloudmere-hybrid` also has a Twin at $999 and smaller sizes, so listing it would give the gift on a Twin; a test pins that it is not in the rule. If you want a safety net, add "Minimum purchase amount" $999.01 (it counts only the "buys" products). That is UNVERIFIED.
+Why "over $999" is expressed by the product list and not by a minimum amount: Shopify chooses products or collections, never variants, so "queen or larger" can only be true for a product that has no smaller size. `luxe-hybrid` and `luxe-foam` were made up that way (their cheapest size is $1,199 sale price). `cloudmere-hybrid` also has a Twin at $999 and smaller sizes, so listing it would give the gift on a Twin; a test pins that it is not in the rule. **Do not add a "Minimum purchase amount":** the storefront reader skips a gift discount with a spend condition (it cannot honour it, so it would offer a gift Shopify then charges for), and the gift would silently disappear (ADR-0013).
 
-Shopify does **not** add the free item to the cart (help page). Our server adds it when the shopper picks it, and the cart gate pauses checkout if Shopify prices it above $0. The picker is off until V-03 passes.
+Shopify does **not** add the free item to the cart (help page). Our server adds it when the shopper picks it, and the cart gate pauses checkout if Shopify prices it above $0. There is no picker flag any more (ADR-0013): the gift is offered as soon as this discount is active, so create it last, after the entries in section 3.
 
 ### 4.2 Bundle: automatic "Amount off products"
 
@@ -127,14 +114,23 @@ Admin: Settings, Delivery and shipping, Local delivery for the location. Admin g
 
 Each experiment is on the development store only (V-26: a development store is not plan-gated, so a pass proves behaviour, not that Basic allows it). No real payment: stop at Shopify's hosted checkout; the Online Store password must be off to reach it (REAL_STORE_FINDINGS). Record results in `progress/TEST_RESULTS.md`, update `READINESS_CHECKLIST.md` (IR-07, IR-08) and the V rows of `TECH_FEASIBILITY.md`.
 
-### V-03: automatic discounts in a Storefront-API cart (gates the gift picker and the bundle saving; READINESS IR-07)
+### V-03: automatic discounts in a Storefront-API cart (gates trusting the gift and the bundle saving; READINESS IR-07)
 
-1. With `PUBLIC_GIFT_PICKER_ENABLED=true` and the real-id config, add a `luxe-hybrid` Queen to the cart. Expect: the gift picker offers the two pillow sizes.
+1. With the section 3 entries and the gift discount active (and a minute passed), add a `luxe-hybrid` Queen to the cart. Expect: the gift picker offers the two pillow sizes, with no deploy and no flag.
 2. Pick one. Expect: a gift line at **$0.00** carrying the discount title, cart subtotal unchanged. If the line is charged, the gate pauses checkout ("a gift is not showing its promotion price"): that proves the safety net and is also the answer "the assumption is wrong" (V-27a).
 3. Compare the cart with Shopify's checkout page line by line (admin guide 3.5): same prices, same discount lines, gift still $0.00.
 4. Remove the mattress: the gift must leave with it (our orphan rule).
 5. Add the whole set via **Add all** on a Queen. Expect the discount allocation title `Sleep set 10% off (placeholder)` on the three lines and the cart showing the saving; remove one item and expect the saving to disappear. Repeat with a discount code on top, then with a differently titled automatic discount, and expect no bundle saving figure.
 6. Record: whether the two automatic discounts combine, whether the allocation `title` is exposed in the Storefront API cart, the hand-built "three pillows" case of 4.2, the active automatic discount count and the 25 limit.
+
+### V-30: the rules are read from Shopify (ADR-0013; gates the claim that offers are staff-managed)
+
+1. With the token scopes of section 3 and an active gift discount, run in the Admin GraphQL explorer (or a read-only script) `discountNodes(first: 50, query: "status:active method:automatic type:bxgy")` and confirm it returns the discount with the fields the reader selects: `title`, `status`, `usesPerOrderLimit`, `customerBuys.value` (`DiscountQuantity.quantity`), `customerBuys.items` (`DiscountProducts.products` or `DiscountCollections.collections`), `customerGets.value` (`DiscountOnQuantity.quantity.quantity` and `effect` `DiscountPercentage.percentage`) and `customerGets.items` (`products` with `variants`, or `productVariants`). Record any field the 2026-10 schema names differently, and whether the filter syntax is accepted.
+2. Read `metaobjects(type: "offer_rule")` and `metaobjects(type: "delivery_zone")` with `fields { key value }` and confirm: list references are JSON arrays of product ids, a single reference is one id, money is JSON `{"amount","currency_code"}`, a boolean is `"true"` or `"false"`.
+3. In the browser, with no deploy: the gift picker, the foundation slot, the cart add-ons, the bundle card and the ZIP promise all appear; change the haul-away Maximum quantity and see the new cap after a minute; untick Enabled on an entry and see the offer go; end the gift discount and see the gift leave a cart that holds it.
+4. Break something on purpose and read the log: an entry with an offered product that has no sizes, a gift discount with a minimum purchase amount. Expect the offer to be skipped and a value-free `offers.config_problem` line, with the rest still working.
+5. Remove the token from the dev server: expect no offers, no zone and a working checkout (fail open).
+6. Record the results in `progress/TEST_RESULTS.md` and update `TECH_FEASIBILITY.md` V-30. UNVERIFIED until then.
 
 ### V-27: the assumptions built into the code (the tags the code carries)
 
@@ -153,6 +149,6 @@ On a coverage-less store this cannot run; the add-on, gift and bundle lines in t
 
 ## 6. What the automated test proves, and what it does not
 
-Proves (mock-green, 57 tests, `storefront/tests/unit/offers-runtime/sample-config*.test.ts`): the example parses with no dropped entry, also as one env line; every fake id points at a real sheet row and size; the keys and the variant sizes agree; the gift qualifies only products whose every size is queen-or-larger and above $999; the gift appears, hides a sold-out choice, is accepted at $0, blocks checkout when charged, is removed without its mattress and is cut to one; the bundle shows the saving only for the titled automatic discount (not for a code or another title), and with no discount nothing; add-ons match the size for every mattress size; haul-away is capped at 2, refused for pickup, no choice, outside the zone and no ZIP; the free-delivery message and its threshold; a mixed cart in production is not blocked or repaired.
+Proves (mock-green, 57 tests, `storefront/tests/unit/offers-runtime/sample-config*.test.ts`): the example parses with no dropped entry, every fake id points at a real sheet row and size; the keys and the variant sizes agree; the gift qualifies only products whose every size is queen-or-larger and above $999; the gift appears, hides a sold-out choice, is accepted at $0, blocks checkout when charged, is removed without its mattress and is cut to one; the bundle shows the saving only for the titled automatic discount (not for a code or another title), and with no discount nothing; add-ons match the size for every mattress size; haul-away is capped at 2, refused for pickup, no choice, outside the zone and no ZIP; the free-delivery message and its threshold; a mixed cart in production is not blocked or repaired. The mapping from Admin answers to rules (`shopify-rules-map.test.ts`) and the loader with a fake `fetch` (cache, stale rules, no token: `shopify-rules.test.ts`) are covered the same way: by fake Shopify answers.
 
 Does not prove: any Shopify behaviour. The cart is an in-memory fake, the Storefront answers come from the sheets, the discount allocations are made up in the fixtures, and no discount exists on any store. The sheets' prices and the fake ids carry no meaning for the client.

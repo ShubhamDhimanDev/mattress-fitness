@@ -14,14 +14,16 @@ afterEach(() => {
 });
 
 describe('deliveryViewForEnv', () => {
-  it('answers as the zone says when the secret is usable', () => {
-    expect(deliveryViewForEnv(ENV, '60645', true)).toMatchObject({
+  it('answers as the zone says when the secret is usable', async () => {
+    expect(await deliveryViewForEnv(ENV, '60645', true)).toMatchObject({
       status: 'in-zone',
     });
-    expect(deliveryViewForEnv(ENV, '90210', true)).toMatchObject({
+    expect(await deliveryViewForEnv(ENV, '90210', true)).toMatchObject({
       status: 'outside-zone',
     });
-    expect(deliveryViewForEnv(ENV, null, true)).toEqual({status: 'no-zip'});
+    expect(await deliveryViewForEnv(ENV, null, true)).toEqual({
+      status: 'no-zip',
+    });
   });
 
   it.each([
@@ -30,21 +32,23 @@ describe('deliveryViewForEnv', () => {
     ['the wrong type', {...OFFER_ENV, DELIVERY_COOKIE_SECRET: 12345}],
   ])(
     'is service-unavailable in production when the secret is %s, even for a ZIP in the zone',
-    (_label, env) => {
+    async (_label, env) => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      expect(deliveryViewForEnv(env, '60645', true)).toEqual({
+      expect(await deliveryViewForEnv(env, '60645', true)).toEqual({
         status: 'service-unavailable',
       });
-      expect(deliveryViewForEnv(env, null, true)).toEqual({
+      expect(await deliveryViewForEnv(env, null, true)).toEqual({
         status: 'service-unavailable',
       });
     },
   );
 
-  it('logs the variable name once, never a value or the ZIP', () => {
+  it('logs the variable name once, never a value or the ZIP', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const env = {...OFFER_ENV, DELIVERY_COOKIE_SECRET: 'short-secret-value'};
-    for (let i = 0; i < 3; i += 1) deliveryViewForEnv(env, '60645', true);
+    for (let i = 0; i < 3; i += 1) {
+      await deliveryViewForEnv(env, '60645', true);
+    }
     expect(error).toHaveBeenCalledTimes(1);
     const line = String(error.mock.calls[0][0]);
     expect(line).toContain('DELIVERY_COOKIE_SECRET');
@@ -52,9 +56,9 @@ describe('deliveryViewForEnv', () => {
     expect(line).not.toContain('60645');
   });
 
-  it('keeps the normal answer in development without a secret (the mock stores stay usable)', () => {
+  it('keeps the normal answer in development without a secret (the mock stores stay usable)', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(deliveryViewForEnv(OFFER_ENV, null, false)).toEqual({
+    expect(await deliveryViewForEnv(OFFER_ENV, null, false)).toEqual({
       status: 'no-zip',
     });
     expect(error).not.toHaveBeenCalled();

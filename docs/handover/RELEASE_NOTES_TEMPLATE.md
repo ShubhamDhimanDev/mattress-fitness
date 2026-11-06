@@ -37,7 +37,7 @@ These exist in the website and pass automated tests on **test data, simulated Sh
 | Compare, sleep quiz (built-in questions and scoring until you approve yours; scoring rules readable from Shopify admin per the latest commit) | Built | Your approval of questions and rules (CLR-012) |
 | Cart and cart drawer; size swap; free-delivery progress | Built | Store; cart equals checkout check (blocked by the Online Store password on the test store) |
 | Add-on, bundle pickers; product-page add-ons box; comfort-guarantee protector step | Built | Your launch rules (CLR-011); discounts on a store (V-03, V-27) |
-| Gift-with-purchase picker | Built, **switched off** until the gift discount is proved on a store | V-03, then `PUBLIC_GIFT_PICKER_ENABLED` |
+| Gift-with-purchase picker | Built; shows whenever an active automatic Buy X get Y gift discount qualifies the cart (no flag, ADR-0013); `[confirm at release]` whether it was proved on a store | V-03, V-30 |
 | Delivery ZIP check; delivery promise; delivery choice; haul-away (blocked until a ZIP is saved) | Built; one delivery zone | Your ZIP list, fee, threshold and haul-away rules; Local delivery configured on the store |
 | Hand-off to Shopify's secure checkout | Built | Store with the password removed |
 | Customer accounts (sign in, orders, name, addresses) | Built | Store with new customer accounts (V-08) |
@@ -94,7 +94,7 @@ From the defect log (`plans/UAT_ISSUES.md`) at release. Blockers: none may be op
 Known limits that are not defects (carried from the records on 2026-10-26; confirm each at release):
 
 - The gift in the placeholder rules is product-level; a bundle minimum of three items cannot require one of each; the gift size is not tied to the mattress size (Basic-plan limits; the real rules are yours, CLR-011).
-- Offer rules, the haul-away maximum and the delivery ZIP list are changed by a developer today (`OFFER_CONFIG_JSON`), not in Shopify admin, until the metaobject version (P4-12) ships `[confirm at release]`.
+- Offer rules, the haul-away maximum and the delivery ZIP list are changed in Shopify admin (discounts, `offer_rule` and `delivery_zone` entries; ADR-0013) and reach the site within about a minute `[confirm at release: not yet run on a store, V-30]`. If Shopify cannot be read the site shows no offers and checkout still works.
 - Counters that limit order lookups and email signup are kept in the server's memory per process and reset on restart; anyone can hold one email or order lookup shut for a short time (accepted-or-not by the owner: B-33 item 1).
 - Page changes take time to show (listing prices about 6 minutes, menus about an hour; confirm in ADMIN_GUIDE section 10.2).
 - Dependencies: react-router below 7.18 has open high-severity advisories in the version we hold (B-12). `[state the resolution or the written acceptance at release]`

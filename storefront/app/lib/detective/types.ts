@@ -46,7 +46,7 @@ export const UNJUDGED_REASONS = [
   /** The order has a shape the checks refuse to guess about (bad id, currency, quantity, duplicate line ids). */
   'invalid_order',
   'malformed_lines',
-  /** No offer rules were available (missing or invalid OFFER_CONFIG_JSON), so no line can be recognised. */
+  /** No offer rules were available (no Admin token, or Shopify could not be read), so no line can be recognised. */
   'rules_unavailable',
   /** A haul-away line exists but the delivery zone is unknown, so its ZIP cannot be judged. */
   'zone_unavailable',

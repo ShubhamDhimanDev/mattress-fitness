@@ -8,7 +8,7 @@
 
 import {detectiveConfigFromOffers} from '~/lib/detective/config';
 import {parseExtendConfig, type ExtendConfigResult} from '~/lib/extend/config';
-import {readOfferConfig} from '~/lib/offers-runtime/config';
+import {loadOfferConfig} from '~/lib/offers-runtime/shopify-rules';
 import {adminConfigFromEnv} from '~/lib/extend/admin-client';
 import {
   createCircuitBreaker,
@@ -148,7 +148,8 @@ export function webhookDepsFor(
         log: consoleLogger,
         breaker: state.breaker,
         // P5B-05: the detective order check reads the same rules and zone as the cart gate, whatever EXTEND_ORDER_SYNC is.
-        detective: detectiveConfigFromOffers(readOfferConfig(input.env)),
+        detective: async () =>
+          detectiveConfigFromOffers(await loadOfferConfig(input.env)),
       }),
     // Without waitUntil (Node, long-lived process) the promise simply runs on after the response is sent.
     schedule:

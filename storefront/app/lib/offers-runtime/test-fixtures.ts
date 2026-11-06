@@ -2,11 +2,16 @@
 // Imported by *.test.ts files only; nothing in the app bundle uses it.
 
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
+import {
+  EMPTY_OFFER_CONFIG,
+  parseOfferConfig,
+} from '~/lib/offers-runtime/config';
 import type {
   CartHandlerLike,
   CartLineAddInput,
   CartMutationResult,
 } from '~/lib/offers-runtime/server';
+import {primeOfferConfigForTests} from '~/lib/offers-runtime/shopify-rules';
 
 export const GID = {
   mattress: 'gid://shopify/Product/1',
@@ -72,7 +77,38 @@ export const CONFIG = {
   },
 };
 
-export const ENV = {OFFER_CONFIG_JSON: JSON.stringify(CONFIG)};
+let storeCount = 0;
+
+/**
+ * An environment whose offer configuration is already "loaded from Shopify": the loader serves `config` (run through the
+ * real validator) for a unique fake store, so no Admin call is made. Status 'none' and 'invalid' model a store the loader
+ * could not read (no token; Shopify unreachable with nothing loaded before), which means no rules and no zone.
+ */
+export function offerEnv(
+  config: unknown,
+  status: 'ok' | 'none' | 'invalid' = 'ok',
+): {PUBLIC_STORE_DOMAIN: string} {
+  storeCount += 1;
+  const env = {
+    PUBLIC_STORE_DOMAIN: `offers-test-${storeCount}.myshopify.com`,
+  };
+  primeOfferConfigForTests(
+    env,
+    status === 'ok'
+      ? parseOfferConfig(config)
+      : {
+          status,
+          config: EMPTY_OFFER_CONFIG,
+          warnings: status === 'invalid' ? ['rules_http_500'] : [],
+        },
+  );
+  return env;
+}
+
+export const ENV = offerEnv(CONFIG);
+
+/** No store domain and no Admin token: the loader answers 'none' (what a dev server on mock.shop sees). */
+export const OFFLINE_ENV: object = {};
 
 type LineSpec = {
   id: string;

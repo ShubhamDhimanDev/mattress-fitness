@@ -44,10 +44,11 @@ export type ProcessDeps = {
   random?: () => number;
   retry?: Partial<RetryPolicy>;
   /**
-   * Offer rules and delivery zone for the detective check (P5B-05), built from the same OFFER_CONFIG_JSON the cart gate
-   * reads. Left out, the check does not run (the existing tests and any caller that has no offer configuration).
+   * Offer rules and delivery zone for the detective check (P5B-05), loaded from Shopify (discounts and the offer_rule and
+   * delivery_zone metaobjects, ADR-0013) by the same loader the cart gate uses. A provider, because Shopify is asked at
+   * check time. Left out, the check does not run (the existing tests and any caller that has no offer configuration).
    */
-  detective?: DetectiveConfig;
+  detective?: () => Promise<DetectiveConfig>;
 };
 
 /**
@@ -207,7 +208,7 @@ type ReadyDetectiveConfig = Extract<DetectiveConfig, {status: 'ready'}>;
 async function readForDetective(
   action: WebhookAction,
   deps: ProcessDeps,
-  config: DetectiveConfig,
+  loadConfig: () => Promise<DetectiveConfig>,
 ): Promise<DetectiveStage> {
   const {log} = deps;
   const finished = (outcome: ProcessOutcome): DetectiveStage => ({
@@ -215,6 +216,7 @@ async function readForDetective(
     outcome,
   });
   try {
+    const config = await loadConfig();
     if (config.status !== 'ready') {
       // Without rules a gift, a protector and a haul-away line all look like ordinary lines, so nothing can be judged.
       // Say so for every order instead of looking quiet: silence would read as "no violations".

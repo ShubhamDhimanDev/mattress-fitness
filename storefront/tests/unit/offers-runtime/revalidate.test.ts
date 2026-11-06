@@ -22,7 +22,9 @@ import {
   FakeCart,
   GID,
   MATTRESS_LINE,
+  OFFLINE_ENV,
   cartOf,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -275,16 +277,18 @@ describe('REQ-PRE-006 revalidation of a Shopify cart (tamper cases)', () => {
     expect(result.check?.blocked[0]?.code).toBe('invalid-quantity');
   });
 
-  describe('missing configuration (fail closed in production, REQ-PRE-006)', () => {
+  describe('rules Shopify could not supply (fail open, REQ-PRE-006, ADR-0013)', () => {
     beforeEach(resetOfferConfigLogsForTests); // a problem is logged once per isolate (RS-01)
     const lines = [{...GIFT_LINE}, OTHER_LINE];
 
     it.each([
-      ['missing', {}],
-      ['blank', {OFFER_CONFIG_JSON: '  '}],
-      ['broken JSON', {OFFER_CONFIG_JSON: '{nope'}],
+      ['no Admin token', OFFLINE_ENV],
+      [
+        'a Shopify read that failed with nothing loaded before',
+        offerEnv({}, 'invalid'),
+      ],
     ])(
-      'production: a %s configuration pauses checkout and repairs nothing',
+      'production: %s leaves the cart alone and does not pause checkout',
       async (_name, env) => {
         const fake = new FakeCart(lines);
         const {storefront} = fakeStorefront(storefrontResponder());
@@ -293,39 +297,15 @@ describe('REQ-PRE-006 revalidation of a Shopify cart (tamper cases)', () => {
           fake.snapshot(),
         );
         expect(fake.calls).toEqual([]);
-        expect(result.view?.blocked[0]?.code).toBe('unverified');
-        expect(result.view?.blocked[0]?.message).toMatch(/checkout is paused/i);
-        expect(decideCheckout(result.cart, result.view).status).toBe('blocked');
+        expect(result.view?.blocked).toEqual([]);
+        expect(result.view?.gifts).toEqual([]);
+        expect(decideCheckout(result.cart, result.view).status).not.toBe(
+          'blocked',
+        );
       },
     );
 
-    it('OFFERS_ENABLED=false is the explicit "offers off": allowed in production, not blocked, not repaired', async () => {
-      const fake = new FakeCart(lines);
-      const {storefront} = fakeStorefront(storefrontResponder());
-      const result = await revalidateCartOffers(
-        {
-          storefront,
-          cart: fake,
-          env: {OFFERS_ENABLED: 'false'},
-          production: true,
-        },
-        fake.snapshot(),
-      );
-      expect(result.view?.blocked).toEqual([]);
-      expect(fake.calls).toEqual([]);
-    });
-
-    it('any other OFFERS_ENABLED value does not switch offers off', async () => {
-      const fake = new FakeCart(lines);
-      const {storefront} = fakeStorefront(storefrontResponder());
-      const result = await revalidateCartOffers(
-        {storefront, cart: fake, env: {OFFERS_ENABLED: 'no'}, production: true},
-        fake.snapshot(),
-      );
-      expect(result.view?.blocked[0]?.code).toBe('unverified');
-    });
-
-    it('a configured store that loses its configuration stops handing carts on', async () => {
+    it('a configured store that later cannot be read offers nothing and still hands carts on', async () => {
       const fake = new FakeCart(lines);
       const {storefront} = fakeStorefront(storefrontResponder());
       const before = await revalidateCartOffers(
@@ -334,17 +314,17 @@ describe('REQ-PRE-006 revalidation of a Shopify cart (tamper cases)', () => {
       );
       expect(before.view?.blocked).toEqual([]);
       const after = await revalidateCartOffers(
-        {storefront, cart: fake, env: {}, production: true},
+        {storefront, cart: fake, env: OFFLINE_ENV, production: true},
         fake.snapshot(),
       );
-      expect(decideCheckout(after.cart, after.view).status).toBe('blocked');
+      expect(decideCheckout(after.cart, after.view).status).not.toBe('blocked');
     });
 
     it('development and mock stores run with offers off: the cart is left alone and not blocked', async () => {
       const fake = new FakeCart(lines);
       const {storefront} = fakeStorefront(storefrontResponder());
       const result = await revalidateCartOffers(
-        {storefront, cart: fake, env: {}, production: false},
+        {storefront, cart: fake, env: OFFLINE_ENV, production: false},
         fake.snapshot(),
       );
       expect(fake.calls).toEqual([]);
@@ -352,7 +332,7 @@ describe('REQ-PRE-006 revalidation of a Shopify cart (tamper cases)', () => {
       expect(result.view?.blocked).toEqual([]);
     });
 
-    it('logs the problem by name, never the payload', async () => {
+    it('logs the problem by name, never the store or a payload', async () => {
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const fake = new FakeCart(lines);
       const {storefront} = fakeStorefront(storefrontResponder());
@@ -360,34 +340,32 @@ describe('REQ-PRE-006 revalidation of a Shopify cart (tamper cases)', () => {
         {
           storefront,
           cart: fake,
-          env: {OFFER_CONFIG_JSON: '{secret-looking-text'},
+          env: offerEnv({}, 'invalid'),
           production: true,
         },
         fake.snapshot(),
       );
       const logged = JSON.stringify(spy.mock.calls);
       expect(logged).toContain('offers.config_problem');
-      expect(logged).not.toContain('secret-looking-text');
+      expect(logged).not.toContain('myshopify.com');
     });
   });
 
   describe('incomplete product facts (no over-repair)', () => {
     // A gift that qualifies by COLLECTION: judged by the collections of the products in the cart.
-    const collectionEnv = {
-      OFFER_CONFIG_JSON: JSON.stringify({
-        rules: {
-          gifts: [
-            {
-              id: 'gift-by-collection',
-              name: 'Free pillow',
-              qualifyingCollectionIds: ['gid://shopify/Collection/1'],
-              giftVariantIdsBySize: {Standard: GID.gift},
-              maxQuantity: 1,
-            },
-          ],
-        },
-      }),
-    };
+    const collectionEnv = offerEnv({
+      rules: {
+        gifts: [
+          {
+            id: 'gift-by-collection',
+            name: 'Free pillow',
+            qualifyingCollectionIds: ['gid://shopify/Collection/1'],
+            giftVariantIdsBySize: {Standard: GID.gift},
+            maxQuantity: 1,
+          },
+        ],
+      },
+    });
     const lines = [MATTRESS_LINE, {...GIFT_LINE}];
 
     async function runWith(

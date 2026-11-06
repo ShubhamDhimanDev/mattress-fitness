@@ -6,7 +6,7 @@
 //   node scripts/setup/demo-env.mjs --mock
 //   node scripts/setup/demo-env.mjs --store my-demo.myshopify.com --token <32-character public Storefront API token>
 //
-// Options: --no-offers (writes OFFERS_ENABLED=false), --out .env.demo (a file name like .env.<name> inside storefront/),
+// Options: --out .env.demo (a file name like .env.<name> inside storefront/),
 // --force (overwrite an existing file), --help. The two cookie secrets are generated here with the platform's random
 // source and are never printed. The public Storefront token is public by design (PUBLIC_ prefix), but this tool still
 // does not echo it. Exit codes: 0 written, 1 the file already exists, 2 usage error.
@@ -29,7 +29,6 @@ const USAGE = `Usage:
   node scripts/setup/demo-env.mjs --store <shop>.myshopify.com --token <32-character public Storefront API token>
 
 Options:
-  --no-offers     also write OFFERS_ENABLED=false (the offers engine stays off)
   --out <name>    file name inside storefront/, like .env.demo (the default)
   --force         overwrite an existing file
   --help          this text`;
@@ -46,7 +45,6 @@ export function parseOptions(argv) {
         mock: {type: 'boolean', default: false},
         store: {type: 'string'},
         token: {type: 'string'},
-        'no-offers': {type: 'boolean', default: false},
         out: {type: 'string', default: '.env.demo'},
         force: {type: 'boolean', default: false},
         help: {type: 'boolean', default: false},
@@ -74,7 +72,6 @@ export function parseOptions(argv) {
       domain: MOCK_DOMAIN,
       token: MOCK_TOKEN,
       out: parsed.out,
-      noOffers: parsed['no-offers'],
       force: parsed.force,
     };
   }
@@ -92,7 +89,6 @@ export function parseOptions(argv) {
     domain,
     token: parsed.token,
     out: parsed.out,
-    noOffers: parsed['no-offers'],
     force: parsed.force,
   };
 }
@@ -115,10 +111,6 @@ export function buildEnvFile(options, secrets) {
     `SESSION_SECRET=${secrets.session}`,
     `DELIVERY_COOKIE_SECRET=${secrets.delivery}`,
   ];
-  if (options.noOffers) {
-    lines.push('', '# No offers: the cart goes straight to checkout.');
-    lines.push('OFFERS_ENABLED=false');
-  }
   return `${lines.join('\n')}\n`;
 }
 
@@ -148,9 +140,8 @@ export function run(argv, {storefrontDir, out = console.log, bytes} = {}) {
   out(
     [
       `Wrote storefront/${options.out} for ${options.domain}.`,
-      'Variables written (values are not shown): PUBLIC_STORE_DOMAIN, PUBLIC_CHECKOUT_DOMAIN, PUBLIC_STOREFRONT_API_TOKEN, SESSION_SECRET, DELIVERY_COOKIE_SECRET' +
-        (options.noOffers ? ', OFFERS_ENABLED' : '') +
-        '.',
+      'Variables written (values are not shown): PUBLIC_STORE_DOMAIN, PUBLIC_CHECKOUT_DOMAIN, PUBLIC_STOREFRONT_API_TOKEN, SESSION_SECRET, DELIVERY_COOKIE_SECRET.',
+      'Offers: none. They are read from Shopify with an Admin token, which this file does not hold.',
       'Third-party services: none configured (Extend, Klaviyo, GA4, Meta, Affirm, maps, Judge.me stay off).',
       '',
       'Next, from storefront/:',

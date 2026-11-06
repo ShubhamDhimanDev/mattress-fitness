@@ -20,7 +20,7 @@ let registered = false;
  *   DETECTIVE_ORDERS_PAGE_QUERY: string,
  *   DETECTIVE_ORDERS_PAGE_SIZE: number,
  *   parseOfferConfig: typeof import('../../storefront/app/lib/offers-runtime/config').parseOfferConfig,
- *   readOfferConfig: typeof import('../../storefront/app/lib/offers-runtime/config').readOfferConfig,
+ *   loadOfferConfig: typeof import('../../storefront/app/lib/offers-runtime/shopify-rules').loadOfferConfig,
  *   normalizeShopifyId: typeof import('../../storefront/app/lib/extend/ids').normalizeShopifyId,
  * }>}
  */
@@ -29,12 +29,13 @@ export async function loadDetectiveLibs() {
     register('./ts-hooks.mjs', import.meta.url);
     registered = true;
   }
-  const [detect, config, report, adminOrder, offerConfig, ids] = await Promise.all([
+  const [detect, config, report, adminOrder, offerConfig, shopifyRules, ids] = await Promise.all([
     import(`${APP}/detective/detect.ts`),
     import(`${APP}/detective/config.ts`),
     import(`${APP}/detective/report.ts`),
     import(`${APP}/extend/admin-order.ts`),
     import(`${APP}/offers-runtime/config.ts`),
+    import(`${APP}/offers-runtime/shopify-rules.ts`),
     import(`${APP}/extend/ids.ts`),
   ]);
   return {
@@ -46,7 +47,7 @@ export async function loadDetectiveLibs() {
     DETECTIVE_ORDERS_PAGE_QUERY: adminOrder.DETECTIVE_ORDERS_PAGE_QUERY,
     DETECTIVE_ORDERS_PAGE_SIZE: adminOrder.DETECTIVE_ORDERS_PAGE_SIZE,
     parseOfferConfig: offerConfig.parseOfferConfig,
-    readOfferConfig: offerConfig.readOfferConfig,
+    loadOfferConfig: shopifyRules.loadOfferConfig,
     normalizeShopifyId: ids.normalizeShopifyId,
   };
 }

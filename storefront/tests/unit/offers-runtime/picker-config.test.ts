@@ -1,12 +1,9 @@
 import {describe, expect, it} from 'vitest';
-import {
-  giftPickerEnabled,
-  offerRulesOf,
-  parseOfferConfig,
-} from '~/lib/offers-runtime/config';
+import {parseOfferConfig} from '~/lib/offers-runtime/config';
+import {offerRulesOf} from '~/lib/offers-runtime/shopify-rules';
+import {OFFLINE_ENV, offerEnv} from '~/lib/offers-runtime/test-fixtures';
 
-// REQ-PROMO-002 / M1: the bundle rule names the automatic discount that gives it its saving. K-M1: the gift picker flag.
-// K-L8 / m10: the parsed rules are reused while the setting text is unchanged.
+// REQ-PROMO-002 / M1: the bundle rule names the automatic discount that gives it its saving. The rules come from Shopify (ADR-0013).
 
 const BUNDLE = {
   id: 'sleep-set',
@@ -46,34 +43,14 @@ describe('bundle discountTitle in the offer configuration (M1)', () => {
   );
 });
 
-describe('giftPickerEnabled (K-M1)', () => {
-  it.each([
-    [{}, false],
-    [{PUBLIC_GIFT_PICKER_ENABLED: ''}, false],
-    [{PUBLIC_GIFT_PICKER_ENABLED: 'false'}, false],
-    [{PUBLIC_GIFT_PICKER_ENABLED: 'TRUE'}, false],
-    [{PUBLIC_GIFT_PICKER_ENABLED: 'true'}, true],
-  ])('%j is %s', (env, expected) => {
-    expect(giftPickerEnabled(env)).toBe(expected);
-  });
-});
-
-describe('offerRulesOf (m10)', () => {
-  const env = (rules: object) => ({
-    OFFER_CONFIG_JSON: JSON.stringify({rules}),
+describe('offerRulesOf (ADR-0013)', () => {
+  it('returns the rules the loader holds for the store', async () => {
+    const env = offerEnv({rules: {bundles: [BUNDLE]}});
+    expect((await offerRulesOf(env)).bundles).toHaveLength(1);
   });
 
-  it('returns the same parsed rules for the same setting text, and new ones when it changes', () => {
-    const first = offerRulesOf(env({bundles: [BUNDLE]}));
-    expect(offerRulesOf(env({bundles: [BUNDLE]}))).toBe(first);
-    const changed = offerRulesOf(env({bundles: []}));
-    expect(changed).not.toBe(first);
-    expect(changed.bundles).toEqual([]);
-  });
-
-  it('reads "offers off" and a missing setting as no rules, never from the cache', () => {
-    offerRulesOf(env({bundles: [BUNDLE]}));
-    expect(offerRulesOf({OFFERS_ENABLED: 'false'}).bundles).toEqual([]);
-    expect(offerRulesOf({}).bundles).toEqual([]);
+  it('reads an unreadable store and a store with no token as no rules (fail open)', async () => {
+    expect((await offerRulesOf(offerEnv({}, 'invalid'))).bundles).toEqual([]);
+    expect((await offerRulesOf(OFFLINE_ENV)).bundles).toEqual([]);
   });
 });

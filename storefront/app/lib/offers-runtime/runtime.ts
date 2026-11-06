@@ -1,6 +1,6 @@
 // SERVER ONLY. The one place a route builds the offer runtime from its request context, so every route
-// answers the production question the same way: production fails closed when the offer rules are missing
-// (server.ts loadConfig), the dev server and mock stores run with offers off. It also reads the shopper's
+// gets the same rules (read from Shopify, server.ts loadConfig; fail open: if they cannot be read there are no offers and
+// checkout keeps working, ADR-0013). The dev server and mock stores have no Admin token, so offers are off there. It also reads the shopper's
 // saved delivery ZIP (signed cookie) so every route judges haul-away against the same ZIP (P3B-11).
 
 import type {Storefront} from '~/lib/hydrogen/storefront';

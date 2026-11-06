@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {isInZone, parseZoneList} from '~/lib/delivery/zone';
-import {readOfferConfig} from '~/lib/offers-runtime/config';
+import {parseOfferConfig} from '~/lib/offers-runtime/config';
 import type {AddOnRelation, OfferRules} from '~/lib/offers/types';
 import {
   decodeProduct,
@@ -65,14 +65,13 @@ describe('the example offer configuration goes through the real parser (P4-12)',
     expect(loaded.warnings).toEqual([]);
   });
 
-  it('reads the same way from the env setting: one line, within the size limit', () => {
+  it('reads the same way after a JSON round trip (the shape is plain data)', () => {
     const line = minifiedExampleConfig();
     expect(line).not.toContain('\n');
-    expect(line.length).toBeLessThan(100_000);
-    const fromEnv = readOfferConfig({OFFER_CONFIG_JSON: line});
-    expect(fromEnv.status).toBe('ok');
-    expect(fromEnv.warnings).toEqual([]);
-    expect(fromEnv.config).toEqual(loaded.config);
+    const again = parseOfferConfig(JSON.parse(line));
+    expect(again.status).toBe('ok');
+    expect(again.warnings).toEqual([]);
+    expect(again.config).toEqual(loaded.config);
   });
 
   it('carries every rule kind the checklist needs', () => {

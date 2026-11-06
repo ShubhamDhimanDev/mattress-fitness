@@ -13,6 +13,7 @@ import {
   CONFIG,
   FakeCart,
   GID,
+  offerEnv,
   storefrontResponder,
 } from '~/lib/offers-runtime/test-fixtures';
 
@@ -41,12 +42,10 @@ const BUNDLE = {
     },
   ],
 };
-const ENV = {
-  OFFER_CONFIG_JSON: JSON.stringify({
-    ...CONFIG,
-    rules: {...CONFIG.rules, comfortGuarantee: undefined, bundles: [BUNDLE]},
-  }),
-};
+const ENV = offerEnv({
+  ...CONFIG,
+  rules: {...CONFIG.rules, comfortGuarantee: undefined, bundles: [BUNDLE]},
+});
 
 function args(request: Request, context: object) {
   // Route.*Args are framework-generated; only request, context and params are used (test-only narrowing, as in cart-routes.test.ts).
@@ -303,12 +302,11 @@ describe('"Add all" from the product page through /cart (REQ-ADD-002, T-01)', ()
 
 describe('product loader flag bundleExpected (REQ-ADD-002)', () => {
   const PRODUCT_ID = productJson.product.id;
-  const withBundle = (anchorProductId: string) => ({
-    OFFER_CONFIG_JSON: JSON.stringify({
+  const withBundle = (anchorProductId: string) =>
+    offerEnv({
       ...CONFIG,
       rules: {...CONFIG.rules, bundles: [{...BUNDLE, anchorProductId}]},
-    }),
-  });
+    });
 
   function run(env: Record<string, string>) {
     const {storefront} = fakeStorefront((call) => {
@@ -337,12 +335,9 @@ describe('product loader flag bundleExpected (REQ-ADD-002)', () => {
     expect((await run(withBundle(PRODUCT_ID))).bundleExpected).toBe(true);
   });
 
-  it('is false for a product no rule anchors, with no configuration, and with the offers switched off', async () => {
+  it('is false for a product no rule anchors, with no Admin token, and when Shopify could not be read', async () => {
     expect((await run(withBundle(GID.mattress))).bundleExpected).toBe(false);
     expect((await run({})).bundleExpected).toBe(false);
-    expect(
-      (await run({...withBundle(PRODUCT_ID), OFFERS_ENABLED: 'false'}))
-        .bundleExpected,
-    ).toBe(false);
+    expect((await run(offerEnv({}, 'invalid'))).bundleExpected).toBe(false);
   });
 });

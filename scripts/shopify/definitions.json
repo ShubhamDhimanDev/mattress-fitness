@@ -126,12 +126,13 @@
       "storefrontAccess": "PUBLIC_READ",
       "fieldDefinitions": [
         { "key": "name", "name": "Name", "type": "single_line_text_field", "required": true, "description": "Staff-facing label. Added to the data model so the admin list is readable." },
-        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["comfort_protector", "haul_away", "matching_protector", "pillow", "bedding", "gift", "bundle"] }] },
+        { "key": "type", "name": "Type", "type": "single_line_text_field", "required": true, "validations": [{ "name": "choices", "value": ["comfort_protector", "haul_away", "matching_protector", "pillow", "bedding", "gift", "bundle", "foundation"] }], "description": "Gifts are NOT made here: create an active automatic Buy X get Y discount (buy 1 of the products, get the gift 100% off). Other types offer the listed products for the trigger product or collection, per Size." },
         { "key": "trigger_collection", "name": "Trigger collection", "type": "collection_reference" },
         { "key": "trigger_product", "name": "Trigger product", "type": "product_reference" },
         { "key": "products", "name": "Offered products", "type": "list.product_reference" },
         { "key": "max_quantity", "name": "Maximum quantity", "type": "number_integer", "validations": [{ "name": "min", "value": 0 }] },
-        { "key": "price_source", "name": "Price source", "type": "single_line_text_field", "description": "Where the price comes from. Values finalised in Phase 4." },
+        { "key": "price_source", "name": "Price source", "type": "single_line_text_field", "description": "Not read by the storefront: prices always come from Shopify." },
+        { "key": "discount_title", "name": "Bundle discount title", "type": "single_line_text_field", "description": "Bundles only: the exact title of the automatic discount that gives the bundle its saving (capitals and extra spaces are ignored). Without it no saving is shown." },
         { "key": "enabled", "name": "Enabled", "type": "boolean" }
       ]
     },
@@ -159,10 +160,12 @@
       "fieldDefinitions": [
         { "key": "name", "name": "Name", "type": "single_line_text_field", "required": true },
         { "key": "postal_codes", "name": "Postal codes", "type": "multi_line_text_field", "required": true, "validations": [{ "name": "max", "value": 3000 }], "description": "Comma, space or line separated. A trailing * is a wildcard prefix, for example 100*. Kept as text, not a list, because Local delivery accepts one text field of up to 3,000 characters (F-28)." },
-        { "key": "fee_text", "name": "Fee text", "type": "single_line_text_field" },
+        { "key": "fee_text", "name": "Fee text", "type": "single_line_text_field", "description": "Wording only. The storefront charges nothing itself: the amount is the Fee field." },
+        { "key": "fee", "name": "Delivery fee", "type": "money", "required": false, "description": "The in-home delivery fee. Must equal the Local delivery price in Shopify." },
         { "key": "free_over", "name": "Free delivery over", "type": "money", "description": "The single source of the free-delivery threshold: the delivery quote, the cart progress message and the Local delivery price rule all use this amount." },
         { "key": "promise_white_glove", "name": "Promise: white-glove", "type": "single_line_text_field" },
-        { "key": "promise_parcel", "name": "Promise: parcel", "type": "single_line_text_field" }
+        { "key": "promise_parcel", "name": "Promise: parcel", "type": "single_line_text_field" },
+        { "key": "promise_pickup", "name": "Promise: pickup", "type": "single_line_text_field" }
       ]
     }
   ],

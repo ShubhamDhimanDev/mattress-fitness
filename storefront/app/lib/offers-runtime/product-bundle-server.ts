@@ -14,26 +14,32 @@ import {
   type BundleCompanion,
 } from '~/lib/offers/bundles';
 import type {BundleRule} from '~/lib/offers/types';
-import {offerRulesOf} from './config';
 import {readOfferedVariants} from './facts';
 import type {
   ProductBundleAnswer,
   ProductBundleItem,
   ProductBundleSet,
 } from './product-bundle';
+import {offerRulesOf} from './shopify-rules';
 
 export type ProductBundleUnavailable = {readonly status: 'unavailable'};
 
 /** The bundles whose page this product is (as the anchor). A companion's own page does not show the card. */
-function anchoredBundles(env: object, productId: string): BundleRule[] {
-  return bundleMembership(offerRulesOf(env).bundles, productId)
+async function anchoredBundles(
+  env: object,
+  productId: string,
+): Promise<BundleRule[]> {
+  return bundleMembership((await offerRulesOf(env)).bundles, productId)
     .filter(({role}) => role === 'anchor')
     .map(({bundle}) => bundle);
 }
 
 /** True when the rules make this product the anchor of a bundle (no Shopify read). */
-export function productHasBundle(env: object, productId: string): boolean {
-  return anchoredBundles(env, productId).length > 0;
+export async function productHasBundle(
+  env: object,
+  productId: string,
+): Promise<boolean> {
+  return (await anchoredBundles(env, productId)).length > 0;
 }
 
 type Candidate = {
@@ -53,7 +59,7 @@ function candidatesOf(bundles: readonly BundleRule[]): Candidate[] {
 
 /**
  * The in-stock sets of the first bundle that has any, every size. `bundle: null` when no rule makes this product an anchor,
- * when no size has a complete set in stock, when offers are switched off or the rules are unreadable. A failed Shopify
+ * when no size has a complete set in stock, or when the rules are unreadable. A failed Shopify
  * read answers `unavailable` (the route maps it to an uncacheable error and the card offers a retry): the card is an extra
  * and never blocks the page (NFR-013).
  */
@@ -62,7 +68,7 @@ export async function loadProductBundle(
   env: object,
   productId: string,
 ): Promise<ProductBundleAnswer | ProductBundleUnavailable> {
-  const candidates = candidatesOf(anchoredBundles(env, productId));
+  const candidates = candidatesOf(await anchoredBundles(env, productId));
   if (candidates.length === 0) return {status: 'ok', bundle: null};
 
   const read = await readOfferedVariants(

@@ -1,10 +1,8 @@
-// Offer rules and the delivery zone for the cart, parsed from untrusted JSON (P4-03, P4-04, P4-07, P4-09).
+// Offer rules and the delivery zone for the cart, validated from untrusted JSON (P4-03, P4-04, P4-07, P4-09).
 //
-// SEAM, not the final source. SHOPIFY_DATA_MODEL says rules come from the `offer_rule`, `site_settings` and
-// `delivery_zone` metaobjects, but their exact schema is still open (P3A-02 follow-up) and the development
-// store does not exist yet. Until then the server reads one non-secret JSON setting, `OFFER_CONFIG_JSON`,
-// and degrades to "no offers" when it is missing or invalid. Replacing this module's loader with a
-// metaobject reader (P4-12) changes nothing downstream: both produce the same `OfferConfig`.
+// The JSON is built from Shopify's own data by shopify-rules-map.ts (active automatic discounts for gifts, the
+// `offer_rule` and `delivery_zone` metaobjects for the rest) and fetched by shopify-rules.ts; no environment
+// variable carries rules (ADR-0013).
 //
 // Every value is checked here, because anything that names a variant ends up as a cart line: ids must be
 // Shopify GIDs, counts are bounded integers, and a malformed rule is dropped (never half-applied).
@@ -42,9 +40,10 @@ export type OfferConfigLoad = {
   readonly warnings: readonly string[];
 };
 
-const MAX_CONFIG_LENGTH = 100_000;
 const MAX_RULES = 50;
 const MAX_LIST = 200;
+/** Add-on relations are one per mattress, size and offered product, so a large catalog needs far more than MAX_LIST. */
+const MAX_RELATIONS = 10_000;
 const MAX_SIZES = 20;
 const MAX_NAME = 120;
 const MAX_QUANTITY = 99;
@@ -215,7 +214,8 @@ function parseRelation(value: unknown): AddOnRelation | null {
 
 function parseRelations(value: unknown, warn: Warn, key: string) {
   const relations: AddOnRelation[] = [];
-  for (const entry of list(value)) {
+  const entries = Array.isArray(value) ? value.slice(0, MAX_RELATIONS) : [];
+  for (const entry of entries) {
     const relation = parseRelation(entry);
     if (relation === null) warn(`matchingAddOns.${key}: entry dropped`);
     else relations.push(relation);
@@ -352,72 +352,7 @@ export function parseOfferConfig(raw: unknown): OfferConfigLoad {
   };
 }
 
-/**
- * NOTE for the P4-12 reader that replaces this one: keep the three outcomes apart. "Offers off" is the
- * explicit OFFERS_ENABLED=false switch (server.ts). A missing, oversized or unreadable source is NOT "off":
- * in production it must leave the hand-off unavailable with a loud, value-free log, because without the
- * rules a gift, protector or service line looks like an ordinary line.
- *
- * Reads the setting from the request-context env (never `process.env`, ADR-0004). Missing = no offers;
- * unreadable = no offers plus a warning. The cart keeps working either way (NFR-013).
- */
-export function readOfferConfig(env: object): OfferConfigLoad {
-  // Reflect.get: the request-context Env is an interface with no index signature.
-  const text: unknown = Reflect.get(env, 'OFFER_CONFIG_JSON');
-  if (typeof text !== 'string' || text.trim() === '') {
-    return {status: 'none', config: EMPTY_OFFER_CONFIG, warnings: []};
-  }
-  if (text.length > MAX_CONFIG_LENGTH) {
-    return {
-      status: 'invalid',
-      config: EMPTY_OFFER_CONFIG,
-      warnings: ['config: too large'],
-    };
-  }
-  try {
-    const parsed: unknown = JSON.parse(text);
-    return parseOfferConfig(parsed);
-  } catch {
-    return {
-      status: 'invalid',
-      config: EMPTY_OFFER_CONFIG,
-      warnings: ['config: not valid JSON'],
-    };
-  }
-}
-
 /** True when a gift rule qualifies by collection, so the cart lines need their product's collection ids. */
 export function rulesNeedCollections(rules: OfferRules): boolean {
   return rules.gifts.some((gift) => gift.qualifyingCollectionIds.length > 0);
-}
-
-/**
- * The offer rules for a cart the gate has already judged (server.ts `loadConfig` decided "off", "required" and
- * "unverified" before this is called): "offers off" and a missing or unreadable setting both read as no rules. Never
- * use it to decide whether a cart may be judged at all; that is the gate's decision, not this one's.
- * The parsed rules are kept for as long as the setting text is the same: the gate asks several times per request and the
- * rules are immutable, so parsing the JSON each time is wasted work.
- */
-export function offerRulesOf(env: object): OfferRules {
-  if (Reflect.get(env, 'OFFERS_ENABLED') === 'false') return EMPTY_OFFER_RULES;
-  const text: unknown = Reflect.get(env, 'OFFER_CONFIG_JSON');
-  if (typeof text === 'string' && cachedRules?.text === text) {
-    return cachedRules.rules;
-  }
-  const rules = readOfferConfig(env).config.rules;
-  if (typeof text === 'string') cachedRules = {text, rules};
-  return rules;
-}
-
-let cachedRules: {readonly text: string; readonly rules: OfferRules} | null =
-  null;
-
-/**
- * The gift picker is off until the gift discount is verified on a development store (V-03, P4-12). ASSUMPTION it waits
- * on: a gift is priced at 0 by a LINE-LEVEL automatic discount (buy X get Y at 100% off) that Shopify applies when our
- * server adds the gift line; if Shopify prices it any other way the cart gate flags the line and pauses checkout.
- * Bundles and add-ons are not affected. Set PUBLIC_GIFT_PICKER_ENABLED=true to turn it on.
- */
-export function giftPickerEnabled(env: object): boolean {
-  return Reflect.get(env, 'PUBLIC_GIFT_PICKER_ENABLED') === 'true';
 }

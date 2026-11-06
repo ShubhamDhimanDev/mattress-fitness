@@ -27,7 +27,7 @@ One row per SOW section and deliverable. "State 2026-10-26" is the build state f
 | 4 | Navigation, header, footer, promo bar, delivery ZIP | Built; promo text, phone and guarantee strip wait for client content | `[to fill]` | |
 | 4 | Reviews | Adapter and placeholder built per the latest commits; no provider; hidden when no data (per-store pickup availability removed 2026-10-28, SD-12) | `[to fill]` | |
 | 4 / 10 | Analytics (GA4, Meta) with consent; email signup; live chat | Built on fakes; ids and accounts not supplied; chat has no provider | `[to fill]` | |
-| 5 | Cart, add-on, bundle and gift offers, comfort-guarantee protector, haul-away, free-delivery progress | Built; gift picker off; haul-away limit not enforced in checkout (SD-01) | `[to fill]` | |
+| 5 | Cart, add-on, bundle and gift offers, comfort-guarantee protector, haul-away, free-delivery progress | Built; gifts appear when their automatic discount is active and verified (V-03, V-30); haul-away limit not enforced in checkout (SD-01) | `[to fill]` | |
 | 5 | Post-purchase and thank-you offers | Not built by us (SD-02, SD-03); client decision | `[to fill]` | |
 | 6 | Accident protection (Extend) | Built against a local mock; switched off; REQ-EXT-004 `Blocked` | `[to fill]` | |
 | 7 | Checkout hand-off, delivery methods (white-glove, pickup, parcel), payment options, customer emails | Hand-off and delivery steps built; payment activation and emails are the client's (CLR-007); one delivery zone (SD-07) | `[to fill]` | |

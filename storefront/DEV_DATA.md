@@ -44,17 +44,12 @@ Filter counts matching Shopify admin (V-04), metafield-driven badges, specificat
 
 ## Delivery ZIP and the product-page promise (P3B-11, P5B-03)
 
-The ZIP check needs a delivery zone, which the server reads from the non-secret `OFFER_CONFIG_JSON` setting (`zone` key; the metaobject reader replaces it later, P4-12; the `delivery_zone` metaobject is not read today). With no zone the product page and cart say nothing about delivery, by design, and `tests/e2e/delivery.spec.ts` skips with that reason.
+The ZIP check needs a delivery zone, which the server reads from the `delivery_zone` metaobject in Shopify through the read-only Admin token (`SHOPIFY_ADMIN_API_ACCESS_TOKEN`, scopes `read_metaobjects`, `read_discounts`, `read_products`; ADR-0013). There is no offer or zone environment variable any more. The mock stores (`bedding.mock.shop`) have no `delivery_zone` entry and no Admin token, so on them, and on any dev server without a token, the product page and cart say nothing about delivery and there are no offers, by design, and `tests/e2e/delivery.spec.ts` skips with that reason.
 
-1. Create `storefront/.env.delivery` (git-ignored by the `.env.*` pattern) with the four variables from `.env.bedding`, a `DELIVERY_COOKIE_SECRET` (32 or more characters, so a ZIP can be saved) and one more line (placeholder zone and wording, not client data):
+To exercise the ZIP flow you need a development store with a `delivery_zone` entry (`node scripts/setup/demo-offers.mjs` upserts a placeholder one; see [OFFER_SETUP_DEVSTORE](../docs/integrations/OFFER_SETUP_DEVSTORE.md)) and the token in the dev server's environment file (git-ignored, never printed), plus `DELIVERY_COOKIE_SECRET` (32 or more characters) so a ZIP can be saved. Then `npm run dev -- --port 3700 --env-file .env.delivery` and `E2E_PORT=3700 npx playwright test tests/e2e/delivery.spec.ts`. Not yet run that way (V-30).
 
-   ```
-   OFFER_CONFIG_JSON={"zone":{"name":"Test metro","postalCodes":"606*, 60007","feeCents":14900,"freeOverCents":99900,"promise":{"inHome":"Free in-home delivery and setup for your area.","parcel":"","pickup":""}}}
-   ```
 
-2. `npm run dev -- --port 3700 --env-file .env.delivery`, then `E2E_PORT=3700 npx playwright test tests/e2e/delivery.spec.ts`.
-
-The haul-away and delivery-choice steps cannot be exercised here: they need Storefront `nodes(ids)` lookups of the service variant, which the mock stores do not answer. They are covered by `tests/unit/routes/delivery-routes.test.ts` and need the development store (a real `haulAway` rule with a variant id) for a live run.
+The haul-away and delivery-choice steps cannot be exercised here: they need Storefront `nodes(ids)` lookups of the service variant, which the mock stores do not answer. They are covered by `tests/unit/routes/delivery-routes.test.ts` and need the development store (a real `haul_away` `offer_rule` entry) for a live run.
 
 ## Environment files at a glance (checked against the code 2026-10-15)
 
@@ -65,14 +60,14 @@ The four base variables are `PUBLIC_STORE_DOMAIN`, `PUBLIC_CHECKOUT_DOMAIN`, `PU
 | File               | Variables beyond the four base variables                                                                                      | Port used above | Spec                                              |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------- |
 | `.env.bedding`     | none for catalog, cart, search and home; add `DELIVERY_COOKIE_SECRET` (32 or more characters) for the `shell` ZIP entry tests | 3400            | catalog, cart, search, home, shell                |
-| `.env.delivery`    | `DELIVERY_COOKIE_SECRET` (32 or more characters) and `OFFER_CONFIG_JSON` with a `zone`                                        | 3700            | delivery                                          |
+| `.env.delivery`    | `DELIVERY_COOKIE_SECRET` (32 or more characters); for a live zone also the Admin token of a store that has a `delivery_zone` entry (otherwise the spec skips) | 3700            | delivery                    |
 | `.env.protection`  | `PUBLIC_EXTEND_ENABLED=true`, `EXTEND_API_HOST`, `EXTEND_STORE_ID`, `EXTEND_ACCESS_TOKEN` (local mock values)                 | 3900            | protection, resilience (`E2E_PROTECTION_FLAG=on`) |
 | `.env.prodpreview` | none, but `SESSION_SECRET` must be 32 or more characters (a production build refuses a shorter one)                           | 4400            | b20-production (`E2E_PROD_PREVIEW=1`)             |
-| `.env.demo`        | written by `node scripts/setup/demo-env.mjs`: the four base variables plus `DELIVERY_COOKIE_SECRET`; for a real development store the token is its 32-character public Storefront token (see DEMO_STORE_SETUP); no `OFFER_CONFIG_JSON`, so offers are off | 6100, 6700 (any free port) | real-store (`E2E_REAL_STORE=1`), brand-verification, and the store-agnostic suites (catalog, cart, search, home, shell, compare, stores, quiz, brands, smoke) |
+| `.env.demo`        | written by `node scripts/setup/demo-env.mjs`: the four base variables plus `DELIVERY_COOKIE_SECRET`; for a real development store the token is its 32-character public Storefront token (see DEMO_STORE_SETUP); no Admin token, so offers and the zone are off | 6100, 6700 (any free port) | real-store (`E2E_REAL_STORE=1`), brand-verification, and the store-agnostic suites (catalog, cart, search, home, shell, compare, stores, quiz, brands, smoke) |
 
 Real-store run (names only; the values stay in the git-ignored `.env.demo` and are never copied into a document, a ticket or a test): create the file with `node scripts/setup/demo-env.mjs --store <the .myshopify.com domain> --token <the public Storefront token>`, start `npm run dev -- --port 6100 --disable-version-check --env-file .env.demo`, then run `E2E_REAL_STORE=1 E2E_PORT=6100 E2E_ENV_FILE=.env.demo npx playwright test tests/e2e/real-store.spec.ts`. Without `E2E_REAL_STORE=1` the spec skips with a stated reason. What it proves and does not: `docs/testing/REAL_STORE_FINDINGS.md`. Agent runs follow the browser rule in `docs/testing/PLAYWRIGHT_WORKFLOW.md` (`--workers=1`, one browser user at a time).
 
-Other switches: `PUBLIC_GIFT_PICKER_ENABLED=true` turns the gift picker on (off by default; the e2e `pickers.spec` success paths are skipped on mock stores). `OFFERS_ENABLED=false` removes all offers. In a production build (`npm run build` then preview) `EXTEND_API_HOST=http://127.0.0.1:4010` is refused, so Extend reads as disabled there. The local Extend mock is started with `node scripts/mocks/extend-mock.mjs --port 4010`.
+Offers have no switches (ADR-0013): they are read from Shopify, so a server without an Admin token shows none, and the e2e `pickers.spec` success paths are skipped on mock stores. In a production build (`npm run build` then preview) `EXTEND_API_HOST=http://127.0.0.1:4010` is refused, so Extend reads as disabled there. The local Extend mock is started with `node scripts/mocks/extend-mock.mjs --port 4010`.
 
 ## CI (GitHub Actions)
 
@@ -81,7 +76,7 @@ Other switches: `PUBLIC_GIFT_PICKER_ENABLED=true` turns the gift picker on (off 
 | CI file              | Content                                                                                                                                      | Port                             | Specs                                                  |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------ |
 | `.env.ci`            | the four base variables plus `DELIVERY_COOKIE_SECRET` (five in all), with placeholder secrets of 32 or more characters; no `PUBLIC_SITE_URL` | 3100 (also 4400 for the preview) | everything; `b20-production` with `E2E_PROD_PREVIEW=1` |
-| `.env.ci-delivery`   | `.env.ci` plus `OFFER_CONFIG_JSON` with the test zone shown above                                                                            | 3700                             | `delivery`, `shell`                                    |
+| `.env.ci-delivery`   | a copy of `.env.ci` (the test zone variable is gone: ADR-0013; `delivery.spec` now skips on mock.shop) | 3700 | `delivery`, `shell` |
 | `.env.ci-protection` | `.env.ci` plus the four Extend variables of `.env.protection`; the local mock runs on 4010                                                   | 3900                             | `protection`, `resilience` (`E2E_PROTECTION_FLAG=on`)  |
 
 The runs of the `e2e-chromium` job, in order, with their `E2E_RUN_NAME`: `run1-mock-store` (whole suite, `.env.ci`), `run2-delivery` (`delivery` and `shell`, `.env.ci-delivery`), `run3-protection` (`protection` and `resilience`, `.env.ci-protection`, local Extend mock started by the step), `run4-production-preview` (`b20-production`, `.env.ci`, `E2E_PROD_PREVIEW=1`, after `npm run build`). All four use the projects `desktop-chromium` and `mobile-chromium`. The cross-browser job runs the whole suite once as `crossbrowser` in `desktop-webkit`, `mobile-webkit` and `desktop-firefox`, and is not a required check.

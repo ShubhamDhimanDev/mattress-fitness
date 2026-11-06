@@ -100,8 +100,8 @@ test.describe('cart pickers (REQ-CART-002, REQ-CART-003, REQ-ADD-002)', () => {
   }
 
   test.skip('gift choose-one, add-on and bundle buttons add through the server on a real store', () => {
-    // Needs a store that answers Storefront `nodes(ids)` and a gift/add-on/bundle rule in OFFER_CONFIG_JSON pointing at
-    // its variants (dev store, P4-12, V-03). Covered meanwhile by tests/unit/ui/CartOffers.test.tsx and
+    // Needs a store that answers Storefront `nodes(ids)` and a gift discount and add-on/bundle offer_rule entries
+    // in Shopify pointing at its variants (dev store, P4-12, V-03). Covered meanwhile by tests/unit/ui/CartOffers.test.tsx and
     // tests/unit/routes/picker-routes.test.ts against fakes.
   });
 });

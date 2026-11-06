@@ -80,7 +80,7 @@ List of the 35 spec files by name (counted from the folder on 2026-10-26), with 
 | `cart.spec.ts` | Cart drawer and page, hostile input, server hand-off (REQ-CART-001, REQ-PRE-006, REQ-CHK-001) | none |
 | `pickers.spec.ts` | Gift, add-on and bundle pickers (REQ-CART-002/003, REQ-ADD-002) | Success paths skip on mock stores (V-03, V-06, V-17) |
 | `product-addons.spec.ts` | Product page add-on slot (REQ-ADD-001) | `E2E_ADDONS_RULES=on` and a server with real foundation rules for the success path |
-| `delivery.spec.ts` | Delivery promise, no-JS ZIP entry, cart page haul-away messages (REQ-DEL-002, REQ-NAV-003) | `.env.delivery` with `OFFER_CONFIG_JSON` zone, port 3700 |
+| `delivery.spec.ts` | Delivery promise, no-JS ZIP entry, cart page haul-away messages (REQ-DEL-002, REQ-NAV-003) | `.env.delivery`, port 3700; needs a store with a `delivery_zone` entry and an Admin token, otherwise it skips (ADR-0013) |
 | `delivery-unavailable.spec.ts` | Unusable delivery secret in production fails closed (REQ-DEL-001, P3B-11) | a server with a short `DELIVERY_COOKIE_SECRET` |
 | `protection.spec.ts` | Extend protection panel, flag on and off (NFR-013) | `.env.protection`, `E2E_PROTECTION_FLAG=on`, mock on port 4010 |
 | `resilience.spec.ts` | Extend failures never block shopping or checkout (NFR-013, P5A-11) | as protection |

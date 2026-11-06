@@ -116,6 +116,8 @@ Not working or not checked: clicking the size radio with Playwright timed out be
 
 ## 7c. Offer products and the offer configuration (P4-12 interim, placeholder rules)
 
+> **Superseded 2026-11-06 (ADR-0013, DEC-153).** The offer configuration file, `OFFER_CONFIG_JSON`, `.env.offers` and the gift-picker flag described in sections 7c and 7d were the interim seam and no longer exist. Now: run `apply-definitions.mjs` (new `foundation` choice and `fee`, `discount_title`, `promise_pickup` fields), `demo-offers.mjs` (it upserts placeholder `offer_rule` and `delivery_zone` entries instead of writing a file), create the gift discount by hand, and give the dev server an Admin token (scopes `read_discounts`, `read_metaobjects`, `read_products`). See [OFFER_SETUP_DEVSTORE](../integrations/OFFER_SETUP_DEVSTORE.md). What follows is the dated record of what was run then and is kept as history. Nothing here was re-run against the new reader (V-30).
+
 ```bash
 SP=<scratch folder>
 python scripts/setup/make-demo-images.py scripts/catalog/sample/offer-images.txt $SP/offer-img
