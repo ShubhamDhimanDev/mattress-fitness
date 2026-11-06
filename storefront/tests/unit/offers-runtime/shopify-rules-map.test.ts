@@ -3,6 +3,7 @@ import {parseOfferConfig} from '~/lib/offers-runtime/config';
 import {
   buildRawOfferConfig,
   centsOfMoney,
+  giftProductIdsOf,
   giftsFromDiscounts,
   productInfoOf,
   referencedIds,
@@ -337,6 +338,129 @@ describe('giftsFromDiscounts (REQ-PROMO-001, REQ-CART-002)', () => {
         warn,
       ),
     ).toEqual([]);
+  });
+});
+
+describe('giftsFromDiscounts: a product at 100% off is a gift (REQ-PROMO-001, owner 2026-11-06)', () => {
+  const pillowItems = {
+    __typename: 'DiscountProducts',
+    products: {nodes: [{id: PILLOW, title: 'Gift pillow'}]},
+  };
+  const freeNode = (over: Record<string, unknown> = {}) => ({
+    id: 'gid://shopify/DiscountAutomaticNode/9',
+    discount: {
+      __typename: 'DiscountAutomaticBasic',
+      title: 'Free pillow',
+      status: 'ACTIVE',
+      minimumRequirement: null,
+      customerGets: {
+        value: {__typename: 'DiscountPercentage', percentage: 1},
+        items: pillowItems,
+      },
+      ...over,
+    },
+  });
+  const pillow: ProductInfo = {
+    id: PILLOW,
+    title: 'Gift pillow',
+    variants: [
+      {id: 'gid://shopify/ProductVariant/301', title: 'Queen', size: 'Queen'},
+      {id: 'gid://shopify/ProductVariant/302', title: 'King', size: 'King'},
+    ],
+  };
+  const lookup = new Map([[PILLOW, pillow]]);
+  const run = (over: Record<string, unknown> = {}) => {
+    const {warnings, warn} = collect();
+    const gifts = giftsFromDiscounts(null, warn, {
+      free: {discountNodes: {nodes: [freeNode(over)]}},
+      products: lookup,
+    });
+    return {gifts, warnings};
+  };
+
+  it('makes the product a gift offered with any purchase, one per order, and the validator accepts it', () => {
+    const {gifts, warnings} = run();
+    expect(gifts).toEqual([
+      {
+        id: 'gid://shopify/DiscountAutomaticNode/9',
+        name: 'Free pillow',
+        anyPurchase: true,
+        giftVariantIdsBySize: {
+          Queen: 'gid://shopify/ProductVariant/301',
+          King: 'gid://shopify/ProductVariant/302',
+        },
+        maxQuantity: 1,
+      },
+    ]);
+    expect(warnings).toEqual([]);
+    const parsed = parseOfferConfig({rules: {gifts}});
+    expect(parsed.config.rules.gifts[0]?.anyPurchase).toBe(true);
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it('lists the gift product ids so the loader can fetch their variants', () => {
+    expect(giftProductIdsOf({discountNodes: {nodes: [freeNode()]}})).toEqual([
+      PILLOW,
+    ]);
+  });
+
+  it.each([
+    [
+      'a 10% sale',
+      {
+        customerGets: {
+          value: {__typename: 'DiscountPercentage', percentage: 0.1},
+          items: pillowItems,
+        },
+      },
+    ],
+    ['an inactive discount', {status: 'EXPIRED'}],
+    [
+      'a fixed amount off',
+      {
+        customerGets: {
+          value: {__typename: 'DiscountAmount'},
+          items: pillowItems,
+        },
+      },
+    ],
+  ])('ignores %s without a warning', (_name, over) => {
+    const {gifts, warnings} = run(over);
+    expect(gifts).toEqual([]);
+    expect(warnings).toEqual([]);
+  });
+
+  it.each([
+    [
+      'a minimum requirement',
+      {minimumRequirement: {__typename: 'DiscountMinimumSubtotal'}},
+    ],
+    [
+      'free items that are a collection',
+      {
+        customerGets: {
+          value: {__typename: 'DiscountPercentage', percentage: 1},
+          items: {__typename: 'DiscountCollections'},
+        },
+      },
+    ],
+    [
+      'a product the store did not return',
+      {
+        customerGets: {
+          value: {__typename: 'DiscountPercentage', percentage: 1},
+          items: {
+            __typename: 'DiscountProducts',
+            products: {nodes: [{id: 'gid://shopify/Product/404'}]},
+          },
+        },
+      },
+    ],
+  ])('skips %s with a warning, and offers no gift', (_name, over) => {
+    const {gifts, warnings} = run(over);
+    expect(gifts).toEqual([]);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/free-product discount skipped/);
   });
 });
 

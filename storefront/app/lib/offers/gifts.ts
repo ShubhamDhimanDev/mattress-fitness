@@ -24,6 +24,9 @@ export function giftSizeOptions(rule: GiftRule): GiftSizeOption[] {
 }
 
 function qualifies(rule: GiftRule, lines: readonly ClassifiedLine[]): boolean {
+  if (rule.anyPurchase === true) {
+    return lines.some(({kind}) => kind === 'regular');
+  }
   const products = new Set(rule.qualifyingProductIds);
   const collections = new Set(rule.qualifyingCollectionIds);
   // Only ordinary lines qualify: a gift, a service line or coverage cannot unlock another gift.

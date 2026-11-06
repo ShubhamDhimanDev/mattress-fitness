@@ -116,6 +116,7 @@ function parseGift(value: unknown): GiftRule | null {
   const collections = gids(value.qualifyingCollectionIds ?? [], COLLECTION_GID);
   const sizes = variantsBySize(value.giftVariantIdsBySize);
   const maxQuantity = boundedInt(value.maxQuantity, 1, MAX_QUANTITY);
+  const anyPurchase = value.anyPurchase === true;
   if (
     id === null ||
     label === null ||
@@ -123,7 +124,7 @@ function parseGift(value: unknown): GiftRule | null {
     collections === null ||
     sizes === null ||
     maxQuantity === null ||
-    products.length + collections.length === 0
+    (!anyPurchase && products.length + collections.length === 0)
   ) {
     return null;
   }
@@ -132,6 +133,7 @@ function parseGift(value: unknown): GiftRule | null {
     name: label,
     qualifyingProductIds: products,
     qualifyingCollectionIds: collections,
+    ...(anyPurchase ? {anyPurchase} : {}),
     giftVariantIdsBySize: sizes,
     maxQuantity,
   };
