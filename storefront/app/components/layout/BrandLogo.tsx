@@ -16,7 +16,7 @@ export function HeaderLogo() {
       to="/"
       prefetch="intent"
       aria-label={`${BRAND_NAME} home`}
-      className="inline-flex min-h-touch items-center"
+      className="flex min-h-touch w-full items-center justify-center"
     >
       <img
         src={HEADER_LOGO.src}
@@ -28,7 +28,8 @@ export function HeaderLogo() {
         loading="eager"
         decoding="async"
         {...HIGH_PRIORITY}
-        className="h-auto w-72 lg:w-92"
+        // Fills its column (which shrinks on a narrow screen) up to the full 288 px, 368 px from lg.
+        className="h-auto w-full max-w-72 lg:max-w-92"
       />
     </Link>
   );
