@@ -19,6 +19,38 @@ import {
   mattressA,
 } from '~/lib/offers/test-fixtures';
 
+describe('a gift with no buy condition (REQ-PROMO-001)', () => {
+  const rules: OfferRules = {
+    ...RULES,
+    gifts: [
+      {
+        id: 'free-pillow',
+        name: 'Free pillow',
+        qualifyingProductIds: [],
+        qualifyingCollectionIds: [],
+        anyPurchase: true,
+        giftVariantIdsBySize: {Standard: VARIANT.giftStandard},
+        maxQuantity: 1,
+      },
+    ],
+  };
+  const evaluate = (lines: Parameters<typeof makeCart>[0]) =>
+    evaluateGifts(prepareCart(makeCart(lines), rules), rules.gifts);
+
+  it('is offered with any ordinary line in the cart, and not with an empty cart', () => {
+    expect(evaluate([mattressA('Queen')]).offers.map((o) => o.ruleId)).toEqual([
+      'free-pillow',
+    ]);
+    expect(evaluate([]).offers).toEqual([]);
+  });
+
+  it('removes a gift left alone in the cart, since a gift is not an ordinary line', () => {
+    const alone = evaluate([gift(VARIANT.giftStandard, 'g1')]);
+    expect(alone.corrections.map((c) => c.type)).toEqual(['remove-line']);
+    expect(alone.offers).toEqual([]);
+  });
+});
+
 function run(lines: Parameters<typeof makeCart>[0], rules: OfferRules = RULES) {
   return evaluateGifts(prepareCart(makeCart(lines), rules), rules.gifts);
 }

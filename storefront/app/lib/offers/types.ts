@@ -71,6 +71,11 @@ export type GiftRule = {
   readonly name: string;
   readonly qualifyingProductIds: readonly string[];
   readonly qualifyingCollectionIds: readonly string[];
+  /**
+   * True for a gift whose Shopify discount has no buy condition (a plain 100% off on the gift product): any ordinary line
+   * in the cart qualifies, and the qualifying lists are empty.
+   */
+  readonly anyPurchase?: boolean;
   readonly giftVariantIdsBySize: Readonly<Record<string, string>>;
   /**
    * Gift units allowed per order for this rule. It must equal the "get" quantity of the matching Shopify

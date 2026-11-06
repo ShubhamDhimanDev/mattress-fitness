@@ -120,7 +120,7 @@ function operationOf(query: string): string {
 }
 
 /** A fake Admin API. `mode` can make every call fail; `seen` records what was asked. */
-function fakeShopify() {
+function fakeShopify(options: {free?: readonly object[]} = {}) {
   const seen: Seen[] = [];
   let mode: 'ok' | 'http500' | 'graphql' | 'network' = 'ok';
   const fetchFn: FetchLike = (url, init) => {
@@ -152,6 +152,7 @@ function fakeShopify() {
     const idList = Array.isArray(ids) ? ids.map(String) : [];
     const data: Record<string, unknown> = {
       OfferGiftDiscounts: {discountNodes: {nodes: [GIFT_DISCOUNT]}},
+      OfferFreeProducts: {discountNodes: {nodes: options.free ?? []}},
       OfferRuleEntries: {
         rules: {nodes: RULE_NODES},
         zones: {nodes: [ZONE_NODE]},
@@ -290,6 +291,45 @@ describe('loadOfferConfig: caching', () => {
     await loadOfferConfig(envFor(), {fetch: shopify.fetchFn});
     await loadOfferConfig(envFor(), {fetch: shopify.fetchFn});
     expect(shopify.count('OfferGiftDiscounts')).toBe(2);
+  });
+});
+
+describe('loadOfferConfig: a product at 100% off is a gift (REQ-PROMO-001)', () => {
+  it('fetches the free product variants and offers it with any purchase', async () => {
+    const shopify = fakeShopify({
+      free: [
+        {
+          id: 'gid://shopify/DiscountAutomaticNode/9',
+          discount: {
+            __typename: 'DiscountAutomaticBasic',
+            title: 'Free service pillow',
+            status: 'ACTIVE',
+            minimumRequirement: null,
+            customerGets: {
+              value: {__typename: 'DiscountPercentage', percentage: 1},
+              items: {
+                __typename: 'DiscountProducts',
+                products: {nodes: [{id: PILLOW, title: 'Pillow'}]},
+              },
+            },
+          },
+        },
+      ],
+    });
+    const load = await loadOfferConfig(envFor(), {fetch: shopify.fetchFn});
+    expect(load.status).toBe('ok');
+    expect(load.config.rules.gifts).toContainEqual(
+      expect.objectContaining({
+        name: 'Free service pillow',
+        anyPurchase: true,
+        maxQuantity: 1,
+        giftVariantIdsBySize: {
+          Queen: 'gid://shopify/ProductVariant/301',
+          King: 'gid://shopify/ProductVariant/302',
+        },
+      }),
+    );
+    expect(shopify.count('OfferFreeProducts')).toBe(1);
   });
 });
 

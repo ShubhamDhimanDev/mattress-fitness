@@ -224,7 +224,7 @@ What the tag does (`BUILT, AWAITING DEV-STORE VERIFICATION`): the website leaves
 
 ### 3.1 How a promotion works
 
-**A gift is just a Shopify discount.** The website reads your **active automatic "Buy X get Y" discounts** from Shopify about once a minute and offers the gift to a shopper whose cart qualifies. There is no second setting to fill in and nobody to ask. `BUILT, AWAITING DEV-STORE VERIFICATION` (V-03, V-30)
+**A gift is just a Shopify discount.** The website reads your **active automatic discounts** from Shopify about once a minute. A product that a discount takes **100% off** is shown as a gift, in one of two shapes (below). There is no second setting to fill in and nobody to ask. `BUILT, AWAITING DEV-STORE VERIFICATION` (V-03, V-30)
 
 | What | Where | What it does |
 | ---- | ----- | ------------ |
@@ -232,9 +232,11 @@ What the tag does (`BUILT, AWAITING DEV-STORE VERIFICATION`): the website leaves
 | The offer | The same discount | Its "Customer buys" products or collections decide who is offered the gift; its "Customer gets" product and sizes are what the picker shows. |
 | A bundle | **Content > Metaobjects > Offer rule** (type Bundle) plus its discount | The rule says which products are shown together; the discount gives the saving. See 3.4. |
 
-**The website only understands this shape of gift discount, and quietly skips any other** (it never offers a gift that Shopify would then charge for; a developer can see the skipped discount in the log):
+**Shape 1, simplest: "Amount off products", 100% off the gift product.** Create an **automatic** "Amount off products" discount, pick the gift product (**specific products**, not a collection), value **Percentage, 100%**, and **no minimum requirement**. The gift is then offered with **any** purchase, one per order. The website never lets a shopper keep more than one. Use this when every order should be offered the gift. `BUILT, AWAITING DEV-STORE VERIFICATION`
 
-- It is an **automatic** discount of the **Buy X get Y** type (not a discount code, not "Amount off products").
+**Shape 2, only some mattresses unlock the gift: "Buy X get Y".** The website quietly skips any other shape (it never offers a gift that Shopify would then charge for; a developer can see the skipped discount in the log):
+
+- It is an **automatic** discount of the **Buy X get Y** type (not a discount code).
 - **Customer buys:** a **minimum quantity of items** of **1**, from **specific products or collections** (not "all products", not a minimum purchase amount, not 2 or more items).
 - **Customer gets:** a fixed quantity of **specific products**, at a discounted value of **Free (100% off)**.
 - It is **Active** (not scheduled for later, not ended).

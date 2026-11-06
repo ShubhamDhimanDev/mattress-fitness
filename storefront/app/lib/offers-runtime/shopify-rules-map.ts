@@ -123,8 +123,31 @@ function collectIds(
   return false;
 }
 
+type ProductLookup = ReadonlyMap<string, ProductInfo>;
+
+/** The gift product ids a discounts answer names, so the loader can fetch their variants (lean discount queries). */
+export function giftProductIdsOf(...answers: readonly unknown[]): string[] {
+  const ids = new Set<string>();
+  for (const answer of answers) {
+    const nodes = isRecord(answer) ? nodesOf(answer.discountNodes) : [];
+    for (const node of nodes) {
+      const gets =
+        isRecord(node) && isRecord(node.discount)
+          ? node.discount.customerGets
+          : null;
+      const getItems = isRecord(gets) ? gets.items : null;
+      if (!isRecord(getItems)) continue;
+      for (const product of nodesOf(getItems.products)) {
+        const id = idOf(product);
+        if (id !== null) ids.add(id);
+      }
+    }
+  }
+  return [...ids];
+}
+
 /** The variants the "get" side hands out: the chosen variants when the discount names some, else all of each product. */
-function giftVariants(itemsValue: unknown): Json {
+function giftVariants(itemsValue: unknown, lookup: ProductLookup): Json {
   const bySize: Json = {};
   if (!isRecord(itemsValue) || itemsValue.__typename !== 'DiscountProducts') {
     return bySize;
@@ -148,7 +171,10 @@ function giftVariants(itemsValue: unknown): Json {
         ];
   });
   const fromProducts = nodesOf(itemsValue.products).flatMap((node) => {
-    const product = productInfoOf(node);
+    // A product node that carries its own variants wins; a lean node is completed from the fetched products.
+    const nodeId = idOf(node);
+    const product =
+      (nodeId === null ? undefined : lookup.get(nodeId)) ?? productInfoOf(node);
     return product === null
       ? []
       : product.variants.map((variant) => ({
@@ -172,6 +198,7 @@ function giftVariants(itemsValue: unknown): Json {
 function giftFromDiscount(
   nodeId: string,
   discount: Json,
+  lookup: ProductLookup,
   warn: Warn,
 ): Json | null {
   const title = text(discount.title) ?? 'Gift';
@@ -217,7 +244,7 @@ function giftFromDiscount(
   ) {
     return skip('the gift must be 100% off a fixed quantity');
   }
-  const sizes = giftVariants(gets.items);
+  const sizes = giftVariants(gets.items, lookup);
   if (Object.keys(sizes).length === 0) return skip('no gift variants');
 
   // Shopify repeats a Buy X get Y for every set of buys unless "maximum uses per order" is set, so only the limited form
@@ -233,10 +260,79 @@ function giftFromDiscount(
   };
 }
 
-/** `data` of the discounts query -> raw gift rules. */
-export function giftsFromDiscounts(data: unknown, warn: Warn): Json[] {
-  const nodes = isRecord(data) ? nodesOf(data.discountNodes) : [];
+/**
+ * A plain "Amount off products" automatic discount that takes 100% off specific products makes those products gifts, offered
+ * with any purchase (owner, 2026-11-06: "if a product is 100% off or free, it should show as a gift"). Any other amount-off
+ * discount is an ordinary sale and is ignored without a warning. A minimum requirement cannot be judged by the engine, so
+ * such a discount is skipped with a warning rather than offered and then charged.
+ */
+function freeProductGift(
+  nodeId: string,
+  discount: Json,
+  lookup: ProductLookup,
+  warn: Warn,
+): Json | null {
+  const gets = isRecord(discount.customerGets) ? discount.customerGets : {};
+  const value = isRecord(gets.value) ? gets.value : {};
+  const percentage = value.percentage;
+  if (
+    value.__typename !== 'DiscountPercentage' ||
+    typeof percentage !== 'number' ||
+    percentage < 0.999
+  ) {
+    return null;
+  }
+  const skip = (why: string): null => {
+    warn(`free-product discount skipped (${why})`);
+    return null;
+  };
+  if (!isRecord(gets.items) || gets.items.__typename !== 'DiscountProducts') {
+    return skip('the free items must be specific products');
+  }
+  if (
+    discount.minimumRequirement !== null &&
+    discount.minimumRequirement !== undefined
+  ) {
+    return skip('a minimum requirement cannot be checked before checkout');
+  }
+  const sizes = giftVariants(gets.items, lookup);
+  if (Object.keys(sizes).length === 0) return skip('no gift variants');
+  // Shopify frees every unit of the product, so the only bound we can state is our own: one per order, which is never more
+  // than Shopify discounts.
+  return {
+    id: nodeId,
+    name: text(discount.title) ?? 'Free gift',
+    anyPurchase: true,
+    giftVariantIdsBySize: sizes,
+    maxQuantity: 1,
+  };
+}
+
+/** The discounts answers -> raw gift rules (Buy X get Y, and 100% off specific products). */
+export function giftsFromDiscounts(
+  data: unknown,
+  warn: Warn,
+  options: {readonly free?: unknown; readonly products?: ProductLookup} = {},
+): Json[] {
+  const lookup: ProductLookup =
+    options.products ?? new Map<string, ProductInfo>();
   const gifts: Json[] = [];
+  for (const node of isRecord(options.free)
+    ? nodesOf(options.free.discountNodes)
+    : []) {
+    if (!isRecord(node) || !isRecord(node.discount)) continue;
+    const id = text(node.id);
+    if (
+      id === null ||
+      node.discount.__typename !== 'DiscountAutomaticBasic' ||
+      node.discount.status !== 'ACTIVE'
+    ) {
+      continue;
+    }
+    const gift = freeProductGift(id, node.discount, lookup, warn);
+    if (gift !== null) gifts.push(gift);
+  }
+  const nodes = isRecord(data) ? nodesOf(data.discountNodes) : [];
   for (const node of nodes) {
     if (!isRecord(node) || !isRecord(node.discount)) continue;
     const discount = node.discount;
@@ -248,7 +344,7 @@ export function giftsFromDiscounts(data: unknown, warn: Warn): Json[] {
     }
     const id = text(node.id);
     if (id === null) continue;
-    const gift = giftFromDiscount(id, discount, warn);
+    const gift = giftFromDiscount(id, discount, lookup, warn);
     if (gift !== null) gifts.push(gift);
   }
   return gifts;

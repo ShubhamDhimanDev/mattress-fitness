@@ -1,5 +1,5 @@
 // SERVER ONLY. Loads the offer rules and the delivery zone from Shopify itself (ADR-0013), so no offer environment
-// variable exists: gifts come from active automatic Buy X get Y discounts, the other rules from the `offer_rule` and
+// variable exists: gifts come from active automatic discounts (Buy X get Y, or 100% off specific products), the other rules from the `offer_rule` and
 // `delivery_zone` metaobjects. It uses the storefront's existing read-only Admin token (SHOPIFY_ADMIN_API_ACCESS_TOKEN;
 // scopes read_discounts, read_metaobjects, read_products) and the store domain, nothing else.
 //
@@ -22,6 +22,7 @@ import {
 } from './config';
 import {
   buildRawOfferConfig,
+  giftProductIdsOf,
   giftsFromDiscounts,
   productInfoOf,
   referencedIds,
@@ -40,9 +41,11 @@ const MAX_COLLECTIONS = 10;
 
 // These are Admin API documents, deliberately NOT tagged `#graphql`: Hydrogen's codegen validates tagged documents against
 // the Storefront schema, which has no discount types, and fails the build.
+// The two discount documents are kept lean (Shopify refuses a query whose requested cost is over 1000): gift variants are
+// fetched afterwards per product, in the same chunks as the rule products.
 const DISCOUNTS_QUERY = `
 query OfferGiftDiscounts {
-  discountNodes(first: 50, query: "status:active method:automatic type:bxgy") {
+  discountNodes(first: 10, query: "status:active method:automatic type:bxgy") {
     nodes {
       id
       discount {
@@ -59,11 +62,10 @@ query OfferGiftDiscounts {
             items {
               __typename
               ... on DiscountProducts {
-                products(first: 50) { nodes { id } }
-                productVariants(first: 50) { nodes { id product { id } } }
+                products(first: 10) { nodes { id } }
               }
               ... on DiscountCollections {
-                collections(first: 50) { nodes { id } }
+                collections(first: 10) { nodes { id } }
               }
             }
           }
@@ -81,23 +83,37 @@ query OfferGiftDiscounts {
             items {
               __typename
               ... on DiscountProducts {
-                products(first: 5) {
-                  nodes {
-                    id
-                    title
-                    variants(first: 50) {
-                      nodes { id title selectedOptions { name value } }
-                    }
-                  }
-                }
-                productVariants(first: 50) {
-                  nodes {
-                    id
-                    title
-                    selectedOptions { name value }
-                    product { id title }
-                  }
-                }
+                products(first: 3) { nodes { id title } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+
+// Plain "Amount off products" automatic discounts: those at 100% off specific products make those products gifts.
+const FREE_PRODUCTS_QUERY = `
+query OfferFreeProducts {
+  discountNodes(first: 25, query: "status:active method:automatic type:percentage") {
+    nodes {
+      id
+      discount {
+        __typename
+        ... on DiscountAutomaticBasic {
+          title
+          status
+          minimumRequirement { __typename }
+          customerGets {
+            value {
+              __typename
+              ... on DiscountPercentage { percentage }
+            }
+            items {
+              __typename
+              ... on DiscountProducts {
+                products(first: 3) { nodes { id title } }
               }
             }
           }
@@ -219,12 +235,16 @@ async function fetchOfferConfig(
   admin: ReadyAdmin,
   fetchFn: FetchLike,
 ): Promise<Fetched> {
-  const [discounts, rules] = await Promise.all([
+  const [discounts, free, rules] = await Promise.all([
     query(admin, fetchFn, DISCOUNTS_QUERY, {}),
+    query(admin, fetchFn, FREE_PRODUCTS_QUERY, {}),
     query(admin, fetchFn, RULES_QUERY, {}),
   ]);
   if (discounts.status === 'error') {
     return {status: 'error', reason: `discounts_${discounts.reason}`};
+  }
+  if (free.status === 'error') {
+    return {status: 'error', reason: `free_products_${free.reason}`};
   }
   if (rules.status === 'error') {
     return {status: 'error', reason: `rules_${rules.reason}`};
@@ -235,10 +255,13 @@ async function fetchOfferConfig(
   const ids = referencedIds(ruleNodes);
 
   const products = new Map<string, ProductInfo>();
-  for (const batch of chunks(
-    ids.offeredProductIds.slice(0, MAX_PRODUCTS),
-    PRODUCT_CHUNK,
-  )) {
+  const productIds = [
+    ...new Set([
+      ...ids.offeredProductIds,
+      ...giftProductIdsOf(discounts.data, free.data),
+    ]),
+  ].slice(0, MAX_PRODUCTS);
+  for (const batch of chunks(productIds, PRODUCT_CHUNK)) {
     const answer = await query(admin, fetchFn, PRODUCTS_QUERY, {ids: batch});
     if (answer.status === 'error') {
       return {status: 'error', reason: `products_${answer.reason}`};
@@ -278,7 +301,10 @@ async function fetchOfferConfig(
   }
 
   const raw = buildRawOfferConfig({
-    gifts: giftsFromDiscounts(discounts.data, warn),
+    gifts: giftsFromDiscounts(discounts.data, warn, {
+      free: free.data,
+      products,
+    }),
     ruleNodes,
     zoneNode: nodesOf(rules.data, 'zones')[0] ?? null,
     lookups: {products, collections},
