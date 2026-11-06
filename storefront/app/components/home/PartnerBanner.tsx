@@ -17,7 +17,8 @@ const ALT =
 
 export function PartnerBanner() {
   return (
-    <section aria-label="Skechers by Serta">
+    // The negative bottom margin pulls the "Find the mattress" section closer, as the sale banner's does for the banner above.
+    <section aria-label="Skechers by Serta" className="-mb-5 md:-mb-12">
       <Link
         to={brandPath('serta')}
         prefetch="intent"
