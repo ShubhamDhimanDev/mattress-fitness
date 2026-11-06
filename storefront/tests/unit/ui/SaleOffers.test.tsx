@@ -46,7 +46,7 @@ describe('SaleOffers: the offer text is markup, not part of a picture', () => {
     expect(screen.getByText('*T&C apply.')).toBeInTheDocument();
   });
 
-  it('says something on the brand banners that have no offer, without a price or discount', () => {
+  it('puts a live "up to --% off" stamp on the Casper and Helix banners, and no dollar amount', () => {
     renderOffers();
     expect(
       screen.getByRole('heading', {level: 3, name: 'Casper'}),
@@ -59,8 +59,19 @@ describe('SaleOffers: the offer text is markup, not part of a picture', () => {
     ).toBeInTheDocument();
     const text =
       screen.getByRole('region', {name: 'Brand offers'}).textContent ?? '';
+    // The stamps are text (placeholder figures until the owner confirms them, see SaleOffers.tsx).
+    expect(screen.getByText('30%')).toBeInTheDocument();
+    expect(screen.getByText('25%')).toBeInTheDocument();
     // Only the owner's offers carry a dollar amount: three headings, three gifts.
     expect((text.match(/\$\d/g) ?? []).length).toBe(6);
+  });
+
+  it('keeps the moving ticker out of the accessibility tree, as it repeats the offers written out below', () => {
+    renderOffers();
+    const ticker = screen
+      .getByRole('region', {name: 'Brand offers'})
+      .querySelector('[aria-hidden="true"].overflow-hidden');
+    expect(ticker?.textContent).toMatch(/Beautyrest: up to 70% off/);
   });
 
   it('does not offer a brand the store does not carry', () => {
