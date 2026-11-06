@@ -38,7 +38,9 @@ const COLLECTION_CHUNK = 2;
 const MAX_PRODUCTS = 100;
 const MAX_COLLECTIONS = 10;
 
-const DISCOUNTS_QUERY = `#graphql
+// These are Admin API documents, deliberately NOT tagged `#graphql`: Hydrogen's codegen validates tagged documents against
+// the Storefront schema, which has no discount types, and fails the build.
+const DISCOUNTS_QUERY = `
 query OfferGiftDiscounts {
   discountNodes(first: 50, query: "status:active method:automatic type:bxgy") {
     nodes {
@@ -105,7 +107,7 @@ query OfferGiftDiscounts {
   }
 }`;
 
-const RULES_QUERY = `#graphql
+const RULES_QUERY = `
 query OfferRuleEntries {
   rules: metaobjects(type: "offer_rule", first: 50) {
     nodes { id fields { key value } }
@@ -115,7 +117,7 @@ query OfferRuleEntries {
   }
 }`;
 
-const PRODUCTS_QUERY = `#graphql
+const PRODUCTS_QUERY = `
 query OfferRuleProducts($ids: [ID!]!) {
   nodes(ids: $ids) {
     ... on Product {
@@ -128,7 +130,7 @@ query OfferRuleProducts($ids: [ID!]!) {
   }
 }`;
 
-const COLLECTIONS_QUERY = `#graphql
+const COLLECTIONS_QUERY = `
 query OfferRuleCollections($ids: [ID!]!) {
   nodes(ids: $ids) {
     ... on Collection {
