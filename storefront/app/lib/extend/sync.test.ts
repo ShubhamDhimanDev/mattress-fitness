@@ -113,7 +113,7 @@ describe('syncOrder: happy path (REQ-EXT-003)', () => {
     expect(h.calls).toHaveLength(1);
     expect(h.calls[0]?.url).toBe('https://api-demo.helloextend.com/orders');
     expect(h.calls[0]?.init.method).toBe('PUT');
-    expect(h.calls[0]?.init.redirect).toBe('error');
+    expect(h.calls[0]?.init.redirect).toBe('manual');
     expect(h.calls[0]?.init.headers['X-Extend-Access-Token']).toBe(TOKEN);
     expect(h.calls[0]?.init.headers.Accept).toBe(
       'application/json;version=2022-02-01',

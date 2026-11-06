@@ -49,60 +49,75 @@ export function createAdminGuestOrderClient(deps: {
   readonly timeoutMs?: number;
 }): GuestOrderAdminClient {
   const {admin} = deps;
-  return {
-    async lookup(request) {
-      const controller = new AbortController();
-      const timer = setTimeout(
-        () => controller.abort(),
-        deps.timeoutMs ?? GUEST_LOOKUP_UPSTREAM_TIMEOUT_MS,
+  async function lookupOnce(
+    request: Parameters<GuestOrderAdminClient['lookup']>[0],
+    retried: boolean,
+  ): ReturnType<GuestOrderAdminClient['lookup']> {
+    const auth = await admin.headers();
+    if (auth.status !== 'ok') {
+      return {
+        status: 'error',
+        reason: auth.reason === 'auth' ? 'auth' : 'network',
+      };
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(
+      () => controller.abort(),
+      deps.timeoutMs ?? GUEST_LOOKUP_UPSTREAM_TIMEOUT_MS,
+    );
+    try {
+      const response = await deps.fetch(
+        `https://${admin.store}/admin/api/${admin.apiVersion}/graphql.json`,
+        {
+          method: 'POST',
+          headers: auth.headers,
+          body: JSON.stringify({
+            query: request.query,
+            variables: request.variables,
+            operationName: request.operationName,
+          }),
+          signal: controller.signal,
+          // 'manual', not 'error': Node's fetch throws on 'error'. A redirect comes back as a 3xx and is a failure below.
+          redirect: 'manual',
+        },
       );
-      try {
-        const response = await deps.fetch(
-          `https://${admin.store}/admin/api/${admin.apiVersion}/graphql.json`,
-          {
-            method: 'POST',
-            headers: admin.headers(),
-            body: JSON.stringify({
-              query: request.query,
-              variables: request.variables,
-              operationName: request.operationName,
-            }),
-            signal: controller.signal,
-            redirect: 'error',
-          },
-        );
-        if (response.status === 401 || response.status === 403) {
-          await response.body?.cancel();
-          return {status: 'error', reason: 'auth'};
+      if (response.status === 401 || response.status === 403) {
+        await response.body?.cancel();
+        // A fetched token can be revoked (the app was reinstalled): drop it and ask once more with a new one.
+        if (!retried && admin.invalidate()) {
+          return lookupOnce(request, true);
         }
-        if (response.status === 429) {
-          await response.body?.cancel();
-          return {status: 'error', reason: 'throttled'};
-        }
-        if (response.status < 200 || response.status > 299) {
-          await response.body?.cancel();
-          return {status: 'error', reason: 'http'};
-        }
-        const read = await readCappedBody(response, MAX_RESPONSE_BYTES);
-        if (read.status !== 'ok') return {status: 'error', reason: 'malformed'};
-        let json: unknown;
-        try {
-          json = JSON.parse(new TextDecoder().decode(read.bytes));
-        } catch {
-          return {status: 'error', reason: 'malformed'};
-        }
-        const parsed = parseGuestOrderResponse(json);
-        return parsed.status === 'ok'
-          ? {status: 'ok', candidates: parsed.candidates}
-          : {status: 'error', reason: 'graphql'};
-      } catch {
-        return {
-          status: 'error',
-          reason: controller.signal.aborted ? 'timeout' : 'network',
-        };
-      } finally {
-        clearTimeout(timer);
+        return {status: 'error', reason: 'auth'};
       }
-    },
-  };
+      if (response.status === 429) {
+        await response.body?.cancel();
+        return {status: 'error', reason: 'throttled'};
+      }
+      if (response.status < 200 || response.status > 299) {
+        await response.body?.cancel();
+        return {status: 'error', reason: 'http'};
+      }
+      const read = await readCappedBody(response, MAX_RESPONSE_BYTES);
+      if (read.status !== 'ok') return {status: 'error', reason: 'malformed'};
+      let json: unknown;
+      try {
+        json = JSON.parse(new TextDecoder().decode(read.bytes));
+      } catch {
+        return {status: 'error', reason: 'malformed'};
+      }
+      const parsed = parseGuestOrderResponse(json);
+      return parsed.status === 'ok'
+        ? {status: 'ok', candidates: parsed.candidates}
+        : {status: 'error', reason: 'graphql'};
+    } catch {
+      return {
+        status: 'error',
+        reason: controller.signal.aborted ? 'timeout' : 'network',
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  return {lookup: (request) => lookupOnce(request, false)};
 }

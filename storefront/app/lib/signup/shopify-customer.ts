@@ -5,7 +5,7 @@
 //
 // Uses the Shopify ADMIN GraphQL API (the Storefront API cannot create a customer without a password). The credential is
 // the Dev Dashboard app's ADMIN_CLIENT_ID and ADMIN_CLIENT_SECRET, from which the server fetches and renews its own 24-hour
-// token (~/lib/shopify/admin-token.ts); there is no hand-copied token. Server-only. Nothing is faked: without them there is
+// token (~/lib/shopify/admin-token.ts), or a fixed SHOPIFY_ADMIN_API_ACCESS_TOKEN if one is set. Server-only. Nothing is faked: without them there is
 // no client.
 //
 // Steps: look the address up; if the customer exists, add the tag and mark the email subscribed; if not, create the customer
@@ -14,15 +14,10 @@
 // UNVERIFIED against the client's store and API version 2026-10: needs a run against the development store (see
 // docs/integrations/NEWSLETTER_SHOPIFY.md). Logs carry reason codes only, never an address.
 
-import {readShopDomain} from '~/lib/extend/admin-client';
+import {adminConfigFromEnv} from '~/lib/extend/admin-client';
+import {logWarn} from '~/lib/logging/logger';
 import {readCappedBody} from '~/lib/extend/capped-body';
 import type {FetchLike} from '~/lib/extend/types';
-import {ADMIN_API_VERSION} from '~/lib/extend/admin-order';
-import {
-  readClientCredentials,
-  sharedAdminTokenProvider,
-  type AdminTokenProvider,
-} from '~/lib/shopify/admin-token';
 import type {
   KlaviyoClient,
   SubscribeFailure,
@@ -60,24 +55,9 @@ export const CONSENT_MUTATION = `mutation SignupEmailConsent($input: CustomerEma
   }
 }`;
 
-type Auth = {
-  readonly store: string;
-  readonly provider: AdminTokenProvider;
-};
-
-function authFromEnv(env: object, fetchFn: FetchLike | undefined): Auth | null {
-  const store = readShopDomain(env);
-  const credentials = readClientCredentials(env);
-  if (store === null || credentials === null) return null;
-  return {
-    store,
-    provider: sharedAdminTokenProvider(store, credentials, fetchFn),
-  };
-}
-
-/** True when the store domain (<shop>.myshopify.com) and the app's client id and secret are present and well formed. Decides whether the signup is on. */
+/** True when the store domain and an Admin credential (a fixed token, or the app's client id and secret) are present. Decides whether the signup is on. */
 export function shopifyCustomerSignupAvailable(env: object): boolean {
-  return readShopDomain(env) !== null && readClientCredentials(env) !== null;
+  return adminConfigFromEnv(env).status === 'ready';
 }
 
 type Call =
@@ -102,34 +82,28 @@ export function createShopifyCustomerSubscriber(options: {
   readonly fetch?: FetchLike;
   readonly now?: () => Date;
 }): KlaviyoClient | null {
-  const auth = authFromEnv(options.env, options.fetch);
-  if (auth === null) return null;
-  const {provider} = auth;
+  const resolved = adminConfigFromEnv(options.env, undefined, options.fetch);
+  if (resolved.status !== 'ready') return null;
+  const admin = resolved;
   const fetchFn: FetchLike = options.fetch ?? ((url, init) => fetch(url, init));
   const now = options.now ?? (() => new Date());
-  const endpoint = `https://${auth.store}/admin/api/${ADMIN_API_VERSION}/graphql.json`;
+  const endpoint = `https://${admin.store}/admin/api/${admin.apiVersion}/graphql.json`;
 
-  /** The request headers, or the reason there are none (the app's token could not be fetched). */
+  /** The request headers, or the reason there are none (the token could not be fetched). */
   async function headers(): Promise<
     | {readonly status: 'ok'; readonly value: Record<string, string>}
     | {readonly status: 'failed'; readonly reason: SubscribeFailure}
   > {
-    const token = await provider.get();
-    if (token.status !== 'ok') {
+    const auth = await admin.headers();
+    if (auth.status !== 'ok') {
+      logWarn('signup.shopify_token_failed', {reason: auth.reason});
       // A refusal means our id, secret or installation is wrong (ours to fix); anything else is an outage.
       return {
         status: 'failed',
-        reason: token.reason === 'auth' ? 'auth' : 'server',
+        reason: auth.reason === 'auth' ? 'auth' : 'server',
       };
     }
-    return {
-      status: 'ok',
-      value: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-Shopify-Access-Token': token.token,
-      },
-    };
+    return {status: 'ok', value: auth.headers};
   }
 
   async function call(
@@ -149,13 +123,13 @@ export function createShopifyCustomerSubscriber(options: {
         headers: credential.value,
         body: JSON.stringify({query, variables}),
         signal: controller.signal,
-        redirect: 'error',
+        // 'manual', not 'error': Node's fetch throws on 'error'. A redirect comes back as a 3xx and is a failure below.
+        redirect: 'manual',
       });
       if (response.status === 401 || response.status === 403) {
         await response.body?.cancel();
         // A fetched token can be revoked (the app was reinstalled): forget it and try once with a new one.
-        if (!retried) {
-          provider.invalidate();
+        if (!retried && admin.invalidate()) {
           return call(query, variables, true);
         }
         return {status: 'failed', reason: 'auth'};
@@ -166,6 +140,7 @@ export function createShopifyCustomerSubscriber(options: {
       }
       if (response.status < 200 || response.status > 299) {
         await response.body?.cancel();
+        logWarn('signup.shopify_call_failed', {httpStatus: response.status});
         return {status: 'failed', reason: 'server'};
       }
       const read = await readCappedBody(response, MAX_RESPONSE_BYTES);
@@ -174,6 +149,7 @@ export function createShopifyCustomerSubscriber(options: {
       const errors = child(body, 'errors');
       if (Array.isArray(errors) && errors.length > 0) {
         // Missing scope or an unknown field both land here: our configuration, not the shopper's address.
+        logWarn('signup.shopify_call_failed', {graphqlErrors: errors.length});
         return {status: 'failed', reason: 'config'};
       }
       return {status: 'ok', data: child(body, 'data')};

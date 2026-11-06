@@ -99,7 +99,7 @@ const OK_CONSENT = {
 };
 
 describe('configuration', () => {
-  it('is off without the store domain or the client id and secret, and never reuses the order token', () => {
+  it('is off without the store domain or any Admin credential, and on with a fixed token or with the client id and secret', () => {
     expect(shopifyCustomerSignupAvailable({})).toBe(false);
     expect(
       shopifyCustomerSignupAvailable({
@@ -109,9 +109,9 @@ describe('configuration', () => {
     expect(
       shopifyCustomerSignupAvailable({
         PUBLIC_STORE_DOMAIN: ENV.PUBLIC_STORE_DOMAIN,
-        SHOPIFY_ADMIN_API_ACCESS_TOKEN: 'read_orders_token_123',
+        SHOPIFY_ADMIN_API_ACCESS_TOKEN: 'fixed_token_123',
       }),
-    ).toBe(false);
+    ).toBe(true);
     expect(shopifyCustomerSignupAvailable(ENV)).toBe(true);
     expect(createShopifyCustomerSubscriber({env: {}})).toBeNull();
   });
@@ -240,7 +240,7 @@ describe('creating and tagging the customer', () => {
     expect(urls[0]).toMatch(
       /^https:\/\/demo-shop\.myshopify\.com\/admin\/api\/[\d-]+\/graphql\.json$/,
     );
-    expect(seen[0]?.redirect).toBe('error');
+    expect(seen[0]?.redirect).toBe('manual');
     expect(seen[0]?.headers['X-Shopify-Access-Token']).toBe(
       'shpat_fictional_token_123',
     );

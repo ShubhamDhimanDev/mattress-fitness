@@ -116,7 +116,7 @@ describe('the call (host allow-list, headers, one attempt, typed failures)', () 
       'https://a.klaviyo.com/api/profile-subscription-bulk-create-jobs',
     );
     expect(call?.init.method).toBe('POST');
-    expect(call?.init.redirect).toBe('error');
+    expect(call?.init.redirect).toBe('manual');
     expect(call?.init.headers).toEqual({
       Authorization: `Klaviyo-API-Key ${KEY}`,
       revision: '2026-10-15',
@@ -214,7 +214,7 @@ describe('the call (host allow-list, headers, one attempt, typed failures)', () 
       status: 'failed',
       reason: 'network',
     });
-    expect(calls[0]?.init.redirect).toBe('error');
+    expect(calls[0]?.init.redirect).toBe('manual');
   });
 });
 

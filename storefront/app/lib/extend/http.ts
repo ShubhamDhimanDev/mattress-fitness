@@ -93,7 +93,7 @@ export async function callExtend(
         headers: config.requestHeaders({json: hasBody}),
         ...(hasBody ? {body: JSON.stringify(request.body)} : {}),
         signal: controller.signal,
-        redirect: 'error',
+        redirect: 'manual',
       });
       if (response.status < 200 || response.status > 299) {
         await release(response);

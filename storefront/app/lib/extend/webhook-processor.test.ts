@@ -517,7 +517,7 @@ describe('P5B-05 logs hold ids and codes only (T-05)', () => {
     expect(call?.url).toBe(
       'https://test-shop.myshopify.com/admin/api/2026-10/graphql.json',
     );
-    expect(call?.init.redirect).toBe('error');
+    expect(call?.init.redirect).toBe('manual');
     expect(call?.init.headers['X-Shopify-Access-Token']).toBe(ADMIN_TOKEN);
     expect(call?.init.body).not.toMatch(/\bmutation\b/);
   });

@@ -3,7 +3,10 @@
 // like the Extend token, so it cannot leak through JSON.stringify, logs or error reports.
 //
 // Outbound allow-list: the host is always `<shop>.myshopify.com` over https (the domain pattern below), the API
-// version is a constant, redirects are refused, and every call has a timeout and a size cap.
+// version is a constant, redirects are never followed, and every call has a timeout and a size cap.
+//
+// The credential is taken on request (adminConfigFromEnv): a fixed token from the environment, or a token the server fetches
+// and renews from the Dev Dashboard app's ADMIN_CLIENT_ID and ADMIN_CLIENT_SECRET (~/lib/shopify/admin-token.ts).
 
 import type {DetectiveOrder} from '~/lib/detective/types';
 import {
@@ -18,18 +21,30 @@ import {readEnvString} from '~/lib/extend/env';
 import {normalizeShopifyId} from '~/lib/extend/ids';
 import type {ShopifyOrderLike} from '~/lib/extend/orders';
 import type {FetchLike, SleepFn} from '~/lib/extend/types';
+import {
+  readClientCredentials,
+  sharedAdminTokenProvider,
+  type TokenFailure,
+} from '~/lib/shopify/admin-token';
 
 const SHOP_DOMAIN = /^[a-z0-9][a-z0-9-]{0,60}[a-z0-9]\.myshopify\.com$/;
 const MAX_RESPONSE_BYTES = 2_000_000;
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_ATTEMPTS = 3;
 
+export type AdminHeaders =
+  | {readonly status: 'ok'; readonly headers: Record<string, string>}
+  | {readonly status: 'failed'; readonly reason: TokenFailure};
+
 export type AdminConfigResult =
   | {
       status: 'ready';
       readonly store: string;
       readonly apiVersion: string;
-      readonly headers: () => Record<string, string>;
+      /** Headers for one Admin API call; for a fetched token this renews it when it is about to run out. */
+      readonly headers: () => Promise<AdminHeaders>;
+      /** Shopify refused the token (401): drop a fetched one so the next `headers` call gets a new one; true if there was one. A fixed token stays. */
+      readonly invalidate: () => boolean;
     }
   | {status: 'not_configured'; missing: readonly string[]};
 
@@ -45,41 +60,67 @@ export function readShopDomain(env: object): string | null {
 /**
  * The shop comes from PUBLIC_STORE_DOMAIN (the storefront's own store), never from the webhook, so a forged
  * `X-Shopify-Shop-Domain` header cannot point the token at another host. A custom or mock.shop domain is refused.
+ *
+ * The credential: a fixed token named by `tokenName` when it is set (used as is), otherwise the app's ADMIN_CLIENT_ID and
+ * ADMIN_CLIENT_SECRET, from which a token is fetched when a call needs one. Neither: not configured, nothing is faked.
+ * `fetchFn` is only for the token request (tests).
  */
 export function adminConfigFromEnv(
   env: object,
-  // The order read has its own read-only token; the newsletter's customer sync passes its own write_customers token, so
-  // neither credential carries the other's scope.
   tokenName = 'SHOPIFY_ADMIN_API_ACCESS_TOKEN',
+  fetchFn?: FetchLike,
 ): AdminConfigResult {
   const domain = readShopDomain(env);
   const token = readEnvString(env, tokenName);
-  const missing = [
-    domain === null
-      ? 'PUBLIC_STORE_DOMAIN (a <shop>.myshopify.com domain)'
-      : null,
-    token === null ? tokenName : null,
-  ].filter((name): name is string => name !== null);
-  if (
-    missing.length > 0 ||
-    domain === null ||
-    token === null ||
-    !/^[\x21-\x7E]{1,512}$/.test(token)
-  ) {
+  const fixed = token !== null && /^[\x21-\x7E]{1,512}$/.test(token);
+  const credentials = readClientCredentials(env);
+  if (domain === null || (!fixed && credentials === null)) {
+    const missing = [
+      domain === null
+        ? 'PUBLIC_STORE_DOMAIN (a <shop>.myshopify.com domain)'
+        : null,
+      !fixed && credentials === null ? tokenName : null,
+    ].filter((name): name is string => name !== null);
+    return {status: 'not_configured', missing};
+  }
+  if (fixed) {
     return {
-      status: 'not_configured',
-      missing: missing.length > 0 ? missing : [tokenName],
+      status: 'ready',
+      store: domain,
+      apiVersion: ADMIN_API_VERSION,
+      headers: () =>
+        Promise.resolve({
+          status: 'ok',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-Shopify-Access-Token': token,
+          },
+        }),
+      invalidate: () => false,
     };
   }
+  if (credentials === null)
+    return {status: 'not_configured', missing: [tokenName]};
+  const provider = sharedAdminTokenProvider(domain, credentials, fetchFn);
   return {
     status: 'ready',
     store: domain,
     apiVersion: ADMIN_API_VERSION,
-    headers: () => ({
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'X-Shopify-Access-Token': token,
-    }),
+    async headers() {
+      const fetched = await provider.get();
+      return fetched.status === 'ok'
+        ? {
+            status: 'ok',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              'X-Shopify-Access-Token': fetched.token,
+            },
+          }
+        : fetched;
+    },
+    invalidate: () => provider.invalidate(),
   };
 }
 
@@ -131,7 +172,15 @@ async function exchange(
   orderGid: string,
   timeoutMs: number,
   document: OrderDocument,
+  retried = false,
 ): Promise<Exchange> {
+  const auth = await admin.headers();
+  if (auth.status !== 'ok') {
+    // Our id, secret or installation was refused: not retriable. Anything else is an outage of the token service.
+    return auth.reason === 'auth'
+      ? {kind: 'failed', reason: 'auth', retriable: false}
+      : {kind: 'failed', reason: 'network', retriable: true};
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -139,18 +188,24 @@ async function exchange(
       `https://${admin.store}/admin/api/${admin.apiVersion}/graphql.json`,
       {
         method: 'POST',
-        headers: admin.headers(),
+        headers: auth.headers,
         body: JSON.stringify({
           query: document.query,
           variables: {id: orderGid},
           operationName: document.operationName,
         }),
         signal: controller.signal,
-        redirect: 'error',
+        // 'manual', not 'error': Node's fetch throws on 'error'. A redirect comes back as a 3xx and fails below.
+        redirect: 'manual',
       },
     );
     if (response.status === 401 || response.status === 403) {
       await response.body?.cancel();
+      // A fetched token can be revoked (the app was reinstalled): drop it and ask once more with a new one. A fixed token has
+      // nothing to renew, so bad credentials are not retried.
+      if (!retried && admin.invalidate()) {
+        return exchange(admin, fetchFn, orderGid, timeoutMs, document, true);
+      }
       return {kind: 'failed', reason: 'auth', retriable: false};
     }
     if (response.status === 429) {

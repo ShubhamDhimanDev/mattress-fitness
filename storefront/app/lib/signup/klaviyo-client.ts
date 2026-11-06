@@ -163,7 +163,7 @@ export function createKlaviyoClient(deps: {
           },
           body: JSON.stringify(buildSubscribeBody(request, deps.listId)),
           signal: controller.signal,
-          redirect: 'error',
+          redirect: 'manual',
         });
         // The body is never read: an error body can quote the address, and a 202 has none.
         await response.body?.cancel().catch(() => undefined);

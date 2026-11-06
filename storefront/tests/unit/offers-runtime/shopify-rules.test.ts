@@ -256,6 +256,59 @@ describe('loadOfferConfig: reading Shopify (ADR-0013)', () => {
   });
 });
 
+describe('loadOfferConfig: what the gift discount query asks for (REQ-PROMO-001)', () => {
+  it('asks for the chosen gift variants and for up to 100 buy-products, which Shopify allows per discount', async () => {
+    const documents: string[] = [];
+    const inner = fakeShopify().fetchFn;
+    const recording: FetchLike = (url, init) => {
+      const body: unknown = JSON.parse(init.body ?? '{}');
+      const query: unknown =
+        typeof body === 'object' && body !== null
+          ? Reflect.get(body, 'query')
+          : '';
+      if (typeof query === 'string') documents.push(query);
+      return inner(url, init);
+    };
+    await loadOfferConfig(envFor(), {fetch: recording});
+    const discounts = documents.find((document) =>
+      document.includes('query OfferGiftDiscounts'),
+    );
+    // A gift tied to one size (a variant) is read from `productVariants`, not `products`.
+    expect(discounts).toContain('productVariants(first: 10)');
+    expect(discounts).toContain('selectedOptions { name value }');
+    // A mattress beyond the tenth in the "buys" list must still qualify.
+    expect(discounts).toContain('products(first: 100) { nodes { id } }');
+  });
+});
+
+describe('loadOfferConfig: with the app credentials and no fixed token', () => {
+  it('fetches its own token, uses it, and never follows a redirect', async () => {
+    const shopify = fakeShopify();
+    const env = {
+      PUBLIC_STORE_DOMAIN: `loader-app-${(stores += 1)}.myshopify.com`,
+      ADMIN_CLIENT_ID: 'fictional-id',
+      ADMIN_CLIENT_SECRET: 'fictional-secret',
+    };
+    const redirects: (string | undefined)[] = [];
+    const fetchFn: FetchLike = (url, init) => {
+      if (url.endsWith('/oauth/access_token')) {
+        return Promise.resolve(
+          Response.json({access_token: 'tok_from_app_1', expires_in: 86399}),
+        );
+      }
+      redirects.push(init.redirect);
+      expect(init.headers['X-Shopify-Access-Token']).toBe('tok_from_app_1');
+      return shopify.fetchFn(url, init);
+    };
+    const load = await loadOfferConfig(env, {fetch: fetchFn});
+    expect(load.status).toBe('ok');
+    expect(load.config.rules.gifts).toHaveLength(1);
+    expect(redirects.length).toBeGreaterThan(0);
+    // Node's fetch throws on 'error', so the reader asks for 'manual' (a 3xx is then an error answer).
+    for (const redirect of redirects) expect(redirect).toBe('manual');
+  });
+});
+
 describe('loadOfferConfig: caching', () => {
   it('serves the cache for a minute and then asks Shopify again', async () => {
     const shopify = fakeShopify();

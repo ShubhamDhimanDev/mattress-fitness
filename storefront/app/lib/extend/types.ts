@@ -7,7 +7,11 @@ export type FetchInit = {
   headers: Record<string, string>;
   body?: string;
   signal: AbortSignal;
-  redirect: 'error';
+  /**
+   * 'error' rejects any redirect but is not implemented by Node's fetch (it throws a TypeError, so the call never leaves the
+   * process); 'manual' never follows one either and returns the 3xx answer, which callers treat as a failure.
+   */
+  redirect: 'manual';
 };
 
 /** Injected so tests (and the mock) need no network stubbing. The global `fetch` is assignable to this. */

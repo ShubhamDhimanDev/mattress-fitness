@@ -48,7 +48,7 @@ describe('callExtend: bounded HTTP (REQ-EXT-001, NFR-013, T-13)', () => {
       'https://api-demo.helloextend.com/offers?storeId=s+1',
     );
     expect(seen[0]?.init.method).toBe('POST');
-    expect(seen[0]?.init.redirect).toBe('error'); // the token must not follow a redirect to another host
+    expect(seen[0]?.init.redirect).toBe('manual'); // the token must not follow a redirect to another host
     expect(seen[0]?.init.body).toBe('{"a":1}');
     expect(seen[0]?.init.headers).toEqual({
       'X-Extend-Access-Token': TOKEN,

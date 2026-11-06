@@ -36,8 +36,11 @@ export type TokenResult =
 export type AdminTokenProvider = {
   /** A valid token: the cached one, or a fresh one. Concurrent callers share one request. */
   readonly get: () => Promise<TokenResult>;
-  /** Forget the cached token (after Shopify answered 401 with it), so the next `get` asks for a new one. */
-  readonly invalidate: () => void;
+  /**
+   * Forget the cached token (after Shopify answered 401 with it), so the next `get` asks for a new one. True when there was
+   * a token to forget, so the caller knows a retry can use a different one.
+   */
+  readonly invalidate: () => boolean;
 };
 
 export type ClientCredentials = {
@@ -97,7 +100,8 @@ export function createAdminTokenProvider(options: {
         },
         body,
         signal: controller.signal,
-        redirect: 'error',
+        // 'manual', not 'error': Node's fetch throws on 'error'. A redirect comes back as a 3xx and is a failure below.
+        redirect: 'manual',
       });
       if (response.status === 429) {
         await response.body?.cancel();
@@ -150,7 +154,9 @@ export function createAdminTokenProvider(options: {
       return inFlight;
     },
     invalidate() {
+      const had = cached !== null;
       cached = null;
+      return had;
     },
   };
 }
