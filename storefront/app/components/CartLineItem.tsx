@@ -433,38 +433,36 @@ function GiftLine(props: CartLineItemProps) {
       variant="dashed-amber"
       padding="sm"
       aria-busy={pending || undefined}
-      className={cn(aside && 'my-4')}
+      className={cn(aside && 'my-3')}
     >
       {/*
-        Two columns (picture, then the words with the price underneath) in every layout, so the name gets the whole width. A price
-        with its struck-through value is wide, and beside the name it squeezed the name onto two or three lines, in the drawer and
-        in the page's narrower cart column alike.
+        Compact on purpose (owner request 2026-11-06): a small picture, the badge and the price on one line, then the name and the
+        promotion text, and a small quantity pill with Remove underneath. The name keeps the whole width: a price beside it
+        squeezed it onto several lines in the drawer and the narrow cart column.
       */}
-      <div className="grid grid-cols-[calc(var(--spacing)*18)_minmax(0,1fr)] items-start gap-x-3 md:grid-cols-[calc(var(--spacing)*24)_minmax(0,1fr)] md:gap-x-5">
-        <LineMedia
-          image={merchandise.image}
-          sizes="96px"
-          className="size-18 md:size-24"
-        />
-        <div className="flex min-w-0 flex-col items-start gap-1">
-          <Badge variant="gift">Free gift</Badge>
+      <div className="grid grid-cols-[calc(var(--spacing)*14)_minmax(0,1fr)] items-start gap-x-3">
+        <LineMedia image={merchandise.image} sizes="56px" className="size-14" />
+        <div className="flex min-w-0 flex-col items-start gap-0.5">
+          <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <Badge variant="gift">Free gift</Badge>
+            <Price
+              price={line.cost?.totalAmount ?? merchandise.price}
+              compareAt={value}
+              size="sm"
+            />
+          </div>
           <LineTitle
             line={line}
             layout={layout}
-            className="type-display text-base md:text-lg"
+            className="type-display text-sm"
           />
           {promotions[0] ? (
-            <p className="text-sm text-fg-muted">{promotions[0].title}</p>
+            <p className="text-xs text-fg-muted">{promotions[0].title}</p>
           ) : null}
-          <Price
-            price={line.cost?.totalAmount ?? merchandise.price}
-            compareAt={value}
-            size="md"
-          />
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-between gap-4">
-        <LineQuantity line={line} title={product.title} />
+      <div className="mt-2 flex items-center justify-between gap-4">
+        <LineQuantity line={line} title={product.title} size="sm" />
         <RemoveButton
           lineId={id}
           title={product.title}
