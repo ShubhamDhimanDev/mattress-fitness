@@ -16,6 +16,7 @@ import {HeroSection} from '~/components/home/HeroSection';
 import {OfferCards} from '~/components/home/OfferCards';
 import {SaleOffers} from '~/components/home/SaleOffers';
 import {LeadForm} from '~/components/home/LeadForm';
+import {PartnerBanner} from '~/components/home/PartnerBanner';
 import {PromoBanner} from '~/components/home/PromoBanner';
 import {VisitSection} from '~/components/home/VisitSection';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
@@ -84,6 +85,7 @@ export function HomeSections({home, signup = null}: HomeSectionsProps) {
       {titleId === null ? <h1 className="sr-only">{SITE_NAME}</h1> : null}
       {/* The sale banner sits above the hero. */}
       <PromoBanner />
+      <PartnerBanner />
       {groups.map((group, position) => {
         const view = (
           <GroupView

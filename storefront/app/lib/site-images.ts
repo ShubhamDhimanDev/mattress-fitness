@@ -56,6 +56,8 @@ export const SITE_IMAGES = {
   offerCasper: siteImage('offer-casper', 450, 900, 900, 449),
   offerHelix: siteImage('offer-helix', 234, 468, 468, 369),
   offerAdjustable: siteImage('offer-adjustable', 312, 623, 623, 369),
+  /** Skechers by Serta banner under the sale banner: the owner's artwork with its words in the picture (2026-11-06). */
+  partnerSkechers: siteImage('partner-skechers', 887, 1774, 1774, 887),
   /** Newsletter pop-up (CR-34): a person asleep hugging a pillow, supplied by the owner (2026-11-06). */
   newsletterSleeper: siteImage('newsletter-sleeper', 176, 351, 351, 503),
   /** Quiz intro page: a person asleep (the sleep-guide picture, IMG-17). */
