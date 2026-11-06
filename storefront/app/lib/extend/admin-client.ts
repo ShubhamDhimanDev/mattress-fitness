@@ -37,17 +37,22 @@ export type AdminConfigResult =
  * The shop comes from PUBLIC_STORE_DOMAIN (the storefront's own store), never from the webhook, so a forged
  * `X-Shopify-Shop-Domain` header cannot point the token at another host. A custom or mock.shop domain is refused.
  */
-export function adminConfigFromEnv(env: object): AdminConfigResult {
+export function adminConfigFromEnv(
+  env: object,
+  // The order read has its own read-only token; the newsletter's customer sync passes its own write_customers token, so
+  // neither credential carries the other's scope.
+  tokenName = 'SHOPIFY_ADMIN_API_ACCESS_TOKEN',
+): AdminConfigResult {
   const domain = readEnvString(env, 'PUBLIC_STORE_DOMAIN')
     ?.toLowerCase()
     .replace(/^https:\/\//, '')
     .replace(/\/+$/, '');
-  const token = readEnvString(env, 'SHOPIFY_ADMIN_API_ACCESS_TOKEN');
+  const token = readEnvString(env, tokenName);
   const missing = [
     domain === undefined || !SHOP_DOMAIN.test(domain)
       ? 'PUBLIC_STORE_DOMAIN (a <shop>.myshopify.com domain)'
       : null,
-    token === null ? 'SHOPIFY_ADMIN_API_ACCESS_TOKEN' : null,
+    token === null ? tokenName : null,
   ].filter((name): name is string => name !== null);
   if (
     missing.length > 0 ||
@@ -57,8 +62,7 @@ export function adminConfigFromEnv(env: object): AdminConfigResult {
   ) {
     return {
       status: 'not_configured',
-      missing:
-        missing.length > 0 ? missing : ['SHOPIFY_ADMIN_API_ACCESS_TOKEN'],
+      missing: missing.length > 0 ? missing : [tokenName],
     };
   }
   return {

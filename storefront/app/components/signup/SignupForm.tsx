@@ -218,11 +218,11 @@ export function SignupForm({
               />
             </>
           ) : null}
-          <p className="text-sm text-fg-muted">
-            We use your details only to send these messages.
+          {/* A flex row, so the 44 px tall link sits on the same line as the sentence instead of breaking it in two with a gap. */}
+          <p className="flex flex-wrap items-center gap-x-1 text-sm text-fg-muted">
+            <span>We use your details only to send these messages.</span>
             {config.privacyHref ? (
               <>
-                {' '}
                 <Link
                   to={config.privacyHref}
                   className="inline-flex min-h-touch items-center font-bold text-primary-700 underline underline-offset-2"

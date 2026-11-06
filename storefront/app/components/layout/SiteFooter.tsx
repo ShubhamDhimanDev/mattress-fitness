@@ -160,8 +160,21 @@ export function SiteFooter({
   const groups = splitFooterGroups(links.supportGroups);
   return (
     // Ink band with the round logo, the client's tagline, the link groups and the legal row (CR-31). The social icons link
-    // to the owner's Instagram and Facebook pages (lib/business.ts). The signup block exists only when configured.
+    // to the owner's Instagram and Facebook pages (lib/business.ts). The signup row exists only when configured.
     <footer className="on-dark mt-auto bg-surface-inverse text-white">
+      {signup ? (
+        // The signup is its own full-width row above the links (it was squeezed under the address in the narrow left
+        // column): the words on the ink band on the left, the form on a white card on the right, as on the home page.
+        <div className="border-b border-ink-700">
+          <div className="mx-auto max-w-page px-4 py-10 md:px-10 md:py-12">
+            <Suspense
+              fallback={<div aria-hidden="true" className="h-64 md:h-56" />}
+            >
+              <SignupForm config={signup} surface="footer" layout="band" />
+            </Suspense>
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto grid max-w-page gap-10 px-4 pt-12 pb-8 md:px-10 md:pt-16 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,3fr)] lg:gap-12">
         <div className="flex flex-col items-start gap-4">
           <FooterLogo />
@@ -199,14 +212,6 @@ export function SiteFooter({
               </li>
             ))}
           </ul>
-          {signup ? (
-            // The form is built for a light surface, so it sits on a white card inside the ink band.
-            <div className="on-light w-full max-w-xl rounded-card bg-surface p-5 text-fg">
-              <Suspense fallback={<div aria-hidden="true" className="h-72" />}>
-                <SignupForm config={signup} surface="footer" />
-              </Suspense>
-            </div>
-          ) : null}
         </div>
         <nav aria-label="Footer" className="flex flex-col gap-8">
           <div className="flex flex-col gap-x-8 border-b border-ink-700 pb-6 md:flex-row md:items-center md:justify-between empty:hidden">

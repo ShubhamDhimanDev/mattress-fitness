@@ -40,6 +40,8 @@ import {
   type SubscribeResult,
 } from '~/lib/signup/klaviyo-client';
 import {validateSignupEmail} from '~/lib/signup/email';
+import {combineSubscribers} from '~/lib/signup/combined-subscriber';
+import {createShopifyCustomerSubscriber} from '~/lib/signup/shopify-customer';
 import {createSmtpSubscriber} from '~/lib/signup/smtp-subscriber';
 import {createSignupGate, type SignupGate} from '~/lib/signup/limiter';
 import {parseSignupForm, type SignupInput} from '~/lib/signup/request';
@@ -261,8 +263,9 @@ export function signupDepsFromEnv(
 ): SignupDeps {
   const config: SignupServerConfig = readSignupConfig(env, options);
   return {
-    // Klaviyo when configured; otherwise the SMTP email to the store team (CR-34); otherwise off.
-    client:
+    // Klaviyo when configured; otherwise the SMTP email to the store team (CR-34); and, whenever the customers token is
+    // set, also a Shopify customer tagged `subscribe`. Off only when none of them is configured.
+    client: combineSubscribers(
       config.status === 'ready'
         ? createKlaviyoClient({
             apiKey: config.apiKey,
@@ -270,6 +273,8 @@ export function signupDepsFromEnv(
             fetch: fetchFn,
           })
         : createSmtpSubscriber({env}),
+      createShopifyCustomerSubscriber({env, fetch: fetchFn}),
+    ),
     sms: config.status === 'ready' && config.sms,
     gate: gateForInstance(),
     addressHeader: readEnvString(env, 'TRUSTED_CLIENT_IP_HEADER'),
