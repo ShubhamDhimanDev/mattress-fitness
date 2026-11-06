@@ -1,7 +1,8 @@
 // SERVER ONLY. Loads the offer rules and the delivery zone from Shopify itself (ADR-0013), so no offer environment
 // variable exists: gifts come from active automatic discounts (Buy X get Y, or 100% off specific products), the other rules from the `offer_rule` and
-// `delivery_zone` metaobjects. It uses the storefront's existing read-only Admin token (SHOPIFY_ADMIN_API_ACCESS_TOKEN;
-// scopes read_discounts, read_metaobjects, read_products) and the store domain, nothing else.
+// `delivery_zone` metaobjects. It reads with an Admin token (scopes read_discounts, read_metaobjects, read_products): a fixed
+// SHOPIFY_ADMIN_API_ACCESS_TOKEN if one is set, else one fetched from ADMIN_CLIENT_ID and ADMIN_CLIENT_SECRET
+// (~/lib/extend/admin-client.ts), plus the store domain, nothing else.
 //
 // Rules change when staff edit Shopify, so they are cached per store for a minute, requests that arrive during a refresh
 // share it, and a failed refresh keeps the last good rules (stale beats absent). With no token (a dev server on mock.shop)
@@ -62,7 +63,7 @@ query OfferGiftDiscounts {
             items {
               __typename
               ... on DiscountProducts {
-                products(first: 10) { nodes { id } }
+                products(first: 100) { nodes { id } }
               }
               ... on DiscountCollections {
                 collections(first: 10) { nodes { id } }
@@ -84,6 +85,14 @@ query OfferGiftDiscounts {
               __typename
               ... on DiscountProducts {
                 products(first: 3) { nodes { id title } }
+                productVariants(first: 10) {
+                  nodes {
+                    id
+                    title
+                    selectedOptions { name value }
+                    product { id title }
+                  }
+                }
               }
             }
           }
@@ -166,7 +175,12 @@ async function query(
   fetchFn: FetchLike,
   document: string,
   variables: Record<string, unknown>,
+  retried = false,
 ): Promise<QueryResult> {
+  const auth = await admin.headers();
+  if (auth.status !== 'ok') {
+    return {status: 'error', reason: `token_${auth.reason}`};
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -174,12 +188,21 @@ async function query(
       `https://${admin.store}/admin/api/${admin.apiVersion}/graphql.json`,
       {
         method: 'POST',
-        headers: admin.headers(),
+        headers: auth.headers,
         body: JSON.stringify({query: document, variables}),
         signal: controller.signal,
-        redirect: 'error',
+        // 'manual', not 'error': Node's fetch throws on 'error'. A redirect comes back as a 3xx and is an error below.
+        redirect: 'manual',
       },
     );
+    if ((response.status === 401 || response.status === 403) && !retried) {
+      // A fetched token can be revoked (the app was reinstalled): drop it and ask once more with a new one.
+      await response.body?.cancel();
+      if (admin.invalidate()) {
+        return query(admin, fetchFn, document, variables, true);
+      }
+      return {status: 'error', reason: `http_${response.status}`};
+    }
     if (response.status < 200 || response.status > 299) {
       await response.body?.cancel();
       return {status: 'error', reason: `http_${response.status}`};
@@ -355,7 +378,7 @@ export async function loadOfferConfig(
   if (cached !== undefined && (primed.has(key) || cached.expiresAt > now)) {
     return cached.load;
   }
-  const admin = adminConfigFromEnv(env);
+  const admin = adminConfigFromEnv(env, undefined, deps.fetch);
   if (admin.status !== 'ready') return NONE;
   const running = inflight.get(key);
   if (running !== undefined) return running;

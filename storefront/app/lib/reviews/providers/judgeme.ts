@@ -13,7 +13,7 @@
 // is `unavailable`, never guessed at.
 //
 // The private token travels in the query string because that is how the docs list it; the URL is therefore never logged,
-// and `redirect: 'error'` stops a redirect from carrying it to another host.
+// and `redirect: 'manual'` stops a redirect from carrying it to another host.
 
 import type {ReviewsProviderId} from '~/lib/reviews/config';
 import type {
@@ -47,7 +47,7 @@ export type JudgeMeFetch = (
     method: 'GET';
     headers: Record<string, string>;
     signal: AbortSignal;
-    redirect: 'error';
+    redirect: 'manual';
   },
 ) => Promise<Response>;
 
@@ -173,7 +173,7 @@ export function createJudgeMeProvider(deps: JudgeMeDeps): ReviewsProvider {
         method: 'GET',
         headers: {Accept: 'application/json'},
         signal: controller.signal,
-        redirect: 'error',
+        redirect: 'manual',
       });
       if (!response.ok) {
         return {ok: false, reason: 'http', status: response.status};

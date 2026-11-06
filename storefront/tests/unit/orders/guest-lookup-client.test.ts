@@ -77,7 +77,7 @@ describe('the guest order Admin client (REQ-ACC-003, P6-08)', () => {
       'https://test-shop.myshopify.com/admin/api/2026-10/graphql.json',
     );
     expect(call?.init.method).toBe('POST');
-    expect(call?.init.redirect).toBe('error');
+    expect(call?.init.redirect).toBe('manual');
     expect(call?.init.headers['X-Shopify-Access-Token']).toBe(TOKEN);
     const body: unknown = JSON.parse(call?.init.body ?? '{}');
     expect(body).toMatchObject({

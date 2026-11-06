@@ -67,7 +67,7 @@ describe('P5B-05 readOrderForDetective', () => {
     expect(url).toBe(
       'https://test-shop.myshopify.com/admin/api/2026-10/graphql.json',
     );
-    expect(init.redirect).toBe('error');
+    expect(init.redirect).toBe('manual');
     expect(init.headers['X-Shopify-Access-Token']).toBe(TOKEN);
     const sent = JSON.parse(init.body ?? '{}');
     expect(sent).toMatchObject({

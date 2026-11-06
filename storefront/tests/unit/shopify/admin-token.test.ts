@@ -1,4 +1,5 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
+import {adminConfigFromEnv} from '~/lib/extend/admin-client';
 import {
   createAdminTokenProvider,
   readClientCredentials,
@@ -36,7 +37,7 @@ function reply(body: unknown, status = 200): Response {
 }
 
 describe('createAdminTokenProvider', () => {
-  it('asks Shopify for a token with the id and secret, over https to the shop, with no redirects', async () => {
+  it('asks Shopify for a token with the id and secret, over https to the shop, without following redirects', async () => {
     const fetchFn = vi
       .fn()
       .mockResolvedValue(
@@ -51,7 +52,7 @@ describe('createAdminTokenProvider', () => {
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe(`https://${STORE}/admin/oauth/access_token`);
     expect(init.method).toBe('POST');
-    expect(init.redirect).toBe('error');
+    expect(init.redirect).toBe('manual');
     const sent = new URLSearchParams(init.body);
     expect(sent.get('grant_type')).toBe('client_credentials');
     expect(sent.get('client_id')).toBe('fictional-id');
@@ -299,5 +300,82 @@ describe('newsletter customer sync with the app credentials (no fixed token)', (
     const a = sharedAdminTokenProvider(STORE, CREDENTIALS);
     const b = sharedAdminTokenProvider(STORE, CREDENTIALS);
     expect(a).toBe(b);
+  });
+});
+
+describe('adminConfigFromEnv: the credential is taken on request', () => {
+  const BASE = {PUBLIC_STORE_DOMAIN: STORE};
+
+  it('uses a fixed token as is, without any token request, and does not offer to renew it', async () => {
+    const fetchFn = vi.fn();
+    const admin = adminConfigFromEnv(
+      {...BASE, SHOPIFY_ADMIN_API_ACCESS_TOKEN: 'fixed_token_value'},
+      undefined,
+      fetchFn,
+    );
+    expect(admin.status).toBe('ready');
+    if (admin.status !== 'ready') return;
+    expect(await admin.headers()).toEqual({
+      status: 'ok',
+      headers: expect.objectContaining({
+        'X-Shopify-Access-Token': 'fixed_token_value',
+      }),
+    });
+    expect(admin.invalidate()).toBe(false);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('fetches a token from the client id and secret when no fixed token is set, and can renew it', async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        reply({access_token: 'tok_one_1234', expires_in: 86399}),
+      )
+      .mockResolvedValueOnce(
+        reply({access_token: 'tok_two_5678', expires_in: 86399}),
+      );
+    const admin = adminConfigFromEnv(
+      {
+        ...BASE,
+        ADMIN_CLIENT_ID: 'fictional-id',
+        ADMIN_CLIENT_SECRET: 'fictional-secret',
+      },
+      undefined,
+      fetchFn,
+    );
+    if (admin.status !== 'ready') throw new Error('expected ready');
+    const first = await admin.headers();
+    expect(
+      first.status === 'ok' && first.headers['X-Shopify-Access-Token'],
+    ).toBe('tok_one_1234');
+    expect(admin.invalidate()).toBe(true);
+    const second = await admin.headers();
+    expect(
+      second.status === 'ok' && second.headers['X-Shopify-Access-Token'],
+    ).toBe('tok_two_5678');
+  });
+
+  it('prefers a fixed token over the client credentials, and reports what is missing', () => {
+    const both = adminConfigFromEnv({
+      ...BASE,
+      SHOPIFY_ADMIN_API_ACCESS_TOKEN: 'fixed_token_value',
+      ADMIN_CLIENT_ID: 'a',
+      ADMIN_CLIENT_SECRET: 'b',
+    });
+    expect(both.status).toBe('ready');
+    expect(adminConfigFromEnv(BASE)).toEqual({
+      status: 'not_configured',
+      missing: ['SHOPIFY_ADMIN_API_ACCESS_TOKEN'],
+    });
+    expect(
+      adminConfigFromEnv({
+        PUBLIC_STORE_DOMAIN: 'mock.shop',
+        ADMIN_CLIENT_ID: 'a',
+        ADMIN_CLIENT_SECRET: 'b',
+      }),
+    ).toEqual({
+      status: 'not_configured',
+      missing: ['PUBLIC_STORE_DOMAIN (a <shop>.myshopify.com domain)'],
+    });
   });
 });
