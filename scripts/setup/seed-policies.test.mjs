@@ -25,11 +25,11 @@ describe('policy documents', () => {
     }
   });
 
-  it('finds every [CONFIRM: ...] marker, and the refund and privacy policies still have some', () => {
+  it('finds every [CONFIRM: ...] marker, and the privacy and refund policies have none left', () => {
     assert.deepEqual(findPlaceholders('a [CONFIRM: one] b [CONFIRM: two, three] c'), ['[CONFIRM: one]', '[CONFIRM: two, three]']);
     assert.deepEqual(findPlaceholders('<p>nothing</p>'), []);
-    assert.ok(findPlaceholders(read('refund-policy.html')).length >= 5);
-    assert.ok(findPlaceholders(read('privacy-policy.html')).length >= 3);
+    assert.equal(findPlaceholders(stripLeadingComment(read('refund-policy.html'))).length, 0);
+    assert.equal(findPlaceholders(stripLeadingComment(read('privacy-policy.html'))).length, 0);
   });
 
   it('carries no warranty section and no reference-site name or contact detail', () => {

@@ -4,9 +4,9 @@
 # SHOPIFY_ADMIN_API_ACCESS_TOKEN from the environment only. Nothing secret is printed or written.
 #
 # Credentials come from the environment (STORE, ADMIN_CLIENT_ID, ADMIN_CLIENT_SECRET) or, when unset, from
-# storefront/.env.demo (git-ignored). Usage: bash scripts/setup/with-admin-token.sh <command> [args...]
+# storefront/.env (git-ignored), or from the file named in ENV_FILE (for example ENV_FILE=storefront/.env.demo). Usage: bash scripts/setup/with-admin-token.sh <command> [args...]
 set -euo pipefail
-ENVF="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/storefront/.env"
+ENVF="${ENV_FILE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/storefront/.env}"
 # val <ENV_NAME> <FILE_KEY>: the environment wins, the env file is the fallback.
 val() {
   local v="${!1:-}"

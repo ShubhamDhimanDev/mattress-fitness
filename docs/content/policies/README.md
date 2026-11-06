@@ -30,7 +30,7 @@ bash scripts/setup/with-admin-token.sh node scripts/setup/seed-policies.mjs --li
 bash scripts/setup/with-admin-token.sh node scripts/setup/seed-policies.mjs --live                       # refuses while any [CONFIRM: ...] is left
 ```
 
-Not yet run against any store (unverified). Run the dry run first, then the development store, then look at `/policies/privacy-policy`,
+Seeded on the development store on 2026-11-06 (credentials from `storefront/.env.demo` via `ENV_FILE=storefront/.env.demo bash scripts/setup/with-admin-token.sh ...`). The Dev Dashboard app needs the scopes `write_legal_policies` and `write_content`, and the store's automatic privacy policy management must be turned off first. Run the dry run first, then the development store, then look at `/policies/privacy-policy`,
 `/policies/refund-policy`, `/pages/website-accessibility` and `/pages/submission-policy`. The production store is only written once every
 `[CONFIRM: ...]` is answered and the owner has approved the text.
 
@@ -49,12 +49,17 @@ Not yet run against any store (unverified). Run the dry run first, then the deve
 
 ## What must be answered before going live
 
-Search each file for `[CONFIRM:`. These are facts that belong to the reference company and that I cannot know for the client:
+Answered by the owner on 2026-11-06: effective date (November 6, 2026), privacy and accessibility email (mattressfitness4@gmail.com), governing
+state Illinois, no direct mail (the store sends newsletter and order emails only, so the direct-mail item was deleted), refund time 3 weeks,
+cancellation window 24 hours, restocking fee 20%. The client said there is no warranty, so the refund policy has no warranty, comfort exchange
+or sleep trial text (the owner asked for it to be removed), and the reviews provider's company name was removed from the two lists.
+No `[CONFIRM:` marker is left in any of the four files, so a production run of the script is no longer refused for that reason.
 
-- Privacy: effective date; governing state for the arbitration clause (the source says Maryland); a privacy-requests email;
-  whether the store sends direct mail.
-- Refund policy: the source says "strict no-return policy" while this site's banner says "365 Night Sleep Trial" and "100%
-  Comfort Guarantee", so one of them is wrong for this store; the 120 nights and 30 nights of the comfort exchange, the 3-week
-  refund time, the 24-hour cancellation window and the 20% restocking fee are all the reference company's numbers.
-- Accessibility: a customer-service email.
-- Submission terms: the reviews provider's company name (twice).
+Still to check with the client:
+
+- The site banner advertises a "365 Night Sleep Trial" and a "100% Comfort Guarantee", and the refund policy says nothing about them. A
+  shopper reading both may expect a trial the policy does not describe.
+- The "Clearance & final sale items" and "Order changes & cancellations" sections are the reference company's wording.
+- The business address in these pages is Cypress, TX (from `storefront/app/lib/business.ts`) while the owner says the store is in Illinois
+  (the governing state): confirm which address is right.
+- The text is another company's legal copy: the client's lawyer should read it before it goes live.
