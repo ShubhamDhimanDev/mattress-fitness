@@ -35,6 +35,10 @@ By type: 278 mattresses, 118 pillows, 55 accessories, 33 bedding, 27 sheets, 25 
 - Raw pages and feeds are kept in `.scrape/` (not in git) so the parsers can be changed without fetching again.
 - **Texts and photos are the makers'.** Per the owner on 2026-10-27, the descriptions, feature lists and photos are copied as published (this replaces the first pass, which wrote its own text and used placeholders). The Shopify sheet points at the makers' image URLs (Shopify copies the file on import); the downloaded copies in `images/` are for the project sheet. **The client needs the brands' permission to use this material before it goes live.**
 
+## Helix photos without the maker's sale bar (2026-11-07)
+
+Helix's first and seventh photo of every model carried a navy bar ("20% Off Sitewide", "Discount Code FALLSALE20") under the bed, which showed on our cards next to our own prices. `scrape/strip-sale-bar.py` cut it off the 38 affected files in `images/` (1200x886 became 1200x778; originals kept in `.scrape/helix-with-sale-bar/`, names listed in `.scrape/helix-cropped-files.json`). `replace-cropped-images.mjs` puts them into Shopify on the products that already have them (`fileUpdate`, so gallery order and alt text stay; Shopify had stored some photos as .png or .jpg, so `strip-sale-bar.py` also writes each cropped photo in png, jpg and webp to `.scrape/helix-cropped-variants/` and the script uploads the stored format): `bash scripts/setup/with-admin-token.sh node scripts/catalog/replace-cropped-images.mjs` is the dry run, add `--live` to write. A fresh Helix scrape downloads the barred photos again; run `strip-sale-bar.py` after `download-images.mjs`.
+
 ## What to know before using it
 
 - **Everything is a draft.** `Status` is `draft` and `Published` is `false` (project sheet: `copy_approved` is `no`), because no copy is client-approved yet.
