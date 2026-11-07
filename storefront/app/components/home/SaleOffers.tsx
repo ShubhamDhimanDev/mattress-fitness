@@ -109,7 +109,7 @@ const WIDE_BANNER: Banner = {
   heading: 'Free adjustable base',
   text: 'on Aireloom, Kingsdown and Molecule mattresses',
   image: SITE_IMAGES.offerAdjustable,
-  alt: 'A couple talking while sitting on a split adjustable bed',
+  alt: 'A hand holding an adjustable base remote on a made bed in a calm bedroom',
   side: 'left',
 };
 
