@@ -3,7 +3,9 @@
 // the discount when the qualifying line leaves the cart but keeps the gift line, which would then be
 // charged at full price, so the gift line must be removed by us (BASIC_PLAN_WORKAROUNDS item 8).
 
-import {limitOrZero, sizeMap} from './helpers';
+import {SIZES} from '~/lib/catalog/attributes';
+import {offerTagOfGift} from '~/lib/offers/card-tags';
+import {limitOrZero, normalizeSize, sizeMap} from './helpers';
 import type {ClassifiedLine, PreparedCart} from './lines';
 import {prepareCart} from './lines';
 import type {
@@ -23,19 +25,75 @@ export function giftSizeOptions(rule: GiftRule): GiftSizeOption[] {
   }));
 }
 
-function qualifies(rule: GiftRule, lines: readonly ClassifiedLine[]): boolean {
+/** The ordinary lines that unlock the rule. A gift, a service line or coverage cannot unlock another gift. */
+function qualifyingLines(
+  rule: GiftRule,
+  lines: readonly ClassifiedLine[],
+): ClassifiedLine[] {
   if (rule.anyPurchase === true) {
-    return lines.some(({kind}) => kind === 'regular');
+    return lines.filter(({kind}) => kind === 'regular');
   }
   const products = new Set(rule.qualifyingProductIds);
   const collections = new Set(rule.qualifyingCollectionIds);
-  // Only ordinary lines qualify: a gift, a service line or coverage cannot unlock another gift.
-  return lines.some(
+  return lines.filter(
     ({line, kind}) =>
       kind === 'regular' &&
       (products.has(line.productId) ||
         (line.collectionIds ?? []).some((id) => collections.has(id))),
   );
+}
+
+function qualifies(rule: GiftRule, lines: readonly ClassifiedLine[]): boolean {
+  return qualifyingLines(rule, lines).length > 0;
+}
+
+// Longest first, so "Split California King" is not read as "California King" or "King".
+const SIZES_LONGEST_FIRST = SIZES.map((size) => normalizeSize(size) ?? '').sort(
+  (a, b) => b.length - a.length,
+);
+
+/**
+ * The standard size an option key ends with: "Twin XL", or "Silver Base Twin XL" when the rule holds several gift products
+ * and prefixes the product title (shopify-rules-map.ts). Null for a key with no standard size ("Standard").
+ */
+function sizeOfOptionKey(key: string): string | null {
+  const text = normalizeSize(key);
+  if (text === null) return null;
+  return (
+    SIZES_LONGEST_FIRST.find(
+      (size) => text === size || text.endsWith(` ${size}`),
+    ) ?? null
+  );
+}
+
+/**
+ * Only the gift sizes that match the size of the mattress (or other qualifying line) in the cart: a Queen mattress is offered
+ * the Queen base and nothing else (owner request 2026-11-11). It applies to a free adjustable base only (a gift a base is
+ * named by its discount title, `offerTagOfGift`): a free pillow is the shopper's own choice of size. With no sized qualifying line, or a gift whose options carry no
+ * standard size, nothing is known to match against and every option stays. With sized lines and no matching option the gift is
+ * not offered: a base in another size would not fit the bed.
+ */
+export function sizesForCart(
+  rule: GiftRule,
+  options: readonly GiftSizeOption[],
+  qualifying: readonly ClassifiedLine[],
+): GiftSizeOption[] {
+  if (offerTagOfGift(rule) !== 'free-base') return [...options];
+  const wanted = new Set(
+    qualifying.flatMap(({line}) => {
+      const size = normalizeSize(line.size);
+      return size === null || !SIZES_LONGEST_FIRST.includes(size) ? [] : [size];
+    }),
+  );
+  if (wanted.size === 0) return [...options];
+  // Bed sizes only: a pillow gift in "Standard" and "King" is not sized to the mattress, so every option stays.
+  if (options.some((option) => sizeOfOptionKey(option.size) === null)) {
+    return [...options];
+  }
+  return options.filter((option) => {
+    const size = sizeOfOptionKey(option.size);
+    return size !== null && wanted.has(size);
+  });
 }
 
 export type GiftResult = {
@@ -106,7 +164,11 @@ export function evaluateGifts(
 
   const offers: GiftOffer[] = [];
   rules.forEach((rule, index) => {
-    const sizes = giftSizeOptions(rule);
+    const sizes = sizesForCart(
+      rule,
+      giftSizeOptions(rule),
+      qualifyingLines(rule, prepared.lines),
+    );
     if (qualified[index] && remaining[index] > 0 && sizes.length > 0) {
       offers.push({
         ruleId: rule.id,
