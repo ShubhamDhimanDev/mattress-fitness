@@ -160,6 +160,87 @@ describe('mapProductPage (REQ-PDP-001)', () => {
   });
 });
 
+describe('mapProductPage gallery media (REQ-PDP-001)', () => {
+  const photo = (name: string) => ({
+    __typename: 'MediaImage' as const,
+    alt: null,
+    image: {
+      id: name,
+      url: 'https://cdn.shopify.com/s/files/' + name + '.jpg',
+      altText: null,
+      width: 800,
+      height: 800,
+    },
+  });
+  const withMedia = (nodes: unknown[]) =>
+    source((p) => {
+      Reflect.set(p, 'media', {nodes});
+    });
+
+  it('keeps photos and videos in the order Shopify has them, the main photo first', () => {
+    const view = mapProductPage(
+      withMedia([
+        photo('main'),
+        {
+          __typename: 'Video',
+          alt: 'Product film',
+          previewImage: {
+            id: 'poster',
+            url: 'https://cdn.shopify.com/s/files/poster.jpg',
+            altText: null,
+            width: 640,
+            height: 640,
+          },
+          sources: [
+            {
+              url: 'https://cdn.shopify.com/videos/film.mp4',
+              mimeType: 'video/mp4',
+            },
+            {
+              url: 'https://cdn.shopify.com/videos/film.m3u8',
+              mimeType: 'application/x-mpegURL',
+            },
+          ],
+        },
+        photo('side'),
+      ]),
+      null,
+    );
+    expect(view.media.map((item) => item.kind)).toEqual([
+      'image',
+      'video',
+      'image',
+    ]);
+    const video = view.media[1];
+    expect(video?.kind === 'video' && video.sources).toEqual([
+      {url: 'https://cdn.shopify.com/videos/film.mp4', mimeType: 'video/mp4'},
+    ]);
+  });
+
+  it('leaves out a video that is still processing or not served over https', () => {
+    const view = mapProductPage(
+      withMedia([
+        photo('main'),
+        {__typename: 'Video', alt: null, previewImage: null, sources: []},
+        {
+          __typename: 'Video',
+          alt: null,
+          previewImage: null,
+          sources: [{url: 'http://example.test/a.mp4', mimeType: 'video/mp4'}],
+        },
+      ]),
+      null,
+    );
+    expect(view.media.map((item) => item.kind)).toEqual(['image']);
+  });
+
+  it('shows the photos when the product has no media at all', () => {
+    const view = mapProductPage(withMedia([]), null);
+    expect(view.media.every((item) => item.kind === 'image')).toBe(true);
+    expect(view.media).toHaveLength(view.images.length);
+  });
+});
+
 describe('mapProductPage content (REQ-PDP-002)', () => {
   it('maps specifications, features, attributes, brand and FAQs when they exist', () => {
     const view = mapProductPage(

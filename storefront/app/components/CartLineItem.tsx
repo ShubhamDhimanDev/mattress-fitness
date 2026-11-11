@@ -116,7 +116,7 @@ function LineMedia({
           data={image}
           sizes={sizes}
           loading="lazy"
-          className="size-full object-cover"
+          className="size-full object-contain bg-white"
         />
       ) : null}
     </div>

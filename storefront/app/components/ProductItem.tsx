@@ -11,6 +11,7 @@ import {getPriceView} from '~/components/ui/Price';
 import {Rating} from '~/components/ui/Rating';
 import {cardSelectItemAttributes} from '~/lib/listing-analytics';
 import {cardOfferTags} from '~/lib/offers/card-tags';
+import {boxRatio} from '~/lib/shopify/image-ratio';
 import {saleTagLabel} from '~/lib/shopify/pricing';
 import type {ProductCardView} from '~/lib/shopify/types';
 
@@ -74,15 +75,19 @@ export function ProductItem({
         'group relative flex h-full flex-col overflow-hidden',
       )}
     >
-      <div className="relative aspect-square overflow-hidden bg-surface-muted">
+      {/* The box takes the photo's own shape (between 3:4 and 3:2), so nothing is cut off. */}
+      <div
+        className="relative overflow-hidden bg-white"
+        style={{aspectRatio: boxRatio(product.image)}}
+      >
         {product.image ? (
           <Image
             alt=""
-            aspectRatio="1/1"
+            aspectRatio={String(boxRatio(product.image))}
             data={product.image}
             loading={loading}
             sizes={IMAGE_SIZES}
-            className="size-full object-cover motion-safe:transition-transform motion-safe:group-hover:scale-105"
+            className="size-full object-contain motion-safe:transition-transform motion-safe:group-hover:scale-105"
           />
         ) : null}
         {/* Availability is not a promotion: it stays on the left, the offer on the right. */}

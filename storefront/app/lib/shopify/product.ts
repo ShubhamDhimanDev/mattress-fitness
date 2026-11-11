@@ -32,6 +32,7 @@ import type {
   BrandView,
   FaqView,
   ImageView,
+  GalleryMedia,
   ProductPageView,
   VariantView,
 } from '~/lib/shopify/types';
@@ -109,6 +110,41 @@ function mapImages(product: ProductSource): ImageView[] {
   return images;
 }
 
+/** Only video files a browser plays from Shopify's CDN over https; a video still processing has no sources and is left out. */
+const PLAYABLE_VIDEO = /^video\/(mp4|webm)$/;
+
+function mapMedia(product: ProductSource): GalleryMedia[] {
+  const media: GalleryMedia[] = [];
+  // A response cached before this field was asked for has no `media`: it then shows the photos, like a product without video.
+  for (const node of (product.media as ProductSource['media'] | undefined)
+    ?.nodes ?? []) {
+    if (node.__typename === 'MediaImage') {
+      const image = mapImage(node.image);
+      if (image) media.push({kind: 'image', image});
+    } else if (node.__typename === 'Video') {
+      const sources = node.sources.filter(
+        (source) =>
+          source.url.startsWith('https://') &&
+          PLAYABLE_VIDEO.test(source.mimeType),
+      );
+      if (sources.length > 0) {
+        media.push({
+          kind: 'video',
+          alt: node.alt ? cleanText(node.alt).slice(0, 200) : '',
+          poster: mapImage(node.previewImage),
+          sources: sources.map((source) => ({
+            url: source.url,
+            mimeType: source.mimeType,
+          })),
+        });
+      }
+    }
+  }
+  return media.length > 0
+    ? media
+    : mapImages(product).map((image) => ({kind: 'image' as const, image}));
+}
+
 function mapBrand(product: ProductSource): BrandView | null {
   const reference = product.brand?.reference;
   if (!reference || !('fields' in reference)) return null;
@@ -180,6 +216,7 @@ export function mapProductPage(
       ? cleanText(product.seo.description)
       : null,
     images: mapImages(product),
+    media: mapMedia(product),
     options: product.options.map((option) => ({
       name: option.name,
       values: option.optionValues.map((value) => value.name),

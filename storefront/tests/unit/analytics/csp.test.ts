@@ -164,3 +164,28 @@ describe('enforced policy extras for Hydrogen', () => {
     ]);
   });
 });
+
+describe('product video sources (REQ-PDP-001)', () => {
+  it('the enforced policy lets the store domain serve video files, and without a store domain adds nothing', () => {
+    expect(
+      enforcedCspExtras(undefined, undefined, 'shop.example.com').mediaSrc,
+    ).toEqual([
+      "'self'",
+      'https://cdn.shopify.com',
+      'https://shopify.com',
+      'https://shop.example.com',
+    ]);
+    expect(
+      enforcedCspExtras(undefined, undefined, undefined).mediaSrc,
+    ).toBeUndefined();
+    expect(
+      enforcedCspExtras(undefined, undefined, 'bad host/').mediaSrc,
+    ).toBeUndefined();
+  });
+
+  it('the report-only policy names the store domain for media too', () => {
+    expect(directive(buildReportOnlyCsp(BASE) ?? '', 'media-src')).toContain(
+      'https://shop.example.com',
+    );
+  });
+});

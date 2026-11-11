@@ -92,6 +92,19 @@ export type SpecificationRow = {
   readonly value: string;
 };
 
+/** One slide of the product gallery, in the order Shopify admin has them (the first is the main image). */
+export type GalleryMedia =
+  | {readonly kind: 'image'; readonly image: ImageView}
+  | {
+      readonly kind: 'video';
+      readonly alt: string;
+      readonly poster: ImageView | null;
+      readonly sources: ReadonlyArray<{
+        readonly url: string;
+        readonly mimeType: string;
+      }>;
+    };
+
 export type ProductPageView = {
   readonly id: string;
   readonly handle: string;
@@ -102,6 +115,8 @@ export type ProductPageView = {
   readonly seoTitle: string | null;
   readonly seoDescription: string | null;
   readonly images: readonly ImageView[];
+  /** Photos and videos in gallery order; the same photos as `images` when the product has no video. */
+  readonly media: readonly GalleryMedia[];
   readonly options: readonly OptionView[];
   readonly variants: readonly VariantView[];
   readonly comfortLevel: ComfortLevel | null;

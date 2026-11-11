@@ -199,7 +199,10 @@ export default function Product() {
   );
   if (!variant) return null;
   const variantImageIndex = variant.image
-    ? product.images.findIndex((image) => image.url === variant.image?.url)
+    ? product.media.findIndex(
+        (item) =>
+          item.kind === 'image' && item.image.url === variant.image?.url,
+      )
     : -1;
 
   return (
@@ -219,7 +222,7 @@ export default function Product() {
         <div className="min-w-0 lg:sticky lg:top-4 lg:self-start">
           <ProductGallery
             key={variant.image?.url ?? 'default'}
-            images={product.images}
+            media={product.media}
             title={product.title}
             initialIndex={Math.max(variantImageIndex, 0)}
           />
