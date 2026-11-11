@@ -14,3 +14,16 @@ export function normalizeBrandSlug(
 export function brandPath(handle: string): string {
   return `/brands/${encodeURIComponent(handle)}`;
 }
+
+/**
+ * The same page with mattresses listed before everything else (the offers and mattress links of the header and home
+ * page). Only a brand page, which can hold pillows and sheets beside its mattresses, gets the parameter.
+ */
+export function brandOffersPath(handle: string): string {
+  return `${brandPath(handle)}?sort=mattress-first`;
+}
+
+/** A brand page path with a lead sort, for the links under a header menu; any other path is returned as it is. */
+export function withLeadSort(path: string, sort: string): string {
+  return /^\/brands\/[^/?#]+$/.test(path) ? `${path}?sort=${sort}` : path;
+}

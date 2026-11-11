@@ -48,7 +48,20 @@ export const SORT_KEYS = [
   'newest',
   'title-asc',
 ] as const;
-export type SortKey = (typeof SORT_KEYS)[number];
+/**
+ * "<group> first": that group of products ahead of everything else, each part in the collection's own order. Reached only
+ * through links (the offers, the home page and the header menus), so these are not in `SORT_KEYS` (the dropdown); the
+ * dropdown shows the one that is active. Which product types make up each group: lib/shopify/lead-sort.ts.
+ */
+export const LEAD_SORT_KEYS = [
+  'mattress-first',
+  'foundations-first',
+  'furniture-first',
+  'bedding-first',
+] as const;
+export type LeadSortKey = (typeof LEAD_SORT_KEYS)[number];
+export const MATTRESS_FIRST_SORT: LeadSortKey = 'mattress-first';
+export type SortKey = (typeof SORT_KEYS)[number] | LeadSortKey;
 export const DEFAULT_SORT: SortKey = 'featured';
 
 export const SORT_LABELS: Readonly<Record<SortKey, string>> = {
@@ -58,6 +71,10 @@ export const SORT_LABELS: Readonly<Record<SortKey, string>> = {
   'price-desc': 'Price: high to low',
   newest: 'Newest',
   'title-asc': 'Name: A to Z',
+  'mattress-first': 'Mattresses first',
+  'foundations-first': 'Bases and box springs first',
+  'furniture-first': 'Beds and furniture first',
+  'bedding-first': 'Bedding first',
 };
 
 /** Search can only sort by relevance or price (SearchSortKeys). */
@@ -225,7 +242,14 @@ export function emptyFilterState(): FilterState {
 }
 
 function isSortKey(value: unknown): value is SortKey {
-  return SORT_KEYS.some((key) => key === value);
+  return (
+    SORT_KEYS.some((key) => key === value) ||
+    LEAD_SORT_KEYS.some((key) => key === value)
+  );
+}
+
+export function isLeadSort(sort: SortKey): sort is LeadSortKey {
+  return LEAD_SORT_KEYS.some((key) => key === sort);
 }
 
 function vocabularyFor(
@@ -583,6 +607,10 @@ export type CollectionSort = {
 export function toCollectionSort(sort: SortKey): CollectionSort {
   switch (sort) {
     case 'featured':
+    case 'mattress-first':
+    case 'foundations-first':
+    case 'furniture-first':
+    case 'bedding-first':
       return {sortKey: 'COLLECTION_DEFAULT', reverse: false};
     case 'best-selling':
       return {sortKey: 'BEST_SELLING', reverse: false};
@@ -617,6 +645,10 @@ export function toSearchSort(sort: SortKey): SearchSort {
     case 'best-selling':
     case 'newest':
     case 'title-asc':
+    case 'mattress-first':
+    case 'foundations-first':
+    case 'furniture-first':
+    case 'bedding-first':
       return {sortKey: 'RELEVANCE', reverse: false};
     default: {
       const unreachable: never = sort;

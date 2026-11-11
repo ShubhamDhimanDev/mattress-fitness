@@ -97,7 +97,11 @@ export function ProductListing({
     ? 'Show results'
     : `Show ${list.products.length} ${list.products.length === 1 ? 'result' : 'results'}`;
 
-  const sortOptions = sortKeys.map((key) => ({
+  // A sort reached only by a link (mattresses first) is listed while it is the active one, so the select shows the truth.
+  const shownSortKeys = sortKeys.includes(state.sort)
+    ? sortKeys
+    : [...sortKeys, state.sort];
+  const sortOptions = shownSortKeys.map((key) => ({
     value: key,
     label: SORT_LABELS[key],
   }));

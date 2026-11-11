@@ -6,6 +6,7 @@ import type {Storefront} from '~/lib/hydrogen/storefront';
 import type {CatalogCollectionQuery} from 'storefrontapi.generated';
 import {
   buildProductFilters,
+  isLeadSort,
   normalizeFilterState,
   toCollectionSort,
   type FilterState,
@@ -13,6 +14,7 @@ import {
 } from '~/lib/filters';
 import {logWarn} from '~/lib/logging/logger';
 import {mapProductCards} from '~/lib/shopify/card';
+import {leadFirst} from '~/lib/shopify/lead-sort';
 import {pricedCache} from '~/lib/shopify/cache';
 import {LISTING_PAGE_SIZE} from '~/lib/shopify/config';
 import {
@@ -69,6 +71,13 @@ function mapCollection(collection: CollectionSource) {
 const LOCAL_PAGE_SIZE = 250;
 const LOCAL_MAX_PAGES = 2;
 
+function orderForSort<T extends {readonly productType: string}>(
+  nodes: T[],
+  sort: SortKey,
+): T[] {
+  return isLeadSort(sort) ? leadFirst(nodes, sort) : nodes;
+}
+
 /**
  * The whole collection in the shopper's sort order, with only the price range sent to Shopify (the one filter every store
  * has). Everything else is filtered by `listLocally`. Null when the collection does not exist.
@@ -105,13 +114,15 @@ async function loadWholeCollection(
     collection ??= result.collection;
     nodes.push(...result.collection.products.nodes);
     if (!result.collection.products.pageInfo.hasNextPage)
-      return {collection, nodes};
+      return {collection, nodes: orderForSort(nodes, state.sort)};
     after = result.collection.products.pageInfo.endCursor ?? null;
   }
   logWarn('collection.local_filter_truncated', {
     limit: LOCAL_PAGE_SIZE * LOCAL_MAX_PAGES,
   });
-  return collection ? {collection, nodes} : null;
+  return collection
+    ? {collection, nodes: orderForSort(nodes, state.sort)}
+    : null;
 }
 
 async function loadLocallyFiltered(
@@ -144,6 +155,10 @@ export async function loadCollectionPage(
   if (!isValidHandle(handle)) return {status: 'not-found'};
   // A "Load more" cursor of ours (local-filter.ts) never goes to Shopify.
   if (parseLocalCursor(state.cursor) !== null) {
+    return loadLocallyFiltered(storefront, handle, state);
+  }
+  // Shopify cannot sort by product type, so the whole collection is read and ordered here (400 products at most).
+  if (isLeadSort(state.sort)) {
     return loadLocallyFiltered(storefront, handle, state);
   }
   const {sortKey, reverse} = toCollectionSort(state.sort);
@@ -198,7 +213,12 @@ function toProductSort(sort: SortKey): {
       return {sortKey: 'CREATED_AT', reverse: true};
     case 'title-asc':
       return {sortKey: 'TITLE', reverse: false};
+    // Only collection and brand pages are reordered; the all-products page has no mattress-first view.
     case 'featured':
+    case 'mattress-first':
+    case 'foundations-first':
+    case 'furniture-first':
+    case 'bedding-first':
       return {sortKey: 'BEST_SELLING', reverse: false};
     default: {
       const unreachable: never = sort;

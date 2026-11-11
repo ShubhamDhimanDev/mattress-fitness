@@ -2,7 +2,7 @@ import {Link} from 'react-router';
 import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {SiteImage} from '~/components/ui/SiteImage';
-import {brandPath} from '~/lib/shopify/brand-path';
+import {brandOffersPath} from '~/lib/shopify/brand-path';
 import {SITE_IMAGES, type SiteImage as SiteImageData} from '~/lib/site-images';
 
 // The brand offers under the home hero (owner request 2026-11-05, CR-35; creative and motion reworked 2026-11-06). Like the
@@ -234,7 +234,7 @@ function PhotoOfferCard({offer}: {offer: PhotoOffer}) {
           {offer.gift}
           <Shine />
         </p>
-        <Button to={brandPath(offer.handle)} prefetch="intent">
+        <Button to={brandOffersPath(offer.handle)} prefetch="intent">
           Shop {offer.brand}
         </Button>
       </div>
@@ -267,7 +267,7 @@ function PercentTile({offer}: {offer: PercentOffer}) {
           Off
         </p>
         <Link
-          to={brandPath(offer.handle)}
+          to={brandOffersPath(offer.handle)}
           prefetch="intent"
           className="mt-3 inline-flex min-h-touch items-center text-base font-extrabold tracking-wide uppercase underline underline-offset-4 hover:no-underline"
         >
@@ -361,7 +361,7 @@ function PhotoBanner({banner, half}: {banner: Banner; half?: boolean}) {
           {banner.links.map((link) => (
             <Button
               key={link.handle}
-              to={brandPath(link.handle)}
+              to={brandOffersPath(link.handle)}
               prefetch="intent"
               // Several brands on one banner get the smaller button, so three of them fit in two rows on a phone.
               size={banner.links.length > 1 ? 'md' : 'lg'}

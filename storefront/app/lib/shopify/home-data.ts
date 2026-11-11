@@ -18,7 +18,7 @@ import {
 } from '~/lib/filters';
 import {catalogCache, pricedCache} from '~/lib/shopify/cache';
 import {mapProductCards} from '~/lib/shopify/card';
-import {brandPath, normalizeBrandSlug} from '~/lib/shopify/brand-data';
+import {brandOffersPath, normalizeBrandSlug} from '~/lib/shopify/brand-path';
 import {fieldRecord, mapImage} from '~/lib/shopify/common';
 import {BRAND_FIELDS, PRIMARY_COLLECTION_HANDLE} from '~/lib/shopify/config';
 import {buildFinder, type HomeFinderData} from '~/lib/shopify/home-finder';
@@ -185,7 +185,7 @@ function brandTilesFrom(
     const slug = normalizeBrandSlug(fields[BRAND_FIELDS.slug]);
     tiles.push({
       name,
-      to: slug ? brandPath(slug) : brandHref(collectionHandle, name),
+      to: slug ? brandOffersPath(slug) : brandHref(collectionHandle, name),
       logo:
         (reference && 'image' in reference
           ? mapImage(reference.image)
