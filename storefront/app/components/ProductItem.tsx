@@ -4,10 +4,12 @@ import {CompareToggle} from '~/components/compare/CompareToggle';
 import {Badge} from '~/components/ui/Badge';
 import {cardStyles} from '~/components/ui/Card';
 import {Chip} from '~/components/ui/Chip';
+import {OfferTags, offerTagItems} from '~/components/ui/OfferTags';
 import {cn} from '~/components/ui/cn';
 import {getPriceView} from '~/components/ui/Price';
 import {Rating} from '~/components/ui/Rating';
 import {cardSelectItemAttributes} from '~/lib/listing-analytics';
+import {saleTagLabel} from '~/lib/shopify/pricing';
 import type {ProductCardView} from '~/lib/shopify/types';
 
 type ProductItemProps = {
@@ -50,6 +52,10 @@ export function ProductItem({
     ? getPriceView(product.price, product.compareAt)
     : null;
   const sale = view?.kind === 'sale' ? view : null;
+  const tagItems = offerTagItems(
+    product.price ? saleTagLabel(product.price, product.compareAt) : null,
+    product.offerTags ?? [],
+  );
   const chips = [
     product.comfortLevel,
     product.mattressType,
@@ -124,6 +130,9 @@ export function ProductItem({
           </ul>
         ) : null}
 
+        {/* The sale and offer tags the owner asked for sit between the details and the price; they are text, not links. */}
+        <OfferTags items={tagItems} className="pt-1" />
+
         {/* Always stacked: beside the price, "Add to compare" did not fit a three or four column card and ran over the amount. */}
         <div className="mt-auto flex flex-col items-start gap-1 pt-3">
           {view ? (
@@ -175,7 +184,6 @@ function CardPrice({view, from}: {view: PriceViewOf; from: boolean}) {
             <span className="sr-only">Original price: </span>
             {view.compareAt}
           </s>
-          <span className="font-bold text-sale-fg">Save {view.savings}</span>
         </span>
       ) : null}
     </div>

@@ -13,7 +13,8 @@ import {StickyAddBar} from '~/components/product/StickyAddBar';
 import {useStickyAddBar} from '~/components/product/useStickyAddBar';
 import {VendorName} from '~/components/product/VendorName';
 import {useProtectionOffers} from '~/components/extend/useProtectionOffers';
-import {Badge} from '~/components/ui/Badge';
+import {OfferTags, offerTagItems} from '~/components/ui/OfferTags';
+import type {OfferTag} from '~/lib/offers/card-tags';
 import {Card} from '~/components/ui/Card';
 import {Chip} from '~/components/ui/Chip';
 import {cn} from '~/components/ui/cn';
@@ -27,7 +28,7 @@ import {sizeOf} from '~/lib/offers-runtime/sizes';
 import type {ReviewsAggregate} from '~/lib/reviews/provider';
 import type {BrandLink} from '~/lib/shopify/brand-link';
 import type {ProtectionMode} from '~/lib/shopify/protection-mode';
-import {savingsLabel} from '~/lib/shopify/pricing';
+import {saleTagLabel} from '~/lib/shopify/pricing';
 import type {ProductPageView, VariantView} from '~/lib/shopify/types';
 import {
   dimensionsForValue,
@@ -58,7 +59,10 @@ export function ProductBuyBox({
   brandLink = null,
   addOns = false,
   rating = null,
+  offerTags = [],
 }: {
+  /** "Free Adjustable Base" / "Free Gift" tags for this product (from the Shopify gift discounts); empty shows none. */
+  offerTags?: readonly OfferTag[];
   product: ProductPageView;
   variant: VariantView;
   protection?: ProtectionMode;
@@ -88,7 +92,7 @@ export function ProductBuyBox({
       ? (offers.plans.find((plan) => plan.planId === choice.planId) ?? null)
       : null;
   const selection = selectionOf(variant, product.options);
-  const savings = savingsLabel(variant.price, variant.compareAt);
+  const saleTag = saleTagLabel(variant.price, variant.compareAt);
   const attributeBadges = [
     product.comfortLevel,
     product.mattressType,
@@ -149,6 +153,7 @@ export function ProductBuyBox({
         >
           {product.title}
         </h1>
+        <OfferTags items={offerTagItems(null, offerTags)} className="mt-2" />
         {/* Only with real reviews from the provider (REQ-PDP-005): nothing renders, and nothing is reserved, otherwise. */}
         {rating ? (
           <Rating
@@ -174,11 +179,7 @@ export function ProductBuyBox({
           announced once. The saving is the badge below the price (not Price's own showSavings text), so it is not read twice. */}
       <div aria-live="polite" className="flex flex-col gap-2">
         <Price price={variant.price} compareAt={variant.compareAt} size="lg" />
-        {savings ? (
-          <div>
-            <Badge variant="sale">{savings}</Badge>
-          </div>
-        ) : null}
+        <OfferTags items={offerTagItems(saleTag, [])} />
         <p className="flex flex-wrap items-center gap-x-3 text-sm text-fg-muted">
           {variant.available ? (
             <span className="inline-flex items-center gap-1 font-bold text-success-fg">

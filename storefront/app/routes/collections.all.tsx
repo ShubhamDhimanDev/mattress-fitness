@@ -1,3 +1,4 @@
+import {tagProducts} from '~/lib/offers-runtime/card-tags-server';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/collections.all';
 import {ProductListing} from '~/components/collection/ProductListing';
@@ -12,7 +13,8 @@ export const meta: Route.MetaFunction = () => [
 
 export async function loader({context, request}: Route.LoaderArgs) {
   const state = parseFilterParams(new URL(request.url).searchParams);
-  return loadAllProductsPage(context.storefront, state);
+  const page = await loadAllProductsPage(context.storefront, state);
+  return {...page, products: await tagProducts(context.env, page.products)};
 }
 
 export default function AllProducts() {

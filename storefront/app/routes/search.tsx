@@ -1,3 +1,4 @@
+import {tagProducts} from '~/lib/offers-runtime/card-tags-server';
 import {Analytics} from '~/lib/hydrogen/analytics';
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/search';
@@ -47,7 +48,13 @@ export async function loader({request, context}: Route.LoaderArgs) {
 
   try {
     const page = await loadSearchPage(context.storefront, term, state);
-    return {type: 'regular' as const, failed: false, activeFilters, ...page};
+    return {
+      type: 'regular' as const,
+      failed: false,
+      activeFilters,
+      ...page,
+      products: await tagProducts(context.env, page.products),
+    };
   } catch (error) {
     logSearchFailure(error);
     return {

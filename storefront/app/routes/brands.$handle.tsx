@@ -9,6 +9,7 @@ import {SORT_KEYS, parseFilterParams} from '~/lib/filters';
 import {previewRobotsMeta} from '~/lib/pages/head';
 import {buildBrandJsonLd, loadBrandPage} from '~/lib/shopify/brand-data';
 import {buildBreadcrumbJsonLd} from '~/lib/shopify/jsonld';
+import {tagProducts} from '~/lib/offers-runtime/card-tags-server';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 
 // Brand page (REQ-COL-005, P3B-06): the brand's content from its `brand` metaobject, then its products in
@@ -66,6 +67,10 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   const real = page.source === 'shopify';
   return {
     ...page,
+    // Sample brands have fictional products: no offer tags for them.
+    products: real
+      ? await tagProducts(context.env, page.products)
+      : page.products,
     jsonLd: real ? buildBrandJsonLd(page.brand, siteOrigin) : null,
     breadcrumbJsonLd: buildBreadcrumbJsonLd(
       [
