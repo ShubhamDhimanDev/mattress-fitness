@@ -14,6 +14,7 @@ import {isValidHandle, loadCollectionPage} from '~/lib/shopify/collection-data';
 import {loadPromoTiles} from '~/lib/shopify/promo-data';
 import {showsPromoTiles} from '~/lib/shopify/promo-placement';
 import {canonicalMeta, canonicalUrl} from '~/lib/seo/canonical';
+import {tagProducts} from '~/lib/offers-runtime/card-tags-server';
 import {resolveSiteOrigin} from '~/lib/site-origin';
 
 export const meta: Route.MetaFunction = ({data}) => {
@@ -71,6 +72,7 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
         );
   return {
     ...page,
+    products: await tagProducts(context.env, page.products),
     promoTiles,
     breadcrumbJsonLd,
     canonicalHref: canonicalUrl(origin, collectionPath),

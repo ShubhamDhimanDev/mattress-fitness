@@ -9,6 +9,7 @@ import type {
   SleepPosition,
 } from '~/lib/catalog/attributes';
 import type {MoneyV2Like} from '~/lib/money';
+import type {OfferTag} from '~/lib/offers/card-tags';
 
 export type ImageView = {
   readonly id: string | null;
@@ -45,6 +46,11 @@ export type ProductCardView = {
   readonly productLine: string | null;
   /** Star rating from the reviews source; always null until a provider exists (Q-011, P3B-12). */
   readonly rating: {readonly average: number; readonly count: number} | null;
+  /**
+   * "Free Adjustable Base" / "Free Gift with Purchase" for a product a Shopify gift discount names; added by the route loader
+   * (offers-runtime/card-tags-server.ts), so absent everywhere the loader does not look.
+   */
+  readonly offerTags?: readonly OfferTag[];
 };
 
 export type VariantView = {

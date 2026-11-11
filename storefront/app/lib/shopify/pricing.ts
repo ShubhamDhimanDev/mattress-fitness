@@ -16,3 +16,15 @@ export function savingsLabel(
   const percent = Math.round((saved * 100) / compareCents);
   return `Save ${formatCents(saved, {compact: true})} (${percent}%)`;
 }
+
+/** "Save $200 Today!" for the sale tag on a card and the product page; null unless compare-at is above price. */
+export function saleTagLabel(
+  price: MoneyV2Like,
+  compareAt: MoneyV2Like | null,
+): string | null {
+  const priceCents = centsOf(price);
+  const compareCents = centsOf(compareAt);
+  if (priceCents === null || compareCents === null) return null;
+  if (compareCents <= priceCents) return null;
+  return `Save ${formatCents(compareCents - priceCents, {compact: true})} Today!`;
+}

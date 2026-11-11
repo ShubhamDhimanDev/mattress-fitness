@@ -1,3 +1,7 @@
+import {
+  offerTagsForProduct,
+  tagProducts,
+} from '~/lib/offers-runtime/card-tags-server';
 import {Analytics} from '~/lib/hydrogen/analytics';
 import {
   useLoaderData,
@@ -121,10 +125,11 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   // product is known so an unknown handle never reaches the provider.
   // The offer-rule questions share that wait: the rules are cached for a minute and never reject, so they cost the page
   // nothing once warm.
-  const [reviews, hasAddOns, hasBundle] = await Promise.all([
+  const [reviews, hasAddOns, hasBundle, offerTags] = await Promise.all([
     loadReviewsPageState(context.env, product.handle, import.meta.env.DEV),
     productHasAddOns(context.env, product.id),
     productHasBundle(context.env, product.id),
+    offerTagsForProduct(context.env, product.id),
   ]);
   // Never the request's Host (P-L2); null outside development without PUBLIC_SITE_URL: no absolute URL is then emitted.
   const siteOrigin = resolveSiteOrigin({
@@ -134,6 +139,8 @@ export async function loader({context, params, request}: Route.LoaderArgs) {
   });
   return {
     product,
+    // "Free Adjustable Base" / "Free Gift" tags from the Shopify gift discounts that name this product.
+    offerTags,
     offerOnly: offerOnlyHandles.has(product.handle),
     // A link to the brand page, or null for plain text; it needs a brand entry behind it (REQ-COL-005).
     brandLink: resolveBrandLink({
@@ -178,6 +185,7 @@ export default function Product() {
     brandLink,
     addOnsExpected,
     bundleExpected,
+    offerTags,
     reviewsEnabled,
     rating,
   } = useLoaderData<typeof loader>();
@@ -224,6 +232,7 @@ export default function Product() {
           brandLink={brandLink}
           addOns={addOnsExpected}
           rating={rating}
+          offerTags={offerTags}
         />
       </div>
       {bundleExpected ? (
