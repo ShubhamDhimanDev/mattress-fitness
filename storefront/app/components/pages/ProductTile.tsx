@@ -23,7 +23,7 @@ export function ProductTile({image, className = ''}: ProductTileProps) {
           width={image.width ?? undefined}
           height={image.height ?? undefined}
           loading="lazy"
-          className="size-full object-cover"
+          className="size-full object-contain bg-white"
         />
       ) : (
         <div

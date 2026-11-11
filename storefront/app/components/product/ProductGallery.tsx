@@ -2,7 +2,29 @@ import {Image} from '~/lib/hydrogen/image';
 import {useRef, useState, type KeyboardEvent, type PointerEvent} from 'react';
 import {ChevronRightIcon} from '~/components/ui/Icons';
 import {cn} from '~/components/ui/cn';
-import type {ImageView} from '~/lib/shopify/types';
+import {boxRatio} from '~/lib/shopify/image-ratio';
+import type {GalleryMedia, ImageView} from '~/lib/shopify/types';
+
+/** The still picture of a slide: the photo itself, or the video's poster (null when it has none). */
+function stillOf(item: GalleryMedia): ImageView | null {
+  return item.kind === 'image' ? item.image : item.poster;
+}
+
+/** A small "play" triangle on a video's thumbnail. */
+function PlayBadge() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute inset-0 flex items-center justify-center"
+    >
+      <span className="flex size-8 items-center justify-center rounded-full bg-ink-900/80 text-white">
+        <svg viewBox="0 0 24 24" className="ml-0.5 size-4 fill-current">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </span>
+    </span>
+  );
+}
 
 const SWIPE_DISTANCE = 40;
 /** Pointer movement below this is a click, not a drag, so the slides do not twitch under a press on a button. */
@@ -10,8 +32,17 @@ const DRAG_THRESHOLD = 4;
 /** At the first and last image a drag past the end only follows the finger this much. */
 const END_RESISTANCE = 0.3;
 
+function slideKey(item: GalleryMedia): string {
+  return item.kind === 'image'
+    ? item.image.url
+    : (item.sources[0]?.url ?? 'video');
+}
+
 /**
- * Product image gallery (REQ-PDP-001): previous and next buttons, thumbnails, arrow keys and swipe. The
+ * Product gallery (REQ-PDP-001): photos and videos in the order Shopify admin has them (the first is the main image), with
+ * previous and next buttons, thumbnails, arrow keys and swipe. A video slide plays in the page with the browser's own
+ * controls; only the selected video slide holds a video element, so leaving it stops it, and nothing downloads a video before
+ * it is chosen (`preload="metadata"`). The
  * large image sits in a square box so nothing shifts while it loads; alt text is the catalog's, falling
  * back to the product title. The parent gives it a `key` per selected variant image to jump to that image.
  *
@@ -22,22 +53,22 @@ const END_RESISTANCE = 0.3;
  * assistive technology.
  */
 export function ProductGallery({
-  images,
+  media,
   title,
   initialIndex = 0,
 }: {
-  images: readonly ImageView[];
+  media: readonly GalleryMedia[];
   title: string;
   initialIndex?: number;
 }) {
   const [index, setIndex] = useState(
-    Math.min(Math.max(initialIndex, 0), Math.max(images.length - 1, 0)),
+    Math.min(Math.max(initialIndex, 0), Math.max(media.length - 1, 0)),
   );
   const swipeStart = useRef<number | null>(null);
   // Horizontal offset of the strip while a finger or mouse drags it; null when nothing is dragging.
   const [drag, setDrag] = useState<number | null>(null);
-  const count = images.length;
-  const current = images[index];
+  const count = media.length;
+  const current = media[index];
 
   if (!current) {
     return (
@@ -49,6 +80,9 @@ export function ProductGallery({
     );
   }
 
+  // The box takes the main photo's shape (between 3:4 and 3:2); every slide is drawn whole inside it, so nothing is cut off.
+  const mainPhoto = media.find((item) => item.kind === 'image');
+  const ratio = boxRatio(mainPhoto?.kind === 'image' ? mainPhoto.image : null);
   const go = (next: number) => setIndex((next + count) % count);
   const firstIndex = Math.min(Math.max(initialIndex, 0), count - 1);
 
@@ -96,7 +130,8 @@ export function ProductGallery({
       className="flex min-w-0 flex-col gap-3"
     >
       <div
-        className="relative aspect-square touch-pan-y overflow-hidden rounded-hero border border-line bg-surface-muted"
+        style={{aspectRatio: ratio}}
+        className="relative touch-pan-y overflow-hidden rounded-hero border border-line bg-white"
         onPointerDown={(event) => {
           swipeStart.current = event.clientX;
         }}
@@ -121,25 +156,52 @@ export function ProductGallery({
             transform: `translateX(calc(${-index * 100}% + ${drag ?? 0}px))`,
           }}
         >
-          {images.map((image, position) => (
-            <div
-              key={image.url}
-              aria-hidden={position === index ? undefined : true}
-              className="size-full shrink-0"
-            >
-              <Image
-                data={image}
-                alt={image.altText ?? title}
-                aspectRatio="1/1"
-                sizes="(min-width: 1024px) 50vw, 100vw"
-                // Eager for all: an offscreen slide that is lazy would only start downloading when it is already sliding in.
-                loading="eager"
-                fetchPriority={position === firstIndex ? 'high' : 'low'}
-                draggable={false}
-                className="size-full object-cover select-none"
-              />
-            </div>
-          ))}
+          {media.map((item, position) => {
+            const still = stillOf(item);
+            return (
+              <div
+                key={slideKey(item)}
+                aria-hidden={position === index ? undefined : true}
+                className="size-full shrink-0"
+              >
+                {item.kind === 'video' && position === index ? (
+                  // The poster is the still picture until the shopper presses play; the browser's controls are the keyboard path.
+                  // The clip is a short product film, so it has no captions of its own to offer (it carries no speech).
+                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                  <video
+                    controls
+                    playsInline
+                    preload="metadata"
+                    poster={still?.url}
+                    aria-label={item.alt || `${title} video`}
+                    className="size-full bg-ink-900 object-contain"
+                  >
+                    {item.sources.map((source) => (
+                      <source
+                        key={source.url}
+                        src={source.url}
+                        type={source.mimeType}
+                      />
+                    ))}
+                  </video>
+                ) : still ? (
+                  <Image
+                    data={still}
+                    alt={item.kind === 'image' ? (still.altText ?? title) : ''}
+                    aspectRatio={String(ratio)}
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    // Eager for all: an offscreen slide that is lazy would only start downloading when it is already sliding in.
+                    loading="eager"
+                    fetchPriority={position === firstIndex ? 'high' : 'low'}
+                    draggable={false}
+                    className="size-full object-contain select-none"
+                  />
+                ) : (
+                  <div className="size-full bg-surface-muted" />
+                )}
+              </div>
+            );
+          })}
         </div>
         {count > 1 ? (
           <>
@@ -166,7 +228,7 @@ export function ProductGallery({
         ) : null}
       </div>
       <p role="status" className="sr-only">
-        Image {index + 1} of {count}
+        {current.kind === 'video' ? 'Video' : 'Image'} {index + 1} of {count}
       </p>
 
       {count > 1 ? (
@@ -175,29 +237,32 @@ export function ProductGallery({
         // (pb-1) is gone, so the strip is 4 px shorter than before. scroll-px keeps that room when a focused thumbnail is
         // scrolled into view, so its ring is not clipped at the strip's edge (BV-002).
         <ul className="-m-1.5 flex scroll-px-1.5 gap-2 overflow-x-auto p-1.5">
-          {images.map((image, position) => (
-            <li key={image.url} className="shrink-0">
+          {media.map((item, position) => (
+            <li key={slideKey(item)} className="shrink-0">
               <button
                 type="button"
-                aria-label={`Show image ${position + 1} of ${count}`}
+                aria-label={`Show ${item.kind === 'video' ? 'video' : 'image'} ${position + 1} of ${count}`}
                 aria-current={position === index ? 'true' : undefined}
                 onClick={() => setIndex(position)}
                 className={cn(
-                  'size-18 overflow-hidden rounded-choice border-2 bg-surface-muted',
+                  'relative size-18 overflow-hidden rounded-choice border-2 bg-white',
                   position === index
                     ? 'border-primary-500'
                     : 'border-line hover:border-line-strong',
                 )}
               >
-                <Image
-                  data={image}
-                  alt=""
-                  aspectRatio="1/1"
-                  sizes="72px"
-                  loading="eager"
-                  fetchPriority="low"
-                  className="size-full object-cover"
-                />
+                {stillOf(item) ? (
+                  <Image
+                    data={stillOf(item) as ImageView}
+                    alt=""
+                    aspectRatio="1/1"
+                    sizes="72px"
+                    loading="eager"
+                    fetchPriority="low"
+                    className="size-full object-contain"
+                  />
+                ) : null}
+                {item.kind === 'video' ? <PlayBadge /> : null}
               </button>
             </li>
           ))}

@@ -262,6 +262,34 @@ export const PRODUCT_QUERY = `#graphql
           height
         }
       }
+      media(first: 20) {
+        nodes {
+          __typename
+          alt
+          ... on MediaImage {
+            image {
+              id
+              url
+              altText
+              width
+              height
+            }
+          }
+          ... on Video {
+            previewImage {
+              id
+              url
+              altText
+              width
+              height
+            }
+            sources {
+              url
+              mimeType
+            }
+          }
+        }
+      }
       options {
         name
         optionValues {

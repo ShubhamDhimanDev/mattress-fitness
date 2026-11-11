@@ -93,7 +93,7 @@ function Option({
           src={option.image.url}
           width={50}
           height={50}
-          className="size-12 shrink-0 rounded-choice object-cover"
+          className="size-12 shrink-0 rounded-choice object-contain bg-white"
         />
       ) : null}
       <span className="min-w-0">

@@ -214,7 +214,9 @@ export const MAP_FRAME_ORIGIN = 'https://www.openstreetmap.org';
 export function enforcedCspExtras(
   input: AnalyticsCspInput | undefined,
   chat: ChatCsp = NO_CHAT_CSP,
+  storeDomain?: string,
 ): {
+  mediaSrc?: string[];
   scriptSrc?: string[];
   imgSrc?: string[];
   connectSrc?: string[];
@@ -227,6 +229,7 @@ export function enforcedCspExtras(
   const img = [...hosts.img, ...chat.img];
   const connect = [...hosts.connect, ...chat.connect];
   const extras: {
+    mediaSrc?: string[];
     scriptSrc?: string[];
     imgSrc?: string[];
     connectSrc?: string[];
@@ -236,6 +239,12 @@ export function enforcedCspExtras(
   } = {};
   // Stylesheets and fonts of a script-made frame (the chat window) follow this page's policy. Styles are appended to
   // Hydrogen's own list; naming font-src replaces the fallback to default-src, so the base sources are repeated.
+  // Product videos: the Storefront API gives their files at the store's own domain (<store>.myshopify.com/cdn/shop/videos), which
+  // the fallback to default-src does not allow. Naming media-src replaces that fallback, so the base sources are repeated.
+  const store = httpsHost(storeDomain);
+  if (store !== null) {
+    extras.mediaSrc = ["'self'", SHOPIFY_CDN, SHOPIFY_ACCOUNT, store];
+  }
   const style = chat.style ?? [];
   const font = chat.font ?? [];
   if (style.length > 0) extras.styleSrc = [...style];
@@ -314,7 +323,7 @@ export function buildReportOnlyCsp(
     ['style-src-attr', ["'unsafe-inline'"]],
     ['img-src', ["'self'", 'data:', SHOPIFY_CDN, ...provider.img, ...dev]],
     ['font-src', ["'self'", SHOPIFY_CDN, ...(chat.font ?? []), ...dev]],
-    ['media-src', ["'self'", SHOPIFY_CDN, ...dev]],
+    ['media-src', ["'self'", SHOPIFY_CDN, ...compact([store]), ...dev]],
     [
       'connect-src',
       [

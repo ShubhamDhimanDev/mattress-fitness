@@ -1173,6 +1173,37 @@ export type CatalogProductQuery = {
           >
         >;
       };
+      media: {
+        nodes: Array<
+          | ({__typename: 'ExternalVideo'} & Pick<
+              StorefrontAPI.ExternalVideo,
+              'alt'
+            >)
+          | ({__typename: 'MediaImage'} & Pick<
+              StorefrontAPI.MediaImage,
+              'alt'
+            > & {
+                image?: StorefrontAPI.Maybe<
+                  Pick<
+                    StorefrontAPI.Image,
+                    'id' | 'url' | 'altText' | 'width' | 'height'
+                  >
+                >;
+              })
+          | ({__typename: 'Model3d'} & Pick<StorefrontAPI.Model3d, 'alt'>)
+          | ({__typename: 'Video'} & Pick<StorefrontAPI.Video, 'alt'> & {
+                previewImage?: StorefrontAPI.Maybe<
+                  Pick<
+                    StorefrontAPI.Image,
+                    'id' | 'url' | 'altText' | 'width' | 'height'
+                  >
+                >;
+                sources: Array<
+                  Pick<StorefrontAPI.VideoSource, 'url' | 'mimeType'>
+                >;
+              })
+        >;
+      };
       options: Array<
         Pick<StorefrontAPI.ProductOption, 'name'> & {
           optionValues: Array<Pick<StorefrontAPI.ProductOptionValue, 'name'>>;
@@ -1904,7 +1935,7 @@ interface GeneratedQueryTypes {
     return: CatalogHomeQuery;
     variables: CatalogHomeQueryVariables;
   };
-  '#graphql\n  query CatalogProduct(\n    $handle: String!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    product(handle: $handle) {\n      id\n      handle\n      title\n      vendor\n      productType\n      description\n      seo {\n        title\n        description\n      }\n      featuredImage {\n        id\n        url\n        altText\n        width\n        height\n      }\n      images(first: 20) {\n        nodes {\n          id\n          url\n          altText\n          width\n          height\n        }\n      }\n      options {\n        name\n        optionValues {\n          name\n        }\n      }\n      variants(first: 100) {\n        nodes {\n          id\n          title\n          sku\n          availableForSale\n          price {\n            amount\n            currencyCode\n          }\n          compareAtPrice {\n            amount\n            currencyCode\n          }\n          selectedOptions {\n            name\n            value\n          }\n          image {\n            id\n            url\n            altText\n            width\n            height\n          }\n          dimensions: metafield(namespace: "custom", key: "dimensions") {\n            value\n          }\n        }\n      }\n      metafields(\n        identifiers: [\n          {namespace: "custom", key: "comfort_level"}\n          {namespace: "custom", key: "mattress_type"}\n          {namespace: "custom", key: "sleep_positions"}\n          {namespace: "custom", key: "benefits"}\n          {namespace: "custom", key: "product_line"}\n          {namespace: "custom", key: "height_inches"}\n          {namespace: "custom", key: "specifications"}\n          {namespace: "custom", key: "features"}\n        ]\n      ) {\n        key\n        value\n      }\n      brand: metafield(namespace: "custom", key: "brand") {\n        reference {\n          ... on Metaobject {\n            id\n            handle\n            fields {\n              key\n              value\n              reference {\n                ... on MediaImage {\n                  image {\n                    url\n                    altText\n                    width\n                    height\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n      faqs: metafield(namespace: "custom", key: "faqs") {\n        references(first: 20) {\n          nodes {\n            ... on Metaobject {\n              id\n              fields {\n                key\n                value\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
+  '#graphql\n  query CatalogProduct(\n    $handle: String!\n    $country: CountryCode\n    $language: LanguageCode\n  ) @inContext(country: $country, language: $language) {\n    product(handle: $handle) {\n      id\n      handle\n      title\n      vendor\n      productType\n      description\n      seo {\n        title\n        description\n      }\n      featuredImage {\n        id\n        url\n        altText\n        width\n        height\n      }\n      images(first: 20) {\n        nodes {\n          id\n          url\n          altText\n          width\n          height\n        }\n      }\n      media(first: 20) {\n        nodes {\n          __typename\n          alt\n          ... on MediaImage {\n            image {\n              id\n              url\n              altText\n              width\n              height\n            }\n          }\n          ... on Video {\n            previewImage {\n              id\n              url\n              altText\n              width\n              height\n            }\n            sources {\n              url\n              mimeType\n            }\n          }\n        }\n      }\n      options {\n        name\n        optionValues {\n          name\n        }\n      }\n      variants(first: 100) {\n        nodes {\n          id\n          title\n          sku\n          availableForSale\n          price {\n            amount\n            currencyCode\n          }\n          compareAtPrice {\n            amount\n            currencyCode\n          }\n          selectedOptions {\n            name\n            value\n          }\n          image {\n            id\n            url\n            altText\n            width\n            height\n          }\n          dimensions: metafield(namespace: "custom", key: "dimensions") {\n            value\n          }\n        }\n      }\n      metafields(\n        identifiers: [\n          {namespace: "custom", key: "comfort_level"}\n          {namespace: "custom", key: "mattress_type"}\n          {namespace: "custom", key: "sleep_positions"}\n          {namespace: "custom", key: "benefits"}\n          {namespace: "custom", key: "product_line"}\n          {namespace: "custom", key: "height_inches"}\n          {namespace: "custom", key: "specifications"}\n          {namespace: "custom", key: "features"}\n        ]\n      ) {\n        key\n        value\n      }\n      brand: metafield(namespace: "custom", key: "brand") {\n        reference {\n          ... on Metaobject {\n            id\n            handle\n            fields {\n              key\n              value\n              reference {\n                ... on MediaImage {\n                  image {\n                    url\n                    altText\n                    width\n                    height\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n      faqs: metafield(namespace: "custom", key: "faqs") {\n        references(first: 20) {\n          nodes {\n            ... on Metaobject {\n              id\n              fields {\n                key\n                value\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n': {
     return: CatalogProductQuery;
     variables: CatalogProductQueryVariables;
   };

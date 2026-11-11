@@ -55,7 +55,8 @@ export default async function handleRequest(
   // is empty today (no approved provider), so this changes nothing until a real adapter adds its hosts.
   const chatConfig = parseChatConfig(context.env, {
     development: import.meta.env.DEV,
-    analyticsCategoryConfigured: configuredCategories(analyticsConfig).includes('analytics'),
+    analyticsCategoryConfigured:
+      configuredCategories(analyticsConfig).includes('analytics'),
   });
   const chatCsp = chatCspHosts(
     chatConfig.status === 'on' ? chatConfig.config.providerId : null,
@@ -63,7 +64,8 @@ export default async function handleRequest(
   // The financing provider's script host (Affirm only, P4-08) and the Extend logo's one image origin (REQ-EXT-004) ride
   // the same extra-sources object as the chat, so the enforced and the report-only policy cannot disagree.
   const financingConfig = parseFinancingConfig(context.env, {
-    analyticsCategoryConfigured: configuredCategories(analyticsConfig).includes('analytics'),
+    analyticsCategoryConfigured:
+      configuredCategories(analyticsConfig).includes('analytics'),
   });
   const extraCsp = mergeCspHosts(
     chatCsp,
@@ -77,7 +79,11 @@ export default async function handleRequest(
       checkoutDomain: context.env.PUBLIC_CHECKOUT_DOMAIN,
       storeDomain: context.env.PUBLIC_STORE_DOMAIN,
     },
-    ...enforcedCspExtras(analyticsCsp, extraCsp),
+    ...enforcedCspExtras(
+      analyticsCsp,
+      extraCsp,
+      context.env.PUBLIC_STORE_DOMAIN,
+    ),
   });
 
   const body = await renderToReadableStream(
