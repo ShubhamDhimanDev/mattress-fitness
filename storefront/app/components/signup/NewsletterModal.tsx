@@ -3,19 +3,21 @@ import {Dialog} from '~/components/ui/Dialog';
 import {SiteImage} from '~/components/ui/SiteImage';
 import {SITE_IMAGES} from '~/lib/site-images';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
-import {PROMO_PERCENT, type SignupPublicConfig} from '~/lib/signup/shared';
+import {
+  PROMO_MIN_ORDER_NOTE,
+  PROMO_PERCENT,
+  type SignupPublicConfig,
+} from '~/lib/signup/shared';
 
 // Newsletter pop-up for the home page (CR-34): it asks for an email address so the team can send discount coupons. It
 // reuses the signup form as is, so the explicit consent box, the honeypot, the rate limit and the "thank you" that does
 // not reveal who is already subscribed all stay. The promo-code promise is written only when the server says the welcome email is on
 // (`config.promo`); otherwise the team sends the coupon by hand and no amount is promised.
 //
-// Shown once, a few seconds after the page loads, then not again for two weeks on that browser. The date is kept in
-// localStorage, which may be blocked or empty (private window): then the pop-up simply shows each visit and nothing breaks.
+// Shown a few seconds after every load of the home page (owner request 2026-11-11: it used to show once, then stay quiet for two
+// weeks). Nothing is stored in the browser any more. Closing it hides it until the home page is opened again.
 
 const SHOW_AFTER_MS = 6000;
-const QUIET_DAYS = 14;
-const STORAGE_KEY = 'newsletter-modal-shown';
 
 // The form is a lazy chunk, requested only once the pop-up opens. A chunk that cannot be downloaded leaves the dialog
 // empty rather than breaking the page (NFR-013).
@@ -28,45 +30,11 @@ const SignupForm = lazy(
     ),
 );
 
-/** True when this browser has not seen the pop-up within the quiet period. Pure apart from the storage it is given. */
-export function shouldShowNewsletter(
-  storage: Pick<Storage, 'getItem'> | null,
-  now: number,
-): boolean {
-  try {
-    const raw = storage?.getItem(STORAGE_KEY) ?? null;
-    if (raw === null) return true;
-    const shownAt = Number(raw);
-    if (!Number.isFinite(shownAt)) return true;
-    return now - shownAt > QUIET_DAYS * 24 * 60 * 60 * 1000;
-  } catch {
-    return true;
-  }
-}
-
-function rememberShown(now: number) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, String(now));
-  } catch {
-    // Storage blocked: the pop-up may show again next visit. Nothing else depends on it.
-  }
-}
-
 export function NewsletterModal({config}: {config: SignupPublicConfig}) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    let storage: Storage | null = null;
-    try {
-      storage = window.localStorage;
-    } catch {
-      storage = null;
-    }
-    if (!shouldShowNewsletter(storage, Date.now())) return;
-    const timer = window.setTimeout(() => {
-      rememberShown(Date.now());
-      setOpen(true);
-    }, SHOW_AFTER_MS);
+    const timer = window.setTimeout(() => setOpen(true), SHOW_AFTER_MS);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -75,13 +43,21 @@ export function NewsletterModal({config}: {config: SignupPublicConfig}) {
       open={open}
       onClose={() => setOpen(false)}
       title={
-        config.promo
-          ? `Save up to ${PROMO_PERCENT}% off`
-          : 'Get discount coupons in your inbox'
+        config.promo ? (
+          <>
+            Save up to{' '}
+            {/* The amount is what the shopper should see first: brand red on white (primary-600, 6.23 : 4.5) and the heaviest weight. */}
+            <span className="font-black text-primary-600">
+              {PROMO_PERCENT}% off
+            </span>
+          </>
+        ) : (
+          'Get discount coupons in your inbox'
+        )
       }
       description={
         config.promo
-          ? 'Join our email list and we will email you a promo code right away, plus offers and sleep advice.'
+          ? `Join our email list and we will email you a promo code right away, plus offers and sleep advice. ${PROMO_MIN_ORDER_NOTE}`
           : 'Join our email list and we will send you discount coupons, offers and sleep advice.'
       }
       closeLabel="Close newsletter sign-up"

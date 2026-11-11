@@ -5,6 +5,7 @@
 // these fixed items remain the fallback when it is absent, empty or its read fails.
 
 import {BRAND_NAME} from '~/lib/brand';
+import {COMPARE_ENABLED} from '~/lib/features';
 import type {PublicChatConfig} from '~/lib/chat/config';
 
 /** The store name in titles, the copyright line and the logo's accessible name: one constant (brand.ts). */
@@ -450,7 +451,12 @@ export const FOOTER_SUPPORT_GROUPS_DRAFT: readonly PageFooterGroup[] = [
     heading: 'Sleep guide',
     links: [
       {label: 'Sleep quiz', to: SLEEP_QUIZ_LINK.to, order: 10},
-      {label: 'Compare mattresses', to: COMPARE_PATH, order: 20},
+      {
+        label: 'Compare mattresses',
+        to: COMPARE_PATH,
+        order: 20,
+        awaitingContent: !COMPARE_ENABLED,
+      },
     ],
   },
   {

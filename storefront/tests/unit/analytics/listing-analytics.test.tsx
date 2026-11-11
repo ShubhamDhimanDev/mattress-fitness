@@ -317,11 +317,6 @@ describe('select_item on a card click (fake runtime)', () => {
   // One render per case: a click on a product link navigates away and unmounts the page.
   it.each([
     [
-      'the compare control inside the same card',
-      <ProductItem key="a" product={product(1)} index={0} listId="search" />,
-      {name: 'Add Mattress 1 to comparison'},
-    ],
-    [
       'a card given no analytics',
       <ProductItem key="b" product={product(2)} />,
       {name: 'Mattress 2'},

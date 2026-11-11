@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {
+  cardOfferTags,
   offerTagIndex,
   offerTagOfGift,
   withOfferTags,
@@ -53,5 +54,13 @@ describe('sale tag (REQ-COL-001, REQ-PDP-001)', () => {
     expect(saleTagLabel(usd('499.00'), usd('799.00'))).toBe('Save $300 Today!');
     expect(saleTagLabel(usd('499.00'), usd('499.00'))).toBeNull();
     expect(saleTagLabel(usd('499.00'), null)).toBeNull();
+  });
+});
+
+describe('card tags (REQ-COL-001)', () => {
+  it('a card calls any gift, a base included, a free gift, once', () => {
+    expect(cardOfferTags(['free-base'])).toEqual(['free-gift']);
+    expect(cardOfferTags(['free-base', 'free-gift'])).toEqual(['free-gift']);
+    expect(cardOfferTags([])).toEqual([]);
   });
 });

@@ -301,7 +301,7 @@ describe('REQ-CNT-001 merging page links into the footer groups', () => {
     }));
     expect(merged).toEqual([
       {id: 'support', labels: []},
-      {id: 'sleep-guide', labels: ['Sleep quiz', 'Compare mattresses']},
+      {id: 'sleep-guide', labels: ['Sleep quiz']},
       {id: 'about', labels: []},
     ]);
   });
@@ -415,7 +415,7 @@ describe('REQ-CNT-001 the footer link model built by the root loader', () => {
     );
     expect(byGroup).toEqual({
       support: ['Contact us', 'Delivery and shipping', 'FAQ'],
-      'sleep-guide': ['Sleep quiz', 'Compare mattresses', 'Sleep journal'],
+      'sleep-guide': ['Sleep quiz', 'Sleep journal'],
       about: ['About us'],
     });
     expect(links.legal.map((link) => link.to)).toEqual([
