@@ -277,7 +277,6 @@ describe('REQ-CNT-001 footer links to Shopify pages', () => {
         .map((link) => link.textContent),
     ).toEqual([
       'Sleep quiz',
-      'Compare mattresses',
       'Size guide',
       'Comfort guide',
       'Adjustable base guide',

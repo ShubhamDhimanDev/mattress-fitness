@@ -4,6 +4,7 @@ import {Button} from '~/components/ui/Button';
 import {cn} from '~/components/ui/cn';
 import {displayHeadingClass} from '~/lib/display-type';
 import {Image} from '~/lib/hydrogen/image';
+import {COMPARE_ENABLED} from '~/lib/features';
 import {COMPARE_PATH} from '~/lib/pages/compare-view';
 import type {HomeData} from '~/lib/shopify/home-data';
 
@@ -121,9 +122,11 @@ export function BrandTiles({
             See all brands
           </Button>
         ) : null}
-        <Button to={COMPARE_PATH} variant="inverse-outline" size="lg">
-          Compare mattresses
-        </Button>
+        {COMPARE_ENABLED ? (
+          <Button to={COMPARE_PATH} variant="inverse-outline" size="lg">
+            Compare mattresses
+          </Button>
+        ) : null}
       </div>
     </section>
   );

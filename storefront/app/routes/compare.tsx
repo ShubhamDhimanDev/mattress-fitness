@@ -39,6 +39,7 @@ import {
 } from '~/lib/pages/compare-view';
 import {getCompareCandidates} from '~/lib/pages/data-source';
 import {formatCents} from '~/lib/money';
+import {COMPARE_ENABLED} from '~/lib/features';
 
 // P6-05: product comparison (REQ-CMP-001). The selection lives in the URL (?handles=a,b&size=Queen), is
 // remembered on the device, and is re-validated against the catalog on every request.
@@ -55,6 +56,8 @@ export const meta: Route.MetaFunction = () => [
 ];
 
 export async function loader({request}: Route.LoaderArgs) {
+  // Switched off by the owner (lib/features.ts): the page is gone, not just unlinked.
+  if (!COMPARE_ENABLED) throw new Response('Not found', {status: 404});
   const url = new URL(request.url);
   const handles = parseHandlesParam(url.searchParams);
   const requestedSize = parseSizeParam(url.searchParams);

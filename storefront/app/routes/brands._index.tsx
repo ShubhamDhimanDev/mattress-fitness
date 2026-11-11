@@ -1,3 +1,5 @@
+import {MATTRESS_FIRST_SORT} from '~/lib/filters';
+import {withLeadSort} from '~/lib/shopify/brand-path';
 import {Image} from '~/lib/hydrogen/image';
 import {Link, useLoaderData} from 'react-router';
 import type {Route} from './+types/brands._index';
@@ -43,7 +45,7 @@ export default function BrandsIndex() {
           {brands.map((brand) => (
             <li key={brand.handle}>
               <Link
-                to={brand.to}
+                to={withLeadSort(brand.to, MATTRESS_FIRST_SORT)}
                 prefetch="intent"
                 className={cn(
                   cardStyles({interactive: true, padding: 'none'}),

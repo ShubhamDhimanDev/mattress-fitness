@@ -51,7 +51,7 @@ describe('unsupplied claims (B-15)', () => {
       expect(labels(FOOTER_SUPPORT_GROUPS), label).not.toContain(label);
     }
     expect(labels(FOOTER_SUPPORT_GROUPS)).toEqual(
-      expect.arrayContaining(['Sleep quiz', 'Compare mattresses']),
+      expect.arrayContaining(['Sleep quiz']),
     );
   });
 

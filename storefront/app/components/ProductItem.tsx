@@ -1,5 +1,6 @@
 import {Image} from '~/lib/hydrogen/image';
 import {Link} from 'react-router';
+import {COMPARE_ENABLED} from '~/lib/features';
 import {CompareToggle} from '~/components/compare/CompareToggle';
 import {Badge} from '~/components/ui/Badge';
 import {cardStyles} from '~/components/ui/Card';
@@ -9,6 +10,7 @@ import {cn} from '~/components/ui/cn';
 import {getPriceView} from '~/components/ui/Price';
 import {Rating} from '~/components/ui/Rating';
 import {cardSelectItemAttributes} from '~/lib/listing-analytics';
+import {cardOfferTags} from '~/lib/offers/card-tags';
 import {saleTagLabel} from '~/lib/shopify/pricing';
 import type {ProductCardView} from '~/lib/shopify/types';
 
@@ -54,7 +56,7 @@ export function ProductItem({
   const sale = view?.kind === 'sale' ? view : null;
   const tagItems = offerTagItems(
     product.price ? saleTagLabel(product.price, product.compareAt) : null,
-    product.offerTags ?? [],
+    cardOfferTags(product.offerTags ?? []),
   );
   const chips = [
     product.comfortLevel,
@@ -141,11 +143,13 @@ export function ProductItem({
             <span />
           )}
           {/* Above the cover link (z-10) so it can be pressed; it is not part of the card link (REQ-CMP-001). */}
-          <CompareToggle
-            handle={product.handle}
-            title={product.title}
-            className="relative z-10"
-          />
+          {COMPARE_ENABLED ? (
+            <CompareToggle
+              handle={product.handle}
+              title={product.title}
+              className="relative z-10"
+            />
+          ) : null}
         </div>
       </div>
     </article>

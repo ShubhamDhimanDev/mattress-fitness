@@ -21,7 +21,17 @@ export const OFFER_TAG_LABELS: Readonly<Record<OfferTag, string>> = {
  * Aireloom and Kingsdown"), so a title naming a base is the adjustable-base offer; any other gift is a plain free gift.
  */
 export function offerTagOfGift(rule: Pick<GiftRule, 'name'>): OfferTag {
-  return /\b(adjustable\s+)?base\b/i.test(rule.name) ? 'free-base' : 'free-gift';
+  return /\b(adjustable\s+)?base\b/i.test(rule.name)
+    ? 'free-base'
+    : 'free-gift';
+}
+
+/**
+ * A listing card says only "Free Gift with Purchase!!" for any gift, a base included (owner request 2026-11-11); the product page
+ * keeps the specific "Free Adjustable Base!!". Several gifts on one product are still one tag.
+ */
+export function cardOfferTags(tags: readonly OfferTag[]): readonly OfferTag[] {
+  return tags.length === 0 ? [] : ['free-gift'];
 }
 
 export type OfferTagIndex = ReadonlyMap<string, readonly OfferTag[]>;

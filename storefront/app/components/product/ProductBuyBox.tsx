@@ -4,6 +4,7 @@ import {AddToCartButton} from '~/components/AddToCartButton';
 import {useAside} from '~/components/Aside';
 import {CartMessages} from '~/components/cart/CartMessages';
 import {FinancingMessage} from '~/components/cart/FinancingMessage';
+import {COMPARE_ENABLED} from '~/lib/features';
 import {CompareToggle} from '~/components/compare/CompareToggle';
 import {DeliveryCheck} from '~/components/delivery/DeliveryCheck';
 import {AddWithProtectionButton} from '~/components/extend/AddWithProtectionButton';
@@ -294,7 +295,9 @@ export function ProductBuyBox({
           onViewCart={() => open('cart')}
         />
       ) : null}
-      <CompareToggle handle={product.handle} title={product.title} />
+      {COMPARE_ENABLED ? (
+        <CompareToggle handle={product.handle} title={product.title} />
+      ) : null}
 
       {stickyVisible ? (
         <StickyAddBar
