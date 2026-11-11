@@ -1,4 +1,4 @@
-// The newsletter promo code (owner request 2026-11-06): 15% off, one use per customer, emailed to every signup by
+// The newsletter promo code (owner request 2026-11-06): 15% off orders of $599 or more (minimum added 2026-11-11), one use per customer, emailed to every signup by
 // storefront/app/lib/signup/welcome-email.ts (the name is PROMO_CODE in storefront/app/lib/signup/shared.ts; keep the two the same).
 //
 //   bash scripts/setup/with-admin-token.sh node scripts/setup/newsletter-promo-code.mjs            # dry run: reads, writes nothing
@@ -22,6 +22,7 @@ if (!ALLOWED.split(',').map((s) => s.trim()).includes(STORE)) {
 const LIVE = process.argv.includes('--live');
 const CODE = 'WELCOME15';
 const PERCENT = 15;
+const MIN_ORDER = '599.00'; // PROMO_MIN_ORDER_DOLLARS in shared.ts (owner request 2026-11-11)
 
 const gql = async (query, variables = {}) => {
   const response = await fetch(`https://${STORE}/admin/api/2026-10/graphql.json`, {
@@ -40,7 +41,7 @@ if (existing) {
   process.exit(0);
 }
 if (!LIVE) {
-  console.log(`DRY RUN: would create the code ${CODE}: ${PERCENT}% off all products, once per customer. Add --live to create it.`);
+  console.log(`DRY RUN: would create the code ${CODE}: ${PERCENT}% off all products on orders of $599 or more, once per customer. Add --live to create it.`);
   process.exit(0);
 }
 
@@ -53,6 +54,7 @@ const created = await gql(
       startsAt: new Date().toISOString(),
       appliesOncePerCustomer: true,
       customerSelection: {all: true},
+      minimumRequirement: {subtotal: {greaterThanOrEqualToSubtotal: MIN_ORDER}},
       customerGets: {value: {percentage: PERCENT / 100}, items: {all: true}},
       combinesWith: {productDiscounts: true, orderDiscounts: false, shippingDiscounts: false},
     },

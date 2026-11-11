@@ -17,7 +17,11 @@ import {
   type SmtpConfig,
 } from '~/lib/leads/smtp-config';
 import {buildMessage} from '~/lib/leads/smtp-message';
-import {PROMO_CODE, PROMO_PERCENT} from '~/lib/signup/shared';
+import {
+  PROMO_CODE,
+  PROMO_MIN_ORDER_NOTE,
+  PROMO_PERCENT,
+} from '~/lib/signup/shared';
 import type {
   KlaviyoClient,
   SubscribeFailure,
@@ -39,7 +43,7 @@ export function welcomeEmailText(code: string): string {
     '',
     `Here is your promo code: ${code}`,
     '',
-    `Save up to ${PROMO_PERCENT}% off. Enter the code in the discount box at checkout.`,
+    `Save up to ${PROMO_PERCENT}% off. Enter the code in the discount box at checkout. ${PROMO_MIN_ORDER_NOTE}`,
     'The code works once per customer, and some products or offers may be excluded.',
     '',
     'You can unsubscribe at any time.',

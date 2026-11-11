@@ -73,6 +73,8 @@ describe('the pop-up', () => {
     });
     const amount = within(dialog).getByText('15% off');
     expect(amount).toHaveClass('font-black', 'text-primary-600');
+    expect(dialog.getAttribute('aria-describedby')).not.toBeNull();
+    expect(dialog).toHaveTextContent('Offer valid on orders of $599 or more.');
   });
 
   it('writes nothing to the browser storage', async () => {

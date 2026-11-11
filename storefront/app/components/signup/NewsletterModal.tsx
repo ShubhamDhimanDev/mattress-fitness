@@ -3,7 +3,11 @@ import {Dialog} from '~/components/ui/Dialog';
 import {SiteImage} from '~/components/ui/SiteImage';
 import {SITE_IMAGES} from '~/lib/site-images';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
-import {PROMO_PERCENT, type SignupPublicConfig} from '~/lib/signup/shared';
+import {
+  PROMO_MIN_ORDER_NOTE,
+  PROMO_PERCENT,
+  type SignupPublicConfig,
+} from '~/lib/signup/shared';
 
 // Newsletter pop-up for the home page (CR-34): it asks for an email address so the team can send discount coupons. It
 // reuses the signup form as is, so the explicit consent box, the honeypot, the rate limit and the "thank you" that does
@@ -53,7 +57,7 @@ export function NewsletterModal({config}: {config: SignupPublicConfig}) {
       }
       description={
         config.promo
-          ? 'Join our email list and we will email you a promo code right away, plus offers and sleep advice.'
+          ? `Join our email list and we will email you a promo code right away, plus offers and sleep advice. ${PROMO_MIN_ORDER_NOTE}`
           : 'Join our email list and we will send you discount coupons, offers and sleep advice.'
       }
       closeLabel="Close newsletter sign-up"

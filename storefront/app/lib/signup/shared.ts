@@ -11,6 +11,10 @@ export function isSignupSurface(value: unknown): value is SignupSurface {
 
 /** The saving the welcome-email promo code gives, in the wording of the form and the email. Must equal the discount in Shopify. */
 export const PROMO_PERCENT = 15;
+/** The smallest order, in whole dollars, the promo code works on (owner request 2026-11-11). Must equal the minimum on the discount in Shopify. */
+export const PROMO_MIN_ORDER_DOLLARS = 599;
+/** The line that says so, in the pop-up, the form and the email. */
+export const PROMO_MIN_ORDER_NOTE = `Offer valid on orders of $${PROMO_MIN_ORDER_DOLLARS} or more.`;
 /** The Shopify discount code (Discounts in admin) that every signup is emailed. Created by scripts/setup/newsletter-promo-code.mjs. */
 export const PROMO_CODE = 'WELCOME15';
 
