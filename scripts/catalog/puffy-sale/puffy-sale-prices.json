@@ -1,0 +1,184 @@
+{
+ "source": "puffy.com product pages (JSON-LD offers) and /products.json",
+ "readOn": "2026-11-12",
+ "validUntil": "2026-11-22",
+ "products": {
+  "puffy-cloud-mattress": {
+   "source": "https://puffy.com/products/puffy-mattress",
+   "sizes": {
+    "Twin": {
+     "list": 1849,
+     "sale": 449
+    },
+    "Twin XL": {
+     "list": 2099,
+     "sale": 749
+    },
+    "Full": {
+     "list": 2249,
+     "sale": 899
+    },
+    "Queen": {
+     "list": 2399,
+     "sale": 1049
+    },
+    "King": {
+     "list": 2599,
+     "sale": 1249
+    },
+    "California King": {
+     "list": 2599,
+     "sale": 1249
+    },
+    "Split Head Queen": {
+     "list": 2799,
+     "sale": 1449
+    },
+    "Split Head King": {
+     "list": 3099,
+     "sale": 1749
+    },
+    "Split King": {
+     "list": 2848,
+     "sale": 1498
+    }
+   }
+  },
+  "puffy-lux-mattress": {
+   "source": "https://puffy.com/products/puffy-lux-mattress",
+   "sizes": {
+    "Twin": {
+     "list": 2149,
+     "sale": 749
+    },
+    "Twin XL": {
+     "list": 2449,
+     "sale": 1099
+    },
+    "Full": {
+     "list": 2699,
+     "sale": 1349
+    },
+    "Queen": {
+     "list": 2899,
+     "sale": 1549
+    },
+    "King": {
+     "list": 3099,
+     "sale": 1749
+    },
+    "California King": {
+     "list": 3099,
+     "sale": 1749
+    },
+    "Split Head Queen": {
+     "list": 3299,
+     "sale": 1949
+    },
+    "Split Head King": {
+     "list": 3599,
+     "sale": 2249
+    },
+    "Split King": {
+     "list": 3548,
+     "sale": 2198
+    }
+   }
+  },
+  "puffy-royal-mattress": {
+   "source": "https://puffy.com/products/puffy-royal-mattress",
+   "sizes": {
+    "Twin": {
+     "list": 2499,
+     "sale": 1089
+    },
+    "Twin XL": {
+     "list": 2849,
+     "sale": 1499
+    },
+    "Full": {
+     "list": 3549,
+     "sale": 2199
+    },
+    "Queen": {
+     "list": 3799,
+     "sale": 2449
+    },
+    "King": {
+     "list": 4099,
+     "sale": 2749
+    },
+    "California King": {
+     "list": 4099,
+     "sale": 2749
+    },
+    "Split Head Queen": {
+     "list": 4199,
+     "sale": 2849
+    },
+    "Split Head King": {
+     "list": 4599,
+     "sale": 3249
+    },
+    "Split King": {
+     "list": 4348,
+     "sale": 2998
+    }
+   }
+  },
+  "puffy-monarch-mattress": {
+   "source": "https://puffy.com/products/puffy-monarch-mattress",
+   "sizes": {
+    "Twin XL": {
+     "list": 3399,
+     "sale": 1949
+    },
+    "Queen": {
+     "list": 4699,
+     "sale": 3349
+    },
+    "King": {
+     "list": 5199,
+     "sale": 3849
+    },
+    "California King": {
+     "list": 5199,
+     "sale": 3849
+    },
+    "Split Head Queen": {
+     "list": 5399,
+     "sale": 4049
+    },
+    "Split Head King": {
+     "list": 5699,
+     "sale": 4349
+    },
+    "Split King": {
+     "list": 5448,
+     "sale": 3898
+    }
+   }
+  },
+  "puffy-legacy-mattress": {
+   "source": "https://puffy.com/products/puffy-legacy-mattress",
+   "sizes": {
+    "Twin XL": {
+     "list": 4899,
+     "sale": 3999
+    },
+    "Queen": {
+     "list": 6899,
+     "sale": 5499
+    },
+    "King": {
+     "list": 7899,
+     "sale": 6299
+    },
+    "California King": {
+     "list": 7899,
+     "sale": 6299
+    }
+   }
+  }
+ }
+}

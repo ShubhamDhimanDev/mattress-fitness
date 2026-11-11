@@ -1,0 +1,3257 @@
+[
+ {
+  "handle": "aireloom-tight-top-extra-firm",
+  "replaces": "aireloom-tight-top-extra-firm-mattress",
+  "title": "Aireloom Tight Top Extra Firm Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Tight Top Extra Firm Mattress is built for sleepers who want uncompromising support with a refined, luxury feel. Designed for back and stomach sleepers, this mattress delivers a stable, supportive surface that keeps your spine aligned throughout the night.</p><p>Handcrafted in California, every layer is selected to balance durability, breathability, and comfort. Natural materials like silk and wool work with an advanced TENCEL knit surface to regulate temperature and keep the sleep environment comfortable.</p><p>At the core of the mattress is the Aireloom Lift, a patented design that creates a natural air chamber between the support system and comfort layers. This allows the mattress to respond more precisely to your body while promoting continuous airflow.</p><p>The result is a mattress that feels supportive without being rigid, breathable without sacrificing structure, and built to perform night after night.</p><h3>Key features</h3><ul><li>Extra firm feel ideal for back and stomach sleepers</li><li>Tight top design creates a flat and stable sleep surface</li><li>Aireloom Lift enhances airflow and adaptive support</li><li>Silk and wool fibers help regulate temperature naturally</li><li>TENCEL knit cover promotes breathability and moisture control</li><li>Individually wrapped coils reduce motion and improve support</li></ul><h3>Construction and materials</h3><p>This mattress is built with a layered combination of natural fibers and advanced comfort materials to deliver long term support and durability.</p><p>The surface features a breathable TENCEL knit cover designed to promote airflow and moisture regulation. Beneath that, silk and wool fibers provide natural temperature control and a more balanced sleep environment.</p><p>Multiple layers of high performance foams work together to create the extra firm feel while still allowing slight contouring to the body. Cooling memory foam helps dissipate heat while adapting to pressure points.</p><p>The support system uses individually wrapped coils that respond independently to movement, helping reduce motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "1568.00",
+    "compareAt": "1960.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "1790.40",
+    "compareAt": "2238.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "1790.40",
+    "compareAt": "2238.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "1568.00",
+    "compareAt": "1960.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "1811.20",
+    "compareAt": "2264.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "1811.20",
+    "compareAt": "2264.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "1960.80",
+    "compareAt": "2451.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "2237.60",
+    "compareAt": "2797.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "2237.60",
+    "compareAt": "2797.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "2063.20",
+    "compareAt": "2579.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "2360.80",
+    "compareAt": "2951.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "2360.80",
+    "compareAt": "2951.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "2899.20",
+    "compareAt": "3624.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "3385.60",
+    "compareAt": "4232.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "3385.60",
+    "compareAt": "4232.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "2899.20",
+    "compareAt": "3624.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "3385.60",
+    "compareAt": "4232.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "3385.60",
+    "compareAt": "4232.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "3136.00",
+    "compareAt": "3920.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "3622.40",
+    "compareAt": "4528.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "3622.40",
+    "compareAt": "4528.00",
+    "sku": "AIR-TIGHT-TOP-EXTRA-FIRM-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_TIGHTTOP_EXTRA_FIRM_FRONT_A.jpg",
+    "alt": "Aireloom Tight Top Extra Firm Mattress"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/91ac3c8046a943159501ce6fa245468c/91ac3c8046a943159501ce6fa245468c.HD-1080p-7.2Mbps-78092896.mp4",
+    "alt": "Aireloom Tight Top Extra Firm Mattress video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_TIGHTTOP_EXTRA_FIRM_ONLY_CORNER.jpg",
+    "alt": "Aireloom Tight Top Extra Firm Mattress, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_TIGHTTOP_EXTRA_FIRM_ADJ_UP.jpg",
+    "alt": "Aireloom Tight Top Extra Firm Mattress, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_TIGHTTOP_EXTRA_FIRM_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Tight Top Extra Firm Mattress, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Extra Firm",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Back",
+    "Stomach"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "14",
+   "features": [
+    "Extra firm feel ideal for back and stomach sleepers",
+    "Tight top design creates a flat and stable sleep surface",
+    "Aireloom Lift enhances airflow and adaptive support",
+    "Silk and wool fibers help regulate temperature naturally",
+    "TENCEL knit cover promotes breathability and moisture control",
+    "Individually wrapped coils reduce motion and improve support"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-tight-top-extra-firm"
+ },
+ {
+  "handle": "aireloom-tight-top-luxury-firm-mattress",
+  "replaces": "aireloom-tight-top-luxury-firm-mattress",
+  "title": "Aireloom Tight Top Luxury Firm Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Tight Top Luxury Firm Mattress is designed for sleepers who want the perfect balance between support and comfort. It delivers a stable, supportive feel with just enough contouring to relieve pressure without sacrificing structure.</p><p>Handcrafted in California, this mattress combines premium natural materials with advanced comfort layers to create a refined and breathable sleep surface. Silk and wool fibers work with a TENCEL knit cover to help regulate temperature and maintain a comfortable sleep environment throughout the night.</p><p>At the core is the Aireloom Lift, a patented design that creates a natural air chamber between the support system and comfort layers. This allows the mattress to respond more precisely to your body while improving airflow and reducing heat buildup.</p><p>The result is a mattress that feels supportive yet adaptive, making it one of the most versatile options in the collection.</p><h3>Key features</h3><ul><li>Luxury firm feel balances support and comfort</li><li>Tight top design provides a smooth and stable surface</li><li>Aireloom Lift enhances airflow and body responsiveness</li><li>Silk and wool fibers help regulate temperature naturally</li><li>TENCEL knit cover improves breathability and moisture control</li><li>Individually wrapped coils reduce motion transfer</li></ul><h3>Construction and materials</h3><p>This mattress is constructed with a combination of breathable natural fibers and advanced comfort materials to create a balanced feel.</p><p>The surface features a TENCEL knit cover designed to promote airflow and moisture control. Beneath that, silk and wool fibers provide natural temperature regulation and a more comfortable sleep environment.</p><p>Multiple layers of responsive comfort foam create a luxury firm feel that offers both support and pressure relief. Cooling memory foam helps dissipate heat while adapting to the body.</p><p>The support system uses individually wrapped coils that respond independently to movement, helping reduce motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "1568.00",
+    "compareAt": "1960.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "1790.40",
+    "compareAt": "2238.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "1790.40",
+    "compareAt": "2238.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "1568.00",
+    "compareAt": "1960.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "1811.20",
+    "compareAt": "2264.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "1811.20",
+    "compareAt": "2264.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "1960.80",
+    "compareAt": "2451.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "2237.60",
+    "compareAt": "2797.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "2237.60",
+    "compareAt": "2797.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "2063.20",
+    "compareAt": "2579.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "2360.80",
+    "compareAt": "2951.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "2360.80",
+    "compareAt": "2951.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "2899.20",
+    "compareAt": "3624.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "3385.60",
+    "compareAt": "4232.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "3385.60",
+    "compareAt": "4232.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "2899.20",
+    "compareAt": "3624.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "3385.60",
+    "compareAt": "4232.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "3385.60",
+    "compareAt": "4232.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "3136.00",
+    "compareAt": "3920.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "3622.40",
+    "compareAt": "4528.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "3622.40",
+    "compareAt": "4528.00",
+    "sku": "AIR-TIGHT-TOP-LUXURY-FIRM-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_TIGHTTOP_LUXURY_FIRM_SIDE_A.jpg",
+    "alt": "Aireloom Tight Top Luxury Firm Mattress"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_TIGHTTOP_EXTRA_FIRM_ONLY_CORNER.jpg",
+    "alt": "Aireloom Tight Top Luxury Firm Mattress, view 2"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_TIGHTTOP_EXTRA_FIRM_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Tight Top Luxury Firm Mattress, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_TIGHTTOP_EXTRA_FIRM_ADJ_UP.jpg",
+    "alt": "Aireloom Tight Top Luxury Firm Mattress, view 4"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/708ef1d718d14ef0b1195aca4cbe85ef/708ef1d718d14ef0b1195aca4cbe85ef.HD-1080p-7.2Mbps-78162967.mp4",
+    "alt": "Aireloom Tight Top Luxury Firm Mattress video"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Firm",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Back",
+    "Stomach"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "14",
+   "features": [
+    "Luxury firm feel balances support and comfort",
+    "Tight top design provides a smooth and stable surface",
+    "Aireloom Lift enhances airflow and body responsiveness",
+    "Silk and wool fibers help regulate temperature naturally",
+    "TENCEL knit cover improves breathability and moisture control",
+    "Individually wrapped coils reduce motion transfer"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-tight-top-luxury-firm-mattress"
+ },
+ {
+  "handle": "aireloom-euro-top-plush",
+  "replaces": "aireloom-euro-top-plush-mattress",
+  "title": "Aireloom Euro Top Plush Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Euro Top Plush Mattress is designed for sleepers who want a softer, more cushioned feel without losing the support of a handcrafted luxury mattress. With its Euro top construction, this model creates a deeper level of comfort that allows your body to settle into the mattress while still maintaining proper alignment.</p><p>Handcrafted in California, this mattress combines breathable natural materials with advanced comfort layers to create a refined and inviting sleep surface. Silk and wool fibers work together with a TENCEL knit cover to regulate temperature and maintain a comfortable sleep environment throughout the night.</p><p>The Euro top design adds an additional layer of plush cushioning that enhances pressure relief, making this an excellent choice for side sleepers or anyone who prefers a softer feel. Beneath the surface, the Aireloom Lift system creates a natural air chamber that improves airflow and allows the mattress to respond more precisely to your body.</p><p>The result is a mattress that feels soft and inviting at the surface while still delivering the support needed for consistent, restorative sleep.</p><h3>Key features</h3><ul><li>Plush feel designed for pressure relief and comfort</li><li>Euro top construction adds an extra layer of cushioning</li><li>Aireloom Lift enhances airflow and responsiveness</li><li>Silk and wool fibers help regulate temperature naturally</li><li>TENCEL knit cover promotes breathability and moisture control</li><li>Individually wrapped coils provide support and reduce motion</li></ul><h3>Construction and materials</h3><p>This mattress is constructed with a focus on pressure relief, breathability, and long term comfort.</p><p>The surface features a TENCEL knit cover designed to promote airflow and moisture control. Silk and wool fibers beneath the surface help regulate temperature and create a more balanced sleep environment.</p><p>The Euro top construction introduces additional layers of plush comfort materials, allowing the body to settle into the mattress while still maintaining support. Multiple layers of responsive foam provide cushioning and help relieve pressure points.</p><p>The support system uses individually wrapped coils that respond independently to movement, helping reduce motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "1739.20",
+    "compareAt": "2174.00",
+    "sku": "AIR-EURO-TOP-PLUSH-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "1961.60",
+    "compareAt": "2452.00",
+    "sku": "AIR-EURO-TOP-PLUSH-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "1961.60",
+    "compareAt": "2452.00",
+    "sku": "AIR-EURO-TOP-PLUSH-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "1739.20",
+    "compareAt": "2174.00",
+    "sku": "AIR-EURO-TOP-PLUSH-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "1982.40",
+    "compareAt": "2478.00",
+    "sku": "AIR-EURO-TOP-PLUSH-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "1982.40",
+    "compareAt": "2478.00",
+    "sku": "AIR-EURO-TOP-PLUSH-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "2184.00",
+    "compareAt": "2730.00",
+    "sku": "AIR-EURO-TOP-PLUSH-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "2460.80",
+    "compareAt": "3076.00",
+    "sku": "AIR-EURO-TOP-PLUSH-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "2460.80",
+    "compareAt": "3076.00",
+    "sku": "AIR-EURO-TOP-PLUSH-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "2288.00",
+    "compareAt": "2860.00",
+    "sku": "AIR-EURO-TOP-PLUSH-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "2585.60",
+    "compareAt": "3232.00",
+    "sku": "AIR-EURO-TOP-PLUSH-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "2585.60",
+    "compareAt": "3232.00",
+    "sku": "AIR-EURO-TOP-PLUSH-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "3120.00",
+    "compareAt": "3900.00",
+    "sku": "AIR-EURO-TOP-PLUSH-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "3606.40",
+    "compareAt": "4508.00",
+    "sku": "AIR-EURO-TOP-PLUSH-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "3606.40",
+    "compareAt": "4508.00",
+    "sku": "AIR-EURO-TOP-PLUSH-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "3120.00",
+    "compareAt": "3900.00",
+    "sku": "AIR-EURO-TOP-PLUSH-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "3606.40",
+    "compareAt": "4508.00",
+    "sku": "AIR-EURO-TOP-PLUSH-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "3606.40",
+    "compareAt": "4508.00",
+    "sku": "AIR-EURO-TOP-PLUSH-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "3478.40",
+    "compareAt": "4348.00",
+    "sku": "AIR-EURO-TOP-PLUSH-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "3964.80",
+    "compareAt": "4956.00",
+    "sku": "AIR-EURO-TOP-PLUSH-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "3964.80",
+    "compareAt": "4956.00",
+    "sku": "AIR-EURO-TOP-PLUSH-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_EUROTOP_PLUSH_FRONT.jpg",
+    "alt": "Aireloom Euro Top Plush Mattress"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/16b8195527e048eaa50fdfed29c0461d/16b8195527e048eaa50fdfed29c0461d.HD-1080p-7.2Mbps-78163195.mp4",
+    "alt": "Aireloom Euro Top Plush Mattress video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_EUROTOP_PLUSH_ADJ_UP.jpg",
+    "alt": "Aireloom Euro Top Plush Mattress, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_EUROTOP_PLUSH_AERIAL_VIEW..jpg",
+    "alt": "Aireloom Euro Top Plush Mattress, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_EUROTOP_PLUSH_ONLY_FULL.jpg",
+    "alt": "Aireloom Euro Top Plush Mattress, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Plush",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Side"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15",
+   "features": [
+    "Plush feel designed for pressure relief and comfort",
+    "Euro top construction adds an extra layer of cushioning",
+    "Aireloom Lift enhances airflow and responsiveness",
+    "Silk and wool fibers help regulate temperature naturally",
+    "TENCEL knit cover promotes breathability and moisture control",
+    "Individually wrapped coils provide support and reduce motion"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-euro-top-plush"
+ },
+ {
+  "handle": "aireloom-streamline-firm",
+  "replaces": "aireloom-streamline-firm-mattress",
+  "title": "Aireloom Streamline Firm Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Streamline Firm Mattress is designed for sleepers who want firm, structured support with a more advanced comfort system. Unlike traditional firm mattresses, the Streamline design introduces a more refined layering approach that enhances both performance and breathability.</p><p>Handcrafted in California, this mattress combines premium natural materials with a multi layer comfort system that delivers consistent support without feeling overly rigid. Silk and wool fibers work with a breathable TENCEL knit cover to help regulate temperature and maintain a comfortable sleep environment.</p><p>What sets the Streamline collection apart is its True Stretch cotton backing, which allows the comfort layers to respond more freely to your body. This creates a more adaptive feel while still maintaining a firm and supportive surface.</p><p>At the core, the Aireloom Lift system creates a natural air chamber that improves airflow and helps the mattress respond more precisely to movement throughout the night.</p><p>The result is a firm mattress that feels more dynamic, breathable, and refined than traditional firm designs.</p><h3>Key features</h3><ul><li>Firm feel designed for strong support and alignment</li><li>Streamline construction enhances comfort layer performance</li><li>True Stretch cotton backing improves responsiveness and breathability</li><li>Aireloom Lift promotes airflow and adaptive support</li><li>Silk and wool fibers help regulate temperature naturally</li><li>TENCEL knit cover enhances cooling and moisture control</li></ul><h3>Construction and materials</h3><p>This mattress features a more advanced construction designed to improve both support and airflow.</p><p>The surface includes a breathable TENCEL knit cover that promotes airflow and moisture control. Beneath that, silk and wool fibers provide natural temperature regulation and help create a balanced sleep environment.</p><p>The Streamline design incorporates a True Stretch cotton backing, allowing the comfort layers to move more freely and respond more effectively to the body.</p><p>Multiple layers of responsive comfort foam create a firm feel while still allowing slight contouring for pressure relief. Cooling memory foam helps dissipate heat and adapt to movement.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "2350.40",
+    "compareAt": "2938.00",
+    "sku": "AIR-STREAMLINE-FIRM-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "2572.80",
+    "compareAt": "3216.00",
+    "sku": "AIR-STREAMLINE-FIRM-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "2572.80",
+    "compareAt": "3216.00",
+    "sku": "AIR-STREAMLINE-FIRM-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "2350.40",
+    "compareAt": "2938.00",
+    "sku": "AIR-STREAMLINE-FIRM-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "2593.60",
+    "compareAt": "3242.00",
+    "sku": "AIR-STREAMLINE-FIRM-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "2593.60",
+    "compareAt": "3242.00",
+    "sku": "AIR-STREAMLINE-FIRM-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "2883.20",
+    "compareAt": "3604.00",
+    "sku": "AIR-STREAMLINE-FIRM-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "3159.20",
+    "compareAt": "3949.00",
+    "sku": "AIR-STREAMLINE-FIRM-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "3159.20",
+    "compareAt": "3949.00",
+    "sku": "AIR-STREAMLINE-FIRM-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "3093.60",
+    "compareAt": "3867.00",
+    "sku": "AIR-STREAMLINE-FIRM-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "3391.20",
+    "compareAt": "4239.00",
+    "sku": "AIR-STREAMLINE-FIRM-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "3391.20",
+    "compareAt": "4239.00",
+    "sku": "AIR-STREAMLINE-FIRM-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "4028.80",
+    "compareAt": "5036.00",
+    "sku": "AIR-STREAMLINE-FIRM-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "4515.20",
+    "compareAt": "5644.00",
+    "sku": "AIR-STREAMLINE-FIRM-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "4515.20",
+    "compareAt": "5644.00",
+    "sku": "AIR-STREAMLINE-FIRM-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "4028.80",
+    "compareAt": "5036.00",
+    "sku": "AIR-STREAMLINE-FIRM-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "4515.20",
+    "compareAt": "5644.00",
+    "sku": "AIR-STREAMLINE-FIRM-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "4515.20",
+    "compareAt": "5644.00",
+    "sku": "AIR-STREAMLINE-FIRM-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "4700.80",
+    "compareAt": "5876.00",
+    "sku": "AIR-STREAMLINE-FIRM-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "5187.20",
+    "compareAt": "6484.00",
+    "sku": "AIR-STREAMLINE-FIRM-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "5187.20",
+    "compareAt": "6484.00",
+    "sku": "AIR-STREAMLINE-FIRM-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_FIRM_SIDE_A.jpg",
+    "alt": "Aireloom Streamline Firm Mattress"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/d9d3e008215f43b6b66eac51d667477a/d9d3e008215f43b6b66eac51d667477a.HD-1080p-7.2Mbps-78163506.mp4",
+    "alt": "Aireloom Streamline Firm Mattress video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_FIRM_LIFESTYLE.jpg",
+    "alt": "Aireloom Streamline Firm Mattress, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_FIRM_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Streamline Firm Mattress, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_FIRM_ONLY_FULL.jpg",
+    "alt": "Aireloom Streamline Firm Mattress, view 5"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_FIRM_ADJ_UP.jpg",
+    "alt": "Aireloom Streamline Firm Mattress, view 6"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Firm",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Back",
+    "Stomach"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "14",
+   "features": [
+    "Firm feel designed for strong support and alignment",
+    "Streamline construction enhances comfort layer performance",
+    "True Stretch cotton backing improves responsiveness and breathability",
+    "Aireloom Lift promotes airflow and adaptive support",
+    "Silk and wool fibers help regulate temperature naturally",
+    "TENCEL knit cover enhances cooling and moisture control"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-streamline-firm"
+ },
+ {
+  "handle": "aireloom-streamline-plush-mattress",
+  "replaces": "aireloom-streamline-plush-mattress",
+  "title": "Aireloom Streamline Plush Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Streamline Plush Mattress is designed for sleepers who want a softer feel with a more responsive and breathable support system. It delivers a noticeable level of cushioning while maintaining the structure needed for proper alignment.</p><p>Handcrafted in California, this mattress combines premium natural materials with an advanced layering system that enhances both comfort and airflow. Silk and wool fibers work with a breathable TENCEL knit cover to help regulate temperature and create a more balanced sleep environment.</p><p>What sets the Streamline Plush apart is its True Stretch cotton backing, which allows the comfort layers to move more freely and adapt to your body. This creates a plush feel that responds quickly without the slow sinking sensation of traditional soft mattresses.</p><p>At the core, the Aireloom Lift system forms a natural air chamber that improves airflow and allows the mattress to adjust more precisely to movement throughout the night.</p><p>The result is a plush mattress that feels elevated, breathable, and supportive rather than overly soft or unstable.</p><h3>Key features</h3><ul><li>Plush feel with responsive support</li><li>Streamline construction enhances comfort and airflow</li><li>True Stretch cotton backing improves flexibility and breathability</li><li>Aireloom Lift promotes airflow and adaptive support</li><li>Silk and wool fibers help regulate temperature naturally</li><li>TENCEL knit cover enhances cooling and moisture control</li></ul><h3>Construction and materials</h3><p>This mattress is built to provide plush comfort with improved responsiveness and airflow.</p><p>The surface features a breathable TENCEL knit cover that promotes airflow and moisture control. Beneath that, silk and wool fibers help regulate temperature and create a more balanced sleep environment.</p><p>The Streamline design incorporates a True Stretch cotton backing, allowing the comfort layers to move more freely and respond more effectively to your body.</p><p>Multiple layers of plush comfort foam provide pressure relief while maintaining underlying support. Cooling memory foam helps dissipate heat and adapt to movement throughout the night.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "2350.40",
+    "compareAt": "2938.00",
+    "sku": "AIR-STREAMLINE-PLUSH-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "2572.80",
+    "compareAt": "3216.00",
+    "sku": "AIR-STREAMLINE-PLUSH-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "2572.80",
+    "compareAt": "3216.00",
+    "sku": "AIR-STREAMLINE-PLUSH-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "2350.40",
+    "compareAt": "2938.00",
+    "sku": "AIR-STREAMLINE-PLUSH-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "2593.60",
+    "compareAt": "3242.00",
+    "sku": "AIR-STREAMLINE-PLUSH-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "2593.60",
+    "compareAt": "3242.00",
+    "sku": "AIR-STREAMLINE-PLUSH-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "2883.20",
+    "compareAt": "3604.00",
+    "sku": "AIR-STREAMLINE-PLUSH-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "3159.20",
+    "compareAt": "3949.00",
+    "sku": "AIR-STREAMLINE-PLUSH-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "3159.20",
+    "compareAt": "3949.00",
+    "sku": "AIR-STREAMLINE-PLUSH-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "3093.60",
+    "compareAt": "3867.00",
+    "sku": "AIR-STREAMLINE-PLUSH-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "3391.20",
+    "compareAt": "4239.00",
+    "sku": "AIR-STREAMLINE-PLUSH-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "3391.20",
+    "compareAt": "4239.00",
+    "sku": "AIR-STREAMLINE-PLUSH-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "4028.80",
+    "compareAt": "5036.00",
+    "sku": "AIR-STREAMLINE-PLUSH-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "4515.20",
+    "compareAt": "5644.00",
+    "sku": "AIR-STREAMLINE-PLUSH-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "4515.20",
+    "compareAt": "5644.00",
+    "sku": "AIR-STREAMLINE-PLUSH-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "4028.80",
+    "compareAt": "5036.00",
+    "sku": "AIR-STREAMLINE-PLUSH-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "4515.20",
+    "compareAt": "5644.00",
+    "sku": "AIR-STREAMLINE-PLUSH-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "4515.20",
+    "compareAt": "5644.00",
+    "sku": "AIR-STREAMLINE-PLUSH-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "4700.80",
+    "compareAt": "5876.00",
+    "sku": "AIR-STREAMLINE-PLUSH-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "5187.20",
+    "compareAt": "6484.00",
+    "sku": "AIR-STREAMLINE-PLUSH-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "5187.20",
+    "compareAt": "6484.00",
+    "sku": "AIR-STREAMLINE-PLUSH-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_PLUSH_SIDE_B.jpg",
+    "alt": "Aireloom Streamline Plush Mattress"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/b1423864b13244ee81ebdb2dfe75f5ac/b1423864b13244ee81ebdb2dfe75f5ac.HD-1080p-7.2Mbps-78163802.mp4",
+    "alt": "Aireloom Streamline Plush Mattress video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_PLUSH_LIFESTYLE.jpg",
+    "alt": "Aireloom Streamline Plush Mattress, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_PLUSH_ADJ_UP.jpg",
+    "alt": "Aireloom Streamline Plush Mattress, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_PLUSH_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Streamline Plush Mattress, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Plush",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Side"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15",
+   "features": [
+    "Plush feel with responsive support",
+    "Streamline construction enhances comfort and airflow",
+    "True Stretch cotton backing improves flexibility and breathability",
+    "Aireloom Lift promotes airflow and adaptive support",
+    "Silk and wool fibers help regulate temperature naturally",
+    "TENCEL knit cover enhances cooling and moisture control"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-streamline-plush-mattress"
+ },
+ {
+  "handle": "aireloom-streamline-extra-firm-mattress",
+  "replaces": "aireloom-streamline-extra-firm-mattress",
+  "title": "Aireloom Streamline Extra Firm Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Streamline Extra Firm Mattress is designed for sleepers who want a high level of support with the added responsiveness of natural latex. This model delivers a firm, stable feel while introducing a more dynamic and breathable comfort system.</p><p>Handcrafted in California, this mattress combines premium natural materials with an advanced layering approach that enhances both durability and performance. Silk and wool fibers work with a breathable TENCEL knit cover to help regulate temperature and maintain a comfortable sleep environment.</p><p>What sets this mattress apart is the use of natural latex within the comfort system. Unlike traditional foam, latex provides a more responsive feel that adapts quickly to movement while maintaining consistent support. It also promotes airflow, helping create a cooler and more breathable sleep surface.</p><p>The Streamline design includes a True Stretch cotton backing, allowing the comfort layers to move more freely and respond more naturally to your body. At the core, the Aireloom Lift system creates a natural air chamber that improves airflow and enhances overall responsiveness.</p><p>The result is an extra firm mattress that feels supportive, breathable, and more alive than traditional firm designs.</p><h3>Key features</h3><ul><li>Extra firm feel designed for maximum support</li><li>Natural latex provides responsive and breathable comfort</li><li>Streamline construction enhances airflow and performance</li><li>True Stretch cotton backing improves flexibility and responsiveness</li><li>Aireloom Lift promotes airflow and adaptive support</li><li>Silk and wool fibers help regulate temperature naturally</li></ul><h3>Construction and materials</h3><p>This mattress is built with a focus on firm support, responsiveness, and breathability.</p><p>The surface features a breathable TENCEL knit cover that promotes airflow and moisture control. Beneath that, silk and wool fibers provide natural temperature regulation and help create a balanced sleep environment.</p><p>The Streamline design incorporates a True Stretch cotton backing, allowing the comfort layers to move more freely and respond more effectively to the body.</p><p>Natural latex is integrated into the comfort system, offering a more responsive and durable alternative to traditional foam. Its open cell structure helps improve airflow while providing consistent support.</p><p>Additional layers of high performance foam provide structure and stability, while cooling memory foam helps dissipate heat and adapt to pressure points.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "2579.20",
+    "compareAt": "3224.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "2801.60",
+    "compareAt": "3502.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "2801.60",
+    "compareAt": "3502.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "2579.20",
+    "compareAt": "3224.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "2822.40",
+    "compareAt": "3528.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "2822.40",
+    "compareAt": "3528.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "3271.20",
+    "compareAt": "4089.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "3548.80",
+    "compareAt": "4436.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "3548.80",
+    "compareAt": "4436.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "3392.00",
+    "compareAt": "4240.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "3689.60",
+    "compareAt": "4612.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "3689.60",
+    "compareAt": "4612.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "4274.40",
+    "compareAt": "5343.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "4760.80",
+    "compareAt": "5951.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "4760.80",
+    "compareAt": "5951.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "4274.40",
+    "compareAt": "5343.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "4760.80",
+    "compareAt": "5951.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "4760.80",
+    "compareAt": "5951.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "5158.40",
+    "compareAt": "6448.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "5644.80",
+    "compareAt": "7056.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "5644.80",
+    "compareAt": "7056.00",
+    "sku": "AIR-STREAMLINE-EXTRA-FIRM-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_EXTRA_FIRM_SIDE_C.jpg",
+    "alt": "Aireloom Streamline Extra Firm Mattress"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/899fc1db61a94ea8a87e039cd44ab607/899fc1db61a94ea8a87e039cd44ab607.HD-1080p-7.2Mbps-78163950.mp4",
+    "alt": "Aireloom Streamline Extra Firm Mattress video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_EXTRA_FIRM_LIFESTYLE.jpg",
+    "alt": "Aireloom Streamline Extra Firm Mattress, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_EXTRA_FIRM_ADJ_UP.jpg",
+    "alt": "Aireloom Streamline Extra Firm Mattress, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_EXTRA_FIRM_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Streamline Extra Firm Mattress, view 5"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_EXTRA_FIRM_ONLY_FULL.jpg",
+    "alt": "Aireloom Streamline Extra Firm Mattress, view 6"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Extra Firm",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Back",
+    "Stomach"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15",
+   "features": [
+    "Extra firm feel designed for maximum support",
+    "Natural latex provides responsive and breathable comfort",
+    "Streamline construction enhances airflow and performance",
+    "True Stretch cotton backing improves flexibility and responsiveness",
+    "Aireloom Lift promotes airflow and adaptive support",
+    "Silk and wool fibers help regulate temperature naturally"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-streamline-extra-firm-mattress"
+ },
+ {
+  "handle": "aireloom-streamline-luxury-firm-mattress",
+  "replaces": "aireloom-streamline-luxury-firm-mattress",
+  "title": "Aireloom Streamline Luxury Firm Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Streamline Luxury Firm Mattress is designed for sleepers who want the ideal balance of support, comfort, and responsiveness. This model combines the stability of a firm mattress with the added pressure relief and adaptability of natural latex.</p><p>Handcrafted in California, this mattress blends premium natural materials with an advanced comfort system that enhances both performance and breathability. Silk and wool fibers work with a breathable TENCEL knit cover to help regulate temperature and maintain a comfortable sleep environment throughout the night.</p><p>At the center of this model is natural latex, which delivers a more responsive and supportive feel than traditional foam. It adapts quickly to movement, providing consistent support without the sinking sensation often associated with softer materials.</p><p>The Streamline design also features a True Stretch cotton backing, allowing the comfort layers to move more freely and respond more naturally to your body. Combined with the Aireloom Lift system, which creates a natural air chamber for improved airflow, this mattress delivers a sleep experience that feels balanced, breathable, and consistently supportive.</p><p>The result is a luxury firm mattress that offers versatility, making it one of the best options for a wide range of sleep styles.</p><h3>Key features</h3><ul><li>Luxury firm feel balances support and pressure relief</li><li>Natural latex provides responsive and adaptive comfort</li><li>Streamline construction enhances airflow and performance</li><li>True Stretch cotton backing improves flexibility and responsiveness</li><li>Aireloom Lift promotes airflow and adaptive support</li><li>Silk and wool fibers help regulate temperature naturally</li></ul><h3>Construction and materials</h3><p>This mattress is built to deliver a balance of comfort, support, and long term durability.</p><p>The surface features a breathable TENCEL knit cover that promotes airflow and moisture control. Beneath that, silk and wool fibers provide natural temperature regulation and help create a more comfortable sleep environment.</p><p>The Streamline design incorporates a True Stretch cotton backing, allowing the comfort layers to move more freely and respond more effectively to your body.</p><p>Natural latex serves as a primary comfort layer, offering a responsive and durable alternative to traditional foam. Its open cell structure helps improve airflow while maintaining consistent support.</p><p>Additional layers of supportive foam enhance structure and stability, while cooling memory foam helps dissipate heat and relieve pressure points.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "2579.20",
+    "compareAt": "3224.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "2801.60",
+    "compareAt": "3502.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "2801.60",
+    "compareAt": "3502.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "2579.20",
+    "compareAt": "3224.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "2822.40",
+    "compareAt": "3528.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "2822.40",
+    "compareAt": "3528.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "3271.20",
+    "compareAt": "4089.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "3548.80",
+    "compareAt": "4436.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "3548.80",
+    "compareAt": "4436.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "3392.00",
+    "compareAt": "4240.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "3689.60",
+    "compareAt": "4612.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "3689.60",
+    "compareAt": "4612.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "4274.40",
+    "compareAt": "5343.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "4760.80",
+    "compareAt": "5951.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "4760.80",
+    "compareAt": "5951.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "4274.40",
+    "compareAt": "5343.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "4760.80",
+    "compareAt": "5951.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "4760.80",
+    "compareAt": "5951.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "5158.40",
+    "compareAt": "6448.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "5644.80",
+    "compareAt": "7056.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "5644.80",
+    "compareAt": "7056.00",
+    "sku": "AIR-STREAMLINE-LUXURY-FIRM-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_LUXURY_FIRM_FRONT_C.jpg",
+    "alt": "Aireloom Streamline Luxury Firm Mattress"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/be4cfada09c84f3ab89a17dc05d84aa4/be4cfada09c84f3ab89a17dc05d84aa4.HD-1080p-7.2Mbps-78165428.mp4",
+    "alt": "Aireloom Streamline Luxury Firm Mattress video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_LUXURY_FIRM_ADJ_UP.jpg",
+    "alt": "Aireloom Streamline Luxury Firm Mattress, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_LUXURY_FIRM_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Streamline Luxury Firm Mattress, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_LUXURY_FIRM_ONLY_FULL.jpg",
+    "alt": "Aireloom Streamline Luxury Firm Mattress, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Firm",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Back",
+    "Stomach"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15.5",
+   "features": [
+    "Luxury firm feel balances support and pressure relief",
+    "Natural latex provides responsive and adaptive comfort",
+    "Streamline construction enhances airflow and performance",
+    "True Stretch cotton backing improves flexibility and responsiveness",
+    "Aireloom Lift promotes airflow and adaptive support",
+    "Silk and wool fibers help regulate temperature naturally"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-streamline-luxury-firm-mattress"
+ },
+ {
+  "handle": "aireloom-streamline-m1-plush-mattress",
+  "replaces": "aireloom-streamline-m1-plush-mattress",
+  "title": "Aireloom Streamline M1 Plush Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Streamline M1 Plush Mattress is designed for sleepers who want a deeper level of comfort with more precise support. This model introduces a dual support feel by combining plush comfort layers with an advanced micro coil system that adapts to your body more accurately than traditional materials.</p><p>Handcrafted in California, this mattress blends natural fibers with a highly responsive comfort system to create a sleep surface that feels both cushioned and supportive. Silk and wool fibers work with a breathable TENCEL knit cover to help regulate temperature and maintain a comfortable sleep environment.</p><p>What sets the M1 Plush apart is the addition of micro coils within the comfort layers. These coils respond individually to pressure points, helping the mattress contour more precisely to your body while improving airflow throughout the mattress.</p><p>The Streamline design also includes a True Stretch cotton backing, allowing the comfort layers to move more freely and respond more naturally. Combined with the Aireloom Lift system, which creates a natural air chamber for airflow and responsiveness, this mattress delivers a plush feel with a higher level of performance.</p><p>The result is a mattress that feels soft and adaptive while maintaining the structure needed for proper alignment and long term comfort.</p><h3>Key features</h3><ul><li>Plush feel with enhanced pressure relief</li><li>Micro coil layer adapts to the body for precise support</li><li>Streamline construction improves airflow and responsiveness</li><li>True Stretch cotton backing enhances flexibility and comfort</li><li>Aireloom Lift promotes airflow and adaptive support</li><li>Silk and wool fibers help regulate temperature naturally</li></ul><h3>Construction and materials</h3><p>This mattress is built to deliver advanced comfort through a combination of natural materials and responsive support systems.</p><p>The surface features a breathable TENCEL knit cover designed to promote airflow and moisture control. Beneath that, silk and wool fibers help regulate temperature and create a balanced sleep environment.</p><p>The Streamline design incorporates a True Stretch cotton backing, allowing the comfort layers to move more freely and respond more effectively to the body.</p><p>A key feature of this model is the micro coil layer integrated within the comfort system. These coils respond individually to pressure points, providing targeted support while improving airflow and reducing heat buildup.</p><p>Additional plush comfort layers provide cushioning and pressure relief, while supportive foam layers help maintain structure and alignment.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "2889.60",
+    "compareAt": "3612.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "3111.20",
+    "compareAt": "3889.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "3111.20",
+    "compareAt": "3889.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "2889.60",
+    "compareAt": "3612.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "3132.00",
+    "compareAt": "3915.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "3132.00",
+    "compareAt": "3915.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "3504.80",
+    "compareAt": "4381.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "3781.60",
+    "compareAt": "4727.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "3781.60",
+    "compareAt": "4727.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "3800.00",
+    "compareAt": "4750.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "4097.60",
+    "compareAt": "5122.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "4097.60",
+    "compareAt": "5122.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "4841.60",
+    "compareAt": "6052.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "5328.80",
+    "compareAt": "6661.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "5328.80",
+    "compareAt": "6661.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "4841.60",
+    "compareAt": "6052.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "5328.80",
+    "compareAt": "6661.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "5328.80",
+    "compareAt": "6661.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "5777.60",
+    "compareAt": "7222.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "6264.00",
+    "compareAt": "7830.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "6264.00",
+    "compareAt": "7830.00",
+    "sku": "AIR-STREAMLINE-M1-PLUSH-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_M1_PLUSH_SIDE_B.jpg",
+    "alt": "Aireloom Streamline M1 Plush Mattress"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/6acd13de4877442fa88802833d1e7242/6acd13de4877442fa88802833d1e7242.HD-1080p-7.2Mbps-78177852.mp4",
+    "alt": "Aireloom Streamline M1 Plush Mattress video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_M1_PLUSH_ADJ_UP.jpg",
+    "alt": "Aireloom Streamline M1 Plush Mattress, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_M1_PLUSH_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Streamline M1 Plush Mattress, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_STREAMLINE_M1_PLUSH_ONLY_FULL.jpg",
+    "alt": "Aireloom Streamline M1 Plush Mattress, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Plush",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Side"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15.5",
+   "features": [
+    "Plush feel with enhanced pressure relief",
+    "Micro coil layer adapts to the body for precise support",
+    "Streamline construction improves airflow and responsiveness",
+    "True Stretch cotton backing enhances flexibility and comfort",
+    "Aireloom Lift promotes airflow and adaptive support",
+    "Silk and wool fibers help regulate temperature naturally"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-streamline-m1-plush-mattress"
+ },
+ {
+  "handle": "aireloom-luxetop-m1-firm-mattress",
+  "replaces": "aireloom-luxetop-m1-firm-mattress",
+  "title": "Aireloom Luxetop M1 Firm Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Luxetop M1 Firm Mattress is designed for sleepers who want firm support with a more elevated level of luxury and craftsmanship. As part of the Luxetop tier, this model introduces a more substantial comfort profile that enhances both feel and visual presence.</p><p>Handcrafted in California, this mattress combines premium natural materials with an advanced dual comfort system that delivers both structure and responsiveness. Silk and wool fibers work with a breathable TENCEL knit cover to help regulate temperature and maintain a comfortable sleep environment.</p><p>What sets this model apart is the combination of natural latex and micro coil technology within the comfort layers. Natural latex provides a responsive and durable support system, while micro coils adapt to your body with greater precision, helping improve pressure distribution and airflow.</p><p>The Luxetop design adds a deeper, more substantial comfort layer compared to the Streamline models, creating a more refined and elevated sleep surface without compromising firmness.</p><p>At the core, the Aireloom Lift system creates a natural air chamber that improves airflow and allows the mattress to respond more precisely to movement throughout the night.</p><p>The result is a firm mattress that feels more dynamic, breathable, and luxurious than traditional firm designs.</p><h3>Key features</h3><ul><li>Firm feel with enhanced responsiveness and support</li><li>Natural latex provides durable and adaptive comfort</li><li>Micro coils deliver precise pressure relief and airflow</li><li>Luxetop construction adds a more substantial comfort layer</li><li>Aireloom Lift promotes airflow and responsive support</li><li>Silk and wool fibers help regulate temperature naturally</li></ul><h3>Construction and materials</h3><p>This mattress is built to deliver firm support with advanced comfort materials and a more elevated construction.</p><p>The surface features a breathable TENCEL knit cover designed to promote airflow and moisture control. Beneath that, silk and wool fibers help regulate temperature and create a balanced sleep environment.</p><p>The Luxetop design introduces a deeper comfort profile, providing a more substantial feel compared to standard constructions.</p><p>Natural latex is used within the comfort system to provide responsive and durable support. Micro coils are integrated into the comfort layers, allowing the mattress to adapt more precisely to pressure points while improving airflow.</p><p>Additional support layers provide structure and stability, while cooling memory foam helps dissipate heat and adapt to movement.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "3460.80",
+    "compareAt": "4326.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "3683.20",
+    "compareAt": "4604.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "3683.20",
+    "compareAt": "4604.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "3460.80",
+    "compareAt": "4326.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "3704.00",
+    "compareAt": "4630.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "3704.00",
+    "compareAt": "4630.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "4351.20",
+    "compareAt": "5439.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "4628.00",
+    "compareAt": "5785.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "4628.00",
+    "compareAt": "5785.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "4552.80",
+    "compareAt": "5691.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "4850.40",
+    "compareAt": "6063.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "4850.40",
+    "compareAt": "6063.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "5576.00",
+    "compareAt": "6970.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "6062.40",
+    "compareAt": "7578.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "6062.40",
+    "compareAt": "7578.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "5576.00",
+    "compareAt": "6970.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "6062.40",
+    "compareAt": "7578.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "6062.40",
+    "compareAt": "7578.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "6921.60",
+    "compareAt": "8652.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "7408.00",
+    "compareAt": "9260.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "7408.00",
+    "compareAt": "9260.00",
+    "sku": "AIR-LUXETOP-M1-FIRM-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M1_FIRM_SIDE_C.jpg",
+    "alt": "Aireloom Luxetop M1 Firm Mattress"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/607a91a838c34855af28920ec43e6bef/607a91a838c34855af28920ec43e6bef.HD-1080p-7.2Mbps-78178197.mp4",
+    "alt": "Aireloom Luxetop M1 Firm Mattress video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M1_FIRM_ADJ_UP.jpg",
+    "alt": "Aireloom Luxetop M1 Firm Mattress, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M1_FIRM_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Luxetop M1 Firm Mattress, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M1_FIRM_ONLY_FULL.jpg",
+    "alt": "Aireloom Luxetop M1 Firm Mattress, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Firm",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Back",
+    "Stomach"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15.5",
+   "features": [
+    "Firm feel with enhanced responsiveness and support",
+    "Natural latex provides durable and adaptive comfort",
+    "Micro coils deliver precise pressure relief and airflow",
+    "Luxetop construction adds a more substantial comfort layer",
+    "Aireloom Lift promotes airflow and responsive support",
+    "Silk and wool fibers help regulate temperature naturally"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-luxetop-m1-firm-mattress"
+ },
+ {
+  "handle": "aireloom-luxetop-m1-luxury-firm",
+  "replaces": "aireloom-luxetop-m1-luxury-firm-mattress",
+  "title": "Aireloom Luxetop M1 Luxury Firm Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Luxetop M1 Luxury Firm Mattress is designed for sleepers who want the ideal balance of comfort, support, and elevated luxury. This model combines a more substantial comfort profile with advanced materials to create a sleep experience that feels both refined and highly adaptable.</p><p>Handcrafted in California, this mattress blends natural fibers with a premium comfort system designed to enhance breathability and responsiveness. Silk and wool fibers work with a breathable TENCEL knit cover to help regulate temperature and maintain a consistently comfortable sleep environment.</p><p>At the center of this model is a dual layer of natural latex, which provides a more responsive and pressure relieving feel than traditional foam. It adapts quickly to your body, offering support without the sinking sensation that can occur with softer materials.</p><p>Micro coils are integrated into the comfort layers to provide more precise contouring and improved airflow. This combination allows the mattress to respond to movement with greater accuracy while helping reduce heat buildup.</p><p>The Luxetop design adds a deeper and more substantial comfort layer, creating a more elevated feel compared to standard constructions. Combined with the Aireloom Lift system, which promotes airflow and responsiveness, this mattress delivers a balanced and versatile sleep experience.</p><p>The result is a luxury firm mattress that feels comfortable, supportive, and adaptable across a wide range of sleep styles.</p><h3>Key features</h3><ul><li>Luxury firm feel balances comfort and support</li><li>Dual layer natural latex provides responsive pressure relief</li><li>Micro coils deliver precise contouring and improved airflow</li><li>Luxetop construction adds a deeper, more substantial comfort layer</li><li>Aireloom Lift promotes airflow and adaptive support</li><li>Silk and wool fibers help regulate temperature naturally</li></ul><h3>Construction and materials</h3><p>This mattress is built to deliver a balance of comfort, support, and long term performance using advanced materials and a more elevated construction.</p><p>The surface features a breathable TENCEL knit cover that promotes airflow and moisture control. Beneath that, silk and wool fibers help regulate temperature and create a more balanced sleep environment.</p><p>The Luxetop design introduces a deeper comfort profile, creating a more substantial and refined feel compared to standard constructions.</p><p>Dual layers of natural latex provide responsive and durable support, allowing the mattress to adapt quickly to movement while maintaining consistent alignment.</p><p>Micro coils are integrated into the comfort system, offering targeted pressure relief and improved airflow throughout the mattress.</p><p>Additional support layers provide structure and stability, while cooling memory foam helps dissipate heat and adapt to pressure points.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "3460.80",
+    "compareAt": "4326.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "3683.20",
+    "compareAt": "4604.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "3683.20",
+    "compareAt": "4604.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "3460.80",
+    "compareAt": "4326.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "3704.00",
+    "compareAt": "4630.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "3704.00",
+    "compareAt": "4630.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "4351.20",
+    "compareAt": "5439.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "4628.00",
+    "compareAt": "5785.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "4628.00",
+    "compareAt": "5785.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "4552.80",
+    "compareAt": "5691.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "4850.40",
+    "compareAt": "6063.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "4850.40",
+    "compareAt": "6063.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "5576.00",
+    "compareAt": "6970.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "6062.40",
+    "compareAt": "7578.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "6062.40",
+    "compareAt": "7578.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "5576.00",
+    "compareAt": "6970.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "6062.40",
+    "compareAt": "7578.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "6062.40",
+    "compareAt": "7578.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "6921.60",
+    "compareAt": "8652.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "7408.00",
+    "compareAt": "9260.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "7408.00",
+    "compareAt": "9260.00",
+    "sku": "AIR-LUXETOP-M1-LUXURY-FIRM-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M1_LUXURY_FIRM_FRONT_C_da6f0285-484c-48f7-81d7-cb736b0685c4.jpg",
+    "alt": "Aireloom Luxetop M1 Luxury Firm Mattress"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M1_FIRM_ONLY_FULL.jpg",
+    "alt": "Aireloom Luxetop M1 Luxury Firm Mattress, view 2"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/943110a1c0554b6888c6ccbffa8a2357/943110a1c0554b6888c6ccbffa8a2357.HD-1080p-7.2Mbps-78178544.mp4",
+    "alt": "Aireloom Luxetop M1 Luxury Firm Mattress video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M1_FIRM_ADJ_UP.jpg",
+    "alt": "Aireloom Luxetop M1 Luxury Firm Mattress, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M1_FIRM_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Luxetop M1 Luxury Firm Mattress, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Firm",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Back",
+    "Stomach"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15.5",
+   "features": [
+    "Luxury firm feel balances comfort and support",
+    "Dual layer natural latex provides responsive pressure relief",
+    "Micro coils deliver precise contouring and improved airflow",
+    "Luxetop construction adds a deeper, more substantial comfort layer",
+    "Aireloom Lift promotes airflow and adaptive support",
+    "Silk and wool fibers help regulate temperature naturally"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-luxetop-m1-luxury-firm"
+ },
+ {
+  "handle": "aireloom-luxetop-m2-firm",
+  "replaces": "aireloom-luxetop-m2-firm-mattress",
+  "title": "Aireloom Luxetop M2 Firm",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Luxetop M2 Firm Mattress represents a significant advancement in luxury mattress design, combining firm support with one of the most sophisticated comfort systems in the collection. Built for sleepers who want precision, durability, and elevated performance, this model delivers a more refined and responsive sleep experience.</p><p>Handcrafted in California, this mattress brings together premium natural materials with a multi layer comfort system designed to enhance both airflow and adaptability. Silk and wool fibers work with a breathable TENCEL knit cover to regulate temperature and maintain a comfortable sleep environment throughout the night.</p><p>What sets the M2 Firm apart is its dual micro coil system, which introduces a second layer of micro coils within the comfort system. This creates a more advanced level of pressure response, allowing the mattress to adapt to your body with greater precision while improving airflow throughout the mattress.</p><p>Natural latex is integrated throughout the comfort layers, providing responsive support and long term durability. The addition of latex in the upper layers enhances surface responsiveness, creating a firmer feel that still adapts to movement.</p><p>The Luxetop construction adds a deeper and more substantial comfort profile, while the Aireloom Lift system creates a natural air chamber that improves airflow and enhances responsiveness.</p><p>The result is a firm mattress that delivers a higher level of precision, breathability, and structural support than traditional designs.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "4126.40",
+    "compareAt": "5158.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "4348.80",
+    "compareAt": "5436.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "4348.80",
+    "compareAt": "5436.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "4126.40",
+    "compareAt": "5158.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "4369.60",
+    "compareAt": "5462.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "4369.60",
+    "compareAt": "5462.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "5064.80",
+    "compareAt": "6331.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "5341.60",
+    "compareAt": "6677.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "5341.60",
+    "compareAt": "6677.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "5428.80",
+    "compareAt": "6786.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "5726.40",
+    "compareAt": "7158.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "5726.40",
+    "compareAt": "7158.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "6427.20",
+    "compareAt": "8034.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "6427.20",
+    "compareAt": "8034.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "8252.80",
+    "compareAt": "10316.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "8739.20",
+    "compareAt": "10924.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "8739.20",
+    "compareAt": "10924.00",
+    "sku": "AIR-LUXETOP-M2-FIRM-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_FIRM_SIDE_D.jpg",
+    "alt": "Aireloom Luxetop M2 Firm"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/743c86937fed46ff8c47a37ca2c0e61a/743c86937fed46ff8c47a37ca2c0e61a.HD-1080p-7.2Mbps-78178969.mp4",
+    "alt": "Aireloom Luxetop M2 Firm video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_FIRM_ADJ_UP.jpg",
+    "alt": "Aireloom Luxetop M2 Firm, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_FIRM_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Luxetop M2 Firm, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_FIRM_ONLY_FULL.jpg",
+    "alt": "Aireloom Luxetop M2 Firm, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Firm",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Back",
+    "Stomach"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15.5",
+   "features": []
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-luxetop-m2-firm"
+ },
+ {
+  "handle": "aireloom-luxetop-m2-luxury-firm",
+  "replaces": "aireloom-luxetop-m2-luxury-firm-mattress",
+  "title": "Aireloom Luxetop M2 Luxury Firm",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Luxetop M2 Luxury Firm Mattress represents the most refined expression of balance, comfort, and advanced sleep technology within the collection. Designed for sleepers who want the best of everything, this model delivers a highly adaptable sleep experience with a focus on precision and long term performance.</p><p>Handcrafted in California, this mattress combines premium natural materials with one of the most advanced comfort systems in the Aireloom lineup. Silk and wool fibers work with a breathable TENCEL knit cover to help regulate temperature and maintain a consistently comfortable sleep environment.</p><p>At the core of this model is a dual micro coil system, which introduces two layers of micro coils within the comfort layers. This creates a highly responsive surface that adapts to your body with exceptional precision while improving airflow throughout the mattress.</p><p>Natural latex is layered throughout the comfort system, providing responsive support and durability while enhancing breathability. The combination of latex and micro coils creates a unique feel that is both supportive and pressure relieving without the slow response of traditional foam.</p><p>The Luxetop construction adds a deeper and more substantial comfort profile, delivering a more elevated and refined feel. Combined with the Aireloom Lift system, which promotes airflow and responsiveness, this mattress offers a sleep experience that is both luxurious and highly functional.</p><p>The result is a luxury firm mattress that delivers advanced performance, balanced comfort, and one of the most versatile feels in the entire collection.</p><h3>Key features</h3><ul><li>Luxury firm feel balances comfort and support at a premium level</li><li>Dual micro coil system delivers precise contouring and airflow</li><li>Natural latex provides responsive and durable comfort</li><li>Luxetop construction adds a deeper, more substantial comfort layer</li><li>Aireloom Lift promotes airflow and adaptive support</li><li>Silk and wool fibers help regulate temperature naturally</li></ul><h3>Construction and materials</h3><p>This mattress is built with one of the most advanced comfort systems in the collection, designed to deliver precision, durability, and balanced comfort.</p><p>The surface features a breathable TENCEL knit cover that promotes airflow and moisture control. Beneath that, silk and wool fibers help regulate temperature and create a balanced sleep environment.</p><p>The Luxetop design introduces a deeper comfort profile, creating a more substantial and refined feel.</p><p>A defining feature of this model is the dual micro coil system integrated into the comfort layers. This system allows the mattress to respond to pressure points with greater precision while improving airflow and reducing heat buildup.</p><p>Natural latex is layered throughout the comfort system, providing responsive support and long lasting durability. Its open cell structure enhances breathability and helps maintain consistent comfort.</p><p>Additional support layers provide structure and stability, while cooling memory foam helps dissipate heat and adapt to movement.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "4126.40",
+    "compareAt": "5158.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "4348.80",
+    "compareAt": "5436.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "4348.80",
+    "compareAt": "5436.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "4126.40",
+    "compareAt": "5158.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "4369.60",
+    "compareAt": "5462.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "4369.60",
+    "compareAt": "5462.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "5064.80",
+    "compareAt": "6331.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "5341.60",
+    "compareAt": "6677.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "5341.60",
+    "compareAt": "6677.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "5428.80",
+    "compareAt": "6786.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "5726.40",
+    "compareAt": "7158.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "5726.40",
+    "compareAt": "7158.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "6427.20",
+    "compareAt": "8034.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "6427.20",
+    "compareAt": "8034.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "8252.80",
+    "compareAt": "10316.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "8739.20",
+    "compareAt": "10924.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "8739.20",
+    "compareAt": "10924.00",
+    "sku": "AIR-LUXETOP-M2-LUXURY-FIRM-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_LUXURY_FIRM_FRONT_D.jpg",
+    "alt": "Aireloom Luxetop M2 Luxury Firm"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/014674ed52d94bb5aeced9dd89026165/014674ed52d94bb5aeced9dd89026165.HD-1080p-7.2Mbps-78179308.mp4",
+    "alt": "Aireloom Luxetop M2 Luxury Firm video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_LUXURY_FIRM_ADJ_UP.jpg",
+    "alt": "Aireloom Luxetop M2 Luxury Firm, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_LUXURY_FIRM_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Luxetop M2 Luxury Firm, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_LUXURY_FIRM_ONLY_FULL.jpg",
+    "alt": "Aireloom Luxetop M2 Luxury Firm, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Firm",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Back",
+    "Stomach"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15.5",
+   "features": [
+    "Luxury firm feel balances comfort and support at a premium level",
+    "Dual micro coil system delivers precise contouring and airflow",
+    "Natural latex provides responsive and durable comfort",
+    "Luxetop construction adds a deeper, more substantial comfort layer",
+    "Aireloom Lift promotes airflow and adaptive support",
+    "Silk and wool fibers help regulate temperature naturally"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-luxetop-m2-luxury-firm"
+ },
+ {
+  "handle": "aireloom-luxetop-m2-plush",
+  "replaces": "aireloom-luxetop-m2-plush-mattress",
+  "title": "Aireloom Luxetop M2 Plush",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Luxetop M2 Plush Mattress is designed for sleepers who want the deepest level of comfort with advanced support beneath the surface. This model combines a plush, pressure relieving feel with one of the most sophisticated comfort systems in the collection.</p><p>Handcrafted in California, this mattress brings together premium natural materials with a multi layered design that enhances both comfort and airflow. Silk and wool fibers work with a breathable TENCEL knit cover to help regulate temperature and maintain a balanced sleep environment.</p><p>At the core of this model is a dual micro coil system, which introduces two layers of micro coils within the comfort layers. This allows the mattress to respond to your body with exceptional precision while improving airflow and reducing heat buildup.</p><p>Natural latex is layered throughout the comfort system, providing responsive support that prevents the mattress from feeling overly soft or unstable. This combination creates a plush surface feel while maintaining proper alignment and structure underneath.</p><p>The Luxetop construction adds a deeper and more substantial comfort profile, creating a more immersive and elevated sleep surface. Combined with the Aireloom Lift system, which promotes airflow and responsiveness, this mattress delivers a plush feel with advanced performance.</p><p>The result is a mattress that feels soft and enveloping while still delivering the support needed for consistent, restorative sleep.</p><h3>Key features</h3><ul><li>Plush feel with deep pressure relief and comfort</li><li>Dual micro coil system enhances precision support and airflow</li><li>Natural latex provides responsive support and stability</li><li>Luxetop construction adds a deeper, more substantial comfort layer</li><li>Aireloom Lift promotes airflow and adaptive support</li><li>Silk and wool fibers help regulate temperature naturally</li></ul><h3>Construction and materials</h3><p>This mattress is built to deliver a high level of plush comfort with advanced support and breathability.</p><p>The surface features a breathable TENCEL knit cover designed to promote airflow and moisture control. Beneath that, silk and wool fibers help regulate temperature and create a balanced sleep environment.</p><p>The Luxetop design introduces a deeper comfort profile, creating a more substantial and immersive feel.</p><p>A defining feature of this model is the dual micro coil system integrated into the comfort layers. This system allows the mattress to adapt to pressure points with greater precision while improving airflow throughout the mattress.</p><p>Natural latex is layered throughout the comfort system, providing responsive support and durability. Its open cell structure enhances breathability and helps maintain consistent comfort.</p><p>Additional plush comfort layers provide cushioning and pressure relief, while supportive layers help maintain structure and alignment.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "4126.40",
+    "compareAt": "5158.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "4348.80",
+    "compareAt": "5436.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "4348.80",
+    "compareAt": "5436.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "4126.40",
+    "compareAt": "5158.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "4369.60",
+    "compareAt": "5462.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "4369.60",
+    "compareAt": "5462.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "5064.80",
+    "compareAt": "6331.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "5341.60",
+    "compareAt": "6677.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "5341.60",
+    "compareAt": "6677.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "5428.80",
+    "compareAt": "6786.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "5726.40",
+    "compareAt": "7158.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "5726.40",
+    "compareAt": "7158.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "6427.20",
+    "compareAt": "8034.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "6427.20",
+    "compareAt": "8034.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "6913.60",
+    "compareAt": "8642.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "8252.80",
+    "compareAt": "10316.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "8739.20",
+    "compareAt": "10924.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "8739.20",
+    "compareAt": "10924.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_PLUSH_SIDE_Dflip.jpg",
+    "alt": "Aireloom Luxetop M2 Plush"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/f66ff831caeb482eab327576b9f45f7a/f66ff831caeb482eab327576b9f45f7a.HD-1080p-7.2Mbps-78183251.mp4",
+    "alt": "Aireloom Luxetop M2 Plush video"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_PLUSH_ADJ_UP.jpg",
+    "alt": "Aireloom Luxetop M2 Plush, view 3"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_PLUSH_ONLY_FULL.jpg",
+    "alt": "Aireloom Luxetop M2 Plush, view 4"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2_PLUSH_AERIAL_VIEW.jpg",
+    "alt": "Aireloom Luxetop M2 Plush, view 5"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Plush",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Side"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15.5",
+   "features": [
+    "Plush feel with deep pressure relief and comfort",
+    "Dual micro coil system enhances precision support and airflow",
+    "Natural latex provides responsive support and stability",
+    "Luxetop construction adds a deeper, more substantial comfort layer",
+    "Aireloom Lift promotes airflow and adaptive support",
+    "Silk and wool fibers help regulate temperature naturally"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-luxetop-m2-plush"
+ },
+ {
+  "handle": "aireloom-luxetop-m2-plush-plus-mattress",
+  "replaces": null,
+  "title": "Aireloom Luxetop M2+ Plush Mattress",
+  "vendor": "Aireloom",
+  "productType": "Mattress",
+  "descriptionHtml": "<p>The Aireloom Luxetop M2 Plus Plush Mattress represents the highest level of comfort and craftsmanship within the collection. Designed for those who want the most advanced and luxurious sleep experience available, this model combines deep plush comfort with an exceptionally refined support system.</p><p>Handcrafted in California, this mattress brings together the finest natural materials with a multi layered construction engineered for performance, durability, and breathability. Silk and wool fibers work with a breathable TENCEL knit cover to regulate temperature and maintain a consistently comfortable sleep environment.</p><p>At the center of this model is a dual micro coil system, delivering exceptional precision by adapting to your body at a highly detailed level. This allows for targeted pressure relief while improving airflow throughout the mattress.</p><p>Natural latex is layered throughout the comfort system, providing responsive support that keeps the mattress from feeling overly soft while enhancing durability and breathability. The addition of premium natural fibers further elevates the comfort experience, creating a more refined and balanced sleep surface.</p><p>The Luxetop construction introduces a deeper and more substantial comfort profile, creating an immersive feel that sets this mattress apart from every other model in the lineup. Combined with the Aireloom Lift system, which promotes airflow and responsiveness, this mattress delivers a sleep experience that is both plush and highly controlled.</p><p>The result is a mattress that offers maximum comfort, advanced support, and a level of craftsmanship designed to perform for years to come.</p><h3>Key features</h3><ul><li>Plush feel with the highest level of pressure relief</li><li>Dual micro coil system delivers advanced precision support and airflow</li><li>Natural latex provides responsive comfort and long term durability</li><li>Luxetop construction creates a deep, immersive comfort profile</li><li>Aireloom Lift promotes airflow and adaptive responsiveness</li><li>Silk and wool fibers help regulate temperature naturally</li></ul><h3>Construction and materials</h3><p>This mattress is built using the most advanced combination of materials and construction methods within the collection.</p><p>The surface features a breathable TENCEL knit cover designed to promote airflow and moisture control. Beneath that, silk and wool fibers help regulate temperature and create a balanced sleep environment.</p><p>The Luxetop design introduces the deepest comfort profile in the lineup, creating a more immersive and elevated feel.</p><p>A defining feature of this model is the dual micro coil system integrated into the comfort layers, allowing the mattress to respond to pressure points with exceptional precision while improving airflow throughout.</p><p>Natural latex is layered throughout the comfort system, providing responsive support, durability, and enhanced breathability. Premium natural fibers further refine the comfort experience.</p><p>Additional plush comfort layers provide cushioning and pressure relief, while supportive layers maintain structure and alignment.</p><p>The support system uses individually wrapped coils that respond independently, reducing motion transfer while maintaining consistent support across the mattress.</p>",
+  "tags": [
+   "Aireloom",
+   "Mattress"
+  ],
+  "options": [
+   {
+    "name": "Size",
+    "values": [
+     "Twin",
+     "Twin XL",
+     "Full",
+     "Queen",
+     "King",
+     "California King",
+     "Split King"
+    ]
+   },
+   {
+    "name": "Foundation",
+    "values": [
+     "No Foundation",
+     "9\" Foundation",
+     "5.75\" Foundation"
+    ]
+   }
+  ],
+  "variants": [
+   {
+    "size": "Twin",
+    "foundation": "No Foundation",
+    "price": "4396.80",
+    "compareAt": "5496.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-TWIN-NOFND"
+   },
+   {
+    "size": "Twin",
+    "foundation": "9\" Foundation",
+    "price": "4619.20",
+    "compareAt": "5774.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-TWIN-9IN"
+   },
+   {
+    "size": "Twin",
+    "foundation": "5.75\" Foundation",
+    "price": "4619.20",
+    "compareAt": "5774.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-TWIN-575IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "No Foundation",
+    "price": "4396.80",
+    "compareAt": "5496.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-TXL-NOFND"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "9\" Foundation",
+    "price": "4640.00",
+    "compareAt": "5800.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-TXL-9IN"
+   },
+   {
+    "size": "Twin XL",
+    "foundation": "5.75\" Foundation",
+    "price": "4640.00",
+    "compareAt": "5800.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-TXL-575IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "No Foundation",
+    "price": "5694.40",
+    "compareAt": "7118.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-FULL-NOFND"
+   },
+   {
+    "size": "Full",
+    "foundation": "9\" Foundation",
+    "price": "5971.20",
+    "compareAt": "7464.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-FULL-9IN"
+   },
+   {
+    "size": "Full",
+    "foundation": "5.75\" Foundation",
+    "price": "5971.20",
+    "compareAt": "7464.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-FULL-575IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "No Foundation",
+    "price": "5786.40",
+    "compareAt": "7233.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-QUEEN-NOFND"
+   },
+   {
+    "size": "Queen",
+    "foundation": "9\" Foundation",
+    "price": "6084.00",
+    "compareAt": "7605.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-QUEEN-9IN"
+   },
+   {
+    "size": "Queen",
+    "foundation": "5.75\" Foundation",
+    "price": "6084.00",
+    "compareAt": "7605.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-QUEEN-575IN"
+   },
+   {
+    "size": "King",
+    "foundation": "No Foundation",
+    "price": "6614.40",
+    "compareAt": "8268.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-KING-NOFND"
+   },
+   {
+    "size": "King",
+    "foundation": "9\" Foundation",
+    "price": "7100.80",
+    "compareAt": "8876.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-KING-9IN"
+   },
+   {
+    "size": "King",
+    "foundation": "5.75\" Foundation",
+    "price": "7100.80",
+    "compareAt": "8876.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-KING-575IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "No Foundation",
+    "price": "6614.40",
+    "compareAt": "8268.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-CALKING-NOFND"
+   },
+   {
+    "size": "California King",
+    "foundation": "9\" Foundation",
+    "price": "7100.80",
+    "compareAt": "8876.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-CALKING-9IN"
+   },
+   {
+    "size": "California King",
+    "foundation": "5.75\" Foundation",
+    "price": "7100.80",
+    "compareAt": "8876.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-CALKING-575IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "No Foundation",
+    "price": "8793.60",
+    "compareAt": "10992.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-SPLITKING-NOFND"
+   },
+   {
+    "size": "Split King",
+    "foundation": "9\" Foundation",
+    "price": "9280.00",
+    "compareAt": "11600.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-SPLITKING-9IN"
+   },
+   {
+    "size": "Split King",
+    "foundation": "5.75\" Foundation",
+    "price": "9280.00",
+    "compareAt": "11600.00",
+    "sku": "AIR-LUXETOP-M2-PLUSH-PLUS-SPLITKING-575IN"
+   }
+  ],
+  "media": [
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2__PLUSH_FRONT.jpg",
+    "alt": "Aireloom Luxetop M2+ Plush Mattress"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2__PLUSH_ADJ_UP.jpg",
+    "alt": "Aireloom Luxetop M2+ Plush Mattress, view 2"
+   },
+   {
+    "type": "IMAGE",
+    "source": "https://www.hadleyolivia.com/cdn/shop/files/VINTAGE_REVERIE_LUXETOP_M2__PLUSH_ONLY_FULL.jpg",
+    "alt": "Aireloom Luxetop M2+ Plush Mattress, view 3"
+   },
+   {
+    "type": "VIDEO",
+    "source": "https://www.hadleyolivia.com/cdn/shop/videos/c/vp/e75deb4040c443b0a64daf166427f18d/e75deb4040c443b0a64daf166427f18d.HD-1080p-7.2Mbps-78183924.mp4",
+    "alt": "Aireloom Luxetop M2+ Plush Mattress video"
+   }
+  ],
+  "metafields": {
+   "comfort_level": "Plush",
+   "mattress_type": "Latex",
+   "sleep_positions": [
+    "Side"
+   ],
+   "benefits": [
+    "Cooling",
+    "Pressure Relief",
+    "Eco-Friendly"
+   ],
+   "height_inches": "15.5",
+   "features": [
+    "Plush feel with the highest level of pressure relief",
+    "Dual micro coil system delivers advanced precision support and airflow",
+    "Natural latex provides responsive comfort and long term durability",
+    "Luxetop construction creates a deep, immersive comfort profile",
+    "Aireloom Lift promotes airflow and adaptive responsiveness",
+    "Silk and wool fibers help regulate temperature naturally"
+   ]
+  },
+  "source": "https://www.hadleyolivia.com/products/aireloom-luxetop-m2-plush-plus-mattress"
+ }
+]
