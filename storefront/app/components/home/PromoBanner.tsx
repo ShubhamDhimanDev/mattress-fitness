@@ -2,7 +2,7 @@ import {Link} from 'react-router';
 import {Button} from '~/components/ui/Button';
 import {CheckIcon} from '~/components/ui/Icons';
 import {PRIMARY_COLLECTION_HANDLE} from '~/lib/shopify/config';
-import {brandPath} from '~/lib/shopify/brand-path';
+import {brandOffersPath} from '~/lib/shopify/brand-path';
 
 // The brands and promises of the sale, as the owner's banner artwork listed them (2026-11-03). Fixed in code: the sale
 // is the client's own campaign and no Shopify content drives it. Each handle is that brand's page, `/brands/<handle>`
@@ -56,7 +56,7 @@ export function PromoBanner() {
         {SALE_BRANDS.map((brand) => (
           <li key={brand.handle}>
             <Link
-              to={brandPath(brand.handle)}
+              to={brandOffersPath(brand.handle)}
               prefetch="intent"
               className="flex min-h-11 items-center rounded-pill border border-white/30 bg-white/10 px-4 text-sm font-semibold motion-safe:transition-colors hover:border-white hover:bg-white hover:text-ink-900"
             >

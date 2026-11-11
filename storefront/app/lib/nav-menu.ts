@@ -20,6 +20,8 @@ import {
   type NavGroupLink,
 } from '~/lib/navigation';
 import {parseAdminLink} from '~/lib/shopify/admin-link';
+import {withLeadSort} from '~/lib/shopify/brand-path';
+import {leadSortForMenu} from '~/lib/shopify/lead-sort';
 
 /** The header row has room for about eight items next to the quiz call to action. */
 export const MAX_TOP_ITEMS = 8;
@@ -456,6 +458,30 @@ function buildTopItem(
 }
 
 /**
+ * Brand links under a menu list that menu's own products first (owner request 2026-11-11): under Mattresses the mattresses,
+ * under Box Springs & Adjustable Beds the bases. Only brand pages are touched: they can hold several kinds of product,
+ * and a collection link already lists just its own.
+ */
+function withMenuLeadSort(item: MainNavItem): MainNavItem {
+  if (item.kind !== 'menu') return item;
+  const sort = leadSortForMenu(item.label, item.to);
+  return {
+    ...item,
+    groups: item.groups.map((group) => ({
+      ...group,
+      ...(group.headingTo === undefined
+        ? {}
+        : {headingTo: withLeadSort(group.headingTo, sort)}),
+      links: group.links.map((link) =>
+        link.external === true
+          ? link
+          : {...link, to: withLeadSort(link.to, sort)},
+      ),
+    })),
+  };
+}
+
+/**
  * The main navigation for a Storefront API `menu` result (or anything shaped like one). Total: junk anywhere in
  * the menu costs only that entry, never an exception (NFR-013). Ids are positions, so they are unique and the
  * same on the server and in the browser whatever the menu holds.
@@ -497,7 +523,7 @@ export function buildMainNav(
       continue;
     }
     if (built.tagged) context.tagLinksUnfiltered += 1;
-    items.push(item);
+    items.push(withMenuLeadSort(item));
   }
   return {
     items,

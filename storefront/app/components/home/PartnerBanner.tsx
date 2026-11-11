@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import {SiteImage} from '~/components/ui/SiteImage';
-import {brandPath} from '~/lib/shopify/brand-path';
+import {brandOffersPath} from '~/lib/shopify/brand-path';
 import {SITE_IMAGES} from '~/lib/site-images';
 
 // The Skechers by Serta banner under the Black Friday sale banner (owner request 2026-11-06). The owner's supplied artwork,
@@ -20,7 +20,7 @@ export function PartnerBanner() {
     // The negative bottom margin pulls the "Find the mattress" section closer, as the sale banner's does for the banner above.
     <section aria-label="Skechers by Serta" className="-mb-5 md:-mb-12">
       <Link
-        to={brandPath('serta')}
+        to={brandOffersPath('serta')}
         prefetch="intent"
         className="block overflow-hidden rounded-hero focus-visible:outline-offset-4"
       >
