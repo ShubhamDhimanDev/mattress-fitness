@@ -23,7 +23,7 @@ describe('PartnerBanner', () => {
       screen.getByRole('region', {name: 'Skechers by Serta'}),
     ).toBeInTheDocument();
     const link = screen.getByRole('link');
-    expect(link).toHaveAttribute('href', '/brands/serta');
+    expect(link).toHaveAttribute('href', '/brands/serta?sort=mattress-first');
     expect(link).toHaveAccessibleName(/shop serta/i);
   });
 

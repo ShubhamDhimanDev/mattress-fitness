@@ -85,9 +85,9 @@ describe('SaleOffers: the offer text is markup, not part of a picture', () => {
       .getAllByRole('link')
       .map((link) => link.getAttribute('href'));
     expect(hrefs).toEqual([
-      '/brands/aireloom',
-      '/brands/kingsdown',
-      '/brands/molecule',
+      '/brands/aireloom?sort=mattress-first',
+      '/brands/kingsdown?sort=mattress-first',
+      '/brands/molecule?sort=mattress-first',
     ]);
   });
 
@@ -116,7 +116,7 @@ describe('SaleOffers: links and pictures', () => {
       'sealy',
       'casper',
       'helix',
-    ].map((handle) => `/brands/${handle}`);
+    ].map((handle) => `/brands/${handle}?sort=mattress-first`);
     for (const href of hrefs) expect(allowed).toContain(href);
   });
 

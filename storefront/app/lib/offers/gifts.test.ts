@@ -356,3 +356,49 @@ describe('gift helpers for the cart UI (REQ-CART-002)', () => {
     ]);
   });
 });
+
+describe('a sized gift is offered only in the size of the mattress in the cart (REQ-CART-002, owner request 2026-11-11)', () => {
+  const rules: OfferRules = {
+    ...RULES,
+    gifts: [
+      {
+        id: 'free-base',
+        name: 'Free adjustable base',
+        qualifyingProductIds: [PRODUCT.mattressA],
+        qualifyingCollectionIds: [],
+        giftVariantIdsBySize: {
+          Twin: 'base-twin',
+          'Twin XL': 'base-twin-xl',
+          Queen: 'base-queen',
+          King: 'base-king',
+          'California King': 'base-cal-king',
+        },
+        maxQuantity: 1,
+      },
+    ],
+  };
+  const sizesFor = (size: string | null) =>
+    run(
+      [makeLine({id: 'm', productId: PRODUCT.mattressA, size})],
+      rules,
+    ).offers.flatMap((offer) => offer.sizes.map((option) => option.size));
+
+  it.each([
+    ['Queen', ['Queen']],
+    ['Twin XL', ['Twin XL']],
+    ['Twin', ['Twin']],
+    // "King" must not pick up "California King".
+    ['King', ['King']],
+    ['california king', ['California King']],
+  ])('a %s mattress is offered the %s base only', (size, expected) => {
+    expect(sizesFor(size)).toEqual(expected);
+  });
+
+  it('offers no base when the gift has no base in the mattress size', () => {
+    expect(sizesFor('Split California King')).toEqual([]);
+  });
+
+  it('keeps every size when the mattress line has no size to match', () => {
+    expect(sizesFor(null)).toHaveLength(5);
+  });
+});
