@@ -32,7 +32,8 @@ import {HOME_QUERY} from '~/lib/shopify/queries';
 import type {FaqView, ImageView, ProductCardView} from '~/lib/shopify/types';
 import {logError} from '~/lib/logging/logger';
 
-const MAX_BRAND_TILES = 12;
+// Fourteen: the thirteen brands of the store (Skechers was added 2026-11-12) and room for one more.
+const MAX_BRAND_TILES = 14;
 const MAX_COLLECTION_TILES = 6;
 const MAX_HOME_FAQS = 10;
 /** `faq.scope` value for entries that belong on general pages such as the home page. */

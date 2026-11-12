@@ -1,0 +1,66 @@
+{
+ "_note": "From Skechers_Serta_Shopify_Product_Upload.csv, supplied by the owner on 2026-11-12. The file arrived with unreadable characters (U+FFFD) where the dashes and trademark signs were: a dash between a bold feature name and its text is an em dash here; trademark signs are left out (their kind, TM or R, is not known) except CertiPUR-US(R), the one certain case. Prices are as in the file; the file has no size option.",
+ "images": ["skechers-recovery-1.png", "skechers-recovery-2.png"],
+ "products": [
+  {
+   "handle": "skechers-recovery-series-1-0-mattress",
+   "title": "Skechers Recovery Series 1.0 Mattress in a Box",
+   "vendor": "Skechers",
+   "productType": "Mattress",
+   "published": false,
+   "tags": ["Skechers", "Serta", "Mattress", "Recovery Series", "Recovery Series 0"],
+   "seoTitle": "Skechers Recovery Series 1.0 Mattress | Medium & Plush",
+   "seoDescription": "Explore the Skechers Recovery Series 1.0 Mattress in a Box. Available in Medium and Plush comfort options with 10.5-inch and 11-inch profiles.",
+   "descriptionHtml": "<p>Slip into comfort day and night with the Skechers Recovery Series 1.0 Mattress in a Box, powered by Serta innovation. The brochure highlights breathable comfort, cooling fabric, cozy quilting, and supportive cushioning.</p><h3>Key Features</h3><ul><li><strong>Breathable Cover</strong> — A soft, breathable cover helps you rest and wake refreshed.</li><li><strong>CoolFeel Plus Fabric</strong> — Engineered with cooling performance technologies to keep you cool and comfortable.</li><li><strong>Skechers CozyFit Quilt Design</strong> — Soft, cozy material for all-night comfort.</li><li><strong>Skechers Air-Cooled Memory Foam</strong> — Instant comfort and pressure relief.</li><li><strong>Skechers Max Cushioning</strong> — Featuring up to 6X more Air-Cooled Memory Foam compared to Series 1.0 and 2.0 models.</li><li><strong>BestEdge Foam Encasement</strong> — Lasting, edge-to-edge mattress stability.</li><li><strong>8&quot; Custom Support Coil System</strong> — Provides durable support and minimizes motion transfer.</li><li><strong>Skechers Arch Fit Coil Support</strong> — Supportive cushioning system for enhanced comfort. Features 920 coil density in a queen-size mattress.</li><li><strong>Skechers Arch Fit Plus Coil Support</strong> — Supportive cushioning system for maximum comfort. Features 1000 coil density in a queen-size mattress.</li></ul><p>Part of the Skechers collection powered by Serta innovation. The brochure states that the collection is made in the U.S.A. with global components, CertiPUR-US® certified, and compatible with adjustable bases.</p>",
+   "options": [
+    {"name": "Comfort Level", "values": ["Medium", "Plush"]},
+    {"name": "Profile", "values": ["10.5\"", "11\""]}
+   ],
+   "variants": [
+    {"options": ["Medium", "10.5\""], "price": "499.00", "sku": "SKZ-RS1-MEDIUM-105"},
+    {"options": ["Plush", "11\""], "price": "599.00", "sku": "SKZ-RS1-PLUSH-11"}
+   ]
+  },
+  {
+   "handle": "skechers-recovery-series-2-0-mattress",
+   "title": "Skechers Recovery Series 2.0 Mattress",
+   "vendor": "Skechers",
+   "productType": "Mattress",
+   "published": false,
+   "tags": ["Skechers", "Serta", "Mattress", "Recovery Series", "Recovery Series 0"],
+   "seoTitle": "Skechers Recovery Series 2.0 Mattress | Firm, Medium & Plush",
+   "seoDescription": "Shop the Skechers Recovery Series 2.0 Mattress in Firm, Medium and Plush options, with profiles from 13 to 14 inches.",
+   "descriptionHtml": "<p>Experience the Skechers Recovery Series 2.0 Mattress, powered by Serta innovation. This series combines a CoolFeel Plus cover, CozyFit quilt design, Air-Cooled Memory Foam, and Arch Fit zoned coil support.</p><h3>Key Features</h3><ul><li><strong>CoolFeel Plus Cover</strong> — Cooling comfort cover.</li><li><strong>Skechers CozyFit Quilt Design</strong> — Soft, cozy material for all-night comfort.</li><li><strong>Skechers Air-Cooled Memory Foam</strong> — Instant comfort and pressure relief.</li><li><strong>Skechers Arch Fit Zoned Coil Support</strong> — 920-density zoned coil support.</li></ul><p>Part of the Skechers collection powered by Serta innovation. The brochure states that the collection is made in the U.S.A. with global components, CertiPUR-US® certified, and compatible with adjustable bases.</p>",
+   "options": [
+    {"name": "Comfort Level", "values": ["Firm", "Medium", "Plush"]},
+    {"name": "Profile", "values": ["13\"", "14\""]}
+   ],
+   "variants": [
+    {"options": ["Firm", "13\""], "price": "999.00", "sku": "SKZ-RS2-FIRM-13"},
+    {"options": ["Medium", "13\""], "price": "999.00", "sku": "SKZ-RS2-MEDIUM-13"},
+    {"options": ["Plush", "14\""], "price": "1099.00", "sku": "SKZ-RS2-PLUSH-14"}
+   ]
+  },
+  {
+   "handle": "skechers-recovery-series-3-0-mattress",
+   "title": "Skechers Recovery Series 3.0 Mattress",
+   "vendor": "Skechers",
+   "productType": "Mattress",
+   "published": false,
+   "tags": ["Skechers", "Serta", "Mattress", "Recovery Series", "Recovery Series 0"],
+   "seoTitle": "Skechers Recovery Series 3.0 Mattress | Medium, Plush & Hybrid",
+   "seoDescription": "Explore Skechers Recovery Series 3.0 mattresses in Medium, Plush, Hybrid Medium-Firm and Hybrid Plush options.",
+   "descriptionHtml": "<p>Discover the Skechers Recovery Series 3.0 Mattress, powered by Serta innovation. The brochure lists CoolFeel Plus, CozyFit quilting, Air-Cooled Memory Foam, Max Cushioning, and Arch Fit Plus zoned coil support.</p><h3>Key Features</h3><ul><li><strong>CoolFeel Plus Cover</strong> — Cooling comfort cover.</li><li><strong>Skechers CozyFit Quilt Design</strong> — Soft, cozy material for all-night comfort.</li><li><strong>Skechers Air-Cooled Memory Foam</strong> — Instant comfort and pressure relief.</li><li><strong>Skechers Max Cushioning</strong> — Maximum cushioning technology.</li><li><strong>Skechers Arch Fit Plus Zoned Coil Support</strong> — 1000-density zoned coil support.</li></ul><p>Part of the Skechers collection powered by Serta innovation. The brochure states that the collection is made in the U.S.A. with global components, CertiPUR-US® certified, and compatible with adjustable bases.</p>",
+   "options": [
+    {"name": "Comfort Level", "values": ["Medium", "Plush", "Hybrid Medium-Firm", "Hybrid Plush"]},
+    {"name": "Profile", "values": ["14\"", "15\""]}
+   ],
+   "variants": [
+    {"options": ["Medium", "14\""], "price": "1299.00", "sku": "SKZ-RS3-MEDIUM-14"},
+    {"options": ["Plush", "15\""], "price": "1499.00", "sku": "SKZ-RS3-PLUSH-15"},
+    {"options": ["Hybrid Medium-Firm", "14\""], "price": "1799.00", "sku": "SKZ-RS3-HYBRIDMF-14"},
+    {"options": ["Hybrid Plush", "15\""], "price": "1799.00", "sku": "SKZ-RS3-HYBRIDPL-15"}
+   ]
+  }
+ ]
+}
