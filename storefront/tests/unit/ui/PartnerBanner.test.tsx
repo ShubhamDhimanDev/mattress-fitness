@@ -8,12 +8,12 @@ import {PartnerBanner} from '~/components/home/PartnerBanner';
 import {SITE_IMAGES} from '~/lib/site-images';
 
 // REQ-HOME-001: the Skechers by Serta banner under the sale banner (owner request 2026-11-06). The words are in the picture,
-// so the alt text carries them; the banner is one link to the Serta brand page and its files ship in public/images.
+// so the alt text carries them; the banner is one link to the Skechers brand page and its files ship in public/images.
 
 afterEach(cleanup);
 
 describe('PartnerBanner', () => {
-  it('is one labelled section with a link to the Serta brand page', () => {
+  it('is one labelled section with a link to the Skechers brand page', () => {
     render(
       <MemoryRouter>
         <PartnerBanner />
@@ -23,8 +23,11 @@ describe('PartnerBanner', () => {
       screen.getByRole('region', {name: 'Skechers by Serta'}),
     ).toBeInTheDocument();
     const link = screen.getByRole('link');
-    expect(link).toHaveAttribute('href', '/brands/serta?sort=mattress-first');
-    expect(link).toHaveAccessibleName(/shop serta/i);
+    expect(link).toHaveAttribute(
+      'href',
+      '/brands/skechers?sort=mattress-first',
+    );
+    expect(link).toHaveAccessibleName(/shop skechers/i);
   });
 
   it('describes the picture, including the words drawn into it', () => {

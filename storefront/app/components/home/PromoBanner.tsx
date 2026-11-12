@@ -12,6 +12,7 @@ import {brandOffersPath} from '~/lib/shopify/brand-path';
 const SALE_BRANDS = [
   {name: 'Serta', handle: 'serta'},
   {name: 'Beautyrest', handle: 'beautyrest'},
+  {name: 'Skechers', handle: 'skechers'},
   {name: 'Casper', handle: 'casper'},
   {name: 'Brooklyn Bedding', handle: 'brooklyn-bedding'},
   {name: 'Sealy', handle: 'sealy'},

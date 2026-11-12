@@ -7,9 +7,9 @@ import {SITE_IMAGES} from '~/lib/site-images';
 // shown whole and full width like the hero; its words (the partnership line, the store address and phone, "*T&C Apply") are
 // part of the picture, so the alt text carries them. Fixed in code, like the sale banner: no Shopify content drives it.
 //
-// It goes to the Serta brand page ("powered by Serta innovation"): the store has no Skechers brand page or products, so
-// there is nothing more specific to link to. Skechers and Serta marks appear in the artwork; the same open permission as the
-// brand logos applies (docs/design/BRAND_TOKENS.md).
+// It goes to the Skechers brand page, which lists the Skechers Recovery Series mattresses with mattresses first (owner request
+// 2026-11-12; until then the store had no Skechers products and it went to the Serta page). Skechers and Serta marks appear in the
+// artwork; the same open permission as the brand logos applies (docs/design/BRAND_TOKENS.md).
 
 const ALT =
   'Mattress Fitness presents Skechers mattresses, powered by Serta innovation: a perfect partnership for everyday comfort. ' +
@@ -20,7 +20,7 @@ export function PartnerBanner() {
     // The negative bottom margin pulls the "Find the mattress" section closer, as the sale banner's does for the banner above.
     <section aria-label="Skechers by Serta" className="-mb-5 md:-mb-12">
       <Link
-        to={brandOffersPath('serta')}
+        to={brandOffersPath('skechers')}
         prefetch="intent"
         className="block overflow-hidden rounded-hero focus-visible:outline-offset-4"
       >
@@ -31,7 +31,7 @@ export function PartnerBanner() {
           sizes="(min-width: 1280px) 1280px, 100vw"
           className="h-auto w-full object-cover"
         />
-        <span className="sr-only">Shop Serta</span>
+        <span className="sr-only">Shop Skechers</span>
       </Link>
     </section>
   );

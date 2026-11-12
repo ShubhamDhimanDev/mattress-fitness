@@ -44,6 +44,8 @@ const ENTRIES = [
     ['aireloom', 'Aireloom'],
     ['kingsdown', 'Kingsdown'],
     ['casper', 'Casper'],
+    // Added 2026-11-12 (owner): the Skechers by Serta mattresses. The product vendor is "Skechers", so the name must be the same.
+    ['skechers', 'Skechers'],
   ].map(([slug, name]) => ({type: 'brand', handle: slug, fields: {name, slug}})),
   ...[
     ['how-long-does-delivery-take', 'How long does delivery take?', 'Sample answer: most in-zone orders are delivered within a week. The real answer comes from the client.', 'general'],
@@ -104,7 +106,10 @@ const ENTRIES = [
   },
 ];
 
-const SELECTED = only ? ENTRIES.filter((entry) => entry.type === only) : ENTRIES;
+// --handle <handle> narrows --only to one entry (for example `--only brand --handle skechers`).
+const handleIndex = process.argv.indexOf('--handle');
+const onlyHandle = handleIndex >= 0 ? process.argv[handleIndex + 1] : null;
+const SELECTED = (only ? ENTRIES.filter((entry) => entry.type === only) : ENTRIES).filter((entry) => onlyHandle === null || entry.handle === onlyHandle);
 
 const UPSERT = `mutation($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {
   metaobjectUpsert(handle: $handle, metaobject: $metaobject) { metaobject { id handle } userErrors { field message code } }
