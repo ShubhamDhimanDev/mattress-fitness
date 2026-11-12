@@ -4,6 +4,7 @@
 //
 //   bash scripts/setup/with-admin-token.sh node scripts/catalog/set-status/apply.mjs "Pillow,Sheets,Mattress Topper,Accessory,Pet Bed"                    # dry run
 //   bash scripts/setup/with-admin-token.sh node scripts/catalog/set-status/apply.mjs "Pillow,Sheets,..." --live --expect 129                              # writes
+//   ... apply.mjs "Bedding" --handles puffy-selene-swivel-chair,tempur-lumbar-support-office-chair --live --expect 21      # types and/or single products by handle
 //   bash scripts/setup/with-admin-token.sh node scripts/catalog/set-status/apply.mjs --restore scripts/catalog/.runs/set-status-<time>.json [--live]       # back to ACTIVE
 //
 // Only ACTIVE products are touched (a product that is already a draft or archived is left alone), and a product tagged `offer-only`
@@ -20,7 +21,9 @@ const flag = (name) => {
 };
 const restoreFile = flag('--restore');
 const expect = flag('--expect') === undefined ? null : Number(flag('--expect'));
-const types = restoreFile ? [] : (args.find((a) => !a.startsWith('--') && a !== flag('--expect')) ?? '').split(',').map((t) => t.trim()).filter(Boolean);
+const handles = (flag('--handles') ?? '').split(',').map((h) => h.trim()).filter(Boolean);
+const typesArg = args.find((a) => !a.startsWith('--') && a !== flag('--expect') && a !== flag('--handles'));
+const types = restoreFile || typesArg === undefined ? [] : typesArg.split(',').map((t) => t.trim()).filter(Boolean);
 const {STORE, SHOPIFY_ADMIN_API_ACCESS_TOKEN: TOKEN, SHOPIFY_ALLOWED_STORES: ALLOWED = ''} = process.env;
 if (!STORE || !TOKEN) {
   console.error('Set STORE and SHOPIFY_ADMIN_API_ACCESS_TOKEN (run through scripts/setup/with-admin-token.sh).');
@@ -30,8 +33,8 @@ if (!ALLOWED.split(',').map((s) => s.trim()).includes(STORE)) {
   console.error(`Refused: ${STORE} is not listed in SHOPIFY_ALLOWED_STORES.`);
   process.exit(3);
 }
-if (!restoreFile && types.length === 0) {
-  console.error('Name the product types, for example "Pillow,Sheets", or give --restore <manifest>.');
+if (!restoreFile && types.length === 0 && handles.length === 0) {
+  console.error('Name the product types, for example "Pillow,Sheets", or --handles a,b, or give --restore <manifest>.');
   process.exit(2);
 }
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -105,6 +108,17 @@ for (const type of types) {
     after = data.products.pageInfo.endCursor;
   }
 }
+for (const handle of handles) {
+  const p = (await gql(`query($h: String!){productByIdentifier(identifier:{handle:$h}){id handle vendor status productType tags}}`, {h: handle})).productByIdentifier;
+  if (!p) {
+    console.log(`MISSING handle ${handle}`);
+    continue;
+  }
+  if (p.status !== 'ACTIVE' || p.tags.includes('offer-only') || changed.some((row) => row.id === p.id)) continue;
+  changed.push({id: p.id, handle: p.handle, vendor: p.vendor, productType: p.productType, before: p.status});
+  counts[`handle:${p.productType}`] = (counts[`handle:${p.productType}`] ?? 0) + 1;
+}
+for (const [key, count] of Object.entries(counts)) if (key.startsWith('handle:')) console.log(`${key.padEnd(18)} ${count} product(s) by handle -> DRAFT`);
 for (const type of types) console.log(`${type.padEnd(18)} ${counts[type] ?? 0} active products -> DRAFT`);
 if (skippedOfferOnly.length > 0) console.log(`Skipped (tagged offer-only): ${skippedOfferOnly.join(', ')}`);
 console.log(`${changed.length} products would go to DRAFT.`);

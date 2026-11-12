@@ -177,7 +177,7 @@ describe('loadProductPage (REQ-PDP-001)', () => {
   const respond = (call: {query: string}) =>
     call.query === PRODUCT_QUERY ? product : availability;
 
-  it('runs the content query long-cached and the availability query on the 60 s priced cache', async () => {
+  it('runs both the content query and the availability query on the 60 s priced cache (DEC-154: an admin photo change must show here as fast as on the cards)', async () => {
     const {storefront, calls} = fakeStorefront(respond);
     const result = await loadProductPage(
       storefront,
@@ -185,7 +185,7 @@ describe('loadProductPage (REQ-PDP-001)', () => {
     );
     expect(result.status).toBe('ok');
     const byQuery = new Map(calls.map((c) => [c.query, c.cache]));
-    expect(byQuery.get(PRODUCT_QUERY)).toEqual({mode: 'long'});
+    expect(byQuery.get(PRODUCT_QUERY)).toEqual(PRICED);
     expect(byQuery.get(PRODUCT_AVAILABILITY_QUERY)).toEqual(PRICED);
   });
 
