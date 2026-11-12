@@ -276,6 +276,23 @@ export function buildHomeData(
 /** Three full rows on desktop; the query reads more (36) so the pick has several brands to choose from. */
 export const HOME_FEATURED_COUNT = 9;
 
+/** How far from 1:1 a photo may be and still count as square (owner request 2026-11-12): 1200x1100 passes, 1200x886 does not. */
+export const SQUARE_PHOTO_TOLERANCE = 0.05;
+
+/** True when the card's photo is square. A card with no photo, or no known size, is not. */
+export function hasSquarePhoto(product: {
+  readonly image: {
+    readonly width?: number | null;
+    readonly height?: number | null;
+  } | null;
+}): boolean {
+  const width = product.image?.width;
+  const height = product.image?.height;
+  if (typeof width !== 'number' || typeof height !== 'number') return false;
+  if (!(width > 0) || !(height > 0)) return false;
+  return Math.abs(width / height - 1) <= SQUARE_PHOTO_TOLERANCE;
+}
+
 /** Fisher-Yates on a copy; `random` is injectable so the order can be fixed in tests. */
 export function shuffled<T>(
   items: readonly T[],
@@ -331,18 +348,24 @@ export function pickAcrossBrands<T>(
 /**
  * The featured block shows a different pick on each page load, spread across brands. Done per request in the loader,
  * after the (cached) catalog read, so the server and browser render the same order and nothing is cached per shopper.
+ *
+ * Only products with a square photo are picked (owner request 2026-11-12): cards take their photo's shape, and a row that
+ * mixes square and landscape photos leaves blank space under the shorter ones. If no product has a square photo, every
+ * product stays a candidate, so the block is never empty because of this rule.
  */
 export function withRandomFeatured(
   home: HomeData,
   random: () => number = Math.random,
 ): HomeData {
   if (!home.featured) return home;
+  const square = home.featured.products.filter(hasSquarePhoto);
+  const candidates = square.length > 0 ? square : home.featured.products;
   return {
     ...home,
     featured: {
       ...home.featured,
       products: pickAcrossBrands(
-        home.featured.products,
+        candidates,
         (product) => product.vendor,
         HOME_FEATURED_COUNT,
         random,
