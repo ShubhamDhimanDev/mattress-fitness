@@ -47,17 +47,25 @@ function qualifies(rule: GiftRule, lines: readonly ClassifiedLine[]): boolean {
   return qualifyingLines(rule, lines).length > 0;
 }
 
-// Longest first, so "Split California King" is not read as "California King" or "King".
-const SIZES_LONGEST_FIRST = SIZES.map((size) => normalizeSize(size) ?? '').sort(
-  (a, b) => b.length - a.length,
-);
+// Bed sizes a mattress or a base is sold in. "Split King" is a size of its own on the stores (Aireloom, Puffy, bases) although the
+// catalog's filter list has only "Split California King". Longest first, so "Split California King" is not read as
+// "California King" or "King".
+const SIZES_LONGEST_FIRST = [...SIZES, 'Split King']
+  .map((size) => normalizeSize(size) ?? '')
+  .sort((a, b) => b.length - a.length);
+
+/** The same size however it is spelled: "Cal King" and "California King" are one size. Null for no text. */
+function canonicalSize(value: unknown): string | null {
+  const text = normalizeSize(value);
+  return text === null ? null : text.replace(/\bcal\b/g, 'california');
+}
 
 /**
  * The standard size an option key ends with: "Twin XL", or "Silver Base Twin XL" when the rule holds several gift products
  * and prefixes the product title (shopify-rules-map.ts). Null for a key with no standard size ("Standard").
  */
 function sizeOfOptionKey(key: string): string | null {
-  const text = normalizeSize(key);
+  const text = canonicalSize(key);
   if (text === null) return null;
   return (
     SIZES_LONGEST_FIRST.find(
@@ -81,7 +89,7 @@ export function sizesForCart(
   if (offerTagOfGift(rule) !== 'free-base') return [...options];
   const wanted = new Set(
     qualifying.flatMap(({line}) => {
-      const size = normalizeSize(line.size);
+      const size = canonicalSize(line.size);
       return size === null || !SIZES_LONGEST_FIRST.includes(size) ? [] : [size];
     }),
   );
