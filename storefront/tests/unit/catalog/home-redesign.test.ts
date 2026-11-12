@@ -12,6 +12,7 @@ import {
 import {
   HOME_FEATURED_COUNT,
   mapGeneralFaqs,
+  hasSquarePhoto,
   pickAcrossBrands,
   shuffled,
   withRandomFeatured,
@@ -421,5 +422,51 @@ describe('random featured products (REQ-HOME-001)', () => {
     const picked = pickAcrossBrands(items, (item) => item.brand, 10);
     expect(picked).toHaveLength(4);
     expect(new Set(picked.map((item) => item.id)).size).toBe(4);
+  });
+});
+
+describe('the home featured block shows square photos only (REQ-HOME-001)', () => {
+  const card = (id: string, width: number | null, height: number | null) => ({
+    id,
+    vendor: `Brand ${id}`,
+    image: width === null ? null : {width, height},
+  });
+  const homeOf = (products: ReturnType<typeof card>[]) =>
+    ({featured: {title: 'x', handle: 'x', products}}) as unknown as HomeData;
+
+  it.each([
+    ['a square photo', card('a', 1600, 1600), true],
+    ['within the tolerance', card('b', 1200, 1150), true],
+    ['a landscape photo', card('c', 1200, 886), false],
+    ['a tall photo', card('d', 800, 1200), false],
+    ['no photo', card('e', null, null), false],
+  ])('%s', (_name, product, expected) => {
+    expect(hasSquarePhoto(product)).toBe(expected);
+  });
+
+  it('picks only the square ones when there are any', () => {
+    const products = [
+      ...Array.from({length: 12}, (_, i) => card(`sq${i}`, 1600, 1600)),
+      ...Array.from({length: 12}, (_, i) => card(`ls${i}`, 1200, 886)),
+    ];
+    const picked =
+      withRandomFeatured(homeOf(products)).featured?.products ?? [];
+    expect(picked).toHaveLength(HOME_FEATURED_COUNT);
+    expect(picked.every((product) => product.id.startsWith('sq'))).toBe(true);
+  });
+
+  it('shows fewer than nine rather than a landscape one, and falls back to all only when none is square', () => {
+    const few = [
+      card('sq1', 1600, 1600),
+      card('sq2', 1600, 1600),
+      card('ls1', 1200, 886),
+    ];
+    expect(
+      withRandomFeatured(homeOf(few))
+        .featured?.products.map((p) => p.id)
+        .sort(),
+    ).toEqual(['sq1', 'sq2']);
+    const none = [card('ls1', 1200, 886), card('ls2', 1200, 886)];
+    expect(withRandomFeatured(homeOf(none)).featured?.products).toHaveLength(2);
   });
 });

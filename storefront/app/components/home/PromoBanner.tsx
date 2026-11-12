@@ -8,12 +8,10 @@ import {brandOffersPath} from '~/lib/shopify/brand-path';
 // is the client's own campaign and no Shopify content drives it. Each handle is that brand's page, `/brands/<handle>`
 // (the seeded `brand` entries, scripts/setup/seed-entries.mjs); written out, not derived from the name, so a pill never
 // points at a guessed address.
+// Aireloom, Kingsdown and Molecule are not here: they carry no sale, only the free adjustable base (owner request 2026-11-12).
 const SALE_BRANDS = [
   {name: 'Serta', handle: 'serta'},
   {name: 'Beautyrest', handle: 'beautyrest'},
-  {name: 'Aireloom', handle: 'aireloom'},
-  {name: 'Kingsdown', handle: 'kingsdown'},
-  {name: 'Molecule', handle: 'molecule'},
   {name: 'Casper', handle: 'casper'},
   {name: 'Brooklyn Bedding', handle: 'brooklyn-bedding'},
   {name: 'Sealy', handle: 'sealy'},

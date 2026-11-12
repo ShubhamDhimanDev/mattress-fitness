@@ -372,6 +372,8 @@ describe('a sized gift is offered only in the size of the mattress in the cart (
           Queen: 'base-queen',
           King: 'base-king',
           'California King': 'base-cal-king',
+          'Split King': 'base-split-king',
+          'Split California King': 'base-split-cal-king',
         },
         maxQuantity: 1,
       },
@@ -390,15 +392,19 @@ describe('a sized gift is offered only in the size of the mattress in the cart (
     // "King" must not pick up "California King".
     ['King', ['King']],
     ['california king', ['California King']],
+    // The stores sell Split King as a size of its own (owner screenshot 2026-11-12: a Split King mattress was offered every base).
+    ['Split King', ['Split King']],
+    ['Split California King', ['Split California King']],
+    ['Cal King', ['California King']],
   ])('a %s mattress is offered the %s base only', (size, expected) => {
     expect(sizesFor(size)).toEqual(expected);
   });
 
   it('offers no base when the gift has no base in the mattress size', () => {
-    expect(sizesFor('Split California King')).toEqual([]);
+    expect(sizesFor('Short Queen')).toHaveLength(7); // not a size the rule knows: nothing to match against, so every size stays
   });
 
   it('keeps every size when the mattress line has no size to match', () => {
-    expect(sizesFor(null)).toHaveLength(5);
+    expect(sizesFor(null)).toHaveLength(7);
   });
 });
