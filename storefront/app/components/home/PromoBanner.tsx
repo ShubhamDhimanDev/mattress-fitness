@@ -20,6 +20,7 @@ const SALE_BRANDS = [
   {name: 'Tempur-Pedic', handle: 'tempur-pedic'},
   {name: 'Helix', handle: 'helix'},
   {name: 'Stearns & Foster', handle: 'stearns-and-foster'},
+  {name: 'Puffy', handle: 'puffy'},
 ] as const;
 
 const SALE_PERKS = [
