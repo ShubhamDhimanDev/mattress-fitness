@@ -353,6 +353,10 @@ export function pickAcrossBrands<T>(
  * Only products with a square photo are picked (owner request 2026-11-12): cards take their photo's shape, and a row that
  * mixes square and landscape photos leaves blank space under the shorter ones. If no product has a square photo, every
  * product stays a candidate, so the block is never empty because of this rule.
+ *
+ * Mattresses on sale come first (owner request 2026-11-13): a card is on sale when it has a compare-at price above its price.
+ * Each group is picked at random and spread across brands; when fewer are on sale than there are places, the places that are
+ * left are filled with ordinary mattresses (same square-photo rule), so the block is always as full as the catalog allows.
  */
 export function withRandomFeatured(
   home: HomeData,
@@ -361,17 +365,22 @@ export function withRandomFeatured(
   if (!home.featured) return home;
   const square = home.featured.products.filter(hasSquarePhoto);
   const candidates = square.length > 0 ? square : home.featured.products;
+  const onSale = candidates.filter((product) => Boolean(product.compareAt));
+  const ordinary = candidates.filter((product) => !product.compareAt);
+  const brandOf = (product: {readonly vendor: string}) => product.vendor;
+  const picked = pickAcrossBrands(onSale, brandOf, HOME_FEATURED_COUNT, random);
+  const topUp =
+    picked.length < HOME_FEATURED_COUNT
+      ? pickAcrossBrands(
+          ordinary,
+          brandOf,
+          HOME_FEATURED_COUNT - picked.length,
+          random,
+        )
+      : [];
   return {
     ...home,
-    featured: {
-      ...home.featured,
-      products: pickAcrossBrands(
-        candidates,
-        (product) => product.vendor,
-        HOME_FEATURED_COUNT,
-        random,
-      ),
-    },
+    featured: {...home.featured, products: [...picked, ...topUp]},
   };
 }
 
