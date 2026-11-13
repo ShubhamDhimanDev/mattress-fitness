@@ -408,3 +408,45 @@ describe('a sized gift is offered only in the size of the mattress in the cart (
     expect(sizesFor(null)).toHaveLength(7);
   });
 });
+
+describe('a free bedding set follows the mattress size too (REQ-CART-002, owner request 2026-11-13)', () => {
+  const rules: OfferRules = {
+    ...RULES,
+    gifts: [
+      {
+        id: 'free-bedding-set',
+        name: 'Free BG by BEDGEAR Complete Bedding Set with Tempur-Pedic',
+        qualifyingProductIds: [PRODUCT.mattressA],
+        qualifyingCollectionIds: [],
+        giftVariantIdsBySize: {
+          Twin: 'set-twin',
+          'Twin XL': 'set-twin-xl',
+          Full: 'set-full',
+          Queen: 'set-queen',
+          King: 'set-king',
+          'Split King': 'set-split-king',
+          'California King': 'set-cal-king',
+        },
+        maxQuantity: 1,
+      },
+    ],
+  };
+  const sizesFor = (size: string) =>
+    run(
+      [makeLine({id: 'm', productId: PRODUCT.mattressA, size})],
+      rules,
+    ).offers.flatMap((offer) => offer.sizes.map((option) => option.size));
+
+  it.each([
+    ['Queen', ['Queen']],
+    ['King', ['King']],
+    ['California King', ['California King']],
+    ['Twin XL', ['Twin XL']],
+  ])('a %s mattress is offered the %s set only', (size, expected) => {
+    expect(sizesFor(size)).toEqual(expected);
+  });
+
+  it('offers no set for a size the set is not made in (the set has no Split California King)', () => {
+    expect(sizesFor('Split California King')).toEqual([]);
+  });
+});
