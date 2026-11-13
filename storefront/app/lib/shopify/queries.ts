@@ -194,7 +194,7 @@ export const HOME_QUERY = `#graphql
       id
       handle
       title
-      products(first: 36) {
+      products(first: 100) {
         nodes {
           ...CatalogProductCard
         }

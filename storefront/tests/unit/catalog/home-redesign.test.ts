@@ -470,3 +470,59 @@ describe('the home featured block shows square photos only (REQ-HOME-001)', () =
     expect(withRandomFeatured(homeOf(none)).featured?.products).toHaveLength(2);
   });
 });
+
+describe('the home featured block shows mattresses on sale first (REQ-HOME-001)', () => {
+  const price = {amount: '1000.00', currencyCode: 'USD'};
+  const card = (id: string, brand: string, sale: boolean) => ({
+    id,
+    vendor: brand,
+    image: {width: 1600, height: 1600},
+    price,
+    compareAt: sale ? {amount: '1400.00', currencyCode: 'USD'} : null,
+  });
+  const homeOf = (products: ReturnType<typeof card>[]) =>
+    ({featured: {title: 'x', handle: 'x', products}}) as unknown as HomeData;
+
+  it('picks only mattresses on sale when there are enough of them', () => {
+    const products = [
+      ...Array.from({length: 12}, (_, i) => card(`s${i}`, `B${i % 3}`, true)),
+      ...Array.from({length: 12}, (_, i) => card(`n${i}`, `B${i % 3}`, false)),
+    ];
+    const picked =
+      withRandomFeatured(homeOf(products)).featured?.products ?? [];
+    expect(picked).toHaveLength(HOME_FEATURED_COUNT);
+    expect(picked.every((product) => product.id.startsWith('s'))).toBe(true);
+  });
+
+  it('fills the places left with ordinary mattresses when fewer are on sale than places', () => {
+    const products = [
+      ...Array.from({length: 4}, (_, i) => card(`s${i}`, `B${i}`, true)),
+      ...Array.from({length: 12}, (_, i) => card(`n${i}`, `B${i % 4}`, false)),
+    ];
+    const picked =
+      withRandomFeatured(homeOf(products)).featured?.products ?? [];
+    expect(picked).toHaveLength(HOME_FEATURED_COUNT);
+    expect(
+      picked
+        .slice(0, 4)
+        .map((product) => product.id)
+        .sort(),
+    ).toEqual(['s0', 's1', 's2', 's3']);
+    expect(picked.slice(4).every((product) => product.id.startsWith('n'))).toBe(
+      true,
+    );
+  });
+
+  it('shows ordinary mattresses alone when none is on sale, and fewer places when the catalog has fewer', () => {
+    const none = Array.from({length: 12}, (_, i) =>
+      card(`n${i}`, `B${i % 3}`, false),
+    );
+    expect(withRandomFeatured(homeOf(none)).featured?.products).toHaveLength(
+      HOME_FEATURED_COUNT,
+    );
+    const few = [card('s0', 'A', true), card('n0', 'B', false)];
+    expect(
+      withRandomFeatured(homeOf(few)).featured?.products.map((p) => p.id),
+    ).toEqual(['s0', 'n0']);
+  });
+});
