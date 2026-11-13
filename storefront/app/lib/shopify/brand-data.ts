@@ -253,6 +253,17 @@ export function brandListingState(
     : null;
 }
 
+/**
+ * Brands whose own collection has a different handle than the brand page (the collections were made before the brand entries and
+ * keep their handle so their addresses do not change). Without this the page fell back to the mattresses collection and showed
+ * only the brand's mattresses, and only those inside that collection's cap: Stearns & Foster showed 10 of its 28 products and
+ * Tempur-Pedic 7 of 20 (2026-11-12).
+ */
+const BRAND_COLLECTION_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  'stearns-and-foster': ['stearns-foster'],
+  'tempur-pedic': ['tempur'],
+};
+
 async function listBrandProducts(
   storefront: Storefront,
   brand: BrandPageView,
@@ -262,7 +273,11 @@ async function listBrandProducts(
   if (forced === null) return null;
   // ASSUMPTION(V-05): a rule-based collection named after the brand's handle may exist (REQ-CAT-005); if not,
   // the main mattress collection filtered by vendor is used. The vendor filter applies either way.
-  for (const handle of [brand.handle, PRIMARY_COLLECTION_HANDLE]) {
+  for (const handle of [
+    brand.handle,
+    ...(BRAND_COLLECTION_ALIASES[brand.handle] ?? []),
+    PRIMARY_COLLECTION_HANDLE,
+  ]) {
     const page = await loadCollectionPage(storefront, handle, forced);
     if (page.status === 'ok') return page;
   }

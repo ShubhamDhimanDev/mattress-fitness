@@ -68,8 +68,12 @@ function mapCollection(collection: CollectionSource) {
 }
 
 /** One Storefront API page; the whole collection is read in at most this many pages when filtering here. */
+// Five pages of 250: 1250 products. It was two (500) until 2026-11-12, when the mattresses collection grew past 500 and the last
+// ones (newest first or last, depending on the sort) never showed on /collections/mattresses, the mattress-first views and the
+// brand pages that fall back to it (owner report: "not all products are showing"). Every product beyond the cap is invisible, so
+// the cap stays well above the catalog (857 products on the store, 400 in the agreed scope); the warning below still fires.
 const LOCAL_PAGE_SIZE = 250;
-const LOCAL_MAX_PAGES = 2;
+const LOCAL_MAX_PAGES = 5;
 
 function orderForSort<T extends {readonly productType: string}>(
   nodes: T[],
