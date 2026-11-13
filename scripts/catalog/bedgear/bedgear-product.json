@@ -1,0 +1,33 @@
+{
+ "_note": "Read on 2026-11-13 from https://mattresswarehouse.com/products/bg-by-bedgear-complete-bedding-set (JSON-LD Product offers, the nine gallery photos in page order, the overview text), at the owner's request, against NFR-007 (no reference-site content): same owner permission as DEC-152. Prices, sizes and SKUs are the page's; the SKUs are prefixed BGB-. The page's one typo (peice) is corrected. Split King shows out of stock on that page; here it is orderable like the rest of the catalog.",
+ "source": "https://mattresswarehouse.com/products/bg-by-bedgear-complete-bedding-set",
+ "product": {
+  "handle": "bg-by-bedgear-complete-bedding-set",
+  "title": "BG by BEDGEAR Complete Bedding Set",
+  "vendor": "BedGear",
+  "productType": "Bedding",
+  "tags": ["BedGear", "Bedding"],
+  "descriptionHtml": "<p>Available as a 5-piece or 8-piece set, our BG by BEDGEAR Bundle has all the bedding essentials you need to set up your new mattress: pillows, pillow protectors, and a sheet set.</p><h3>Features</h3><ul><li><strong>A Pillow Made for Recovery</strong> - Designed for rest and recovery, this pillow provides a comfortable night's sleep.</li><li><strong>Built for Protection</strong> - Made from soft, flexible fabric, our pillow protector guards against common allergens for a clean and healthy sleep.</li><li><strong>Let's Talk Sheets</strong> - This exceptionally soft sheet set includes pillowcases, fitted sheet, and flat sheet, so you can outfit your bed with ease.</li><li><strong>5 Piece Set</strong> - Available in Twin and Twin XL, includes 1 pillow, 1 pillow protector, and a sheet set with 1 pillowcase.</li><li><strong>8 Piece Set</strong> - Available in Full, Queen, King, and Cal King, includes 2 pillow, 2 pillow protectors, and a sheet set with 2 pillowcases.</li></ul>",
+  "options": [{"name": "Size", "values": ["Twin", "Twin XL", "Full", "Queen", "King", "Split King", "California King"]}],
+  "variants": [
+   {"size": "Twin", "price": "300.00", "sku": "BGB-002743"},
+   {"size": "Twin XL", "price": "300.00", "sku": "BGB-002747"},
+   {"size": "Full", "price": "300.00", "sku": "BGB-002744"},
+   {"size": "Queen", "price": "300.00", "sku": "BGB-002745"},
+   {"size": "King", "price": "300.00", "sku": "BGB-002746"},
+   {"size": "Split King", "price": "300.00", "sku": "BGB-002749"},
+   {"size": "California King", "price": "300.00", "sku": "BGB-002748"}
+  ],
+  "images": [
+   "https://cdn.shopify.com/s/files/1/0657/8752/7425/files/02-BGbyBedgearBundle-Lifestyle-Bedroom.jpg",
+   "https://cdn.shopify.com/s/files/1/0657/8752/7425/files/06-BGbyBedgearKingBundle-Includes.jpg",
+   "https://cdn.shopify.com/s/files/1/0657/8752/7425/files/06-BGbyBedgearQueenBundle-Includes.jpg",
+   "https://cdn.shopify.com/s/files/1/0657/8752/7425/files/06-BGbyBedgearTwinBundle-Includes.jpg",
+   "https://cdn.shopify.com/s/files/1/0657/8752/7425/files/01-BGbyBedgearBundle-ProductShot-Main.jpg",
+   "https://cdn.shopify.com/s/files/1/0657/8752/7425/files/02-BGbyBedgearTwinBundle-Lifestyle-Pillow.jpg",
+   "https://cdn.shopify.com/s/files/1/0657/8752/7425/files/03-BGbyBedgearBundle-Lifestyle-Pillows.jpg",
+   "https://cdn.shopify.com/s/files/1/0657/8752/7425/files/03-BGbyBedgearTwinBundle-Lifestyle-Pillow.jpg",
+   "https://cdn.shopify.com/s/files/1/0657/8752/7425/files/05-BGbyBedgearBundle-Lifestyle-SheetSet.jpg"
+  ]
+ }
+}

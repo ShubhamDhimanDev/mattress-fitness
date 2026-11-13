@@ -75,9 +75,21 @@ function sizeOfOptionKey(key: string): string | null {
 }
 
 /**
+ * Gifts that are sized to the bed and so follow the mattress's size: a free adjustable base, and a free bedding set (the BG by
+ * BEDGEAR set given with Tempur-Pedic mattresses, owner request 2026-11-13). Told by the discount title, the one text a gift rule
+ * carries about itself. A free pillow stays the shopper's own choice of size.
+ */
+function isSizeMatchedGift(rule: Pick<GiftRule, 'name'>): boolean {
+  return (
+    offerTagOfGift(rule) === 'free-base' ||
+    /\bbedding\s+sets?\b/i.test(rule.name)
+  );
+}
+
+/**
  * Only the gift sizes that match the size of the mattress (or other qualifying line) in the cart: a Queen mattress is offered
- * the Queen base and nothing else (owner request 2026-11-11). It applies to a free adjustable base only (a gift a base is
- * named by its discount title, `offerTagOfGift`): a free pillow is the shopper's own choice of size. With no sized qualifying line, or a gift whose options carry no
+ * the Queen base and nothing else (owner request 2026-11-11). It applies to a free adjustable base or a free bedding set
+ * (`isSizeMatchedGift`): a free pillow is the shopper's own choice of size. With no sized qualifying line, or a gift whose options carry no
  * standard size, nothing is known to match against and every option stays. With sized lines and no matching option the gift is
  * not offered: a base in another size would not fit the bed.
  */
@@ -86,7 +98,7 @@ export function sizesForCart(
   options: readonly GiftSizeOption[],
   qualifying: readonly ClassifiedLine[],
 ): GiftSizeOption[] {
-  if (offerTagOfGift(rule) !== 'free-base') return [...options];
+  if (!isSizeMatchedGift(rule)) return [...options];
   const wanted = new Set(
     qualifying.flatMap(({line}) => {
       const size = canonicalSize(line.size);
