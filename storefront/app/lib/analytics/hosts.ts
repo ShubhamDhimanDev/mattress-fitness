@@ -49,11 +49,13 @@ export const META_CSP: ProviderCsp = {
 
 // OpenAI (ChatGPT ads) pixel. Hosts read from the pixel's own script (oaiq.min.js, fetched 2026-11-02): it loads from
 // bzrcdn.openai.com and posts events (fetch and sendBeacon) to bzr.openai.com/v1/sdk/events. OpenAI publishes no
-// Content Security Policy guidance (UNVERIFIED); confirm in report-only with a real pixel id.
+// Content Security Policy guidance (UNVERIFIED); confirm in report-only with a real pixel id. Seen blocked on the live site
+// 2026-11-14: the pixel also fetches its config (`bzrcdn.openai.com/pixel-config/v1/<id>.json`) with fetch, so the CDN host is
+// a connect-src origin as well.
 export const OPENAI_CSP: ProviderCsp = {
   script: ['https://bzrcdn.openai.com'],
   img: [],
-  connect: ['https://bzr.openai.com'],
+  connect: ['https://bzr.openai.com', 'https://bzrcdn.openai.com'],
 };
 
 // Tag Manager needs the same Google hosts as GA4, plus the Google Ads hosts: the live container (GTM-PQXJ6C4K, read
@@ -61,7 +63,9 @@ export const OPENAI_CSP: ProviderCsp = {
 // auto events). Without these hosts the enforced policy refused them and Tag Assistant reported "Content Security
 // Policy of your site blocks some resources". The list is Google's "Google Ads" and "Google Ads User Data" rows of
 // the same CSP guide (read 2026-11-05), limited to the US: Google's per-country `www.google.<TLD>` hosts are NOT
-// listed (the store is US-only, NFR-008); add one only if report-only shows it blocked.
+// listed (the store is US-only, NFR-008); add one only if report-only shows it blocked. `www.google.co.in` is the exception:
+// owner request 2026-11-14, so Google Ads conversions and remarketing work for visitors in India (image and connect only; it
+// was seen blocked on those two directives).
 //
 // `www.google.com` as a script source is Google's own instruction for the Ads tags but is a wider script origin than
 // the rest of this list (it also serves Google-run JSONP-style endpoints). It is added only when a Tag Manager
@@ -75,12 +79,14 @@ const GOOGLE_ADS_CSP: ProviderCsp = {
     'https://googleads.g.doubleclick.net',
     'https://pagead2.googlesyndication.com',
     'https://www.google.com',
+    'https://www.google.co.in',
   ],
   connect: [
     'https://www.googleadservices.com',
     'https://googleads.g.doubleclick.net',
     'https://pagead2.googlesyndication.com',
     'https://www.google.com',
+    'https://www.google.co.in',
     'https://ad.doubleclick.net',
   ],
   frame: ['https://www.googletagmanager.com'],
