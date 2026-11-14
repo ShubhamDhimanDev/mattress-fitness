@@ -63,6 +63,7 @@ describe('configuration', () => {
     ]);
     expect(analyticsCspHosts({openai: true}).connect).toEqual([
       'https://bzr.openai.com',
+      'https://bzrcdn.openai.com',
     ]);
     const both = analyticsCspHosts({ga4: true, gtm: true});
     expect(new Set(both.script).size).toBe(both.script.length);
