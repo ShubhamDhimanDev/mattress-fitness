@@ -16,10 +16,7 @@ import {
   type ReactNode,
 } from 'react';
 import type {ConsentRuntimeProps} from '~/components/consent/consent-context';
-import {
-  hasProviders,
-  type PublicAnalyticsConfig,
-} from '~/lib/analytics/config';
+import {hasProviders, type PublicAnalyticsConfig} from '~/lib/analytics/config';
 import {consentHandle, earlyViews, scheduleIdle} from '~/lib/analytics/gate';
 
 // Everything in this file is part of every route's JavaScript, which has a budget (scripts/perf). It imports no
@@ -39,8 +36,6 @@ type AnalyticsGateProps = {
   /** Shopify's shop identity for its scripts and analytics, or null (no shop id): then nothing is published or loaded. */
   readonly shop: ShopifyShop | null;
   readonly config: PublicAnalyticsConfig;
-  /** Target of the consent banner's privacy link: the page that exists, or null for none (P6-09). */
-  readonly privacyPath?: string | null;
   readonly children: ReactNode;
 };
 
@@ -110,7 +105,6 @@ export function AnalyticsGate({
   cart,
   shop,
   config,
-  privacyPath,
   children,
 }: AnalyticsGateProps) {
   const providers = hasProviders(config);
@@ -152,7 +146,6 @@ export function AnalyticsGate({
         <Suspense fallback={null}>
           <ConsentRuntime
             config={config}
-            privacyPath={privacyPath}
             nonce={nonce}
             publishStore={consentHandle.publish}
             notify={consentHandle.notify}

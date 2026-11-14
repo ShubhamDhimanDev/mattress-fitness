@@ -114,9 +114,9 @@ export function createGtmAdapter(options: GtmAdapterOptions): ProviderAdapter {
         if (!done.has(containerId)) {
           done.add(containerId);
           consent('default', {
-            ad_storage: 'denied',
-            ad_user_data: 'denied',
-            ad_personalization: 'denied',
+            ad_storage: 'granted',
+            ad_user_data: 'granted',
+            ad_personalization: 'granted',
             analytics_storage: 'granted',
           });
           layer.push({'gtm.start': Date.now(), event: 'gtm.js'});

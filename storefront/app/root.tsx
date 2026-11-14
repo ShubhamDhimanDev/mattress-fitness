@@ -154,7 +154,8 @@ export async function loader(args: Route.LoaderArgs) {
     env,
     {
       development: import.meta.env.DEV,
-      analyticsCategoryConfigured: configuredCategories(analytics).includes('analytics'),
+      analyticsCategoryConfigured:
+        configuredCategories(analytics).includes('analytics'),
     },
     logWarn,
   );
@@ -163,7 +164,10 @@ export async function loader(args: Route.LoaderArgs) {
   // providers with what it needs, and then every slot renders nothing. Affirm follows the chat's consent rule.
   const financing = resolvePublicFinancingConfig(
     env,
-    {analyticsCategoryConfigured: configuredCategories(analytics).includes('analytics')},
+    {
+      analyticsCategoryConfigured:
+        configuredCategories(analytics).includes('analytics'),
+    },
     logWarn,
   );
 
@@ -178,10 +182,6 @@ export async function loader(args: Route.LoaderArgs) {
     // Footer links to the Shopify pages, policies and blog that exist with content (REQ-CNT-001, P6-09): one
     // cached batched read, empty on failure. No price, no shopper data.
     footerLinks,
-    // Where the consent banner's privacy link goes: the policy, or a page with that handle, whichever exists (the
-    // same rule as the footer); null hides the link instead of linking a 404 (REQ-CNT-001, NFR-011).
-    privacyPath:
-      footerPages.find((page) => page.id === 'page:privacy-policy')?.to ?? null,
     // The email signup (REQ-ANL-003, P7-02): null unless Klaviyo is configured, and then the page renders no form and
     // requests no signup code. Carries no key and no list id; the privacy link only when that page exists.
     signup: publicSignupConfig(
@@ -275,12 +275,7 @@ export default function App() {
   }
 
   return (
-    <AnalyticsGate
-      cart={data.cart}
-      shop={data.shop}
-      config={data.analytics}
-      privacyPath={data.privacyPath}
-    >
+    <AnalyticsGate cart={data.cart} shop={data.shop} config={data.analytics}>
       <PageLayout
         cart={data.cart}
         isLoggedIn={data.isLoggedIn}
@@ -376,12 +371,7 @@ export function ErrorBoundary() {
   }
 
   return (
-    <AnalyticsGate
-      cart={data.cart}
-      shop={data.shop}
-      config={data.analytics}
-      privacyPath={data.privacyPath}
-    >
+    <AnalyticsGate cart={data.cart} shop={data.shop} config={data.analytics}>
       <PageLayout
         cart={data.cart}
         isLoggedIn={data.isLoggedIn}

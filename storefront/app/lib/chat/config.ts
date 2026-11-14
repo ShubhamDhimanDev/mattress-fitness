@@ -77,7 +77,7 @@ export function parseTawkIds(env: ChatEnv): TawkIds | null {
     : null;
 }
 
-/** Exact match on purpose, like `PUBLIC_CONSENT_MODE`: only the text `false` loosens the stricter default. */
+/** Exact match on purpose: only the text `false` loosens the stricter default. */
 export function parseChatRequiresConsent(value: string | undefined): boolean {
   return value !== 'false';
 }

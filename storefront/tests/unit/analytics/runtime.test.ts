@@ -4,7 +4,7 @@ import type {
   ProviderAdapter,
   ProviderLoadResult,
 } from '~/lib/analytics/adapter';
-import {createConsentStore} from '~/lib/analytics/consent-store';
+import {createConsentStore} from './consent-test-store';
 import {
   createAnalyticsRuntime,
   MAX_QUEUED_EVENTS,
@@ -53,7 +53,7 @@ function setup(options: {
   let value = options.stored ?? null;
   const consent = createConsentStore({
     mode: options.mode ?? 'opt-in',
-    storage: {read: () => value, write: (next) => void (value = next)},
+    storage: {read: () => value, write: (next: string) => void (value = next)},
   });
   const idle: Array<() => void> = [];
   const failures: string[] = [];

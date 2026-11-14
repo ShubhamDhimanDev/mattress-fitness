@@ -11,7 +11,7 @@ import {StrictMode} from 'react';
 import {MemoryRouter} from 'react-router';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {UtilityBar} from '~/components/layout/UtilityBar';
-import {createConsentStore} from '~/lib/analytics/consent-store';
+import {createConsentStore} from '../analytics/consent-test-store';
 import {consentHandle} from '~/lib/analytics/gate';
 import type {PublicChatConfig} from '~/lib/chat/config';
 import {chatHandle} from '~/lib/chat/handle';

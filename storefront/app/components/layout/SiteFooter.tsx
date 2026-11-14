@@ -1,6 +1,5 @@
 import {lazy, Suspense, useId, useState, type ComponentType} from 'react';
 import {Link} from 'react-router';
-import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
 import {FooterLogo} from '~/components/layout/BrandLogo';
 import type {SignupFormProps} from '~/components/signup/SignupForm';
 import {cn} from '~/components/ui/cn';
@@ -276,12 +275,6 @@ export function SiteFooter({
           <p className="text-sm text-ink-300">
             &copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
           </p>
-          <ul className="flex flex-wrap items-center gap-x-6">
-            {/* Withdrawal of consent must be as easy as giving it (NFR-011). The button renders nothing while no analytics id is set and until the consent chunk has loaded (its store comes from `useSyncExternalStore` with a server snapshot, so the server HTML and the hydrating render agree), so `empty:hidden` removes its list item and leaves no stray gap. The button's own colours are for a light surface; the important modifiers re-colour it for the ink band. */}
-            <li className="empty:hidden">
-              <PrivacyChoicesButton className="text-ink-300! hover:text-white!" />
-            </li>
-          </ul>
         </div>
       </div>
     </footer>

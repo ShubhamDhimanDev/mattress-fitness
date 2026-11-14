@@ -17,12 +17,8 @@ import {
 //  - default server, no PUBLIC_CHAT_PROVIDER: the "no provider" block runs; the rest is skipped;
 //  - E2E_CHAT=on with E2E_ENV_FILE naming a file with PUBLIC_CHAT_PROVIDER=fake and PUBLIC_CHAT_REQUIRES_CONSENT=false:
 //    the "call-out" and "failure" blocks run (dev server only: the production preview refuses the fake);
-//  - E2E_CHAT=consent with PUBLIC_CHAT_PROVIDER=fake, PUBLIC_GA4_MEASUREMENT_ID=G-TESTTEST01 and
-//    PUBLIC_CONSENT_MODE=opt-in (the analytics category must exist in the banner): the "consent" block runs. The
-//    analytics provider hosts are stubbed here so no request leaves the machine.
 
 const CHAT_ON = process.env.E2E_CHAT === 'on';
-const CHAT_CONSENT = process.env.E2E_CHAT === 'consent';
 // The entry chunk (ChatEntry, which holds the shell and the call-out) and the runtime chunk. In the dev server each module
 // has its own name, so the shell and the callout are matched by name too.
 const CHAT_CHUNK = /Chat(Entry|Shell|Callout|Notice|Runtime)/;
@@ -71,7 +67,7 @@ async function chatCallout(page: Page, isMobile: boolean) {
 }
 
 test.describe('REQ-ANL-004 no chat provider configured (the default)', () => {
-  test.skip(CHAT_ON || CHAT_CONSENT, 'a chat provider is configured');
+  test.skip(CHAT_ON, 'a chat provider is configured');
 
   test('no call-out, no chat code, no widget', async ({page, isMobile}) => {
     const chunk = watchRequests(page, CHAT_CHUNK);
@@ -218,83 +214,5 @@ test.describe('NFR-013 chat provider failure never blocks the shop', () => {
       0,
     );
     await expect(page.getByRole('button', {name: 'Dismiss'})).toHaveCount(0);
-  });
-});
-
-test.describe('NFR-011 chat waits for the shopper (consent required)', () => {
-  test.skip(
-    !CHAT_CONSENT,
-    'needs E2E_CHAT=consent and the analytics placeholder id',
-  );
-
-  test.beforeEach(async ({page}) => {
-    // No request may leave the machine for the analytics hosts.
-    await page.route(/^https:\/\/www\.googletagmanager\.com\//, (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/javascript',
-        body: '',
-      }),
-    );
-  });
-
-  test('no chat runtime, no provider, no widget and no call-out before the shopper agrees', async ({
-    page,
-  }) => {
-    const runtime = watchRequests(page, CHAT_RUNTIME);
-    await gotoReady(page, '/');
-    await page.waitForTimeout(3500);
-    expect(runtime, 'no runtime, controller or provider module').toEqual([]);
-    await expect(page.locator(FAKE_PANEL)).toHaveCount(0);
-    await expect(page.getByRole('button', {name: 'Chat with us'})).toHaveCount(
-      0,
-    );
-  });
-
-  test('"Reject all" keeps chat away', async ({page}) => {
-    const runtime = watchRequests(page, CHAT_RUNTIME);
-    await gotoReady(page, '/');
-    await page
-      .getByRole('region', {name: 'Privacy choices'})
-      .getByRole('button', {name: 'Reject all'})
-      .click();
-    await page.waitForTimeout(3500);
-    expect(runtime, 'no runtime, controller or provider module').toEqual([]);
-    await expect(page.locator(FAKE_PANEL)).toHaveCount(0);
-    await expect(page.getByRole('button', {name: 'Chat with us'})).toHaveCount(
-      0,
-    );
-  });
-
-  test('"Accept all" brings the call-out; withdrawing from the footer removes the widget', async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(
-      isMobile,
-      'the withdrawal path is the same on a phone; one project is enough',
-    );
-    const runtime = watchRequests(page, CHAT_RUNTIME);
-    await gotoReady(page, '/');
-    expect(runtime, 'positive control: nothing yet').toEqual([]);
-    await page
-      .getByRole('region', {name: 'Privacy choices'})
-      .getByRole('button', {name: 'Accept all'})
-      .click();
-    const callout = page
-      .getByRole('banner')
-      .getByRole('button', {name: 'Chat with us'});
-    await expect(callout).toBeVisible();
-    await expect(page.locator(FAKE_PANEL)).toHaveCount(1);
-    expect(
-      runtime.length,
-      'the runtime is requested after Accept all (the negative tests above can fail)',
-    ).toBeGreaterThan(0);
-    await page.getByRole('button', {name: 'Privacy choices'}).click();
-    const preferences = page.getByRole('dialog', {name: 'Privacy choices'});
-    await preferences.getByRole('checkbox').first().uncheck();
-    await preferences.getByRole('button', {name: 'Save choices'}).click();
-    await expect(callout).toHaveCount(0);
-    await expect(page.locator(FAKE_PANEL)).toHaveCount(0);
   });
 });
