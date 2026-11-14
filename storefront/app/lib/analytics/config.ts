@@ -1,22 +1,13 @@
-// Analytics configuration read from the public environment (P7-01, REQ-ANL-001, REQ-ANL-002, NFR-011).
+// Analytics configuration read from the public environment (P7-01, REQ-ANL-001, REQ-ANL-002).
 //
 // Everything here is public by design (a GA4 measurement id and a Meta pixel id are visible in any page that uses
 // them), so the values travel to the browser in the root loader. Pure: the caller passes the environment in.
 //
-// Fail closed, in three ways:
-//  - no id, no provider: an unset or malformed id means nothing loads, no script is added to the page and no host is
-//    added to the Content Security Policy;
-//  - an unknown PUBLIC_CONSENT_MODE means 'opt-in', the stricter behaviour (nothing is sent before the shopper
-//    agrees). 'opt-out' is chosen only by the exact value `opt-out` (no trimming, no case folding). Which of the two the law requires for this client is a
-//    legal decision this code does not make (Q-012, T-16); the switch exists so the answer is a configuration change.
-
-export const CONSENT_MODES = ['opt-in', 'opt-out'] as const;
-export type ConsentMode = (typeof CONSENT_MODES)[number];
-
-export const DEFAULT_CONSENT_MODE: ConsentMode = 'opt-in';
+// No id, no provider: an unset or malformed id means nothing loads, no script is added to the page and no host is
+// added to the Content Security Policy. Every configured provider always runs: there is no consent mode or banner
+// (owner decision 2026-11-14).
 
 export type AnalyticsEnv = {
-  readonly PUBLIC_CONSENT_MODE?: string | undefined;
   readonly PUBLIC_GA4_MEASUREMENT_ID?: string | undefined;
   readonly PUBLIC_META_PIXEL_ID?: string | undefined;
   readonly PUBLIC_OPENAI_PIXEL_ID?: string | undefined;
@@ -24,7 +15,6 @@ export type AnalyticsEnv = {
 };
 
 export type PublicAnalyticsConfig = {
-  readonly consentMode: ConsentMode;
   readonly ga4MeasurementId: string | null;
   readonly metaPixelId: string | null;
   readonly openaiPixelId: string | null;
@@ -45,12 +35,6 @@ const GTM_CONTAINER_ID = /^GTM-[A-Z0-9]{4,12}$/;
 
 function clean(value: string | undefined): string {
   return (value ?? '').trim();
-}
-
-export function parseConsentMode(value: string | undefined): ConsentMode {
-  // Exact match on purpose (review I-1): the looser behaviour is chosen only by writing exactly `opt-out`. A value
-  // with different case, spaces or a typo keeps the stricter `opt-in`.
-  return value === 'opt-out' ? 'opt-out' : 'opt-in';
 }
 
 export function parseGa4MeasurementId(
@@ -77,7 +61,6 @@ export function parseGtmContainerId(value: string | undefined): string | null {
 
 export function parseAnalyticsConfig(env: AnalyticsEnv): PublicAnalyticsConfig {
   return {
-    consentMode: parseConsentMode(env.PUBLIC_CONSENT_MODE),
     ga4MeasurementId: parseGa4MeasurementId(env.PUBLIC_GA4_MEASUREMENT_ID),
     metaPixelId: parseMetaPixelId(env.PUBLIC_META_PIXEL_ID),
     openaiPixelId: parseOpenaiPixelId(env.PUBLIC_OPENAI_PIXEL_ID),

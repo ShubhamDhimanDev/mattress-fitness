@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
-import {act, cleanup, fireEvent, render, screen} from '@testing-library/react';
+import {act, cleanup, render, screen} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {CHECKOUT_LINK_PATH} from '~/components/consent/AnalyticsBridge';
 import {CHECKOUT_STEPS_PATH} from '~/lib/cart/checkout';
 import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
-import {PrivacyChoicesButton} from '~/components/consent/PrivacyChoicesButton';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
 import {consentHandle} from '~/lib/analytics/gate';
 
@@ -13,14 +12,14 @@ import {consentHandle} from '~/lib/analytics/gate';
 // shell (the footer button, Hydrogen's canTrack) reacts to what it publishes. NFR-013: see gate-lazy-failure.test.tsx
 // for a chunk that fails to download.
 
-const {loaded, published} = vi.hoisted(() => ({
+const {loaded} = vi.hoisted(() => ({
   loaded: vi.fn(),
-  published: {store: null as unknown},
 }));
 
 vi.mock('~/components/consent/ConsentRuntime', async () => {
   const React = await import('react');
-  const {createConsentStore} = await import('~/lib/analytics/consent-store');
+  const {createAlwaysAllowedStore} =
+    await import('~/lib/analytics/consent-store');
   loaded();
   return {
     ConsentRuntime: (props: {
@@ -30,11 +29,7 @@ vi.mock('~/components/consent/ConsentRuntime', async () => {
     }) => {
       const {publishStore, notify} = props;
       React.useEffect(() => {
-        const store = createConsentStore({
-          mode: 'opt-in',
-          storage: {read: () => null, write: () => {}},
-        });
-        published.store = store;
+        const store = createAlwaysAllowedStore();
         publishStore(store);
         const unsubscribe = store.subscribe(notify);
         return () => {
@@ -71,7 +66,6 @@ function renderGate(env: Record<string, string>) {
   return render(
     <AnalyticsGate cart={null} shop={null} config={parseAnalyticsConfig(env)}>
       <p>the page</p>
-      <PrivacyChoicesButton />
     </AnalyticsGate>,
   );
 }
@@ -93,7 +87,7 @@ describe('with no provider id (the default)', () => {
     });
     expect(loaded).not.toHaveBeenCalled();
     expect(screen.queryByTestId('runtime')).toBeNull();
-    expect(screen.queryByRole('button', {name: 'Privacy choices'})).toBeNull();
+    expect(consentHandle.getStore()).toBeNull();
   });
 
   it('a malformed id counts as unset', async () => {
@@ -124,45 +118,24 @@ describe('with a provider id', () => {
     expect(await screen.findByTestId('runtime')).toBeInTheDocument();
   });
 
-  it('the footer button appears once the chunk has published its store, and opens the preferences', async () => {
-    renderGate({PUBLIC_GA4_MEASUREMENT_ID: 'G-ABCD1234'});
-    expect(screen.queryByRole('button', {name: 'Privacy choices'})).toBeNull();
-    await runIdle();
-    const button = await screen.findByRole('button', {name: 'Privacy choices'});
-    const store = published.store as {
-      getSnapshot: () => {preferencesOpen: boolean};
-    };
-    expect(store.getSnapshot().preferencesOpen).toBe(false);
-    fireEvent.click(button);
-    expect(store.getSnapshot().preferencesOpen).toBe(true);
-  });
-
-  it('the button goes away when the chunk unmounts', async () => {
+  it('publishes the store once the chunk has loaded, and takes it away when the chunk unmounts', async () => {
     const {unmount} = renderGate({PUBLIC_GA4_MEASUREMENT_ID: 'G-ABCD1234'});
+    expect(consentHandle.getStore()).toBeNull();
     await runIdle();
-    await screen.findByRole('button', {name: 'Privacy choices'});
+    await screen.findByTestId('runtime');
+    expect(consentHandle.getStore()).not.toBeNull();
     unmount();
     expect(consentHandle.getStore()).toBeNull();
   });
 });
 
 describe('what Hydrogen is told (canTrack)', () => {
-  it('"consented" is false without a choice, true for any consented provider, and follows a withdrawal', async () => {
+  it('"consented" is false until the chunk has published its store, then always true (tracking is always on)', async () => {
     renderGate({PUBLIC_GA4_MEASUREMENT_ID: 'G-ABCD1234'});
     expect(consentHandle.consented()).toBe(false);
     await runIdle();
     await screen.findByTestId('runtime');
-    const store = published.store as {
-      acceptAll: () => void;
-      rejectAll: () => void;
-      save: (choice: {analytics: boolean; marketing: boolean}) => void;
-    };
-    await act(async () => store.acceptAll());
     expect(consentHandle.consented()).toBe(true);
-    await act(async () => store.save({analytics: false, marketing: true}));
-    expect(consentHandle.consented()).toBe(true);
-    await act(async () => store.rejectAll());
-    expect(consentHandle.consented()).toBe(false);
   });
 });
 

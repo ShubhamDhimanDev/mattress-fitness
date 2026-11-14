@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import type {AnalyticsEvent} from '~/lib/analytics';
 import type {ProviderAdapter} from '~/lib/analytics/adapter';
-import {createConsentStore} from '~/lib/analytics/consent-store';
+import {createConsentStore} from './consent-test-store';
 import {evaluatePage} from '~/lib/analytics/page-context';
 import {createAnalyticsRuntime} from '~/lib/analytics/runtime';
 

@@ -1,5 +1,7 @@
 # Analytics, Meta tracking and consent (P7-01)
 
+> **SUPERSEDED 2026-11-14 (DEC-155, owner instruction):** there is no consent banner, no stored decision, no `PUBLIC_CONSENT_MODE` and no Global Privacy Control check any more. Every provider whose id is set (GA4, Meta, OpenAI, Google Tag Manager) loads and tracks for every visitor, and Google Consent Mode defaults are all `granted`. The sections below that describe the banner, opt-in or opt-out, withdrawal and the footer "Privacy choices" button describe the removed behaviour. The legal question (Q-012) stays with the client.
+
 Requirements: REQ-ANL-001 (GA4), REQ-ANL-002 (Meta), REQ-QZ-006 (quiz events), NFR-011 (consent), NFR-013 (a failing provider never breaks the page). Threats: T-05 (PII), T-10 (third-party scripts), T-16 (consent, legal). Status 2026-10-24: **built, unit-tested (see "Verified" for the count) and exercised by the e2e spec in the dev server and the production preview, desktop and phone, against a network stub of the providers (`progress/TEST_RESULTS.md` V-E192, V-E200, V-E202).** **Nothing has been verified against real GA4 DebugView, Meta's Test Events tool or a real host**: no property or pixel exists (CLR-004), so what the vendor scripts actually receive and do (history-change page views, automatic events, Meta's reading of the address) is UNVERIFIED. No id may be set on a staging or public URL until the security conditions in "To go live" are met.
 
 Security review 2026-10-24 ([REVIEW-2026-10-24-analytics-consent](../security/REVIEW-2026-10-24-analytics-consent.md), PASS WITH CONDITIONS): M-1, L-1, L-2, L-3, L-4, L-6 and I-1 are fixed in code with tests (sections "Safe pages and what the providers see", "Content Security Policy", "Consent mechanics"); M-2 is fixed by the footer button; L-5 and L-7 are recorded below as open or accepted. Nothing from the review fixes has been seen in a browser or in provider tooling either.
@@ -26,7 +28,6 @@ Everything above sits behind `track()` (`app/lib/analytics.ts`), the single entr
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PUBLIC_GA4_MEASUREMENT_ID` | `G-` plus 4 to 16 letters or digits. Unset or malformed: GA4 is off, no script, no CSP host, no analytics checkbox                                                         |
 | `PUBLIC_META_PIXEL_ID`      | digits only (6 to 20). Unset or malformed: Meta is off, same                                                                                                               |
-| `PUBLIC_CONSENT_MODE`       | `opt-in` (default) or `opt-out`. **Only the exact text `opt-out` loosens it.** Any other value (`OPT-OUT`, `opt-out`, a typo) means `opt-in`: no trimming, no case folding |
 
 Both ids unset: no consent state, no runtime, no banner, no script, no CSP change, and `<Analytics.Provider>` is called exactly as before (no `canTrack`). Names only are in the root `.env.example`.
 

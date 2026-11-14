@@ -9,7 +9,6 @@ import {createMemoryRouter, RouterProvider} from 'react-router';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
-import {serializeConsent} from '~/lib/analytics/consent';
 import {consentHandle, earlyViews} from '~/lib/analytics/gate';
 import {currentAnalytics, releaseAnalytics} from '~/lib/analytics/live';
 
@@ -21,14 +20,6 @@ import {currentAnalytics, releaseAnalytics} from '~/lib/analytics/live';
 
 const GA = parseAnalyticsConfig({PUBLIC_GA4_MEASUREMENT_ID: 'G-ABCD1234'});
 const FLAG = 'ga-disable-G-ABCD1234';
-
-function setConsent(analytics: boolean) {
-  const value = serializeConsent(
-    {analytics, marketing: false},
-    Date.now() / 1000,
-  );
-  document.cookie = `mf_consent=${encodeURIComponent(value)}; Path=/`;
-}
 
 function layer(): unknown[][] {
   const data: unknown = Reflect.get(window, 'dataLayer');
@@ -92,7 +83,6 @@ beforeEach(() => {
       analyticsProcessingAllowed: () => true,
     },
   });
-  setConsent(true);
 });
 
 afterEach(() => {
@@ -136,50 +126,6 @@ describe('the consent layer survives the App / ErrorBoundary swap', () => {
     expect(calls('js')).toBe(1);
     expect(calls('event', 'view_item')).toBe(1);
     expect(calls('event', 'page_view')).toBe(1);
-    second.unmount();
-  });
-
-  it('applies a withdrawal made while no component was mounted to the resident tag', async () => {
-    const first = mountRoot(<p>a page</p>);
-    await waitFor(() => expect(scripts()).toHaveLength(1));
-    act(() => {
-      scripts()[0]?.dispatchEvent(new Event('load'));
-    });
-    await waitFor(() => expect(calls('event', 'page_view')).toBe(1));
-    expect(Reflect.get(window, FLAG)).toBe(false);
-
-    first.unmount();
-    // In the gap: the shopper withdraws in another tab; this tab is looked at again.
-    setConsent(false);
-    act(() => {
-      window.dispatchEvent(new Event('focus'));
-    });
-    expect(Reflect.get(window, FLAG)).toBe(true);
-
-    // The remounted layer sees the withdrawal too and sends nothing.
-    const sentBefore = layer().length;
-    const second = mountRoot(<p>page not found</p>);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 40));
-    });
-    expect(Reflect.get(window, FLAG)).toBe(true);
-    expect(scripts()).toHaveLength(1);
-    expect(layer().length).toBe(sentBefore);
-    second.unmount();
-  });
-
-  it('a withdrawal in the gap is also applied by the adoption itself (no focus event needed)', async () => {
-    const first = mountRoot(<p>a page</p>);
-    await waitFor(() => expect(scripts()).toHaveLength(1));
-    act(() => {
-      scripts()[0]?.dispatchEvent(new Event('load'));
-    });
-    await waitFor(() => expect(calls('event', 'page_view')).toBe(1));
-    first.unmount();
-    setConsent(false);
-    expect(Reflect.get(window, FLAG)).toBe(false);
-    const second = mountRoot(<p>page not found</p>);
-    await waitFor(() => expect(Reflect.get(window, FLAG)).toBe(true));
     second.unmount();
   });
 

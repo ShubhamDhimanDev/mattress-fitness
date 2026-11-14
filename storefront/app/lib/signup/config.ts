@@ -56,7 +56,7 @@ export function smsAvailable(
   env: object,
   options: SignupConfigOptions,
 ): boolean {
-  // Exact match, like PUBLIC_CONSENT_MODE: "True", " true" or "1" mean off.
+  // Exact match: "True", " true" or "1" mean off.
   const flag = Reflect.get(env, KLAVIYO_ENV.smsEnabled);
   if (flag !== 'true') return false;
   return SMS_CONSENT.clientApproved || options.allowUnapprovedSms;

@@ -146,7 +146,7 @@ describe('OpenAI adapter', () => {
 });
 
 describe('GTM adapter', () => {
-  it('denies ad consent, starts the container, then forwards events', async () => {
+  it('grants consent, starts the container, then forwards events', async () => {
     const win = {};
     const adapter = createGtmAdapter({
       containerId: 'GTM-PQXJ6C4K',
@@ -160,7 +160,7 @@ describe('GTM adapter', () => {
     if (!Array.isArray(layer)) throw new Error('no data layer');
     const first = Array.from(layer[0] as ArrayLike<unknown>);
     expect(first.slice(0, 2)).toEqual(['consent', 'default']);
-    expect(first[2]).toMatchObject({ad_storage: 'denied'});
+    expect(first[2]).toMatchObject({ad_storage: 'granted'});
     expect(layer[1]).toMatchObject({event: 'gtm.js'});
     expect(layer[2]).toEqual({event: 'generate_lead'});
     adapter.pause?.();

@@ -11,13 +11,12 @@ import {AnalyticsGate} from '~/components/consent/AnalyticsGate';
 import {track, type AnalyticsEvent} from '~/lib/analytics';
 import type {ProviderAdapter} from '~/lib/analytics/adapter';
 import {parseAnalyticsConfig} from '~/lib/analytics/config';
-import {serializeConsent} from '~/lib/analytics/consent';
 import {consentHandle, earlyViews} from '~/lib/analytics/gate';
 import {releaseAnalytics} from '~/lib/analytics/live';
 
 // P7-01 review 2026-10-24 (M-1): the REAL lazy chunk (ConsentRuntime, runtime, bridge, store, banner), the real
 // AnalyticsGate and Hydrogen's real Analytics.Provider. Only the provider adapters are replaced by a recorder, because
-// jsdom cannot load Google's script. Proves that, with consent already stored, (1) events `track()` held while the
+// jsdom cannot load Google's script. Proves that, (every provider always runs), (1) events `track()` held while the
 // chunk was loading reach the provider once, and (2) the product view Hydrogen published before the chunk existed
 // is not lost.
 
@@ -44,14 +43,6 @@ vi.mock('~/lib/analytics/browser', async (importOriginal) => {
 const GA = parseAnalyticsConfig({PUBLIC_GA4_MEASUREMENT_ID: 'G-ABCD1234'});
 const names = () => sent.map((event) => event.name);
 const count = (name: string) => names().filter((n) => n === name).length;
-
-function storeConsent(analytics: boolean) {
-  const value = serializeConsent(
-    {analytics, marketing: false},
-    Date.now() / 1000,
-  );
-  document.cookie = `mf_consent=${encodeURIComponent(value)}; Path=/`;
-}
 
 function productPayload(url: string) {
   return {
@@ -123,9 +114,8 @@ afterEach(() => {
   earlyViews.reset();
 });
 
-describe('the real consent chunk with consent already stored', () => {
+describe('the real consent chunk (every provider always runs)', () => {
   it('sends the events track() held while the chunk was loading, once each', async () => {
-    storeConsent(true);
     track({
       name: 'view_item_list',
       params: {},
@@ -145,7 +135,6 @@ describe('the real consent chunk with consent already stored', () => {
   });
 
   it('does not lose the product view Hydrogen published before the chunk existed', async () => {
-    storeConsent(true);
     renderPage(<PublishesProductView url={window.location.href} />);
     expect(screen.getByText('product page')).toBeInTheDocument();
     await waitFor(() => expect(count('view_item')).toBe(1));
@@ -163,7 +152,6 @@ describe('the real consent chunk with consent already stored', () => {
   });
 
   it('does not send a kept view that belongs to another page', async () => {
-    storeConsent(true);
     renderPage(
       <PublishesProductView url="http://localhost:3000/products/some-other-page" />,
     );
@@ -175,29 +163,10 @@ describe('the real consent chunk with consent already stored', () => {
   });
 });
 
-describe('the real consent chunk before the shopper has answered (opt-in)', () => {
-  it('sends nothing, then sends the page view and the page\'s product view once after "Accept all"', async () => {
-    renderPage(<PublishesProductView url={window.location.href} />);
-    const accept = await screen.findByRole('button', {name: 'Accept all'});
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 30));
-    });
-    expect(sent).toEqual([]);
-    await act(async () => accept.click());
-    await waitFor(() => expect(count('view_item')).toBe(1));
-    expect(names().slice(0, 2)).toEqual(['page_view', 'view_item']);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 30));
-    });
-    expect(names()).toEqual(['page_view', 'view_item']);
-  });
-});
-
 // QA F-1: the dev server runs React in StrictMode, which cleans every effect up and runs it again at once. The consent
 // chunk must keep the events track() held (and the early product view) through that.
 describe('the real consent chunk under React StrictMode (development)', () => {
   it('still sends the events track() held while the chunk loaded, once each', async () => {
-    storeConsent(true);
     track({
       name: 'view_item_list',
       params: {},
@@ -214,7 +183,6 @@ describe('the real consent chunk under React StrictMode (development)', () => {
   });
 
   it('still sends the product view published before the chunk existed, once', async () => {
-    storeConsent(true);
     renderPage(<PublishesProductView url={window.location.href} />, true);
     await waitFor(() => expect(count('view_item')).toBe(1));
     await act(async () => {

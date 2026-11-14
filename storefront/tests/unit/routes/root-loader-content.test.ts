@@ -135,16 +135,6 @@ describe('root loader: content links', () => {
     expect(data.footerLinks.legal.map((link) => link.to)).toEqual([
       '/policies/privacy-policy',
     ]);
-    expect(data.privacyPath).toBe('/policies/privacy-policy');
-  });
-
-  it('privacy page without a policy: the banner links the page', async () => {
-    const data = await run(
-      respondWith(() =>
-        contentAnswer({'privacy-policy': '<p>We keep little.</p>'}),
-      ),
-    );
-    expect(data.privacyPath).toBe('/pages/privacy-policy');
   });
 
   it('with an admin menu the fixed navigation is not sent at all', async () => {
@@ -196,7 +186,6 @@ describe('root loader: content links', () => {
       /^\/(pages|blogs)\//.test(to ?? ''),
     );
     expect(remaining).toEqual([]);
-    expect(data.privacyPath).toBeNull();
   });
 
   it('does not let a failed read stop the page: the loader still resolves', async () => {

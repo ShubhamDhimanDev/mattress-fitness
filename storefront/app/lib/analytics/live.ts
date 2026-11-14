@@ -11,13 +11,14 @@
 
 import {clearTrackSink, setTrackSink} from '~/lib/analytics';
 import {
-  attachConsentRefresh,
   createBrowserAdapters,
-  createBrowserConsentStore,
   evaluateCurrentPage,
 } from '~/lib/analytics/browser';
 import type {PublicAnalyticsConfig} from '~/lib/analytics/config';
-import type {ConsentStore} from '~/lib/analytics/consent-store';
+import {
+  createAlwaysAllowedStore,
+  type ConsentStore,
+} from '~/lib/analytics/consent-store';
 import {
   createAnalyticsRuntime,
   type AnalyticsRuntime,
@@ -30,12 +31,12 @@ export type LiveAnalytics = {
   readonly runtime: AnalyticsRuntime;
 };
 
-type Held = LiveAnalytics & {readonly detach: () => void};
+type Held = LiveAnalytics;
 
 let live: Held | null = null;
 
 function keyOf(config: PublicAnalyticsConfig): string {
-  return `${config.consentMode}|${config.ga4MeasurementId}|${config.metaPixelId}|${config.openaiPixelId}|${config.gtmContainerId}`;
+  return `${config.ga4MeasurementId}|${config.metaPixelId}|${config.openaiPixelId}|${config.gtmContainerId}`;
 }
 
 export function acquireAnalytics(args: {
@@ -45,14 +46,12 @@ export function acquireAnalytics(args: {
 }): LiveAnalytics {
   const key = keyOf(args.config);
   if (live && live.key === key) {
-    // A remount adopts the running layer. The decision is read again, in case it changed while no component was
-    // listening, so a withdrawal made meanwhile reaches the resident tag at once.
-    live.store.refresh();
+    // A remount adopts the running layer.
     return live;
   }
   releaseAnalytics();
 
-  const store = createBrowserConsentStore(args.config.consentMode, window);
+  const store = createAlwaysAllowedStore();
   const adapters = createBrowserAdapters(args.config, window, args.nonce);
   const runtime = createAnalyticsRuntime({
     adapters,
@@ -68,9 +67,7 @@ export function acquireAnalytics(args: {
   // the chunk loaded, and those only reach a provider that is already active.
   runtime.start();
   setTrackSink(runtime.track);
-  // For the life of the page, not of a component: a withdrawal in another tab applies even while none is mounted.
-  const detach = attachConsentRefresh(store, window);
-  live = {key, store, runtime, detach};
+  live = {key, store, runtime};
   return live;
 }
 
@@ -83,7 +80,6 @@ export function releaseAnalytics(): void {
   const current = live;
   if (!current) return;
   live = null;
-  current.detach();
   current.runtime.stop();
   clearTrackSink(current.runtime.track);
 }
